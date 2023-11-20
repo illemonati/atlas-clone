@@ -13,7 +13,7 @@
 
 #include "TBamFile.h"
 #include "TBamFilter.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 
@@ -50,7 +50,7 @@ friend class TBamDownsampler;
 //-----------------------------------------
 // TBamDownsampler_base
 //-----------------------------------------
-class TBamDownsampler_base:public TGenome_basic{
+class TBamDownsampler_base:public old::TGenome_basic{
 protected:
 	std::vector<coretools::Probability> _probs;
 	std::vector<std::string> _names;

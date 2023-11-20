@@ -16,7 +16,7 @@
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
 #include "coretools/Files/TFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -202,7 +202,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 // TBamFile - windows
 //-------------------------------------------------------------
 
-class TGenomeWindow_Test : public GenomeTasks::TGenome_windows {
+class TGenomeWindow_Test : public GenomeTasks::old::TGenome_windows {
 protected:
     std::vector<genometools::TGenomeWindow> _windows_visited;
 
@@ -232,7 +232,7 @@ public:
     std::vector<size_t> numReadsInWindow;
     std::vector<std::vector<GenotypeLikelihoods::TSite>> sites;
 
-    TGenomeWindow_Test() : GenomeTasks::TGenome_windows() {};
+    TGenomeWindow_Test() : GenomeTasks::old::TGenome_windows() {};
 
     void traverse(){
         _traverseBAMWindows();
@@ -686,7 +686,7 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
 using coretools::TCountDistribution;
 using coretools::TCountDistributionVector;
 
-class TBamFilter : public GenomeTasks::TGenome_filtered {
+class TBamFilter : public GenomeTasks::old::TGenome_filtered {
     // class very similar to TBamDiagnoser, but inherits from TGenome_filtered -> can apply all filters
 public:
     // distributions

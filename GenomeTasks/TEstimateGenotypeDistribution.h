@@ -6,11 +6,11 @@
 #ifndef GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Files/TOutputFile.h"
 
 namespace GenomeTasks {
-class TEstimateGenotypeDistribution final : public TGenome_windows {
+class TEstimateGenotypeDistribution final : public old::TGenome_windows {
 private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 	std::vector<GenotypeLikelihoods::TSite> _sites;

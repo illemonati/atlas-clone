@@ -14,12 +14,12 @@
 #include "coretools/Main/TTask.h"
 
 #include "TBamFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TOutputBamFile.h"
 
 namespace GenomeTasks{
 
-class TIlluminaIdentifier : public TGenome_basic {
+class TIlluminaIdentifier : public old::TGenome_basic {
 private:
 	size_t _counter = 0;
 	std::map<std::string, std::string> rgPU_rgID;

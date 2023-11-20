@@ -15,7 +15,7 @@
 #include <string>
 
 #include "TBamFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TOutputBamFile.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -87,7 +87,7 @@ auto findInStorage(StorageType & Storage, const std::string & name){
 // TGenomeParsedWithAlignmentStorage
 //-----------------------------------------
 template<typename StorageType, typename StorageIteratorType>
-class TGenomeParsedWithAlignmentStorage:public TGenome_parsed{
+class TGenomeParsedWithAlignmentStorage:public old::TGenome_parsed{
 protected:
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
 	StorageType _alignmentStorage;

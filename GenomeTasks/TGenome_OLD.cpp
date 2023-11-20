@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 
 #include <cstdint>
 #include <exception>
@@ -22,7 +22,7 @@
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Strings/stringFunctions.h"
 
-namespace GenomeTasks {
+namespace GenomeTasks::old {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;

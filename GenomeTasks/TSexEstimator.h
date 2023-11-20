@@ -10,7 +10,7 @@
 
 
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "TBedReaderWindows.h"
 
@@ -20,7 +20,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TSexEstimator
 //----------------------------------------
-class TSexEstimator : public TGenome_windows {
+class TSexEstimator : public old::TGenome_windows {
 private:
 	std::vector<coretools::TCountDistribution<>> _distPerSites;
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;

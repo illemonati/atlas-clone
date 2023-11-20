@@ -11,7 +11,7 @@
 #include <string>
 
 #include "TGLF.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //-------------------------------------------
 // TWriteGLF
 //-------------------------------------------
-class TWriteGLF:public TGenome_windows{
+class TWriteGLF:public old::TGenome_windows{
 private:
 	GLF::TGlfWriter _writer;
 	bool _printAll;

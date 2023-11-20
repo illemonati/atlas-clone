@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
@@ -22,7 +22,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-class TDuplicateQuantifier:public TGenome_filtered{
+class TDuplicateQuantifier:public old::TGenome_filtered{
 private:
 	coretools::TCountDistributionVector<> _countsPerReadGroup;
 	coretools::TCountDistribution<> _countsCombined;

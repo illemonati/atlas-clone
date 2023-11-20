@@ -12,7 +12,7 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Math/counters.h"
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TAllelicDepthCounts.h"
 
 namespace GenomeTasks {
@@ -20,7 +20,7 @@ namespace GenomeTasks {
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup : public TGenome_windows {
+class TPileup : public old::TGenome_windows {
 private:
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;

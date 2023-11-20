@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
@@ -20,7 +20,7 @@ namespace GenomeTasks{
 //--------------------------------------
 // TReadGroupMerger
 //--------------------------------------
-class TReadGroupMerger:public TGenome_basic{
+class TReadGroupMerger:public old::TGenome_basic{
 private:
 	std::vector<uint16_t> readGroupMap;
 public:

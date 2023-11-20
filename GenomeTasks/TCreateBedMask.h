@@ -13,7 +13,7 @@
 #include <string>
 
 #include "genometools/BED/TBed.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TTask.h"
 
@@ -22,7 +22,7 @@ namespace GenomeTasks{
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-class TCreateBedMask:public TGenome_windows{
+	class TCreateBedMask:public old::TGenome_windows{
 protected:
 	void _handleAlignment() override {}
 	genometools::TBed _bed;

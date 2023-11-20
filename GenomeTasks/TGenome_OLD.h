@@ -1,12 +1,12 @@
 /*
- * TGenome.h
+ * TGenome_OLD.h
  *
  *  Created on: Feb 19, 2015
  *      Author: wegmannd
  */
 
-#ifndef TGENOME_H_
-#define TGENOME_H_
+#ifndef TGENOME_OLD_H_
+#define TGENOME_OLD_H_
 
 #include <memory>
 #include <string>
@@ -29,7 +29,7 @@ namespace coretools {
 class TSubsamplePicker;
 }
 
-namespace GenomeTasks {
+namespace GenomeTasks::old {
 
 //---------------------------------------------------------------
 // TGenome_basic

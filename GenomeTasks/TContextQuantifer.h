@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
 
@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-class TContextQuantifier:public TGenome_parsed {
+class TContextQuantifier:public old::TGenome_parsed {
 private:
 	coretools::TCountDistributionVector<> _contextCounts;
 

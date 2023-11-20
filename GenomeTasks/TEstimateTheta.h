@@ -16,7 +16,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/BED/TBed.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
@@ -31,7 +31,7 @@ namespace GenomeTasks {
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface : public TGenome_windows {
+class TEstimateThetaLLSurface : public old::TGenome_windows {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	size_t _steps;
@@ -48,7 +48,7 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateTheta : public TGenome_windows {
+class TEstimateTheta : public old::TGenome_windows {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
@@ -77,7 +77,7 @@ public:
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-class TEstimateThetaRatio : public TGenome_windows {
+class TEstimateThetaRatio : public old::TGenome_windows {
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
 	genometools::TBed _region1;

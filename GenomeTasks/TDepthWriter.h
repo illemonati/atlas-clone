@@ -11,7 +11,7 @@
 #include <string>
 
 #include "coretools/Files/TOutputFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
 
@@ -20,7 +20,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-class TDepthWriter:public TGenome_windows{
+class TDepthWriter:public old::TGenome_windows{
 private:
 	coretools::TOutputFile _out;
 	coretools::TCountDistribution<> _distPerSite;

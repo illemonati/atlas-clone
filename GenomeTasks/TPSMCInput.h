@@ -13,7 +13,7 @@
 #include <memory>
 #include <string>
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TTask.h"
 #include "TThetaEstimator.h"
@@ -23,7 +23,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-class TPSMCInput:public TGenome_windows{
+class TPSMCInput:public old::TGenome_windows{
 private:
 	double _theta;
 	double _confidence, _logConfidence, _logConfidenceHet;

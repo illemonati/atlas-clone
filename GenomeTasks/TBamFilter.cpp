@@ -37,9 +37,6 @@ namespace GenomeTasks{
 
 namespace BamFilter{
 
-using coretools::instances::parameters;
-using coretools::instances::logfile;
-using coretools::instances::randomGenerator;
 using namespace coretools::str;
 
 //-----------------------------------------

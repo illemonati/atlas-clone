@@ -13,7 +13,7 @@
 
 #include "TBamFile.h"
 #include "TOutputBamFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Math/TNumericRange.h"
@@ -23,7 +23,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
-class TPMDSCalculator:public TGenome_parsed{
+class TPMDSCalculator:public old::TGenome_parsed{
 private:
 	coretools::Probability _pi;
 	bool _doFilter = false;

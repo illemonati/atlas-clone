@@ -11,7 +11,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/BED/TBed.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 #include "TWindow.h"
 #include "coretools/Types/probability.h"
@@ -129,7 +129,7 @@ public:
 //-----------------------------------
 // TEstimateMutationLoad
 //-----------------------------------
-class TEstimateMutationLoad : public TGenome_windows {
+class TEstimateMutationLoad : public old::TGenome_windows {
 private:
 	std::vector<MutationLoad::TSiteData> _sites;
 	bool _parseFromBed;

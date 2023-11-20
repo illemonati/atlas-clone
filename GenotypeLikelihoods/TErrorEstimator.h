@@ -15,7 +15,7 @@
 
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TGenotypeLikelihoodCalculator.h"
@@ -37,7 +37,7 @@ namespace GenotypeLikelihoods {
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TErrorEstimator final : public  GenomeTasks::TGenome_windows {
+class TErrorEstimator final : public  GenomeTasks::old::TGenome_windows {
 private:
 	// per region
 	std::vector<size_t> _refIDs;

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "SequencingError/TModels.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
@@ -21,7 +21,7 @@ namespace GenomeTasks{
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-class TQualityDistribution:public TGenome_parsed{
+class TQualityDistribution:public old::TGenome_parsed{
 private:
 	coretools::TCountDistributionVector<> _qualDist;
 
@@ -34,7 +34,7 @@ public:
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-class TQualityTransformation:public TGenome_parsed{
+class TQualityTransformation:public old::TGenome_parsed{
 private:
 	std::vector<coretools::TCountDistributionVector<>> _transformations;
 	bool _compareToOtherSeqErrors;

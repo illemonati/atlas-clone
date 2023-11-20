@@ -15,7 +15,7 @@
 #include "coretools/Math/counters.h"
 
 #include "TBamFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TOutputBamFile.h"
 
 namespace GenomeTasks {
@@ -41,7 +41,7 @@ public:
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-class TAssessSoftClipping : public TGenome_filtered {
+class TAssessSoftClipping : public old::TGenome_filtered {
 private:
 	bool _writeAlignments = false;
 	bool _printAll        = false;
@@ -59,7 +59,7 @@ public:
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TRemoveSoftClippedBases : public TGenome_parsed {
+class TRemoveSoftClippedBases : public old::TGenome_parsed {
 private:
 	BAM::TOutputBamFile _outBam;
 	void _handleAlignment() override;

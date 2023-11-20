@@ -16,7 +16,7 @@
 
 #include "TBamFilter.h"
 #include "TBamFile.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 
 
@@ -142,7 +142,7 @@ public:
 //-----------------------------------------
 // TOverlapQuantifier
 //-----------------------------------------
-class TOverlapQuantifier:public TGenome_filtered{
+class TOverlapQuantifier:public old::TGenome_filtered{
 private:
 	TAlignmentMerger _merger;
 	TAlignmentStorage _alignmentStorage;

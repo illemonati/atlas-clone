@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
@@ -39,7 +39,7 @@ public:
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-class TAllelicDepth:public TGenome_windows{
+class TAllelicDepth:public old::TGenome_windows{
 private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;

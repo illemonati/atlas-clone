@@ -15,7 +15,6 @@
 #include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
-#include "TGenome.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -28,7 +27,7 @@ using coretools::instances::parameters;
 // TPMDEstimator.h
 //----------------------------------------
 TPMDEstimator::TPMDEstimator()
-	: TGenome_parsed(),
+	: old::TGenome_parsed(),
 	  _readGroupMap(_bamFile.readGroups(), parameters().get("poolReadGroups", "")) {
 	_pmd.initialize(parameters().get("pmdModel", "doubleStrand:Empiric:Empiric"),
 					 _bamFile.readGroups());

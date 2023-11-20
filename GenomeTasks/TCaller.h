@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "genometools/GenotypeTypes.h"
-#include "TGenome.h"
+#include "TGenome_OLD.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVCFFields.h"
@@ -304,7 +304,7 @@ public:
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-class TCall:public TGenome_windows{
+class TCall:public old::TGenome_windows{
 private:
 	std::unique_ptr<TCaller> _caller;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
