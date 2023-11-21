@@ -32,8 +32,7 @@ using BAM::RGInfo::InfoType;
 //------------------------------------------------
 // TSimulatorRead
 //------------------------------------------------
-
-	TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: _readGroup(&ReadGroup), _pmd(&Pmd), _recal(Recal) {
 
 	// initialize bamAlignment
@@ -68,6 +67,18 @@ using BAM::RGInfo::InfoType;
 		}
 	} else {
 		logfile().write("none");
+	}
+
+	//duplication rate
+
+	if(RGInfo.has(InfoType::duplicationRate)){
+		coretools::str::fromString(RGInfo.getString(InfoType::duplicationRate), _duplicationRate, "duplication rate is not within [0,1]!");
+		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
+		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
+		_duplicationRateAmongSimulated = _duplicationRateAmongSimulated / (_duplicationRate.complement());
+	} else {
+		_duplicationRate = 0.0;
+		_duplicationRateAmongSimulated = 0.0;
 	}
 }
 
@@ -175,6 +186,25 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 	if (_contaminationRate > 1.0) UERROR("Contamination rate must be <= 0.0!");
 }
 
+void TReadSimulator::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile){
+	// Do not simulate fraction of reads that will be duplicates
+	if(_duplicationRate == 0.0 || randomGenerator().getRand() > _duplicationRate){
+		// simlate
+		_simulate(Position, Haplotype);	
+
+		// write alignments
+		_writeSimulatedAlignments(BamFile);
+		
+		// write duplicates
+		// Note: to get x duplicates, we simulate (1-x) reads and among those duplicate x / (1-x)
+		if(_duplicationRate > 0.0){
+			if(randomGenerator().getRand() < _duplicationRateAmongSimulated){
+				_writeSimulatedAlignments(BamFile);
+			}
+		}
+	}	
+}
+
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
@@ -211,18 +241,23 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile & BamFile) {
-	// pick a fragment
-	const auto fragmentLength = _fragmentLengthDistr.sample();
+void TReadSimulatorSingleEnd::_simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype) {
+	// Does read exists or is it a duplicate?
+	// If it is a duplicate, do not simulate. Duplicates are simulated below.
+	if(_duplicationRate == 0.0 || randomGenerator().getRand() > _duplicationRate){
+		// pick a fragment
+		const auto fragmentLength = _fragmentLengthDistr.sample();
 
-	// prepare alignment
-	_simulateAlignmentDetails(Position);
-	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+		// prepare alignment
+		_simulateAlignmentDetails(Position);
+		_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
-	// simulated bases and qualities
-	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
+		// simulated bases and qualities
+		_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
+	}
+}
 
-	// write bam alignment
+void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & BamFile){
 	BamFile.writeAlignment(_alignment);
 }
 
@@ -295,7 +330,18 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
 }
 
-void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile & BamFile) {
+void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & BamFile){
+	BamFile.writeAlignment(_alignment);
+
+	// write mate if it starts at same position as first, and keep for writing later otherwise
+	if (_secondMate == _alignment) {
+		BamFile.writeAlignment(_secondMate);
+	} else {
+		BamFile.writeAlignmentLater(_secondMate);
+	}
+}
+
+void TReadSimulatorPairedEnd::_simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype) {
 	// pick a fragment
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
@@ -327,15 +373,6 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	//set mate positions
 	_alignment.setMateGenomicPosition(_secondMate);
 	_secondMate.setMateGenomicPosition(_alignment);
-
-	BamFile.writeAlignment(_alignment);
-
-	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (_secondMate == _alignment) {
-		BamFile.writeAlignment(_secondMate);
-	} else {
-		BamFile.writeAlignmentLater(_secondMate);
-	}
 }
 
 } // namespace Simulations

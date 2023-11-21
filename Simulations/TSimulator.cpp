@@ -259,7 +259,6 @@ void TBAMSimulator::_initializeReadSimulator(){
 	//create read simulators
 	_readSimulators.reserve(filenames.size());
 	if(filenames.size() == 1){
-
 		if(_haploSimulator->sampleSize() > 1){
 			logfile().startIndent("Using one set of sequencing parameters for all ", _haploSimulator->sampleSize(), " individuals:");
 		}

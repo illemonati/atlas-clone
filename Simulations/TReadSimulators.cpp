@@ -74,7 +74,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_readGroups = RGinfo.createReadGroups(RgInfoFileName);
 	using BAM::RGInfo::InfoType;
 	logfile().addIndent();
-	RGinfo.parse(InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::pmd, InfoType::recal, InfoType::RGFrequency);
+	RGinfo.parse(InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::pmd, InfoType::recal, InfoType::RGFrequency, InfoType::duplicationRate);
 	logfile().endIndent();
 
 	// complete RG details

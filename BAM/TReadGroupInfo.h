@@ -36,7 +36,7 @@ using TInfo = nlohmann::ordered_json;
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType : size_t {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, max};
+enum class InfoType : size_t {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, duplicationRate, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
@@ -63,6 +63,7 @@ inline const coretools::TStrongArray<TInfoArgument, InfoType> infos = []() {
 	i[InfoType::softClipping]   = {"softClipping", "soft clipping distribution", "poisson(0.5)[0,20]"};
 	i[InfoType::recal]          = {"recal", "base quality score recalibration model", "-"};
 	i[InfoType::pmd]            = {"pmd", "Postmortem damage model", "-"};
+	i[InfoType::duplicationRate]= {"duplicationRate", "duplication rate", "0.0"};
 	return i;
 }();
 
