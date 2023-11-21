@@ -12,11 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "genometools/TFastaReader.h"
 
 #include "TCigar.h"
 #include "TSamFlags.h"

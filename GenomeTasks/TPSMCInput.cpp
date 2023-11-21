@@ -28,7 +28,7 @@ using coretools::instances::parameters;
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-TPSMCInput::TPSMCInput():TGenome_windows(){
+TPSMCInput::TPSMCInput() {
 	_theta = parameters().get<double>("theta", 0.001);
 	logfile().list("Using theta = ", _theta, ". (parameter 'theta')");
 

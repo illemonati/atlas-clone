@@ -13,6 +13,9 @@ using GenotypeLikelihoods::TGenotypeLikelihoods;
 namespace GenomeTasks {
 
 namespace MutationLoad {
+using genometools::Genotype;
+using genometools::Base;
+using GenotypeLikelihoods::TGenotypeLikelihoods;
 
 //------------------------------------------------
 // TGenotypeProbabilities
@@ -152,7 +155,7 @@ void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& window) 
 	logfile().doneTime();
 };
 
-TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
+TEstimateMutationLoad::TEstimateMutationLoad()  {
 	using coretools::instances::logfile;
 	using coretools::instances::parameters;
 	// Two ways to read positions and preferred alleles:

@@ -8,7 +8,6 @@
 #ifndef BAM_TCIGAR_H_
 #define BAM_TCIGAR_H_
 
-#include <cstdint>
 #include <vector>
 #include <string>
 

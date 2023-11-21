@@ -25,7 +25,7 @@ using coretools::instances::logfile;
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-TCreateBedMask::TCreateBedMask():TGenome_windows(){
+TCreateBedMask::TCreateBedMask() {
 	_minDepth = parameters().get<uint32_t>("minDepth", 2);
 	_bed.addChromosomes(_chromosomes);
 };

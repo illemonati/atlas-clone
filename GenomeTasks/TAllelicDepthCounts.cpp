@@ -133,7 +133,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-TAllelicDepth::TAllelicDepth() : TGenome_windows(){
+TAllelicDepth::TAllelicDepth() : TBamWindowTraverser(){
 	logfile().list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
 	if(_readUpToDepth > 100){
 		logfile().warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument readUpToDepth to limit.");

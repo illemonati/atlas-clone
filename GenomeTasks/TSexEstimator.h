@@ -8,19 +8,15 @@
 #ifndef GENOMETASKS_TSEXESTIMATOR_H_
 #define GENOMETASKS_TSEXESTIMATOR_H_
 
-
-
-#include "TGenome_OLD.h"
-#include "coretools/Main/TTask.h"
+#include "TBamWindowTraverser.h"
 #include "TBedReaderWindows.h"
-
 
 namespace GenomeTasks{
 
 //----------------------------------------
 // TSexEstimator
 //----------------------------------------
-class TSexEstimator : public old::TGenome_windows {
+class TSexEstimator final : public TBamWindowTraverser {
 private:
 	std::vector<coretools::TCountDistribution<>> _distPerSites;
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;

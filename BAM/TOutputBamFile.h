@@ -7,6 +7,7 @@
 #include "TReadGroups.h"
 #include "api/BamWriter.h"
 #include <string>
+
 namespace BAM {
 
 //------------------------------------------------
@@ -37,7 +38,6 @@ private:
 	BamTools::BamWriter _bamWriter;
 	const TReadGroups *_readGroups = nullptr;
 
-	// std::multiset<TAlignment, std::less<>> _futureAlignments;
 	std::vector<TAlignment> _futureAlignments;
 
 	// quality output transformations

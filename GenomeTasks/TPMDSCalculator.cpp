@@ -30,7 +30,7 @@ using coretools::instances::parameters;
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-	TPMDSCalculator::TPMDSCalculator():TGenome_parsed(), _outBam(_genome.outputName() + "_PMDS.bam", _genome.bamFile()) {
+	TPMDSCalculator::TPMDSCalculator(): _outBam(_genome.outputName() + "_PMDS.bam", _genome.bamFile()) {
 	//get parameters
 	_pi = parameters().get<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));

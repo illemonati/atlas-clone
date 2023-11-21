@@ -8,22 +8,21 @@
 #ifndef GENOMETASKS_TPMDSCALCULATOR_H_
 #define GENOMETASKS_TPMDSCALCULATOR_H_
 
-#include <set>
 #include <string>
 
-#include "TBamFile.h"
-#include "TOutputBamFile.h"
-#include "TGenome_OLD.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Math/TNumericRange.h"
+
+#include "TBamTraverser.h"
+#include "TOutputBamFile.h"
+
 
 namespace GenomeTasks{
 
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
-class TPMDSCalculator:public old::TGenome_parsed{
+class TPMDSCalculator final : public TBamTraverser<true> {
 private:
 	coretools::Probability _pi;
 	bool _doFilter = false;

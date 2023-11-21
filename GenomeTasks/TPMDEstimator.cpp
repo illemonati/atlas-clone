@@ -27,8 +27,7 @@ using coretools::instances::parameters;
 // TPMDEstimator.h
 //----------------------------------------
 TPMDEstimator::TPMDEstimator()
-	: old::TGenome_parsed(),
-	  _readGroupMap(_genome.bamFile().readGroups(), parameters().get("poolReadGroups", "")) {
+	: _readGroupMap(_genome.bamFile().readGroups(), parameters().get("poolReadGroups", "")) {
 	_pmd.initialize(parameters().get("pmdModel", "doubleStrand:Empiric:Empiric"),
 					 _genome.bamFile().readGroups());
 

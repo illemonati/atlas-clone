@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "TGenome_OLD.h"
+#include "TBamTraverser.h"
 #include "oldPMD/TModels.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
@@ -30,7 +30,7 @@ namespace GenomeTasks {
 // TPMDEstimator.h
 //----------------------------------------
 
-class TPMDEstimator : public old::TGenome_parsed {
+class TPMDEstimator final : public TBamTraverser<true> {
 private:
 	BAM::TReadGroupMap _readGroupMap;
 	GenotypeLikelihoods::oldPMD::TModels _pmd;

@@ -14,7 +14,7 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::str::toString;
 
-TSexEstimator::TSexEstimator():TGenome_windows() {
+TSexEstimator::TSexEstimator() {
 	//add limit to amount of sites that are processed, no limit if siteLimit==0
 	_siteLimit = parameters().get<uint32_t>("siteLimit", 0);
 	if(_siteLimit == 0){

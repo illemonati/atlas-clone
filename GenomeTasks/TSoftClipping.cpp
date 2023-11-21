@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "TAlignment.h"
+#include "TBamTraverser.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
@@ -75,7 +76,7 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping() : TGenome_filtered() {
+TAssessSoftClipping::TAssessSoftClipping() : TBamTraverser<false>() {
 	// limit input / output
 	if (parameters().exists("writeReads")) {
 		_writeAlignments     = true;
@@ -142,7 +143,7 @@ void TAssessSoftClipping::run() {
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TGenome_parsed(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
+	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TBamTraverser<true>(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
 		
 	};
 

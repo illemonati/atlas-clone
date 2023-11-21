@@ -24,12 +24,7 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::TCountDistributionVector;
 
-TBamDiagnoser::TBamDiagnoser():TGenome_filtered(){
-    // initialize TGenome_basic stuff
-
-	//settings
-	_genome.bamFile().readGroups().fillVectorWithNames(_readGroupNames);
-};
+;
 
 void TBamDiagnoser::_writeHistogram(const std::vector<TCountDistributionVector<>> & distVec, const std::string& header, const std::string& name){
 	//displays distributions of type 'TCountDistributionVector' as a histogram

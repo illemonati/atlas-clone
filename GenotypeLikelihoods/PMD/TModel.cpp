@@ -1,5 +1,6 @@
 #include "TModel.h"
 #include "TSequencedBase.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {

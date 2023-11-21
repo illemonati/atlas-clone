@@ -33,7 +33,7 @@ void TDepthWriter::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().done();
 };
 
-void TDepthWriter::writeDepth(){
+void TDepthWriter::run(){
 	const std::string filename = _genome.outputName() + "_depthPerWindow.txt.gz";
 	logfile().list("Writing per window depth estimates to '", filename, "'.");
 	_out.open(filename, {"window", "depth"});

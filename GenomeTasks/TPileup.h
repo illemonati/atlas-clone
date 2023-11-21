@@ -8,11 +8,10 @@
 #ifndef GENOMETASKS_TPILEUP_H_
 #define GENOMETASKS_TPILEUP_H_
 
-#include "coretools/Containers/TBitSet.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Math/counters.h"
 
-#include "TGenome_OLD.h"
+#include "TBamWindowTraverser.h"
 #include "TAllelicDepthCounts.h"
 
 namespace GenomeTasks {
@@ -20,7 +19,7 @@ namespace GenomeTasks {
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup : public old::TGenome_windows {
+class TPileup final : public TBamWindowTraverser {
 private:
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;

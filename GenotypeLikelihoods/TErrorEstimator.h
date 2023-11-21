@@ -13,18 +13,15 @@
 #include <string>
 #include <vector>
 
-#include "PMD/TModels.h"
-#include "SequencingError/TEpsilon.h"
-#include "TGenome_OLD.h"
-#include "TGenotypeData.h"
-#include "TGenotypeDistribution.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "TReadGroupInfo.h"
-#include "TReadGroups.h"
-#include "TSite.h"
-#include "coretools/Types/probability.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/GenotypeTypes.h"
+
+#include "PMD/TModels.h"
+#include "SequencingError/TEpsilon.h"
+#include "TBamWindowTraverser.h"
+#include "TGenotypeData.h"
+#include "TGenotypeDistribution.h"
+#include "TSite.h"
 
 namespace BAM {class TSequencedBase;}
 namespace GenotypeLikelihoods::SequencingError {
@@ -37,7 +34,7 @@ namespace GenotypeLikelihoods {
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TErrorEstimator final : public  GenomeTasks::old::TGenome_windows {
+class TErrorEstimator final : public  GenomeTasks::TBamWindowTraverser {
 private:
 	// per region
 	std::vector<size_t> _refIDs;

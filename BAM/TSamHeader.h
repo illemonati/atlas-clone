@@ -8,8 +8,6 @@
 #ifndef BAM_TSAMHEADER_H_
 #define BAM_TSAMHEADER_H_
 
-#include <algorithm>
-#include <functional>
 #include <set>
 #include <string>
 #include <vector>

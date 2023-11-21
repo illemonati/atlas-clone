@@ -13,14 +13,12 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
+#include "coretools/Types/probability.h"
 #include "genometools/BED/TBed.h"
-#include "TGenome_OLD.h"
-#include "coretools/Main/TTask.h"
+
+#include "TBamWindowTraverser.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
-#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 class TThetaEstimatorData;
@@ -31,7 +29,7 @@ namespace GenomeTasks {
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface : public old::TGenome_windows {
+class TEstimateThetaLLSurface final : public TBamWindowTraverser {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	size_t _steps;
@@ -47,7 +45,7 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateTheta : public old::TGenome_windows {
+class TEstimateTheta final : public TBamWindowTraverser {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
@@ -74,7 +72,7 @@ public:
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-class TEstimateThetaRatio : public old::TGenome_windows {
+class TEstimateThetaRatio final : public TBamWindowTraverser {
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
 	genometools::TBed _region1;

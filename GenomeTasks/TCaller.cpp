@@ -1189,7 +1189,7 @@ std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite &, const TGenotyp
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-TCall::TCall():TGenome_windows(){
+TCall::TCall() {
 	//initialize caller
 	logfile().startIndent("Initializing caller:");
 	std::string method = parameters().get<std::string>("method", "MLE");

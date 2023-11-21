@@ -35,7 +35,7 @@ using coretools::str::toString;
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TGenome_windows() {
+TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TBamWindowTraverser() {
 	_steps = parameters().get<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
 	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
@@ -82,7 +82,7 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 	logfile().doneTime();
 };
 
-TEstimateTheta::TEstimateTheta() : TGenome_windows() {
+TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 	if (parameters().exists("genomeWide")) {
 		_genomeWide = true;
 		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
@@ -276,7 +276,7 @@ void TEstimateTheta::run() {
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-TEstimateThetaRatio::TEstimateThetaRatio() : TGenome_windows(), _thetaEstimatorRatio() {
+TEstimateThetaRatio::TEstimateThetaRatio() : TBamWindowTraverser(), _thetaEstimatorRatio() {
 	// read the two regions to be used
 	logfile().startIndent("Reading regions:");
 	_initializeRegion(_region1, 1);

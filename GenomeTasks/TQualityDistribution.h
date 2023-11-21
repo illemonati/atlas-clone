@@ -11,17 +11,15 @@
 #include <string>
 #include <vector>
 
-#include "TGenome_OLD.h"
+#include "TBamTraverser.h"
 #include "SequencingError/TModels.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Math/counters.h"
 
 namespace GenomeTasks{
 
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-class TQualityDistribution:public old::TGenome_parsed{
+class TQualityDistribution final : public TBamTraverser<true> {
 private:
 	coretools::TCountDistributionVector<> _qualDist;
 
@@ -34,7 +32,7 @@ public:
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-class TQualityTransformation:public old::TGenome_parsed{
+class TQualityTransformation final : public TBamTraverser<true> {
 private:
 	std::vector<coretools::TCountDistributionVector<>> _transformations;
 	bool _compareToOtherSeqErrors;
@@ -46,19 +44,6 @@ private:
 public:
 	TQualityTransformation();
 	void run();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_qualityDist:public coretools::TTask{
-public:
-	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
-
-	void run(){
-		TQualityDistribution qualDist;
-		qualDist.compileQualityDistribution();
-	};
 };
 
 }; // end namespace

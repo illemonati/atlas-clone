@@ -63,7 +63,7 @@ void TQualityDistribution::compileQualityDistribution(){
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-TQualityTransformation::TQualityTransformation():TGenome_parsed(){
+TQualityTransformation::TQualityTransformation() {
 	//check what we compare
 	if(parameters().exists("RGInfo2")){
 		BAM::RGInfo::TReadGroupInfo RGInfo2(_genome.bamFile().readGroups(), parameters().get("RGInfo2"));

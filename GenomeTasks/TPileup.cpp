@@ -44,7 +44,7 @@ bool parseField(std::set<std::string> &fields, const std::string &tag, const std
 //---------------------------------
 // TPileup
 //---------------------------------
-TPileup::TPileup() : TGenome_windows() {
+TPileup::TPileup() {
 	_onlySummary = parameters().exists("onlySummaries");
 	if (!_onlySummary) {
 		// open output file

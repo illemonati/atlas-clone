@@ -16,7 +16,7 @@
 
 #include "TBamFilter.h"
 #include "TBamFile.h"
-#include "TGenome_OLD.h"
+#include "TBamWindowTraverser.h"
 #include "coretools/Main/TTask.h"
 
 

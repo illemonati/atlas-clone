@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "TBamTraverser.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
@@ -22,7 +23,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-TContextQuantifier::TContextQuantifier():TGenome_parsed(){
+TContextQuantifier::TContextQuantifier():TBamTraverser<true>(){
 
 };
 

@@ -8,25 +8,20 @@
 #include <stdint.h>
 #include <vector>
 
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
 #include "genometools/BED/TBed.h"
-#include "TGenome_OLD.h"
-#include "coretools/Main/TTask.h"
-#include "TWindow.h"
-#include "coretools/Types/probability.h"
-#include "stattools/EM/TLatentVariable.h"
-#include "stattools/EM/TEMPriorIndependent.h"
-#include "TGenotypeData.h"
 #include "genometools/GenotypeTypes.h"
+#include "stattools/EM/TEMPriorIndependent.h"
+#include "stattools/EM/TLatentVariable.h"
+
+
+#include "TBamWindowTraverser.h"
+#include "TGenotypeData.h"
+#include "TWindow.h"
 
 namespace GenomeTasks {
 
 namespace MutationLoad {
 
-using genometools::Genotype;
-using genometools::Base;
-using GenotypeLikelihoods::TGenotypeLikelihoods;
 
 using PrecisionType = double;
 using NumStatesType = int;
@@ -38,10 +33,10 @@ using LengthType = size_t;
 //------------------------------------------------
 class TSiteData {
 public:
-	TGenotypeLikelihoods likelihoods;
-	Base preferredBase;
+	GenotypeLikelihoods::TGenotypeLikelihoods likelihoods;
+	genometools::Base preferredBase;
 
-	TSiteData(const TGenotypeLikelihoods &Likelihoods, const Base PreferredBase)
+	TSiteData(const GenotypeLikelihoods::TGenotypeLikelihoods &Likelihoods, const genometools::Base PreferredBase)
 		: likelihoods(Likelihoods), preferredBase(PreferredBase){};
 
 	TSiteData(const TSiteData & other) = delete;
@@ -57,7 +52,7 @@ public:
 class TGenotypeProbabilities{
 private:
 	std::array<PrecisionType, 4> _pi;
-	coretools::TStrongArray<coretools::TStrongArray<PrecisionType, Genotype>, Base> _genotypeProbs;
+	coretools::TStrongArray<coretools::TStrongArray<PrecisionType, genometools::Genotype>, genometools::Base> _genotypeProbs;
 
 	void _calculateGenotypeProbs();
 public:
@@ -65,7 +60,7 @@ public:
 	~TGenotypeProbabilities() = default;
 	void setPi(std::array<double, 4> Pi);
 	const std::array<double, 4>& getPi() const { return _pi; };
-	double operator()(Base PreferredBase, Genotype Geno) const {
+	double operator()(genometools::Base PreferredBase, genometools::Genotype Geno) const {
 		return _genotypeProbs[PreferredBase][Geno];
 	}
 };
@@ -75,13 +70,13 @@ public:
 //-------------------------------------
 class TPiIndex{
 private:
-	coretools::TStrongArray<coretools::TStrongArray<NumStatesType, Genotype>, Base> _index;
+	coretools::TStrongArray<coretools::TStrongArray<NumStatesType, genometools::Genotype>, genometools::Base> _index;
 
 public:
 	TPiIndex();
 	~TPiIndex() = default;
 
-	int operator()(Base PreferredBase, Genotype Geno){
+	int operator()(genometools::Base PreferredBase, genometools::Genotype Geno){
 		return _index[PreferredBase][Geno];
 	}
 };
@@ -98,7 +93,7 @@ private:
 
 public:
 	TMutationLoadEMPrior(std::vector<MutationLoad::TSiteData>& Sites) : 
-		TEMPriorIndependent_base(TGenotypeLikelihoods::capacity),
+		TEMPriorIndependent_base(GenotypeLikelihoods::TGenotypeLikelihoods::capacity),
 		_sites(Sites) {};
 
 	PrecisionType operator()(LengthType Index, NumStatesType State) const override;
@@ -129,7 +124,7 @@ public:
 //-----------------------------------
 // TEstimateMutationLoad
 //-----------------------------------
-class TEstimateMutationLoad : public old::TGenome_windows {
+class TEstimateMutationLoad final : public TBamWindowTraverser {
 private:
 	std::vector<MutationLoad::TSiteData> _sites;
 	bool _parseFromBed;

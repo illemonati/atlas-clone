@@ -5,129 +5,20 @@
  *      Author: wegmannd
  */
 
-#include "TGenome_OLD.h"
+#include "TBamWindowTraverser.h"
 
-#include <cstdint>
-#include <exception>
-#include <iostream>
-#include <map>
-#include <math.h>
-#include <memory>
-
-#include "genometools/BED/TBed.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "TSiteSubset.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Strings/stringFunctions.h"
 
-namespace GenomeTasks::old {
+namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using namespace coretools::str;
 
-TParser::TParser(TGenome& genome) : _errorModels(genome.rgInfo()) {
-	if (parameters().exists("trim3") || parameters().exists("trim5")) {
-		_trim3 = parameters().get<int>("trim3", 0);
-		if (_trim3 < 0) UERROR("trimming distance trim3 must be >= 0!");
-		_trim5 = parameters().get<int>("trim5", 0);
-		if (_trim5 < 0) UERROR("trimming distance trim5 must be >= 0!");
-		if (_trim3 > 0 || _trim5 > 0) {
-			logfile().list("Will trim first " + toString(_trim3) + " and " + toString(_trim5) +
-						   " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
-		}
-		_trimReads = true;
-	} else {
-		_trim3     = 0;
-		_trim5     = 0;
-		_trimReads = false;
-	}
-}
-
-void TParser::openReference(bool required) {
-	if (!_reference.isOpen()) {
-		if (parameters().exists("fasta")) {
-			std::string fastaFile = parameters().get<std::string>("fasta");
-			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
-			_reference.open(fastaFile);
-		} else {
-			if (required) { UERROR("No reference provided! (Use parameter fasta to provide a reference)"); }
-		}
-	}
-};
-
-void TParser::operator()(BAM::TAlignment &alignment) {
-	// parse
-	alignment.parse(_errorModels.sequencingErrorModels());
-
-	if (_trimReads) { alignment.trimRead(_trim3, _trim5); }
-	alignment.filter(_qualityFilter); // always on
-	if (_contextFilter) alignment.filter(_contextFilter);
-	if (_reference.isOpen()) { alignment.addReference(_reference); }
-};
-
-//---------------------------------------------------------------
-// TGenome_filtered
-// A base class without genotype likelihoods but BAM filters enabled
-//---------------------------------------------------------------
-
-TGenome_filtered::TGenome_filtered() {
-	const BAM::TBamFilters filters{true};
-	_genome.bamFile().setFilters(filters);
-};
-
-void TGenome_filtered::_traverseBAMPassedQC() {
-	// parse through bam file
-	_genome.bamFile().startProgressReporting();
-	while (_genome.bamFile().readNextAlignmentThatPassesFilters()) {
-		// handle alignment by derived classes
-		_handleAlignment();
-
-		// report
-		_genome.bamFile().printProgress();
-	}
-	// report
-	_genome.bamFile().printEndWithSummary(_genome.outputName());
-};
-
-//---------------------------------------------------------------
-// TGenome_parsed
-// A base class with BAM filters and recalibration
-//---------------------------------------------------------------
-TGenome_parsed::TGenome_parsed() : _parser(_genome) {
-	// set parsing filters
-
-	const BAM::TBamFilters filters{true};
-	_genome.bamFile().setFilters(filters);
-};
-
-
-void TGenome_parsed::_traverseBAMPassedQC() {
-	// parse through bam file
-	_genome.bamFile().startProgressReporting();
-	BAM::TAlignment alignment;
-	while (_genome.bamFile().readNextAlignmentThatPassesFilters()) {
-		// parse
-		_genome.bamFile().fill(alignment);
-		_parser(alignment);
-
-		// handle alignment by derived classes
-		_handleAlignment(alignment);
-
-		// report
-		_genome.bamFile().printProgress();
-	}
-
-	// report
-	_genome.bamFile().printEndWithSummary(_genome.outputName());
-};
-
-//---------------------------------------------------------------
-// TGenome_windows
-// A base class to traverse a BAM file in windows
-//---------------------------------------------------------------
-	TGenome_windows::TGenome_windows() : _parser(_genome), _chromosomes(_genome.bamFile().chromosomes()) {
+	TBamWindowTraverser::TBamWindowTraverser() : _parser(_genome), _chromosomes(_genome.bamFile().chromosomes()) {
 
 	const BAM::TBamFilters filters{true};
 	_genome.bamFile().setFilters(filters);
@@ -139,9 +30,9 @@ void TGenome_parsed::_traverseBAMPassedQC() {
 	_setMasks();
 	_setSiteFilters();
 	logfile().endIndent();
-};
+}
 
-void TGenome_windows::_setWindowParameters() {
+void TBamWindowTraverser::_setWindowParameters() {
 	if (!parameters().exists("window") && parameters().exists("windows")) {
 		logfile().warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	}
@@ -160,9 +51,9 @@ void TGenome_windows::_setWindowParameters() {
 						   toString(_predefinedWindows.numChromosomesWithWindows()) + " chromosomes.");
 	}
 	_numWindowsOnChr = 0;
-};
+}
 
-void TGenome_windows::_setParsingLimits() {
+void TBamWindowTraverser::_setParsingLimits() {
 	// limit windows
 	_skipWindows = parameters().get<int>("skipWindows", 0);
 	if (_skipWindows > 0)
@@ -173,9 +64,9 @@ void TGenome_windows::_setParsingLimits() {
 		logfile().list("Will limit analysis to the first " + toString(_limitWindows) +
 					   " windows per chromosome. (parameter 'limitWindows')");
 	if (_limitWindows <= _skipWindows) UERROR("limitWindows has to be larger than skipWindows!");
-};
+}
 
-void TGenome_windows::_setWindowFilters() {
+void TBamWindowTraverser::_setWindowFilters() {
 	// filter for missing reference
 	_maxMissing = parameters().get<double>("maxMissing", 1.0);
 	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
@@ -194,9 +85,9 @@ void TGenome_windows::_setWindowFilters() {
 			   "(use 'fasta' to provide a reference)");
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
 				   ". (parameter 'maxRefN')");
-};
+}
 
-void TGenome_windows::_setSiteFilters() {
+void TBamWindowTraverser::_setSiteFilters() {
 	// depth filter
 	_readUpToDepth = parameters().get<size_t>("readUpToDepth", 1000);
 	logfile().list("Will read data up to depth " + toString(_readUpToDepth) +
@@ -232,9 +123,9 @@ void TGenome_windows::_setSiteFilters() {
 		_filterCpG = false;
 		logfile().list("Will keep CpG sites. (use 'filterCpG' to remove)");
 	}
-};
+}
 
-void TGenome_windows::_setMasks() {
+void TBamWindowTraverser::_setMasks() {
 	// normal mask
 	if (parameters().exists("mask") || parameters().exists("regions")) {
 		std::string filename;
@@ -265,9 +156,9 @@ void TGenome_windows::_setMasks() {
 		_doMasking       = false;
 		_considerRegions = false;
 	}
-};
+}
 
-void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymorphic) {
+void TBamWindowTraverser::_openSiteSubset(const std::string &paramName, bool polymorphic) {
 	//report
 	if(polymorphic){
 		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
@@ -293,14 +184,14 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymor
 		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, _genome.bamFile().chromosomes());
 	}	
 	logfile().endIndent();
-};
+}
 
-void TGenome_windows::_setCountersBeginningOfChromosome() {
+void TBamWindowTraverser::_setCountersBeginningOfChromosome() {
 	_chrChangedWindow = true;
 	_windowNumber     = 1;
-};
+}
 
-bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow &window) {
+bool TBamWindowTraverser::_incrementWindow(GenotypeLikelihoods::TWindow &window) {
 	// move to next
 	window += _windowSize;
 	++_windowNumber;
@@ -333,9 +224,9 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow &window) {
 	}
 
 	return true;
-};
+}
 
-bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow &window) {
+bool TBamWindowTraverser::_moveToNextWindow(GenotypeLikelihoods::TWindow &window) {
 	// move to next
 	if (!_incrementWindow(window)) { return false; }
 
@@ -361,9 +252,9 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow &window) {
 	if (window.to() > _curChromosome->end()) { window.resize(_curChromosome->end() - window.from()); }
 
 	return true;
-};
+}
 
-bool TGenome_windows::_incrementPredefinedWindow() {
+bool TBamWindowTraverser::_incrementPredefinedWindow() {
 	size_t oldRefID = _curPredefinedWindow->refID();
 
 	++_curPredefinedWindow;
@@ -377,9 +268,9 @@ bool TGenome_windows::_incrementPredefinedWindow() {
 	}
 
 	return true;
-};
+}
 
-bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window) {
+bool TBamWindowTraverser::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window) {
 	// if at beginning of BAM file: restart
 	if (_curChromosome == _chromosomes.cend()) {
 		_curPredefinedWindow = _predefinedWindows.begin();
@@ -424,9 +315,9 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &
 
 	// return true as we continue reading
 	return true;
-};
+}
 
-bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow &window) {
+bool TBamWindowTraverser::_moveWindow(GenotypeLikelihoods::TWindow &window) {
 	// returns false when end of genome is reached
 	if (_predefinedWindows.empty()) {
 		// no predefined windows: regular traversing
@@ -450,12 +341,12 @@ bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow &window) {
 	_hasWindowIndent = true;
 
 	return true;
-};
+}
 
 //---------------------
 // read data in windows
 //---------------------
-bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window) {
+bool TBamWindowTraverser::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window) {
 	_windowTimer.start();
 
 	// move window
@@ -471,17 +362,17 @@ bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window
 	// read data
 	_readAlignmentsIntoWindow(window);
 	return true;
-};
+}
 
-bool TGenome_windows::_readAndParseAlignment() {
+bool TBamWindowTraverser::_readAndParseAlignment() {
 	if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) return false;
 
 	_genome.bamFile().fill(_curAlignment);
-	_parser(_curAlignment);
+	_parser.apply(_curAlignment);
 	return true;
-};
+}
 
-void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window) {
+void TBamWindowTraverser::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window) {
 	// measure runtime
 	logfile().listFlushTime("Reading data ...");
 
@@ -513,9 +404,9 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &wi
 
 	// apply filters
 	_applyWindowFilters(window);
-};
+}
 
-void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow &window) {
+void TBamWindowTraverser::_applyWindowFilters(GenotypeLikelihoods::TWindow &window) {
 	// apply site-specific filters
 	if (window.numReadsInWindow() > 0) {
 		// apply masks and filters
@@ -544,9 +435,9 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow &window) 
 	} else {
 		logfile().conclude("No data in this window.");
 	}
-};
+}
 
-void TGenome_windows::_traverseBAMWindows() {
+void TBamWindowTraverser::_traverseBAMWindows() {
 	logfile().startIndent("Traversing BAM file in windows:");
 
 	// initializing
@@ -571,6 +462,6 @@ void TGenome_windows::_traverseBAMWindows() {
 
 	// report
 	_genome.bamFile().printEndWithSummary(_genome.outputName());
-};
+}
 
-}; // namespace GenomeTasks
+} // namespace GenomeTasks

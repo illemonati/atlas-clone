@@ -8,21 +8,19 @@
 #ifndef GENOMETASKS_TCREATEBEDMASK_H_
 #define GENOMETASKS_TCREATEBEDMASK_H_
 
-#include <stdint.h>
-#include <exception>
 #include <string>
 
 #include "genometools/BED/TBed.h"
-#include "TGenome_OLD.h"
+
+#include "TBamWindowTraverser.h"
 #include "TGenotypeData.h"
-#include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
 
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-	class TCreateBedMask:public old::TGenome_windows{
+	class TCreateBedMask:public TBamWindowTraverser{
 protected:
 	genometools::TBed _bed;
 	uint32_t _minDepth;

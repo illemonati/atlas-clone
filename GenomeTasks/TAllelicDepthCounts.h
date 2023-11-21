@@ -8,11 +8,11 @@
 #ifndef TALLELICDEPTHCOUNTS_H_
 #define TALLELICDEPTHCOUNTS_H_
 
-#include <stdint.h>
 #include <string>
+#include <vector>
 
-#include "TGenome_OLD.h"
-#include "coretools/Main/TTask.h"
+#include "TBamWindowTraverser.h"
+#include "TGenotypeData.h"
 
 namespace GenomeTasks{
 
@@ -39,7 +39,7 @@ public:
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-class TAllelicDepth:public old::TGenome_windows{
+class TAllelicDepth:public TBamWindowTraverser{
 private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;

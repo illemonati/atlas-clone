@@ -24,7 +24,7 @@ using coretools::instances::parameters;
 //-------------------------------------------
 // TGLFWriter
 //-------------------------------------------
-TWriteGLF::TWriteGLF():TGenome_windows(){
+TWriteGLF::TWriteGLF(){
 	if(parameters().exists("printAll")){
 		_printAll = true;
 		logfile().list("Will write all sites, even those without data. (parameter 'printAll')");

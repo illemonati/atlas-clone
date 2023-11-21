@@ -1,17 +1,12 @@
 #ifndef BAM_TBAMFILEFILTERS_H_
 #define BAM_TBAMFILEFILTERS_H_
 
-#include <cstddef>
-#include <cstdint>
 #include <string_view>
-#include <type_traits>
 
 #include "TAlignmentList.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Math/TNumericRange.h"
-#include "coretools/Math/counters.h"
-#include "coretools/enum.h"
 
 #include "TBamFilter.h"
 

@@ -8,14 +8,11 @@
 #ifndef GENOMETASKS_TPSMCINPUT_H_
 #define GENOMETASKS_TPSMCINPUT_H_
 
-#include <stdint.h>
 #include <iosfwd>
 #include <memory>
-#include <string>
 
-#include "TGenome_OLD.h"
+#include "TBamWindowTraverser.h"
 #include "TGenotypeData.h"
-#include "coretools/Main/TTask.h"
 #include "TThetaEstimator.h"
 
 namespace GenomeTasks{
@@ -23,7 +20,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-class TPSMCInput:public old::TGenome_windows{
+class TPSMCInput final : public TBamWindowTraverser{
 private:
 	double _theta;
 	double _confidence, _logConfidence, _logConfidenceHet;

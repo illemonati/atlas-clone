@@ -4,18 +4,6 @@
  *  Created on: Apr 19, 2018
  *      Author: wegmannd
  */
-
-#include "TAlignment.h"
-#include "TSequencedBase.h"
-#include "coretools/Main/TError.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "TBamFilter.h"
-#include "TBaseFilter.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Types/strongTypes.h"
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
@@ -23,6 +11,20 @@
 #include <memory>
 #include <stdexcept>
 #include <stdlib.h>
+
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/strongTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TFastaReader.h"
+
+#include "TAlignment.h"
+#include "TBamFilter.h"
+#include "TBaseFilter.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TSequencedBase.h"
 
 namespace BAM {
 
