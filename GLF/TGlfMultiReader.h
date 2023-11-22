@@ -69,6 +69,9 @@ private:
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
+	void writeDiploidIndividualToVCF(std::vector<TMultiGLFDataSample*> samples);
+	void writeHaploidIndividualToVCF(std::vector<TMultiGLFDataSample*> samples);
+
 public:
 	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, TRandomGenerator* RandomGenerator);
 	~TGlfMultiReaderVcf(){
@@ -76,7 +79,7 @@ public:
 	}
 
 	void usePhredScaledLikelihoods(){ _usePhredScaledLikelihoods = true; };
-	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base Ref, const Base Alt);
+	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base Ref, const Base Alt, const std::vector<std::vector<size_t>> & groupIndices);
 };
 
 //----------------------------------------------------
@@ -89,6 +92,8 @@ private:
 	TGlfReader* GLFs;
 	bool readersOpened;
 	TGenotypeMap genoMap;
+	std::vector<std::vector<std::string>> _GLFgroups;
+	std::vector<std::vector<size_t>> _groupIndices;
 
 	void _openGLFs(TLog* logfile);
 
@@ -162,6 +167,7 @@ public:
 	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
 	std::string chr(){return _curChr.name; };
 	uint32_t position(){return _position; };
+	std::vector<std::vector<size_t>> groupIndices(){return _groupIndices; };
 	Base refBase();
 };
 

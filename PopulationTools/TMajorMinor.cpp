@@ -186,6 +186,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
 	TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
+
 	glfReader.onlyJumpToPositionsWithData();
 
 	//add reference, if provided
@@ -260,9 +261,9 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 				//write to VCF
 				if(MMEstimator->variantQuality >= minVariantQuality){
 					if(MMEstimator->major == ref){
-						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->major, MMEstimator->minor);
+						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->major, MMEstimator->minor, glfReader.groupIndices());
 					} else {
-						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->minor, MMEstimator->major);
+						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->minor, MMEstimator->major, glfReader.groupIndices());
 					}
 				}
 			} else {
@@ -270,7 +271,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 				//write to VCF
 				if(MMEstimator->variantQuality >= minVariantQuality){
-					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->major, MMEstimator->minor);
+					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->major, MMEstimator->minor, glfReader.groupIndices());
 				}
 			}
 		} //end filter on missingness

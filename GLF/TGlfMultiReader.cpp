@@ -129,7 +129,7 @@ void TGlfMultiReaderVcf::writeLikelihood(const uint16_t & likGlf){
 	}
 };
 
-void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base refAllele, const Base altAllele){
+void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base refAllele, const Base altAllele, const std::vector<std::vector<size_t>> & groupIndices){
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with TCaller
 	_setMajorMinor(refAllele, altAllele);
@@ -153,6 +153,20 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 		vcf << "\tGT:GQ:DP:GL";
 
 	//now write active samples
+	for(size_t i = 0; i < groupIndices.size(); i++){
+		bool isHaploid;
+		std::vector<TMultiGLFDataSample*> groupData(groupIndices[i].size());
+		for(size_t j = 0; j < groupIndices[i].size(); j++){
+			if(data.samples[j].hasData){
+				isHaploid = data.samples[j].isHaploid;
+			}
+			groupData[j] = new TMultiGLFDataSample(data.samples[groupIndices[i][j]]);
+		}
+		if(isHaploid)
+			writeHaploidIndividualToVCF(groupData);
+		else
+			writeDiploidIndividualToVCF(groupData);
+	}
 	for(int i=0; i<data.size; ++i){
 		if(data.samples[i].isHaploid)
 			writeHaploidIndividualToVCF(data.samples[i]);
@@ -162,6 +176,97 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 
 	//end of line
 	vcf << '\n';
+};
+
+void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(std::vector<TMultiGLFDataSample*> samples){
+	bool hasData = false;
+	for(auto sample: samples){
+		if(sample->hasData){
+			//find min qual
+			uint16_t minQual = sample->genotypeLikelihoodsGLF[refHomIndex];
+			if(sample->genotypeLikelihoodsGLF[hetIndex] < minQual) minQual = sample->genotypeLikelihoodsGLF[hetIndex];
+			if(sample->genotypeLikelihoodsGLF[altHomIndex] < minQual) minQual = sample->genotypeLikelihoodsGLF[altHomIndex];
+
+			//get all genotypes with minQual (=MLE)
+			std::vector<uint8_t> mleGenotypes;
+			if(sample->genotypeLikelihoodsGLF[refHomIndex] == minQual) mleGenotypes.push_back(2);
+			if(sample->genotypeLikelihoodsGLF[hetIndex] == minQual) mleGenotypes.push_back(3);
+			if(sample->genotypeLikelihoodsGLF[altHomIndex] == minQual) mleGenotypes.push_back(4);
+
+			//write MLE genoytpe
+			int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
+			vcf << '\t' << genotypeStrings[mleGeno] << ':';
+
+			//write genotype quality
+			if(mleGenotypes.size() > 1) vcf << "0:";
+			else {
+				//find second highest quality
+				int secondLowestQual = converter.maxValue();
+				if(sample->genotypeLikelihoodsGLF[refHomIndex] > minQual){
+					secondLowestQual = sample->genotypeLikelihoodsGLF[refHomIndex];
+				}
+				if(sample->genotypeLikelihoodsGLF[hetIndex] > minQual && sample->genotypeLikelihoodsGLF[hetIndex] < secondLowestQual){
+					secondLowestQual = sample->genotypeLikelihoodsGLF[hetIndex];
+				}
+				if(sample->genotypeLikelihoodsGLF[altHomIndex] > minQual && sample->genotypeLikelihoodsGLF[altHomIndex] < secondLowestQual){
+					secondLowestQual = sample->genotypeLikelihoodsGLF[altHomIndex];
+				}
+				vcf << (int) converter.toPhred(secondLowestQual - minQual) << ":";
+			}
+
+			//write depth
+			vcf << sample->depth << ':';
+
+			//write likelihoods
+			writeLikelihood(sample->genotypeLikelihoodsGLF[refHomIndex] - minQual);
+			vcf << ',';
+			writeLikelihood(sample->genotypeLikelihoodsGLF[hetIndex] - minQual);
+			vcf << ',';
+			writeLikelihood(sample->genotypeLikelihoodsGLF[altHomIndex] - minQual);
+			hasData = true;
+			break;
+		}
+	} 
+	if(!hasData)
+		vcf << "\t./.:.:.:.";
+};
+
+void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(std::vector<TMultiGLFDataSample*> samples){
+	bool hasData = false;
+	for(auto sample: samples){
+		if(sample->hasData){
+			//find min qual
+			int minQual = sample->genotypeLikelihoodsGLF[ref];
+			if(sample->genotypeLikelihoodsGLF[alt] < minQual) minQual = sample->genotypeLikelihoodsGLF[alt];
+
+			//get all genotypes with minQual (=MLE)
+			std::vector<int> mleGenotypes;
+			if(sample->genotypeLikelihoodsGLF[ref] == minQual) mleGenotypes.push_back(0);
+			if(sample->genotypeLikelihoodsGLF[alt] == minQual) mleGenotypes.push_back(1);
+
+			//write MLE genoytpe
+			int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
+			vcf << '\t' << genotypeStrings[mleGeno] << ':';
+
+			//write genotype quality
+			if(mleGeno == ref) vcf << (int) converter.toPhred(sample->genotypeLikelihoodsGLF[alt] - minQual) << ":";
+			else  vcf << (int) converter.toPhred(sample->genotypeLikelihoodsGLF[ref] - minQual) << ":";
+
+			//write depth
+			vcf << sample->depth << ':';
+
+			//write likelihoods
+			writeLikelihood(sample->genotypeLikelihoodsGLF[ref] - minQual);
+			vcf << ',';
+			writeLikelihood(sample->genotypeLikelihoodsGLF[alt] - minQual);
+			hasData = true;
+			break;
+		} 
+	}	
+		
+	if(!hasData) {
+		vcf << "\t.:.:.:.";
+	}
 };
 
 void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sample){
@@ -333,6 +438,42 @@ void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 		in.close();
 	} else
 		params.fillParameterIntoVector("glf", GLFNames, ',');
+
+	if(params.parameterExists("groupFiles")){
+		std::vector<std::string> groups;
+		params.fillParameterIntoVector("groupFiles", groups, ';');
+
+		if(groups.size() == 0){
+			logfile->list("Will combine all GLF files into one individual. (parameter 'groupFiles')");
+			_groupIndices.resize(1);
+			_groupIndices[0].resize(GLFNames.size());
+			for(size_t i = 0; i < _groupIndices[0].size(); i++)
+				_groupIndices[0][i] = i;
+		} else {
+			logfile->startIndent("Will group these GLF files as individuals: (parameter 'groupFiles')");
+			for(auto &s: groups){
+				logfile->list(s);
+			}
+			logfile->endIndent();
+			_GLFgroups.resize(groups.size());
+			for(size_t i = 0; i < groups.size(); i++){
+				fillVectorFromStringSkipEmpty(groups[i], _GLFgroups[i], ',');
+			}
+			_groupIndices.resize(_GLFgroups.size());
+			for(size_t i = 0; i < _groupIndices.size(); i++){
+				_groupIndices[i].resize(_GLFgroups[i].size());
+				for(size_t j = 0; j < _groupIndices[i].size(); j++){
+					_groupIndices[i][j] = (size_t)_getGLFIndexFromName(_GLFgroups[i][j]);
+				}
+			}
+		}
+	} else {
+		logfile->list("Will not group GLF files. (parameter 'groupFiles')");
+		_groupIndices.resize(GLFNames.size());
+		for(size_t i = 0; i < _groupIndices.size(); i++){
+			_groupIndices[i].push_back(i);
+		}
+	}
 	_openGLFs(logfile);
 };
 
@@ -399,14 +540,23 @@ void TGlfMultiReader::_prepareParsing(){
 	for(TGlfReader* it : pointerToActiveGLFs){
 		it->readNext();
 	}
-
 	//where to start?
 	if(_onlyJumpToPositionsWithData){
 		_jumpToNextPositionWithData();
 	} else {
-		_curRefId = 0;
-		_position = 0;
-		_nextPosition = 0;
+		//get first chromosome and position out of all GLFs
+		_curRefId = pointerToActiveGLFs[0]->refId();
+		for(TGlfReader* it : pointerToActiveGLFs){
+			if(it->refId() < _curRefId){
+				_curRefId = it->refId();
+				_position = it->position();
+			} else if (it->refId() == _curRefId && _position < it->position()){
+				_position = it->position();
+			}
+		}
+		//_curRefId = 0;
+		//_position = 0;
+		_nextPosition = _position + 1;
 
 		//fill chromosome info
 		_updateChromosomeInfo();
@@ -451,16 +601,17 @@ bool TGlfMultiReader::_jumpToNextPositionWithData(){
 };
 
 void TGlfMultiReader::_updateChromosomeInfo(){
-	//update curChr
-	TGlfChromosome* chr = pointerToActiveGLFs[0]->pointerToChr(_curRefId);
-	if(chr == nullptr){
-		throw "Chromosome with refId " + toString(_curRefId) + " not present in GLF file '" + pointerToActiveGLFs[0]->name() + "!";
+	TGlfChromosome* chr = nullptr;
+	size_t index = 0;
+	while(chr == nullptr && index < pointerToActiveGLFs.size()){
+		chr = pointerToActiveGLFs[index]->pointerToChr(_curRefId);
+		index++;
 	}
 	_curChr.update(*chr);
-
 	//check that all files share the same chromosome info
 	chr = nullptr;
 	int i=0;
+	size_t notPresent = 0;
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(it->fillPointerToChr(_curRefId, chr)){
 			if(chr->name != _curChr.name)
@@ -473,9 +624,12 @@ void TGlfMultiReader::_updateChromosomeInfo(){
 			else if(chr->ploidy == 2) data.samples[i].isHaploid = false;
 			else throw "Ploidy " + toString(chr->ploidy) + " is currently not supported!";
 		} else {
-			throw "Chromosome with refId " + toString(_curRefId) + " not present in any GLF file provided! Limit to only sites with data?";
+			notPresent++;
 		}
 		++i;
+	}
+	if(notPresent == i){
+		throw "Chromosome with refId " + toString(_curRefId) + " not present in any GLF file provided! Limit to only sites with data?";
 	}
 };
 
@@ -632,11 +786,34 @@ void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::st
 
 void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & vec){
 	vec.clear();
-
 	//sample names are file names without glf ending
 	if(numActiveFiles > 0){
-		for(TGlfReader* it : pointerToActiveGLFs){
-			vec.emplace_back(readBeforeLast(it->name(), ".glf"));
+		for(size_t groupNum = 0; groupNum < _groupIndices.size(); groupNum++){
+			if(_groupIndices[groupNum].size() > 1){
+				//get name of first file in group
+				std::string fullName = readBeforeLast(pointerToActiveGLFs[_groupIndices[groupNum][0]]->name(), ".glf");
+				//now cut before last . - or _ to get name of individual
+				std::string beforeDot = readBeforeLast(fullName, '.');
+				std::string beforeDash = readBeforeLast(fullName, '-');
+				std::string beforeUnderscore = readBeforeLast(fullName, '_');
+				if(beforeDot.length() > beforeDash.length() && 
+				   beforeDot.length() > beforeUnderscore.length() && 
+				   beforeDot.length() != fullName.length()){
+					vec.push_back(beforeDot);
+				} else if(beforeDash.length() > beforeDot.length() && 
+				   		  beforeDash.length() > beforeUnderscore.length() && 
+				   		  beforeDash.length() != fullName.length()){
+							vec.push_back(beforeDash);
+				} else if(beforeUnderscore.length() > beforeDot.length() && 
+				   		  beforeUnderscore.length() > beforeDash.length() && 
+				   		  beforeUnderscore.length() != fullName.length()){
+							vec.push_back(beforeUnderscore);
+				} else {
+					vec.push_back(fullName);
+				}
+			} else {
+				vec.emplace_back(readBeforeLast(pointerToActiveGLFs[_groupIndices[groupNum][0]]->name(), ".glf"));
+			}
 		}
 	}
 };

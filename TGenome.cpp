@@ -576,6 +576,7 @@ void TGenome::writeGLF(TParameters & params){
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
 			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurRefId(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
+			//std::cout << alignmentParser.getCurChrName() << "\t" << alignmentParser.getCurRefId() << std::endl;
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
