@@ -166,12 +166,8 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 			writeHaploidIndividualToVCF(groupData);
 		else
 			writeDiploidIndividualToVCF(groupData);
-	}
-	for(int i=0; i<data.size; ++i){
-		if(data.samples[i].isHaploid)
-			writeHaploidIndividualToVCF(data.samples[i]);
-		else
-			writeDiploidIndividualToVCF(data.samples[i]);
+		for(size_t del = 0; del < groupData.size(); del++)
+			delete groupData[del];
 	}
 
 	//end of line
@@ -227,8 +223,9 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(std::vector<TMultiGLFDataSa
 			break;
 		}
 	} 
-	if(!hasData)
+	if(!hasData){
 		vcf << "\t./.:.:.:.";
+	}
 };
 
 void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(std::vector<TMultiGLFDataSample*> samples){
