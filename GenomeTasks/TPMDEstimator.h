@@ -8,17 +8,8 @@
 #ifndef GENOMETASKS_TPMDESTIMATOR_H_
 #define GENOMETASKS_TPMDESTIMATOR_H_
 
-#include <memory>
-#include <stdint.h>
-#include <string>
-
 #include "TBamTraverser.h"
 #include "oldPMD/TModels.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Main/TTask.h"
 
 namespace BAM {
 class TReadGroupMap;

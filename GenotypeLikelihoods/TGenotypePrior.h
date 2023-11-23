@@ -9,6 +9,7 @@
 #define GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 
 #include "coretools/Main/TLog.h"
+
 #include "TThetaEstimator.h"
 #include "TWindow.h"
 

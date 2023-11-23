@@ -4,6 +4,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include <tuple>
+#include <armadillo>
 
 namespace GenotypeLikelihoods::oldPMD {
 

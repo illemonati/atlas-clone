@@ -61,7 +61,7 @@ void TDuplicateQuantifier::_handleAlignment(){
 	}
 };
 
-void TDuplicateQuantifier::estimateDuplicationCounts(){
+void TDuplicateQuantifier::run(){
 	using coretools::instances::logfile;
 	//assembles distribution of how often a read is duplicated
 	//now: just how many reads start at the same positions

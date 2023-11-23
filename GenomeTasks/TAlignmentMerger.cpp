@@ -25,7 +25,6 @@
 #include "coretools/Files/TFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"

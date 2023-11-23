@@ -9,15 +9,14 @@
 #define POPULATIONTOOLS_THARDYWEINBERGTEST_H_
 
 #include <array>
-#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/VCF/TPopulation.h"
-#include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
+
 namespace coretools { class TOutputFile; }
 
 namespace PopulationTools{

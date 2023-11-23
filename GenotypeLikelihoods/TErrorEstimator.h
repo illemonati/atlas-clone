@@ -6,11 +6,7 @@
 #ifndef TERRORESTIMATOR_H_
 #define TERRORESTIMATOR_H_
 
-#include <array>
 #include <memory>
-#include <stddef.h>
-#include <stdint.h>
-#include <string>
 #include <vector>
 
 #include "genometools/BED/TBed.h"
@@ -22,12 +18,6 @@
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TSite.h"
-
-namespace BAM {class TSequencedBase;}
-namespace GenotypeLikelihoods::SequencingError {
-class TEpsilon;
-class TRho;
-}
 
 namespace GenotypeLikelihoods {
 

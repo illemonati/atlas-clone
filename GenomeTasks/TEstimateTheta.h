@@ -8,9 +8,6 @@
 #ifndef GENOMETASKS_TESTIMATETHETA_H_
 #define GENOMETASKS_TESTIMATETHETA_H_
 
-#include <set>
-#include <stdint.h>
-#include <string>
 #include <vector>
 
 #include "coretools/Types/probability.h"

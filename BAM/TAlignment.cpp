@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <stdlib.h>
 
+#include "SequencingError/TModels.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/strongTypes.h"
@@ -23,8 +24,8 @@
 #include "TAlignment.h"
 #include "TBamFilter.h"
 #include "TBaseFilter.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "TSequencedBase.h"
+#include "TErrorModels.h"
 
 namespace BAM {
 

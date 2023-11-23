@@ -8,11 +8,9 @@
 #ifndef GENOMETASKS_TCONTEXTQUANTIFER_H_
 #define GENOMETASKS_TCONTEXTQUANTIFER_H_
 
-#include <string>
+#include "coretools/Math/counters.h"
 
 #include "TBamTraverser.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Math/counters.h"
 
 namespace GenomeTasks{
 
@@ -26,20 +24,7 @@ private:
 	void _handleAlignment(BAM::TAlignment& alignment) override;
 public:
 	TContextQuantifier();
-	void quantifyContexts();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_quantifyContext:public coretools::TTask{
-public:
-	TTask_quantifyContext(){ _explanation = "Writing context statistics to file"; };
-
-	void run(){
-		TContextQuantifier quantifier;
-		quantifier.quantifyContexts();
-	};
+	void run();
 };
 
 }; //end namespace

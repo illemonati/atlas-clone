@@ -5,7 +5,7 @@
  *      Author: phaentu
  */
 
-#include "TGenotypeLikelihoodCalculator.h"
+#include "TErrorModels.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -19,6 +19,7 @@
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "TSite.h"
 
 namespace GenotypeLikelihoods{
 

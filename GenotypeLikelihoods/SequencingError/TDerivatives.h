@@ -2,6 +2,7 @@
 #define GENOTYPELIKELIHOODS_TDERIVATIVES_H_
 
 #include <cstddef>
+
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 

@@ -8,21 +8,15 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
-#include <iosfwd>
-#include <set>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
 #include "TAlignment.h"
 #include "TGenotypeData.h"
 #include "TSite.h"
-#include "TSiteSubset.h"
-#include "coretools/Containers/TView.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/TFastaReader.h"
 
 namespace coretools {
 class TOutputFile;

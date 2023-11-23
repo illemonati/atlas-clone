@@ -14,7 +14,6 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "TSequencedBase.h"
 #include "coretools/Strings/stringFunctions.h"

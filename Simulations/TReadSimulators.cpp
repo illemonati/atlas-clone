@@ -11,12 +11,14 @@
 #include "TReadSimulators.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Main/globalConstants.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace Simulations {
 
 using BAM::RGInfo::TReadGroupInfo;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using genometools::Base;
 
 void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups

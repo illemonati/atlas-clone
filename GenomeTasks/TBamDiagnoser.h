@@ -11,9 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "TBamFilter.h"
 #include "TBamTraverser.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
 
 namespace GenomeTasks{

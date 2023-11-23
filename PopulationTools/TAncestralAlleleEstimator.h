@@ -8,12 +8,8 @@
 #ifndef TANCESTRALALLELETESTIMATOR_H_
 #define TANCESTRALALLELETESTIMATOR_H_
 
-#include <stdint.h>
-#include <map>
 #include <string>
-#include <vector>
 
-#include "coretools/Main/TTask.h"
 #include "TAlleleCountReader.h"
 #include "genometools/TFastaIndex.h"
 

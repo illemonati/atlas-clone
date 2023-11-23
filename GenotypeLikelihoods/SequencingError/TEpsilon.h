@@ -9,15 +9,12 @@
 #define TEPSILON_H_
 
 #include <armadillo>
-#include <memory>
 
 #include "SequencingError/TFunctions.h"
-#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
 #include "coretools/Types/probability.h"
-#include "TDerivatives.h"
 
 
 namespace GenotypeLikelihoods {

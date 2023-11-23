@@ -7,13 +7,7 @@
 
 #include <string>
 
-#include "coretools/Main/TParameters.h"
-#include "genometools/TFastaReader.h"
-
-#include "TAlignment.h"
 #include "TBamFile.h"
-#include "TBaseFilter.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "TReadGroupInfo.h"
 
 namespace GenomeTasks {

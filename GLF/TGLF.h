@@ -8,21 +8,18 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
-#include <cstdint>
-#include <stdint.h>
-#include <zlib.h>
 #include <array>
-#include <cstring>
-#include <exception>
 #include <map>
 #include <string>
 #include <vector>
+#include <zlib.h>
+
+#include "TGenotypeData.h"
+#include "coretools/Containers/TDualStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Containers/TDualStrongArray.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
+
+
 namespace genometools { class TChromosome; }
 
 namespace GLF {
@@ -198,10 +195,7 @@ public:
 };
 
 struct TGLFPrinter {
-	void run() {
-		TGlfReader reader(coretools::instances::parameters().get<std::string>("glf"));
-		reader.printToEnd();
-	};
+	void run();
 };
 
 }; // namespace GLF

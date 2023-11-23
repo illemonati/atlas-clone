@@ -11,6 +11,7 @@
 #include <ostream>
 #include "TBamFile.h"
 #include "TBamFilters.h"
+#include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
 #include "coretools/Files/TFile.h"

@@ -6,16 +6,14 @@
 #ifndef GENOTYPELIKELIHOODS_PMD_MODELS_H_
 #define GENOTYPELIKELIHOODS_PMD_MODELS_H_
 
+#include <vector>
+
+#include "genometools/GenotypeTypes.h"
+
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
 #include "TModel.h"
-#include "genometools/GenotypeTypes.h"
-#include <string>
-#include <vector>
-
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods::PMD {
 

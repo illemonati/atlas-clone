@@ -12,9 +12,8 @@
 #include <vector>
 
 #include "TBamFile.h"
-#include "TBamFilter.h"
 #include "TGenome.h"
-#include "coretools/Main/TTask.h"
+#include "TOutputBamFile.h"
 #include "coretools/Types/probability.h"
 
 namespace BAM {

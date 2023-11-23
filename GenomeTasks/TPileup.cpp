@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "TSite.h"
 #include "TWindow.h"
 #include "coretools/Main/TLog.h"

@@ -11,7 +11,7 @@
 
 #include "TGenome.h"
 #include "TParser.h"
-
+#include "TSiteSubset.h"
 #include "TAlignment.h"
 #include "TWindow.h"
 

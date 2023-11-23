@@ -1,4 +1,5 @@
 #include "TParser.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
 
 namespace GenomeTasks {

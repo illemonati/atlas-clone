@@ -36,7 +36,7 @@ void TContextQuantifier::_handleAlignment(BAM::TAlignment& alignment){
 	}
 };
 
-void TContextQuantifier::quantifyContexts(){
+void TContextQuantifier::run(){
 	using coretools::instances::logfile;
 	_contextCounts.clear();
 

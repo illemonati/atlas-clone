@@ -8,12 +8,7 @@
 #ifndef TTHETAESTIMATOR_H_
 #define TTHETAESTIMATOR_H_
 
-#include <algorithm>
-#include <math.h>
 #include <memory>
-#include <ostream>
-#include <stdint.h>
-#include <stdio.h>
 #include <string>
 #include <vector>
 
@@ -22,7 +17,6 @@
 #include "TGenotypeData.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 class TErrorModels;

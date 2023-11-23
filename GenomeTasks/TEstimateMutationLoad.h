@@ -5,7 +5,6 @@
 #ifndef GENOMETASKS_TESTIMATEMUTATIONLOAD_H_
 #define GENOMETASKS_TESTIMATEMUTATIONLOAD_H_
 
-#include <stdint.h>
 #include <vector>
 
 #include "genometools/BED/TBed.h"
@@ -18,8 +17,7 @@
 #include "TGenotypeData.h"
 #include "TWindow.h"
 
-namespace GenomeTasks {
-
+namespace GenomeTasks{
 namespace MutationLoad {
 
 

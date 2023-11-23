@@ -9,18 +9,15 @@
 #define TDISTANCEESTIMATOR_H_
 
 #include <memory>
-#include <stdint.h>
-#include <algorithm>
 #include <array>
 #include <string>
 #include <vector>
 
+#include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
+
 #include "TGLF.h"
 #include "TGenotypeData.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TTask.h"
 
 namespace gz { class ogzstream; }
 

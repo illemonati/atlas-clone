@@ -20,7 +20,6 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "coretools/Containers/TMassFunction.h"
 #include "coretools/Main/TLog.h"

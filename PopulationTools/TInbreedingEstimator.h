@@ -5,29 +5,18 @@
 #ifndef ATLAS_TINBREEDINGESTIMATOR_H
 #define ATLAS_TINBREEDINGESTIMATOR_H
 
-#include <algorithm>
-#include <memory>
-#include <set>
-#include <cstddef>
 #include <string>
 #include <vector>
 
+#include "coretools/Types/probability.h"
+
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Files/TFile.h"
 #include "genometools/THardyWeinbergGenotypeProbabilities.h"
-#include "coretools/Main/TLog.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+
 #include "stattools/ParametersObservations/TObservationTyped.h"
 #include "stattools/ParametersObservations/TParameterTyped.h"
-#include "coretools/Main/TParameters.h"
-#include "genometools/VCF/TPopulationLikelihoods.h"
-#include "stattools/Priors/TPriorBase.h"
-#include "genometools/TSampleLikelihoods.h"
-#include "coretools/Main/TTask.h"
-#include "stattools/ParametersObservations/TValue.h"
-#include "coretools/Types/commonWeakTypes.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/strongTypes.h"
-#include "coretools/Types/weakTypes.h"
 
 namespace stattools {
 class TDAGBuilder;

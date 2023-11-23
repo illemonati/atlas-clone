@@ -8,16 +8,11 @@
 #ifndef TSITESUBSET_H_
 #define TSITESUBSET_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <functional>
 #include <set>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include "coretools/Main/TError.h"
-#include "coretools/Containers/TView.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/algorithms.h"

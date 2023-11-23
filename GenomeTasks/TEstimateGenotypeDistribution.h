@@ -1,13 +1,14 @@
 /*
  * TEstimateGenotypeDistribution.h
- *
  */
 
 #ifndef GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
-#include "TBamWindowTraverser.h"
 #include "coretools/Files/TOutputFile.h"
+
+#include "TGenotypeDistribution.h"
+#include "TBamWindowTraverser.h"
 
 namespace GenomeTasks {
 class TEstimateGenotypeDistribution final : public TBamWindowTraverser {

@@ -5,10 +5,6 @@
 #ifndef ATLAS_TVCFCONVERTER_H
 #define ATLAS_TVCFCONVERTER_H
 
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -16,11 +12,8 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Storage/TStorage.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
-#include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace genometools {

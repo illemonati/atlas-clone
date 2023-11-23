@@ -13,10 +13,11 @@
 #include <vector>
 
 #include "coretools/enum.h"
+#include "genometools/VCF/TVCFFields.h"
+
 #include "TBamWindowTraverser.h"
 #include "TGenotypeData.h"
 #include "TGenotypePrior.h"
-#include "genometools/VCF/TVCFFields.h"
 
 
 namespace GenotypeLikelihoods { class TSite; }

@@ -8,10 +8,11 @@
 #ifndef TALLELECOUNTREADER_H_
 #define TALLELECOUNTREADER_H_
 
-#include <stdint.h>
 #include <string>
 #include <vector>
+
 #include "coretools/Files/TFile.h"
+
 #include "genometools/GenotypeTypes.h"
 
 namespace PopulationTools{

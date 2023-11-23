@@ -15,7 +15,6 @@
 #include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"

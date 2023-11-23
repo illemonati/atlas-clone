@@ -1,10 +1,11 @@
 #ifndef TPARSER_H_
 #define TPARSER_H_
 
+#include "genometools/TFastaReader.h"
+
 #include "TBaseFilter.h"
 #include "TGenome.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "genometools/TFastaReader.h"
+#include "TErrorModels.h"
 
 namespace GenomeTasks {
 

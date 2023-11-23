@@ -12,7 +12,6 @@
 #include <ostream>
 
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "TSite.h"

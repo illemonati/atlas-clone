@@ -8,20 +8,19 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 
-#include <string>
 #include <vector>
+
+#include "coretools/Containers/TStrongArray.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/TModel.h"
 #include "TAlignment.h"
 #include "TReadGroupInfo.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
 
-namespace GenotypeLikelihoods {
-namespace SequencingError {
+namespace GenotypeLikelihoods::SequencingError  {
 
 //--------------------------------------------------------------------------
 // TModels
@@ -66,7 +65,7 @@ public:
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
 };
-} // namespace SequencingError
-}; // namespace GenotypeLikelihoods
+
+} // namespace GenotypeLikelihoods::SequencingError
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_ */

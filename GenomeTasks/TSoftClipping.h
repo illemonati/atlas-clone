@@ -10,12 +10,10 @@
 
 #include <string>
 
-#include "TBamTraverser.h"
-#include "coretools/Files/TFile.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
 
 #include "TBamFile.h"
+#include "TBamTraverser.h"
 #include "TOutputBamFile.h"
 
 namespace GenomeTasks {

@@ -14,7 +14,6 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -23,6 +22,7 @@
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
+#include "TErrorModels.h"
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;

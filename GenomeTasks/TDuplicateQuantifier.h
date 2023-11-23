@@ -8,14 +8,13 @@
 #ifndef TDUPLICATIONQUANTIFYER_H_
 #define TDUPLICATIONQUANTIFYER_H_
 
-#include <stdint.h>
-#include <string>
 #include <vector>
 
-#include "TBamTraverser.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
+
+#include "genometools/GenomePositions/TGenomePosition.h"
+
+#include "TBamTraverser.h"
 
 namespace GenomeTasks{
 
@@ -36,22 +35,8 @@ private:
 	void _handleAlignment() override;
 
 public:
-	void estimateDuplicationCounts();
+	void run();
 };
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_duplicationQuantifier:public coretools::TTask{
-public:
-	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
-
-	void run(){
-		TDuplicateQuantifier duplicationQuantifier;
-		duplicationQuantifier.estimateDuplicationCounts();
-	};
-};
-
 
 }; // end namespace
 

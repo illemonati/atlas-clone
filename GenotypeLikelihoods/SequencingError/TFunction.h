@@ -9,30 +9,21 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 
 #include <array>
-#include <cmath>
-#include <cstdint>
-#include <iomanip>
-#include <iterator>
-#include <memory>
-#include <stddef.h>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
-#include "SequencingError/RecalEstimatorTools.h"
-#include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Math/TProbabilityDistributions.h"
-#include "SequencingError/TCovariate.h"
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
-#include "TDerivatives.h"
+#include "genometools/PhredProbabilityTypes.h"
 
-#include <armadillo>
+#include "SequencingError/RecalEstimatorTools.h"
+#include "SequencingError/TCovariate.h"
+#include "TDerivatives.h"
+#include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods::SequencingError {
 

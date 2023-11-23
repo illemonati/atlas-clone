@@ -1,9 +1,10 @@
-
 #ifndef TBASEFILTER_H
 #define TBASEFILTER_H
 
-#include "TSequencedBase.h"
 #include "coretools/Math/TNumericRange.h"
+
+#include "TSequencedBase.h"
+
 namespace GenomeTasks {
 
 //---------------------------------------------------------------

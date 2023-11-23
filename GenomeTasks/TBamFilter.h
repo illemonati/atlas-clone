@@ -8,30 +8,20 @@
 #ifndef TBAMFILTER_H_
 #define TBAMFILTER_H_
 
-#include <functional>
-#include <memory>
-#include <set>
-#include <stdint.h>
 #include <string>
+
+#include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
 
 #include "TBamFile.h"
 #include "TBamTraverser.h"
 #include "TOutputBamFile.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM { class TAlignment; }
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
 namespace genometools { class TGenomePosition; }
 
-namespace GenomeTasks {
-
-namespace BamFilter{
-
-using coretools::instances::parameters;
-using coretools::instances::logfile;
-using namespace coretools::str;
+namespace GenomeTasks::BamFilter {
 
 //-----------------------------------------
 // TAlignmentMergerEntry
@@ -169,9 +159,11 @@ protected:
 
 public:
 	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()){
+		using coretools::instances::parameters;
+		using coretools::instances::logfile;
 		//max distance between mates
-		_maxDistanceBetweenMates = parameters().get<int>("acceptedDistance", 2000);
-		logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
+		_maxDistanceBetweenMates = parameters().template get<int>("acceptedDistance", 2000);
+		logfile().list("Mates that are farther than ", _maxDistanceBetweenMates, " apart will be considered orphans. (parameter 'acceptedDistance')");
 
 		//keep orphans
 		if(parameters().exists("keepOrphans")){
@@ -205,9 +197,9 @@ public:
 		if (parameters().exists("removeSoftClippedBases")){
 			_removeSoftClippedBases = true;
 			//if parameter is set and a number is given -> use this as max number of softclipped bases, else remove all
-			if(!parameters().get<std::string>("removeSoftClippedBases").empty()){
-				_maxNumberOfSoftClippedBases = parameters().get<size_t>("removeSoftClippedBases");
-				logfile().list("Will leave up to " + toString(_maxNumberOfSoftClippedBases) + " softclipped bases per end. (parameter 'removeSoftClippedBases')");
+			if(!parameters().template get<std::string>("removeSoftClippedBases").empty()){
+				_maxNumberOfSoftClippedBases = parameters().template get<size_t>("removeSoftClippedBases");
+				logfile().list("Will leave up to ", _maxNumberOfSoftClippedBases, " softclipped bases per end. (parameter 'removeSoftClippedBases')");
 			} else {
 				_maxNumberOfSoftClippedBases = 0;
 				logfile().list("Will remove all softclipped bases. (parameter 'removeSoftClippedBases')");
@@ -320,7 +312,7 @@ public:
 		traverseBAM();
 	}
 };
-} // namespace BamFilter
-} // namespace GenomeTasks
+
+} // namespace GenomeTasks::BamFilter
 
 #endif /* TBAMFILTER_H_ */
