@@ -27,7 +27,7 @@ using coretools::instances::logfile;
 //--------------------------------------
 TCreateBedMask::TCreateBedMask() {
 	_minDepth = parameters().get<uint32_t>("minDepth", 2);
-	_bed.addChromosomes(_chromosomes);
+	_bed.addChromosomes(_genome.bamFile().chromosomes());
 };
 
 void TCreateBedMask::_createMask(const std::string fileTag){

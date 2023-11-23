@@ -62,7 +62,7 @@ TErrorEstimator::TErrorEstimator()
 		_regionSites.resize(beds.size());
 		for (size_t i = 0; i < beds.size(); ++i) {
 			const auto& bedFile   = beds[i];
-			_regions.emplace_back(bedFile, _chromosomes);
+			_regions.emplace_back(bedFile, _genome.bamFile().chromosomes());
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -79,7 +79,7 @@ TErrorEstimator::TErrorEstimator()
 		_regionSites.resize(chrs.size());
 		for (size_t i = 0; i < chrs.size(); ++i) {
 			const auto& chr   = chrs[i];
-			_refIDs.push_back(_chromosomes.refID(chr));
+			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chr));
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());

@@ -11,14 +11,13 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Strings/stringFunctions.h"
+#include <filesystem>
 
 namespace GenomeTasks {
-
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using namespace coretools::str;
 
-	TBamWindowTraverser::TBamWindowTraverser() : _parser(_genome), _chromosomes(_genome.bamFile().chromosomes()) {
+	TBamWindowTraverser::TBamWindowTraverser() : _parser(_genome) {
 
 	const BAM::TBamFilters filters{true};
 	_genome.bamFile().setFilters(filters);
@@ -30,38 +29,34 @@ using namespace coretools::str;
 	_setMasks();
 	_setSiteFilters();
 	logfile().endIndent();
+	_numWindowsOnChr = 0;
 }
 
 void TBamWindowTraverser::_setWindowParameters() {
-	if (!parameters().exists("window") && parameters().exists("windows")) {
-		logfile().warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
-	}
-	std::string tmp = parameters().get<std::string>("window", "1000000");
+	const auto sWindow = parameters().get<std::string>("window", "1000000");
 
 	// check if it is a number
-	if (stringIsProbablyANumber(tmp)) {
-		fromString(tmp, _windowSize);
-		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
-	} else {
-		logfile().listFlush("Limiting analysis to windows defined in BED file '" + tmp + "' (parameter window) ...");
-		_predefinedWindows.add(tmp, _chromosomes);
+	if (std::filesystem::exists(sWindow)) {
+		logfile().listFlush("Limiting analysis to windows defined in BED file '" + sWindow +
+							"' (parameter window) ...");
+		_predefinedWindows.add(sWindow, _genome.bamFile().chromosomes());
 		logfile().done();
-		logfile().conclude("Read " + toString(_predefinedWindows.size()) + " of cumulative length " +
-						   toString(_predefinedWindows.length()) + " bp on " +
-						   toString(_predefinedWindows.numChromosomesWithWindows()) + " chromosomes.");
+		logfile().conclude("Read ", _predefinedWindows.size(), " of cumulative length ", _predefinedWindows.length(),
+						   " bp on ", _predefinedWindows.numChromosomesWithWindows(), " chromosomes.");
+	} else {
+		coretools::str::fromString(sWindow, _windowSize);
+		logfile().list("Setting window size to ", _windowSize, ". (parameter 'window')");
 	}
-	_numWindowsOnChr = 0;
 }
 
 void TBamWindowTraverser::_setParsingLimits() {
 	// limit windows
 	_skipWindows = parameters().get<int>("skipWindows", 0);
 	if (_skipWindows > 0)
-		logfile().list("Will skip the first " + toString(_skipWindows) +
-					   " windows per chromosome. (parameter 'skipWindows')");
+		logfile().list("Will skip the first ", _skipWindows, " windows per chromosome. (parameter 'skipWindows')");
 	_limitWindows = parameters().get<long>("limitWindows", 1000000000);
 	if (parameters().exists("limitWindows"))
-		logfile().list("Will limit analysis to the first " + toString(_limitWindows) +
+		logfile().list("Will limit analysis to the first ", _limitWindows,
 					   " windows per chromosome. (parameter 'limitWindows')");
 	if (_limitWindows <= _skipWindows) UERROR("limitWindows has to be larger than skipWindows!");
 }
@@ -71,7 +66,7 @@ void TBamWindowTraverser::_setWindowFilters() {
 	_maxMissing = parameters().get<double>("maxMissing", 1.0);
 	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
 	if (_maxMissing < 1.0) {
-		logfile().list("Will filter out windows with a missing data fraction > " + toString(_maxMissing) +
+		logfile().list("Will filter out windows with a missing data fraction > ", _maxMissing,
 					   ". (parameter 'maxMissing')");
 	} else {
 		logfile().list("Will keep windows regardless of missingness. (use 'maxMissing' to filter)");
@@ -83,14 +78,14 @@ void TBamWindowTraverser::_setWindowFilters() {
 	if (_maxRefN < 1.0 && !_parser.reference().isOpen())
 		UERROR("Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			   "(use 'fasta' to provide a reference)");
-	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
+	logfile().list("Will filter out windows with a fraction of 'N' in reference > ", _maxRefN,
 				   ". (parameter 'maxRefN')");
 }
 
 void TBamWindowTraverser::_setSiteFilters() {
 	// depth filter
 	_readUpToDepth = parameters().get<size_t>("readUpToDepth", 1000);
-	logfile().list("Will read data up to depth " + toString(_readUpToDepth) +
+	logfile().list("Will read data up to depth ", _readUpToDepth,
 				   " and ignore additional bases. (parameter 'readUpToDepth')");
 
 	// depth filter
@@ -111,7 +106,7 @@ void TBamWindowTraverser::_setSiteFilters() {
 		if (_depthFilter.larger(_downsampleDepth)) {
 			logfile().warning("Downsample depth is >= max of depth filter: no downsampling will occur.");
 		}
-		subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(30);
+		_subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(30);
 	}
 
 	// CpG filter
@@ -147,10 +142,9 @@ void TBamWindowTraverser::_setMasks() {
 
 		// read file
 		logfile().listFlush("Reading file ...");
-		_mask.add(filename, _chromosomes);
+		_mask.add(filename, _genome.bamFile().chromosomes());
 		logfile().done();
-		logfile().conclude("Read " + toString(_mask.size()) + " sites on " +
-						   toString(_mask.numChromosomesWithWindows()) + " chromosomes.");
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.numChromosomesWithWindows(), " chromosomes.");
 		logfile().endIndent();
 	} else {
 		_doMasking       = false;
@@ -198,28 +192,28 @@ bool TBamWindowTraverser::_incrementWindow(GenotypeLikelihoods::TWindow &window)
 
 	// Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond
 	// _curChromosome or 3) reached window limit
-	if (_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->end() ||
+	if (_curChromosome == _genome.bamFile().chromosomes().cend() || window.from() >= _curChromosome->end() ||
 		_windowNumber > _limitWindows) {
 		// move to next chromosome
-		if (_curChromosome == _chromosomes.cend()) { // beginning of chromosome
-			_curChromosome = _chromosomes.cbegin();
+		if (_curChromosome == _genome.bamFile().chromosomes().cend()) { // beginning of chromosome
+			_curChromosome = _genome.bamFile().chromosomes().cbegin();
 		} else {
 			++_curChromosome;
 		}
 
 		// advance if this chromosome is not used
-		while (_curChromosome != _chromosomes.cend() &&
+		while (_curChromosome != _genome.bamFile().chromosomes().cend() &&
 			   (!_curChromosome->inUse() || _skipWindows * _windowSize > _curChromosome->length())) {
 			++_curChromosome;
 		}
 
-		if (_curChromosome == _chromosomes.cend()) { return false; }
+		if (_curChromosome == _genome.bamFile().chromosomes().cend()) { return false; }
 
 		_setCountersBeginningOfChromosome();
 		_numWindowsOnChr = ceil(_curChromosome->length() / (double)_windowSize);
 
 		// move window to beginning of chromosome
-		genometools::TGenomePosition newFrom = _curChromosome->start() + _skipWindows * _windowSize;
+		const auto newFrom = _curChromosome->start() + _skipWindows * _windowSize;
 		window.move(newFrom, _windowSize, _curChromosome->name());
 	}
 
@@ -255,7 +249,7 @@ bool TBamWindowTraverser::_moveToNextWindow(GenotypeLikelihoods::TWindow &window
 }
 
 bool TBamWindowTraverser::_incrementPredefinedWindow() {
-	size_t oldRefID = _curPredefinedWindow->refID();
+	const auto oldRefID = _curPredefinedWindow->refID();
 
 	++_curPredefinedWindow;
 	if (_curPredefinedWindow == _predefinedWindows.end()) { return false; }
@@ -272,9 +266,9 @@ bool TBamWindowTraverser::_incrementPredefinedWindow() {
 
 bool TBamWindowTraverser::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window) {
 	// if at beginning of BAM file: restart
-	if (_curChromosome == _chromosomes.cend()) {
+	if (_curChromosome == _genome.bamFile().chromosomes().cend()) {
 		_curPredefinedWindow = _predefinedWindows.begin();
-		_curChromosome       = _chromosomes.cbegin(_curPredefinedWindow->refID());
+		_curChromosome       = _genome.bamFile().chromosomes().cbegin(_curPredefinedWindow->refID());
 		_setCountersBeginningOfChromosome();
 	} else {
 		_incrementPredefinedWindow();
@@ -282,7 +276,7 @@ bool TBamWindowTraverser::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWind
 
 	// go to next accepted window
 	while (_curPredefinedWindow != _predefinedWindows.end() &&
-		   (!_chromosomes.inUse(_curPredefinedWindow->refID()) || _windowNumber < _skipWindows ||
+		   (!_genome.bamFile().chromosomes().inUse(_curPredefinedWindow->refID()) || _windowNumber < _skipWindows ||
 			_windowNumber >= _limitWindows)) {
 		_incrementPredefinedWindow();
 	}
@@ -292,7 +286,7 @@ bool TBamWindowTraverser::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWind
 
 	// make sure we are on the right chromosome
 	if (_curChromosome->refID() != _curPredefinedWindow->refID()) {
-		_curChromosome = _chromosomes.cbegin(_curPredefinedWindow->refID());
+		_curChromosome = _genome.bamFile().chromosomes().cbegin(_curPredefinedWindow->refID());
 
 		// update num windows per chromosome
 		_numWindowsOnChr = _predefinedWindows.numWindowsOnChr(_curChromosome->refID());
@@ -346,25 +340,8 @@ bool TBamWindowTraverser::_moveWindow(GenotypeLikelihoods::TWindow &window) {
 //---------------------
 // read data in windows
 //---------------------
-bool TBamWindowTraverser::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window) {
-	_windowTimer.start();
 
-	// move window
-	if (!_moveWindow(window)) {
-		// reached end
-		if (_hasWindowIndent) {
-			logfile().removeIndent();
-			_hasWindowIndent = false;
-		}
-		return false;
-	}
-
-	// read data
-	_readAlignmentsIntoWindow(window);
-	return true;
-}
-
-bool TBamWindowTraverser::_readAndParseAlignment() {
+bool TBamWindowTraverser::_readAndParseAlignment(BAM::TAlignment &_curAlignment) {
 	if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) return false;
 
 	_genome.bamFile().fill(_curAlignment);
@@ -377,14 +354,16 @@ void TBamWindowTraverser::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow
 	logfile().listFlushTime("Reading data ...");
 
 	// use last read from last window
-	if (_curAlignment.isEmpty() && !_readAndParseAlignment()) return;
+	BAM::TAlignment _curAlignment;
+	_genome.bamFile().fill(_curAlignment);
+	_parser.apply(_curAlignment);
 
 	do {
-		if (_curAlignment >= window.to()) break; 
+		if (_curAlignment >= window.to()) break;
 		if (_curAlignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
 			window.addAlignment(_curAlignment);
 		}
-	} while (_readAndParseAlignment());
+	} while (_readAndParseAlignment(_curAlignment));
 	// _curAlignment now holds first alignment of next window, don't discard!
 
 	// fill sites
@@ -423,7 +402,7 @@ void TBamWindowTraverser::_applyWindowFilters(GenotypeLikelihoods::TWindow &wind
 		// filter sites
 		if (_applyDepthFilter) { window.applyDepthFilter(_depthFilter); }
 		if (_filterCpG) { window.maskCpG(_parser.reference()); }
-		if (_downsampleDepth > 0) { window.downsample(_downsampleDepth, *subsamplePicker); };
+		if (_downsampleDepth > 0) { window.downsample(_downsampleDepth, *_subsamplePicker); };
 	}
 
 	// apply filters on window
@@ -442,12 +421,14 @@ void TBamWindowTraverser::_traverseBAMWindows() {
 
 	// initializing
 	_hasWindowIndent = false;
-	_curChromosome   = _chromosomes.cend(); // set chromosome to end to trigger restart.
-	_curAlignment.clear();
+	_curChromosome   = _genome.bamFile().chromosomes().cend(); // set chromosome to end to trigger restart.
 
 	// iterate through windows
 	GenotypeLikelihoods::TWindow window;
-	while (_readDataInNextWindow(window)) {
+	_genome.bamFile().readNextAlignmentThatPassesFilters();
+	while (_moveWindow(window)) {
+		coretools::TTimer _windowTimer;
+		_readAlignmentsIntoWindow(window);
 		if (window.passedFilters()) {
 			// do stuff in derived classes
 			_handleWindow(window);
@@ -456,6 +437,11 @@ void TBamWindowTraverser::_traverseBAMWindows() {
 			logfile().list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");
 		}
 		_chrChangedWindow = false;
+	}
+
+	if (_hasWindowIndent) {
+		logfile().removeIndent();
+		_hasWindowIndent = false;
 	}
 
 	logfile().endIndent();

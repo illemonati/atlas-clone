@@ -195,7 +195,7 @@ public:
 	size_t numSitesWithData();
 	double fractionRefIsN();
 	void dataSummary();
-	bool filter(const double maxFracMissing, const double maxRefN);
+	bool filter(double maxFracMissing, double maxRefN);
 	bool passedFilters() const { return _passedFilters; };
 
 	explicit operator std::string() const {

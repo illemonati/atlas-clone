@@ -18,9 +18,28 @@
 namespace GenomeTasks {
 
 class TBamWindowTraverser {
-	BAM::TAlignment _curAlignment;
 	bool _hasWindowIndent;
-	coretools::TTimer _windowTimer;
+
+	// predefined windows
+	genometools::TGenomeWindowList _predefinedWindows;
+	std::multiset<genometools::TGenomeWindow>::iterator _curPredefinedWindow;
+
+	// window filters
+	double _maxMissing;
+	double _maxRefN;
+
+	size_t _numWindowsOnChr;
+	size_t _windowNumber;
+
+	// window limits
+	size_t _limitWindows;
+	size_t _skipWindows;
+
+	bool _doMasking;
+	genometools::TBed _mask;
+
+	bool _applyDepthFilter;
+	bool _filterCpG;
 
 	// contructor functions
 	void _setWindowParameters();
@@ -29,7 +48,6 @@ class TBamWindowTraverser {
 	void _setSiteFilters();
 	void _setMasks();
 
-	void _jumpToEnd();
 	void _setCountersBeginningOfChromosome();
 	bool _incrementWindow(GenotypeLikelihoods::TWindow &window);
 	bool _moveToNextWindow(GenotypeLikelihoods::TWindow &window);
@@ -38,50 +56,29 @@ class TBamWindowTraverser {
 
 	bool _moveWindow(GenotypeLikelihoods::TWindow &window);
 	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window);
-	bool _readAndParseAlignment();
-	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow &window);
+	bool _readAndParseAlignment(BAM::TAlignment &_curAlignment);
 
 protected:
 	TGenome _genome;
 	TParser _parser;
-	const genometools::TChromosomes &_chromosomes;
 	std::vector<genometools::TChromosome>::const_iterator _curChromosome;
 
 	// window params
 	size_t _windowSize;
-	size_t _numWindowsOnChr;
-	size_t _windowNumber;
 	bool _chrChangedWindow;
 
-	// predefined windows
-	genometools::TGenomeWindowList _predefinedWindows;
-	std::multiset<genometools::TGenomeWindow>::iterator _curPredefinedWindow;
-
-	// window limits
-	size_t _limitWindows;
-	size_t _skipWindows;
-
-	// window filters
-	double _maxMissing;
-	double _maxRefN;
-
 	// mask
-	bool _doMasking, _considerRegions;
-	genometools::TBed _mask;
+	bool _considerRegions;
 
 	// sites
 	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetPolymorphic> _subsetPolymoprhic;
 	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetMonomorphic> _subsetMonomorphic;
 
 	// site filters
-	bool _applyDepthFilter;
 	size_t _readUpToDepth;
 	coretools::TNumericRange<size_t> _depthFilter;
-	bool _filterCpG;
 	size_t _downsampleDepth;
-	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
-
-	// tmp variables
+	std::unique_ptr<coretools::TSubsamplePicker> _subsamplePicker;
 
 
 	void _openSiteSubset(const std::string &filename, bool polymoprhic = true);

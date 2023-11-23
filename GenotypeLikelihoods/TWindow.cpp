@@ -274,7 +274,7 @@ void TWindow::dataSummary(){
 //--------------------------------------------
 // TWindow: filter, downsample etc.
 //--------------------------------------------
-bool TWindow::filter(const double maxFracMissing, const double maxRefN){
+bool TWindow::filter(double maxFracMissing, double maxRefN){
 	_calcDepth();
 
 	//filter window
