@@ -133,7 +133,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-TAllelicDepth::TAllelicDepth() : TGenome_windows(){
+TAllelicDepth::TAllelicDepth() : TBamWindowTraverser(){
 	logfile().list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
 	if(_readUpToDepth > 100){
 		logfile().warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument readUpToDepth to limit.");
@@ -150,9 +150,9 @@ TAllelicDepth::TAllelicDepth() : TGenome_windows(){
 	}
 };
 
-void TAllelicDepth::_handleWindow(){
+void TAllelicDepth::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().listFlushTime("Adding sites to allelic depth table ...");
-	for(auto& s : _window){
+	for(auto& s : window){
 		const auto alleleCounts = s.countAlleles();
 		_counts.addSite(alleleCounts);
 	}
@@ -163,7 +163,7 @@ void TAllelicDepth::run(){
 	_traverseBAMWindows();
 
 	//write to file
-	std::string outputFileName = _outputName + "_allelicDepth.txt.gz";
+	std::string outputFileName = _genome.outputName() + "_allelicDepth.txt.gz";
 	logfile().listFlush("Writing allelic depth table to '" + outputFileName + "' ...");
 	_counts.write(outputFileName, _writeEmpty);
 	logfile().done();

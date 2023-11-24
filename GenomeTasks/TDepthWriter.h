@@ -11,37 +11,23 @@
 #include <string>
 
 #include "coretools/Files/TOutputFile.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
+
+#include "TBamWindowTraverser.h"
 
 namespace GenomeTasks{
 
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-class TDepthWriter:public TGenome_windows{
+class TDepthWriter:public TBamWindowTraverser{
 private:
 	coretools::TOutputFile _out;
 	coretools::TCountDistribution<> _distPerSite;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 public:
-	void writeDepth();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_depthWriter:public coretools::TTask{
-public:
-	TTask_depthWriter(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
-
-	void run(){
-		TDepthWriter depthWriter;
-		depthWriter.writeDepth();
-	};
+	void run();
 };
 
 }; // end namespace

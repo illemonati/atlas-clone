@@ -8,22 +8,15 @@
 #ifndef PMD_TMODELS_H_
 #define PMD_TMODELS_H_
 
-#include <array>
-#include <map>
 #include <memory>
-#include <stdint.h>
 #include <string>
 #include <vector>
-
-#include <armadillo>
 
 #include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
-#include "TFunction.h"
 #include "TModel.h"
 #include "TReadGroups.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM {
 class TSequencedBase;

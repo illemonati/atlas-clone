@@ -114,8 +114,7 @@ public:
 	//reading
 	bool readNextAlignment();
 	bool readNextAlignmentThatPassesFilters();
-	bool readNextAlignment(TAlignment & alignment);
-	bool readNextAlignmentThatPassesFilters(TAlignment & alignment);
+
 	void fill(TAlignment & alignment) const;
 
 	bool jump(const genometools::TGenomePosition Position);

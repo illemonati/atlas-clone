@@ -8,14 +8,13 @@
 #ifndef TSAFFILE_H_
 #define TSAFFILE_H_
 
-#include "TBgzWriter.h"
 #include "coretools/Containers/TView.h"
 #include "coretools/Files/TStdWriter.h"
 #include "coretools/Types/probability.h"
 #include "coretools/traits.h"
-#include <algorithm>
-#include <iterator>
-#include <type_traits>
+
+#include "TBgzWriter.h"
+
 namespace PopulationTools {
 
 class TSafFile {

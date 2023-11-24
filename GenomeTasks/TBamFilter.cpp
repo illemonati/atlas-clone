@@ -22,7 +22,6 @@
 #include "coretools/Files/TFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -37,9 +36,6 @@ namespace GenomeTasks{
 
 namespace BamFilter{
 
-using coretools::instances::parameters;
-using coretools::instances::logfile;
-using coretools::instances::randomGenerator;
 using namespace coretools::str;
 
 //-----------------------------------------
@@ -127,9 +123,9 @@ void TBamFilter::_handleSingle(BAM::TAlignment & alignment){
 
 bool TBamFilter::_alignmentCanBeWrittenUnchanged(){
 	return	!_recalibrate && 
-			!_bamFile.curIsPaired() && 
+			!_genome.bamFile().curIsPaired() && 
 			_alignmentStorage.empty() &&
-			(_removeSoftClippedBases ? (_bamFile.curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases && _bamFile.curCIGAR().lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases) : true);
+			(_removeSoftClippedBases ? (_genome.bamFile().curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases && _genome.bamFile().curCIGAR().lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases) : true);
 }
 
 }; //end namespace BamFilter

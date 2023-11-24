@@ -4,18 +4,6 @@
  *  Created on: Apr 19, 2018
  *      Author: wegmannd
  */
-
-#include "TAlignment.h"
-#include "TSequencedBase.h"
-#include "coretools/Main/TError.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "TBamFilter.h"
-#include "TBaseFilter.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Types/strongTypes.h"
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
@@ -24,8 +12,22 @@
 #include <stdexcept>
 #include <stdlib.h>
 
+#include "SequencingError/TModels.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/strongTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TFastaReader.h"
+
+#include "TAlignment.h"
+#include "TBamFilter.h"
+#include "TBaseFilter.h"
+#include "TSequencedBase.h"
+#include "TErrorModels.h"
+
 namespace BAM {
-using GenomeTasks::TBaseFilter;
 
 void TAlignment::clear() {
 	TGenomePosition::clear();
@@ -391,17 +393,6 @@ std::string TAlignment::qualities() const {
 //--------------------------------------------
 // filters and other functions to modify data
 //--------------------------------------------
-void TAlignment::filter(const TBaseFilter &Filter) {
-	if (Filter) {
-		// set quality = 0 and base = N if outside quality filter
-		for (auto &b : _bases) {
-			if (!Filter.pass(b)) {
-				b.base                          = genometools::Base::N;
-				b.recalibratedQualityAsPhredInt = 0;
-			}
-		}
-	}
-};
 
 void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 	for (auto &b : _bases) {
@@ -459,7 +450,7 @@ void TAlignment::binQualityScoresIllumina() {
 	_sequenceAndQualitiesChanged = true;
 };
 
-void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator) {
+void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator) {
 	GLCalculator.recalibrateWithPMD(*this);
 	_sequenceAndQualitiesChanged = true;
 };

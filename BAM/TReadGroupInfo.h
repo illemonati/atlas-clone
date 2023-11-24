@@ -11,17 +11,14 @@
 // TODO: turn into read group info also used by TGenome
 
 #include <vector>
-#include "coretools/Containers/TBitSet.h"
-#include "coretools/Strings/toString.h"
+
 #include "nlohmann/json.hpp"
 
+#include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
 
 #include "TReadGroups.h"
 

@@ -9,14 +9,7 @@
 #define BAM_TBAMFILTER_H_
 
 #include <string>
-#include <utility>
-
-#include "coretools/Math/TNumericRange.h"
-#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Math/counters.h"
-
-#include "TSequencedBase.h"
-
 
 namespace BAM{
 

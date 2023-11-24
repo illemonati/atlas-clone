@@ -8,17 +8,12 @@
 #ifndef TSIMULATORAUXILIARYTOOLS_H_
 #define TSIMULATORAUXILIARYTOOLS_H_
 
-#include <stddef.h>
-#include <stdint.h>
 #include <array>
-#include <ostream>
 #include <string>
 #include <vector>
 
 #include "genometools/GenotypeTypes.h"
-#include "TAlignment.h"
 #include "TOutputBamFile.h"
-#include "TGenotypeData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/gzstream.h"
 #include "TReadSimulators.h"

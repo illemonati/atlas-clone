@@ -8,15 +8,11 @@
 #ifndef TVCFDIAGNOSTICS_H_
 #define TVCFDIAGNOSTICS_H_
 
-#include <fstream>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
-#include "genometools/BED/TBed.h"
 
 namespace VCF{
 

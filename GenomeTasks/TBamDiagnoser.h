@@ -11,9 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "TBamFilter.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
+#include "TBamTraverser.h"
 #include "coretools/Math/counters.h"
 
 namespace GenomeTasks{
@@ -23,7 +21,7 @@ namespace GenomeTasks{
 // A class to get basic characteristics of a BAM file
 //-------------------------------------------
 
-class TBamDiagnoser:public TGenome_filtered{
+class TBamDiagnoser final : public TBamTraverser<false> {
 private:
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
@@ -42,7 +40,12 @@ private:
     void _handleAlignment() override;
 
 public:
-	TBamDiagnoser();
+	TBamDiagnoser() {
+		// initialize TGenome_basic stuff
+
+		// settings
+		_genome.bamFile().readGroups().fillVectorWithNames(_readGroupNames);
+	};
 	double meanOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
 	double meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID);
 	size_t maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);

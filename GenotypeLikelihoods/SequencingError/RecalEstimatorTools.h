@@ -8,20 +8,14 @@
 #ifndef GENOTYPELIKELIHOODS_RECALESTIMATORTOOLS_H_
 #define GENOTYPELIKELIHOODS_RECALESTIMATORTOOLS_H_
 
-#include <stddef.h>
-#include <array>
-#include <cstdint>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
-#include "SequencingError/TCovariate.h"
-#include "TSequencedBase.h"
-#include "coretools/Containers/TBitSet.h"
-#include "TReadGroups.h"
 #include "coretools/Containers/TStrongArray.h"
 
-namespace BAM { class TSequencedBase; }
+#include "SequencingError/TCovariate.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+
 namespace GenotypeLikelihoods { class TSite; }
 
 namespace GenotypeLikelihoods::RecalEstimatorTools {

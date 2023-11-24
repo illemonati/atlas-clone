@@ -8,13 +8,14 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
-#include "coretools/Containers/TMassFunction.h"
+#include "TGenotypeData.h"
+
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
-#include "genometools/GenotypeTypes.h"
-#include "TGenotypeData.h"
-#include "TSequencedBase.h"
 #include "coretools/Types/probability.h"
+
+#include "genometools/GenotypeTypes.h"
+
 #include "stattools/MLEInference/TNelderMead.h"
 
 namespace GenotypeLikelihoods {

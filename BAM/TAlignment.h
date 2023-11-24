@@ -12,22 +12,16 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "genometools/TFastaReader.h"
 
 #include "TCigar.h"
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
 
-namespace GenomeTasks {
-	class TBaseFilter;
-}
-
 namespace GenotypeLikelihoods {
-class TGenotypeLikelihoodCalculator;
+class TErrorModels;
 }
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -171,12 +165,20 @@ public:
 	size_t size() const noexcept { return _bases.size(); }
 
 	// filters and other functions to modify data
-	void filter(const GenomeTasks::TBaseFilter &Filter);
+	template<typename Filter> void filter(const Filter &F) {
+		// set quality = 0 and base = N if outside quality filter
+		for (auto &b : _bases) {
+			if (!F.pass(b)) {
+				b.base                          = genometools::Base::N;
+				b.recalibratedQualityAsPhredInt = 0;
+			}
+		}
+	}
 	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void removeSoftClippedBases(size_t maxNumberOfSoftClippedBases);
 	void binQualityScoresIllumina();
-	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
+	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
 	void setIsProperPair(const bool &ok);
 	void downsampleAlignment(const coretools::Probability &fraction);
 	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);

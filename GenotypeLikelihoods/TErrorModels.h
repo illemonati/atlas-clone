@@ -8,28 +8,28 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 
-#include "PMD/TModels.h"
-#include "TReadGroupInfo.h"
-#include "SequencingError/TModels.h"
-#include "TAlignment.h"
-#include "TGenotypeData.h"
-#include "TGenotypeDistribution.h"
-#include "TSite.h"
 #include "coretools/Types/probability.h"
 #include "genometools/PhredProbabilityTypes.h"
 
+#include "PMD/TModels.h"
+#include "SequencingError/TModels.h"
+#include "TGenotypeData.h"
+#include "TReadGroupInfo.h"
+
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
+namespace BAM { class TAlignment; }
 
 namespace GenotypeLikelihoods{
+class TSite;
 
-class TGenotypeLikelihoodCalculator{
+class TErrorModels{
 private:
 	PMD::TModels _pmd;
 	SequencingError::TModels _recal;
 
 public:
-	TGenotypeLikelihoodCalculator(const BAM::RGInfo::TReadGroupInfo& RGInfo);
+	TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo);
 
 	const SequencingError::TModels& sequencingErrorModels() const { return _recal; };
 	SequencingError::TModels& sequencingErrorModels() { return _recal; };

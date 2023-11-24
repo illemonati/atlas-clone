@@ -13,6 +13,9 @@ using GenotypeLikelihoods::TGenotypeLikelihoods;
 namespace GenomeTasks {
 
 namespace MutationLoad {
+using genometools::Genotype;
+using genometools::Base;
+using GenotypeLikelihoods::TGenotypeLikelihoods;
 
 //------------------------------------------------
 // TGenotypeProbabilities
@@ -121,30 +124,30 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, const genometools::Base PreferredBase) {
 	if (!site.empty()) {
 		GenotypeLikelihoods::TGenotypeLikelihoods genoLik =
-		    _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
+		    _parser.errorModels().calculateGenotypeLikelihoods(site);
 		_sites.emplace_back(genoLik, PreferredBase);
 	}
 }
 
-void TEstimateMutationLoad::_handleWindow() {
+void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
 	try {
 		if (_parseFromBed) {
 			// get sites from bed file and alleles from reference
-			auto it = _bedFile.lower_bound(_window);
-			while (it != _bedFile.end() && _window.overlaps(*it)) {
-				for (genometools::TGenomePosition s = std::max(it->from(), _window.from());
-				     s < it->to() && s < _window.to(); ++s) {
-					const GenotypeLikelihoods::TSite &site = _window[s - _window.from()];
+			auto it = _bedFile.lower_bound(window);
+			while (it != _bedFile.end() && window.overlaps(*it)) {
+				for (genometools::TGenomePosition s = std::max(it->from(), window.from());
+				     s < it->to() && s < window.to(); ++s) {
+					const GenotypeLikelihoods::TSite &site = window[s - window.from()];
 					_addSite(site, site.refBase);
 				}
 				++it;
 			}
 		} else {
 			// get sites and alleles from site subset
-			auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
-			for (auto &it : thesePositions) { _addSite(_window[it - _window.from()], it.ref()); }
+			auto thesePositions = _subsetMonomorphic->getPositionInWindow(window);
+			for (auto &it : thesePositions) { _addSite(window[it - window.from()], it.ref()); }
 		}
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
@@ -152,7 +155,7 @@ void TEstimateMutationLoad::_handleWindow() {
 	logfile().doneTime();
 };
 
-TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
+TEstimateMutationLoad::TEstimateMutationLoad()  {
 	using coretools::instances::logfile;
 	using coretools::instances::parameters;
 	// Two ways to read positions and preferred alleles:
@@ -165,11 +168,11 @@ TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
 		logfile().startIndent("Limiting analysis to sites listed in BED file:");
 		// open reference
 		logfile().list("Will assume that the reference allele is the preferred allele.");
-		_openReference(true);
+		_parser.openReference(true);
 		// parse BED
 		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
-		_bedFile.add(_bedFileName, _bamFile.chromosomes());
+		_bedFile.add(_bedFileName, _genome.bamFile().chromosomes());
 		logfile().done();
 		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.numChromosomesWithWindows(),
 		                   " chromosomes.");
@@ -198,12 +201,12 @@ void TEstimateMutationLoad::run() {
 	EM.runEM(chunkEnds);
 
 	// write output file
-	std::string filename = _outputName + "_mutationLoad.txt";
+	std::string filename = _genome.outputName() + "_mutationLoad.txt";
 	coretools::TOutputFile out(filename, {"BAM", "Alleles", "Pi_rr", "Pi_ra", "Pi_aa", "Pi_ab"});
 	if (_parseFromBed) {
-		out.writeln(_bamFile.filename(), _bedFileName, prior.getPi());
+		out.writeln(_genome.bamFile().filename(), _bedFileName, prior.getPi());
 	} else {
-		out.writeln(_bamFile.filename(), _subsetMonomorphic->filename(), prior.getPi());
+		out.writeln(_genome.bamFile().filename(), _subsetMonomorphic->filename(), prior.getPi());
 	}
 }
 

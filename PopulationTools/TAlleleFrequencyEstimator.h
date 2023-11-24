@@ -8,19 +8,16 @@
 #ifndef POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_
 #define POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
+
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/THardyWeinbergGenotypeProbabilities.h"
 #include "genometools/TSampleLikelihoods.h"
-#include "genometools/VCF/TPopulation.h"
-#include "genometools/VCF/TPopulationLikelihoodLocus.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace genometools { class TGenotypeFrequencies; }

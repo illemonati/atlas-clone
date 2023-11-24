@@ -8,12 +8,10 @@
 #ifndef TSEQUENCEDBASE_H_
 #define TSEQUENCEDBASE_H_
 
+#include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Containers/TBitSet.h"
-#include <cstdint>
-#include <iostream>
 
 namespace BAM {
 

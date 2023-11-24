@@ -8,19 +8,15 @@
 #ifndef GENOMETASKS_TSEXESTIMATOR_H_
 #define GENOMETASKS_TSEXESTIMATOR_H_
 
-
-
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
+#include "TBamWindowTraverser.h"
 #include "TBedReaderWindows.h"
-
 
 namespace GenomeTasks{
 
 //----------------------------------------
 // TSexEstimator
 //----------------------------------------
-class TSexEstimator : public TGenome_windows {
+class TSexEstimator final : public TBamWindowTraverser {
 private:
 	std::vector<coretools::TCountDistribution<>> _distPerSites;
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;
@@ -30,8 +26,7 @@ private:
 	bool _wholeGenome  = false;
 
 	void _initializeRegion(std::string_view regionsFile, int regionNum);
-	void _handleWindow() override;
-	void _handleAlignment() override {};
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _writeDepthPerWindow(coretools::TOutputFile &out, int num);
 	void _writeHistogram(size_t regionNum);
 	void _writeDepthPerChromosome(size_t regionNum);

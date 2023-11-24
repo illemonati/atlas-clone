@@ -47,9 +47,9 @@ using genometools::Base;
 // TErrorEstimator
 //---------------------------------------------------------------
 TErrorEstimator::TErrorEstimator()
-	: _rgMap(_bamFile.readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
+	: _rgMap(_genome.bamFile().readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
 	  _onlyLL(parameters().exists("onlyLL")) {
-	_openReference(true);
+	_parser.openReference(true);
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
 
@@ -62,7 +62,7 @@ TErrorEstimator::TErrorEstimator()
 		_regionSites.resize(beds.size());
 		for (size_t i = 0; i < beds.size(); ++i) {
 			const auto& bedFile   = beds[i];
-			_regions.emplace_back(bedFile, _chromosomes);
+			_regions.emplace_back(bedFile, _genome.bamFile().chromosomes());
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -79,7 +79,7 @@ TErrorEstimator::TErrorEstimator()
 		_regionSites.resize(chrs.size());
 		for (size_t i = 0; i < chrs.size(); ++i) {
 			const auto& chr   = chrs[i];
-			_refIDs.push_back(_chromosomes.refID(chr));
+			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chr));
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -144,7 +144,7 @@ TErrorEstimator::TErrorEstimator()
 }
 
 void TErrorEstimator::_initializeModels() {
-	_dataTables.write(_outputName);
+	_dataTables.write(_genome.outputName());
 	using coretools::str::toString;
 	using BAM::Mate;
 	// count data available for recal
@@ -415,9 +415,9 @@ void TErrorEstimator::_runEM() {
 
 		if (_writeRestart) {
 			logfile().list("Writing restart file");
-			_recal.addToRGInfo(_rgInfo);
-			_pmd.addToRGInfo(_rgInfo);
-			_rgInfo.write(_outputName + "_restart.json");
+			_recal.addToRGInfo(_genome.rgInfo());
+			_pmd.addToRGInfo(_genome.rgInfo());
+			_genome.rgInfo().write(_genome.outputName() + "_restart.json");
 		}
 
 		logfile().conclude("Current Log Likelihood = ", LL);
@@ -446,8 +446,8 @@ void TErrorEstimator::estimate() {
 	_runEM();
 
 	// writing final estimates
-	_recal.addToRGInfo(_rgInfo);
-	_pmd.addToRGInfo(_rgInfo);
+	_recal.addToRGInfo(_genome.rgInfo());
+	_pmd.addToRGInfo(_genome.rgInfo());
 }
 
 void TErrorEstimator::calcLL() {
@@ -476,29 +476,29 @@ void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 	for (const auto &data : Site) _pmd.model(data).psi()->add(data, Site.refBase);
 }
 
-void TErrorEstimator::_handleWindow() {
+void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	if (!_regions.empty()) { // Either sites
 		for (size_t r = 0; r < _regions.size(); ++r) {
 			auto &region = _regions[r];
-			for (auto lb = region.firstOverlap(_window); lb != region.end() && _window.overlaps(*lb); ++lb) {
+			for (auto lb = region.firstOverlap(window); lb != region.end() && window.overlaps(*lb); ++lb) {
 				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
-				const size_t pStart = std::max(lb->from().position(), _window.from().position()) - _window.from().position();
-				const size_t pStop  = std::min(lb->to().position(), _window.to().position()) - _window.from().position();
+				const size_t pStart = std::max(lb->from().position(), window.from().position()) - window.from().position();
+				const size_t pStop  = std::min(lb->to().position(), window.to().position()) - window.from().position();
 				for (auto p = pStart; p < pStop; ++p) {
-					const auto s = _window[p];
-					_handleSite(_window[p], r);
+					const auto s = window[p];
+					_handleSite(window[p], r);
 				}
 			}
 		}
 	} else { // or chromosomes
 		size_t region = 0;
 		if (!_refIDs.empty()) {
-			const auto rIt = std::find(_refIDs.begin(), _refIDs.end(), _window.refID());
+			const auto rIt = std::find(_refIDs.begin(), _refIDs.end(), window.refID());
 			if (rIt == _refIDs.end()) return;
 
 			region = std::distance(_refIDs.begin(), rIt);
 		}
-		for (const auto &s : _window) {
+		for (const auto &s : window) {
 			_handleSite(s, region);
 		}
 	}

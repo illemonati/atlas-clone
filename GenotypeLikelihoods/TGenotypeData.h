@@ -8,19 +8,13 @@
 #ifndef TGENOTYPEDATA_H_
 #define TGENOTYPEDATA_H_
 
-#include <algorithm>
-#include <functional>
-#include <numeric>
-#include <stddef.h>
-#include <utility>
-#include <cassert>
-
-#include "coretools/enum.h"
-#include "genometools/GenotypeTypes.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Containers/TMassFunction.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Types/probability.h"
 #include "coretools/algorithms.h"
+#include "coretools/enum.h"
+
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 

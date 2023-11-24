@@ -8,21 +8,15 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
-#include <iosfwd>
-#include <set>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
 #include "TAlignment.h"
 #include "TGenotypeData.h"
 #include "TSite.h"
-#include "TSiteSubset.h"
-#include "coretools/Containers/TView.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/TFastaReader.h"
 
 namespace coretools {
 class TOutputFile;
@@ -201,7 +195,7 @@ public:
 	size_t numSitesWithData();
 	double fractionRefIsN();
 	void dataSummary();
-	bool filter(const double maxFracMissing, const double maxRefN);
+	bool filter(double maxFracMissing, double maxRefN);
 	bool passedFilters() const { return _passedFilters; };
 
 	explicit operator std::string() const {

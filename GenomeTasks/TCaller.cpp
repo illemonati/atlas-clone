@@ -20,7 +20,6 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "coretools/Containers/TMassFunction.h"
 #include "coretools/Main/TLog.h"
@@ -1189,7 +1188,7 @@ std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite &, const TGenotyp
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-TCall::TCall():TGenome_windows(){
+TCall::TCall() {
 	//initialize caller
 	logfile().startIndent("Initializing caller:");
 	std::string method = parameters().get<std::string>("method", "MLE");
@@ -1223,9 +1222,9 @@ TCall::TCall():TGenome_windows(){
 	_caller->initializeOutput();
 
 	//open output file
-	std::string sampleName = parameters().get<std::string>("sampleName", _outputName);
+	std::string sampleName = parameters().get<std::string>("sampleName", _genome.outputName());
 	logfile().list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
-	_caller->openVCF(_outputName + "_calls", sampleName);
+	_caller->openVCF(_genome.outputName() + "_calls", sampleName);
 
 	//limit to sites with known alleles?
 	if(parameters().exists("alleles")){
@@ -1235,7 +1234,7 @@ TCall::TCall():TGenome_windows(){
 	} else {
 		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
-		_openReference(true);
+		_parser.openReference(true);
 	}
 	logfile().endIndent();
 };
@@ -1259,7 +1258,7 @@ void TCall::_initializeGenotypePrior(){
 			_prior = std::make_unique<TGenotypePriorFixedTheta>(theta, equalBaseFreq);
 		} else {
 			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
-			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
+			std::string thetaOuputName = _genome.outputName() + "_theta_estimates.txt.gz";
 			if(parameters().exists("defaultTheta")){
 				double defaultTheta = parameters().get<double>("defaultTheta");
 				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
@@ -1271,45 +1270,45 @@ void TCall::_initializeGenotypePrior(){
 	logfile().endIndent();
 };
 
-void TCall::_call(){
+void TCall::_call(GenotypeLikelihoods::TWindow& window){
 	uint32_t pos = 0;
-	for(auto& s : _window){
-		const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		_caller->call(_window.chrName(), _window.positionOnChr(pos), s, genoLik);
+	for(auto& s : window){
+		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+		_caller->call(window.chrName(), window.positionOnChr(pos), s, genoLik);
 		++pos;
 	}
 };
 
-void TCall::_callKnwonAlleles(){
+void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 	//check if we need to process this window
-	if(_subsetPolymoprhic->hasPositionsInWindow(_window)){
+	if(_subsetPolymoprhic->hasPositionsInWindow(window)){
 		//add reference to sites
-		_window.addReferenceBaseToSites(*_subsetPolymoprhic);
+		window.addReferenceBaseToSites(*_subsetPolymoprhic);
 
 		//only run over sites listed in that window
-		auto thesePositions = _subsetPolymoprhic->getPositionInWindow(_window);
+		auto thesePositions = _subsetPolymoprhic->getPositionInWindow(window);
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
-			uint32_t internalPos = it - _window.from();
-			TSite& site = _window[internalPos];
+			uint32_t internalPos = it - window.from();
+			TSite& site = window[internalPos];
 			site.refBase = it.ref();
-			const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
-			_caller->call(_window.chrName(), _window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
+			const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(site);
+			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
 		}
 	}
 };
 
-void TCall::_handleWindow(){
-	if(_window.passedFilters() || _caller->printSitesWithNoData()){
+void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
+	if(window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(_window, _genotypeLikelihoodCalculator);
+		_prior->update(window, _parser.errorModels());
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");
 		if(_subsetPolymoprhic){
-			_callKnwonAlleles();
+			_callKnwonAlleles(window);
 		} else {
-			_call();
+			_call(window);
 		}
 		logfile().doneTime();
 	}

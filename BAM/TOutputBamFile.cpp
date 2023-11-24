@@ -93,7 +93,23 @@ TOutputBamFile::TOutputBamFile(std::string Filename, const TSamHeader &Header,
 }
 
 TOutputBamFile::~TOutputBamFile(){
+	// write all future alignments
+	std::sort(_futureAlignments.begin(), _futureAlignments.end(), std::less<>());
+	for (auto &a : _futureAlignments) { _writeAlignment(a); }
+	_futureAlignments.clear();
+
+	// close
 	_bamWriter.Close();
+	logfile().listFlush("Creating index of BAM file '" + _outputFilename + "' ...");
+
+	// create index of BAM file
+	BamTools::BamReader reader;
+	if (!reader.Open(_outputFilename)) logfile().error("Failed to open BAM file '", _outputFilename, "' for indexing!");
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+	// close BAM file
+	reader.Close();
+	logfile().done();
 }
 
 	TOutputBamFile::TOutputBamFile(std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups) :
@@ -112,26 +128,6 @@ TOutputBamFile::~TOutputBamFile(){
 	if(!_bamWriter.Open(_outputFilename, header, ref)){
 		UERROR("Failed to open BAM file '", _outputFilename, "'!");
 	}
-};
-
-void TOutputBamFile::close() {
-	// write all future alignments
-	std::sort(_futureAlignments.begin(), _futureAlignments.end(), std::less<>());
-	for (auto &a : _futureAlignments) { _writeAlignment(a); }
-	_futureAlignments.clear();
-
-	// close
-	_bamWriter.Close();
-	logfile().listFlush("Creating index of BAM file '" + _outputFilename + "' ...");
-
-	// create index of BAM file
-	BamTools::BamReader reader;
-	if (!reader.Open(_outputFilename)) UERROR("Failed to open BAM file '", _outputFilename, "' for indexing!");
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	// close BAM file
-	reader.Close();
-	logfile().done();
 };
 
 void TOutputBamFile::writeAlignment(BamTools::BamAlignment & alignment){

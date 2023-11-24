@@ -5,12 +5,10 @@
 #ifndef GENOTYPELIKELIHOODS_PMD_MODEL_H_
 #define GENOTYPELIKELIHOODS_PMD_MODEL_H_
 
-
 #include "PMD/TPsi.h"
 #include "TAlignment.h"
 #include "TGenotypeData.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Types/probability.h"
+
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
 

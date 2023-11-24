@@ -20,8 +20,8 @@ double TEstimateGenotypeDistribution::_LL() {
 		TGenotypeLikelihoods P_g_I_di(1.);
 		size_t counter = 0;
 		for (auto &d_ij : site) {
-			const auto P_dij_I_bbar = _genotypeLikelihoodCalculator.sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _genotypeLikelihoodCalculator.postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			const auto P_dij_I_bbar = _parser.errorModels().sequencingErrorModels().P_dij(d_ij);
+			const auto P_dij_I_b    = _parser.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 			const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
 			P_g_I_di *= P_dij_I_g;
 			if (++counter > 10) {
@@ -79,17 +79,17 @@ double TEstimateGenotypeDistribution::_runEM() {
 	return oldLL;
 }
 
-void TEstimateGenotypeDistribution::_handleWindow() {
+void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	_sites.clear();
 	size_t nReads = 0;
-	for (const auto &s : _window) {
+	for (const auto &s : window) {
 		if (s.empty() || s.refBase == genometools::Base::N) continue;
 		_sites.emplace_back(s);
 		nReads += s.depth();
 	}
 
-	_out.write(_window.chrName(), _window.fromOnChr(), _window.toOnChr(), double(nReads)/_sites.size(),
-			   _window.size(), _sites.size(), double(_window.size() - _sites.size())/_window.size());
+	_out.write(window.chrName(), window.fromOnChr(), window.toOnChr(), double(nReads)/_sites.size(),
+			   window.size(), _sites.size(), double(window.size() - _sites.size())/window.size());
 	const auto LL = _runEM();
 	_genoDist->write(_out);
 	_out.writeln(LL);
@@ -101,7 +101,7 @@ void TEstimateGenotypeDistribution::run() {
 
 
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
-	_openReference(true);
+	_parser.openReference(true);
 	_numEMIterations = parameters().get<int>("iterations", 200);
 	_minDeltaLL      = parameters().get<double>("minDeltaLL", 1e-6);
 	if (parameters().exists("HKY85")) {
@@ -115,7 +115,7 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 	std::vector<std::string> header{"Chr", "Start", "End", "depth", "numSites", "numSitesData", "fracMissing"};
 	_genoDist->addHeader(header);
 	header.push_back("LL");
-	_out.open(_outputName + ".txt.gz");
+	_out.open(_genome.outputName() + ".txt.gz");
 	_out.writeHeader(header);
 }
 }

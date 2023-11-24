@@ -8,10 +8,12 @@
 #ifndef TRHO_H_
 #define TRHO_H_
 
+#include "coretools/Containers/TStrongArray.h"
+#include "genometools/GenotypeTypes.h"
+
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
-#include "genometools/GenotypeTypes.h"
-#include "coretools/Containers/TStrongArray.h"
+
 namespace GenotypeLikelihoods::SequencingError {
 
 //--------------------------------------------------------------------

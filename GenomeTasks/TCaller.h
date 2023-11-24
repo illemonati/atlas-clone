@@ -9,20 +9,16 @@
 #define TCALLER_H_
 
 #include <memory>
-#include <stdexcept>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
-#include "genometools/GenotypeTypes.h"
-#include "TGenome.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TTask.h"
+#include "coretools/enum.h"
 #include "genometools/VCF/TVCFFields.h"
-#include "coretools/Files/gzstream.h"
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Strings/stringFunctions.h"
+
+#include "TBamWindowTraverser.h"
+#include "TGenotypeData.h"
 #include "TGenotypePrior.h"
+
 
 namespace GenotypeLikelihoods { class TSite; }
 
@@ -304,16 +300,15 @@ public:
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-class TCall:public TGenome_windows{
+class TCall:public TBamWindowTraverser {
 private:
 	std::unique_ptr<TCaller> _caller;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
 
 	void _initializeGenotypePrior();
-	void _call();
-	void _callKnwonAlleles();
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _call(GenotypeLikelihoods::TWindow& window);
+	void _callKnwonAlleles(GenotypeLikelihoods::TWindow& window);
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 
 public:
 	TCall();

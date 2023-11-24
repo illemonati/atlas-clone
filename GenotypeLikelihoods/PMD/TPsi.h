@@ -5,15 +5,15 @@
 #ifndef GENOTYPELIKELIHOODS_PMD_TPSI_H_
 #define GENOTYPELIKELIHOODS_PMD_TPSI_H_
 
-#include "TGenotypeData.h"
-#include "TReadGroupInfo.h"
-#include "TSequencedBase.h"
+#include <vector>
+
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
-#include <vector>
 
-namespace BAM { class TSequencedBase; }
+#include "TReadGroupInfo.h"
+#include "TGenotypeData.h"
+#include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods::PMD {
 

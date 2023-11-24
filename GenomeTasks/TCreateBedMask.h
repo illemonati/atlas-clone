@@ -8,23 +8,20 @@
 #ifndef GENOMETASKS_TCREATEBEDMASK_H_
 #define GENOMETASKS_TCREATEBEDMASK_H_
 
-#include <stdint.h>
-#include <exception>
 #include <string>
 
 #include "genometools/BED/TBed.h"
-#include "TGenome.h"
+
+#include "TBamWindowTraverser.h"
 #include "TGenotypeData.h"
-#include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
 
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-class TCreateBedMask:public TGenome_windows{
+	class TCreateBedMask:public TBamWindowTraverser{
 protected:
-	void _handleAlignment() override {}
 	genometools::TBed _bed;
 	uint32_t _minDepth;
 
@@ -40,7 +37,7 @@ class TCreateDepthBedMask:public TCreateBedMask{
 private:
 	uint32_t _maxDepth;
 
-	void _handleWindow() override;
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 public:
 	TCreateDepthBedMask();
 	void createDepthMask();
@@ -51,7 +48,7 @@ public:
 //--------------------------------------
 class TCreateInvariantBedMask:public TCreateBedMask{
 private:
-	void _handleWindow() override;
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 public:
 	TCreateInvariantBedMask();
 	void createInvariantMask();
@@ -62,7 +59,7 @@ public:
 //--------------------------------------
 class TCreateVariantBedMask:public TCreateBedMask{
 private:
-	void _handleWindow() override;
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 public:
 	TCreateVariantBedMask();
 	void createVariantMask();
@@ -73,7 +70,7 @@ public:
 //--------------------------------------
 class TCreateNonRefBedMask:public TCreateBedMask{
 private:
-	void _handleWindow();
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 public:
 	TCreateNonRefBedMask();
 	void createVariantMask();

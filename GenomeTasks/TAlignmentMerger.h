@@ -8,28 +8,18 @@
 #ifndef GENOMETASKS_TALIGNMENTMERGER_H_
 #define GENOMETASKS_TALIGNMENTMERGER_H_
 
-#include <functional>
 #include <memory>
 #include <set>
-#include <stdint.h>
-#include <string>
 
 #include "TBamFilter.h"
-#include "TBamFile.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
-
 
 namespace BAM { class TAlignment; }
 namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
-namespace genometools { class TGenomePosition; }
 
 namespace GenomeTasks{
 
 namespace AlignmentMerger {
 
-using namespace GenomeTasks::BamFilter;
 
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
@@ -121,14 +111,14 @@ public:
 // TAlignmentSplitMerger
 //-----------------------------------------
 class TAlignmentSplitMerger final
-	: public TGenomeParsedWithAlignmentStorage<TAlignmentStorageSorted, TAlignmentStorageSortedIterator> {
+	: public BamFilter::TGenomeParsedWithAlignmentStorage<BamFilter::TAlignmentStorageSorted, BamFilter::TAlignmentStorageSortedIterator> {
 private:
 	std::unique_ptr<TAlignmentMerger> _merger;
 	TAlignmentMergerReadGroupSettings _rgSettings;
 	bool _allowForLarger;
 
 	void _initializeMerger();
-	void _handleMates(BAM::TAlignment & alignment, TAlignmentStorageSortedIterator mate) override;
+	void _handleMates(BAM::TAlignment & alignment, BamFilter::TAlignmentStorageSortedIterator mate) override;
 	void _handleSingle(BAM::TAlignment & alignment) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
@@ -142,13 +132,14 @@ public:
 //-----------------------------------------
 // TOverlapQuantifier
 //-----------------------------------------
-class TOverlapQuantifier:public TGenome_filtered{
+class TOverlapQuantifier{
 private:
+	TGenome _genome;
 	TAlignmentMerger _merger;
-	TAlignmentStorage _alignmentStorage;
-	void _handleAlignment() override {};
+	BamFilter::TAlignmentStorage _alignmentStorage;
 
 public:
+	TOverlapQuantifier();
 	void run();
 };
 

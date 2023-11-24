@@ -16,7 +16,7 @@
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
 #include "coretools/Files/TFile.h"
-#include "TGenome.h"
+#include "TBamTraverser.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -128,7 +128,8 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
     // read
     BAM::TAlignment alignmentRead;
     auto alignmentWritten = outputBam->beginWrittenAlignments();
-    while (inputBam->readNextAlignment(alignmentRead)){
+    while (inputBam->readNextAlignment()){
+		inputBam->fill(alignmentRead);
     	alignmentRead.parse();
 
         // basic attributes of TAlignment
@@ -202,26 +203,26 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 // TBamFile - windows
 //-------------------------------------------------------------
 
-class TGenomeWindow_Test : public GenomeTasks::TGenome_windows {
+class TGenomeWindow_Test : public GenomeTasks::TBamWindowTraverser {
 protected:
     std::vector<genometools::TGenomeWindow> _windows_visited;
 
-    void _handleWindow() override{
+    void _handleWindow(GenotypeLikelihoods::TWindow& window) override{
         // store sites
         std::vector<GenotypeLikelihoods::TSite> tmp;
-        for (auto & it : _window)
+        for (auto & it : window)
             tmp.emplace_back(it);
         sites.emplace_back(tmp);
         // store genometools::TGenomeWindow
-        _windows_visited.emplace_back(this->_window);
+        _windows_visited.emplace_back(window);
         // store GenotypeLikelihoods::TWindow attributes
-        depth.emplace_back(_window.depth());
-        fractionSitesNoData.emplace_back(_window.fractionSitesNoData());
-        fractionDepthAtLeastTwo.emplace_back(_window.fractionDepthAtLeastTwo());
-        numSitesWithData.emplace_back(_window.numSitesWithData());
-        numReadsInWindow.emplace_back(_window.numReadsInWindow());
+        depth.emplace_back(window.depth());
+        fractionSitesNoData.emplace_back(window.fractionSitesNoData());
+        fractionDepthAtLeastTwo.emplace_back(window.fractionDepthAtLeastTwo());
+        numSitesWithData.emplace_back(window.numSitesWithData());
+        numReadsInWindow.emplace_back(window.numReadsInWindow());
     };
-	virtual void _handleAlignment() override {}
+	virtual void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
     // storage
@@ -232,7 +233,7 @@ public:
     std::vector<size_t> numReadsInWindow;
     std::vector<std::vector<GenotypeLikelihoods::TSite>> sites;
 
-    TGenomeWindow_Test() : GenomeTasks::TGenome_windows() {};
+    TGenomeWindow_Test() : GenomeTasks::TBamWindowTraverser() {};
 
     void traverse(){
         _traverseBAMWindows();
@@ -686,8 +687,8 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
 using coretools::TCountDistribution;
 using coretools::TCountDistributionVector;
 
-class TBamFilter : public GenomeTasks::TGenome_filtered {
-    // class very similar to TBamDiagnoser, but inherits from TGenome_filtered -> can apply all filters
+class TBamFilter : public GenomeTasks::TBamTraverser<false> {
+    // class very similar to TBamDiagnoser, but inherits from TBamTraverser<false> -> can apply all filters
 public:
     // distributions
     TCountDistribution<> totalReads;

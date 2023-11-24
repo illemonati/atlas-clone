@@ -21,13 +21,14 @@
 #include "TSimulatorAuxiliaryTools.h"
 
 namespace Simulations {
+using BAM::RGInfo::InfoType;
+using BAM::RGInfo::TReadGroupInfoEntry;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
+using coretools::probdist::TCategoricalDistribution;
 using genometools::Base;
 using genometools::PhredIntProbability;
 using genometools::TGenomePosition;
-using coretools::instances::logfile;
-using coretools::instances::randomGenerator;
-using BAM::RGInfo::TReadGroupInfoEntry;
-using BAM::RGInfo::InfoType;
 
 //------------------------------------------------
 // TSimulatorRead

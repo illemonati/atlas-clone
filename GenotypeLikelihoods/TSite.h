@@ -8,16 +8,16 @@
 #ifndef TSITE_H_
 #define TSITE_H_
 
-#include <stddef.h>
-#include <stdint.h>
 #include <array>
 #include <string>
 #include <vector>
 
+#include "coretools/Math/TSubsamplePicker.h"
+
 #include "genometools/GenotypeTypes.h"
+
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "coretools/Math/TSubsamplePicker.h"
 
 namespace GenotypeLikelihoods {
 

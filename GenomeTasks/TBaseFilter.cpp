@@ -17,7 +17,6 @@ TQualityFilter::TQualityFilter() {
 		_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + ". (use 'filterBaseQual' to change)");
 	}
-	_filter = true;
 };
 
 //-------------------------------------
@@ -63,9 +62,5 @@ TContextFilter::TContextFilter(){
 	if(!_filter){
 		logfile().list("Will keep bases regardless of base context. (use 'ignoreContexts' to filter)");
 	}
-};
-
-bool TContextFilter::pass(const BAM::TSequencedBase & base) const{
-	return _keptContexts[base.context()];
 };
 }

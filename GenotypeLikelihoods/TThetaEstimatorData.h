@@ -8,7 +8,6 @@
 #ifndef TTHETAESTIMATORDATA_H_
 #define TTHETAESTIMATORDATA_H_
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 #include <zlib.h>

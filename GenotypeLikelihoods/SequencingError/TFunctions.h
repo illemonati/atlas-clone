@@ -8,18 +8,18 @@
 #ifndef GENOTYPELIKELIHOODS_TFUNCTIONS_H_
 #define GENOTYPELIKELIHOODS_TFUNCTIONS_H_
 
-#include <armadillo>
 #include <memory>
 #include <vector>
+
+#include "coretools/Types/probability.h"
 
 #include "RecalEstimatorTools.h"
 #include "SequencingError/TFunction.h"
 #include "TDerivatives.h"
 #include "TReadGroupInfo.h"
-#include "TSequencedBase.h"
 
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
+
+namespace BAM {class TSequencedBase;}
 
 namespace GenotypeLikelihoods::SequencingError {
 

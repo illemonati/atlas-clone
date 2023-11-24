@@ -8,11 +8,12 @@
 #ifndef TBEDREADER_H_
 #define TBEDREADER_H_
 
-#include <stdint.h>
 #include <map>
 #include <string>
 #include <vector>
+
 #include "coretools/Math/counters.h"
+
 namespace genometools { class TChromosomes; }
 
 //read sorted bed files window by window

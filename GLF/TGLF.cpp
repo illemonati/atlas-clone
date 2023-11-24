@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <iostream>
 #include <utility>
+#include "coretools/Main/TParameters.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"
@@ -390,5 +391,10 @@ void TGlfReader::printToEnd() { // For debugging
 		printSite();
 	}
 };
+
+void TGLFPrinter::run() {
+	TGlfReader reader(coretools::instances::parameters().get<std::string>("glf"));
+	reader.printToEnd();
+}
 
 }; // namespace GLF

@@ -1,40 +1,23 @@
-
 #ifndef TBASEFILTER_H
 #define TBASEFILTER_H
 
-#include "TSequencedBase.h"
 #include "coretools/Math/TNumericRange.h"
+
+#include "TSequencedBase.h"
+
 namespace GenomeTasks {
-
-//-------------------------------------
-// TBaseFilter
-//-------------------------------------
-class TBaseFilter{
-protected:
-	bool _filter;
-
-public:
-	explicit constexpr TBaseFilter() : _filter(false) {}
-	virtual ~TBaseFilter() = default;
-
-	constexpr operator bool() const{
-		return _filter;
-	}
-
-	virtual bool pass(const BAM::TSequencedBase & base) const = 0;
-};
 
 //---------------------------------------------------------------
 //TQualityFilter
 //---------------------------------------------------------------
-class TQualityFilter : public TBaseFilter{
+class TQualityFilter {
 private:
 	coretools::TNumericRange<genometools::PhredIntProbability> _range;
 
 public:
 	TQualityFilter();
 
-	bool pass(const BAM::TSequencedBase & base) const override{
+	bool pass(const BAM::TSequencedBase & base) const {
 		return _range.within(base.originalQuality_phredInt);
 	};
 };
@@ -42,14 +25,20 @@ public:
 //-------------------------------------
 // TContextFilter
 //-------------------------------------
-class TContextFilter : public TBaseFilter{
+class TContextFilter {
 private:
 	//std::array<bool, static_cast<uint8_t>(genometools::BaseContext::max) + 1> _keptContexts;
+	bool _filter;
 	coretools::TStrongArray<bool, genometools::BaseContext, coretools::index(genometools::BaseContext::max) + 1> _keptContexts;
 
 public:
 	explicit TContextFilter();
-	bool pass(const BAM::TSequencedBase & base) const override;
+	bool pass(const BAM::TSequencedBase & base) const noexcept {
+		return _keptContexts[base.context()];
+	}
+	constexpr operator bool() const noexcept {
+		return _filter;
+	}
 };
 
 }

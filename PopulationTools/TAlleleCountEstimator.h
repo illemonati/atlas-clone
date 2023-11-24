@@ -8,15 +8,10 @@
 #ifndef TALLELECOUNTESTIMATOR_H_
 #define TALLELECOUNTESTIMATOR_H_
 
-#include <stdint.h>
-#include <map>
-#include <string>
 #include <vector>
 
-#include "coretools/Main/TParameters.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 
 namespace PopulationTools { class TAlleleCountFile; }

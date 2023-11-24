@@ -16,6 +16,7 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include "TOutputBamFile.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"

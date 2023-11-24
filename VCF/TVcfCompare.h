@@ -8,13 +8,12 @@
 #ifndef VCF_TVCFCOMPARE_H_
 #define VCF_TVCFCOMPARE_H_
 
-#include <memory>
-#include <stdint.h>
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
+
 #include "genometools/GenotypeTypes.h"
-#include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
 
 namespace VCF{

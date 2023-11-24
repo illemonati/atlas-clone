@@ -18,10 +18,12 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/algorithms.h"
 #include "coretools/Files/TFile.h"
+#include "genometools/GenotypeTypes.h"
 
 
 namespace Simulations {
 using coretools::instances::randomGenerator;
+using genometools::Base;
 //--------------------------------
 // Class to store and SFS
 //--------------------------------

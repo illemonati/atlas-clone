@@ -13,6 +13,7 @@
 #include <exception>
 #include <ostream>
 
+#include "coretools/Main/TParameters.h"
 #include "coretools/enum.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"

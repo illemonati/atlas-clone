@@ -8,22 +8,22 @@
 #ifndef TDUPLICATIONQUANTIFYER_H_
 #define TDUPLICATIONQUANTIFYER_H_
 
-#include <stdint.h>
-#include <string>
 #include <vector>
 
-#include "TGenome.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
+
+#include "genometools/GenomePositions/TGenomePosition.h"
+
+#include "TBamTraverser.h"
 
 namespace GenomeTasks{
 
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-class TDuplicateQuantifier:public TGenome_filtered{
+class TDuplicateQuantifier final : public TBamTraverser<false> {
 private:
+	TGenome _genome;
 	coretools::TCountDistributionVector<> _countsPerReadGroup;
 	coretools::TCountDistribution<> _countsCombined;
 
@@ -32,27 +32,11 @@ private:
     genometools::TGenomePosition _curChrEnd;
 
 	void _addCurCounts(const genometools::TGenomePosition & nextPos);
-	void _handleAlignments();
-	void _handleAlignment() override {};
+	void _handleAlignment() override;
 
 public:
-	TDuplicateQuantifier();
-	void estimateDuplicationCounts();
+	void run();
 };
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_duplicationQuantifier:public coretools::TTask{
-public:
-	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
-
-	void run(){
-		TDuplicateQuantifier duplicationQuantifier;
-		duplicationQuantifier.estimateDuplicationCounts();
-	};
-};
-
 
 }; // end namespace
 

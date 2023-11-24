@@ -8,23 +8,19 @@
 #ifndef GENOMETASKS_TWRITEGLF_H_
 #define GENOMETASKS_TWRITEGLF_H_
 
-#include <string>
-
 #include "TGLF.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
+#include "TBamWindowTraverser.h"
 
 namespace GenomeTasks{
 
 //-------------------------------------------
 // TWriteGLF
 //-------------------------------------------
-class TWriteGLF:public TGenome_windows{
+class TWriteGLF final : public TBamWindowTraverser{
 private:
 	GLF::TGlfWriter _writer;
 	bool _printAll;
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 
 public:
 	TWriteGLF();

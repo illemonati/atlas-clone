@@ -6,38 +6,25 @@
 #ifndef TERRORESTIMATOR_H_
 #define TERRORESTIMATOR_H_
 
-#include <array>
 #include <memory>
-#include <stddef.h>
-#include <stdint.h>
-#include <string>
 #include <vector>
 
-#include "PMD/TModels.h"
-#include "SequencingError/TEpsilon.h"
-#include "TGenome.h"
-#include "TGenotypeData.h"
-#include "TGenotypeDistribution.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "TReadGroupInfo.h"
-#include "TReadGroups.h"
-#include "TSite.h"
-#include "coretools/Types/probability.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/GenotypeTypes.h"
 
-namespace BAM {class TSequencedBase;}
-namespace GenotypeLikelihoods::SequencingError {
-class TEpsilon;
-class TRho;
-}
+#include "PMD/TModels.h"
+#include "SequencingError/TEpsilon.h"
+#include "TBamWindowTraverser.h"
+#include "TGenotypeData.h"
+#include "TGenotypeDistribution.h"
+#include "TSite.h"
 
 namespace GenotypeLikelihoods {
 
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TErrorEstimator final : public  GenomeTasks::TGenome_windows {
+class TErrorEstimator final : public  GenomeTasks::TBamWindowTraverser {
 private:
 	// per region
 	std::vector<size_t> _refIDs;
@@ -112,8 +99,7 @@ private:
 	double _calculateLL_updatePg();
 	void _writeModels(std::string_view Intro);
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _handleSite(const TSite& Site, size_t Region);
 
 public:

@@ -29,8 +29,8 @@ using coretools::instances::parameters;
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-void TQualityDistribution::_handleAlignment(){
-	for(auto& b : _alignment){
+void TQualityDistribution::_handleAlignment(BAM::TAlignment& alignment){
+	for(auto& b : alignment){
 		if(b.base != genometools::Base::N){
 			_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
 		}
@@ -40,19 +40,19 @@ void TQualityDistribution::_handleAlignment(){
 void TQualityDistribution::compileQualityDistribution(){
 	//initialize counts
 	_qualDist.clear();
-	_qualDist.resize(_bamFile.numReadGroups());
+	_qualDist.resize(_genome.bamFile().numReadGroups());
 
 	//traverseBAM
 	_traverseBAMPassedQC();
 
 	//print distribution
-	std::string filename = _outputName + "_qualityDistribution.h";
+	const auto filename = _genome.outputName() + "_qualityDistribution.h";
 	logfile().listFlush("Writing quality distribution to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", "quality", "counts"});
 
 	//get read group names
 	std::vector<std::string> readGroupNames;
-	_bamFile.readGroups().fillVectorWithNames(readGroupNames);
+	_genome.bamFile().readGroups().fillVectorWithNames(readGroupNames);
 
 	//write combined
 	_qualDist.writeCombined(out, "allReadGroups");
@@ -63,10 +63,10 @@ void TQualityDistribution::compileQualityDistribution(){
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-TQualityTransformation::TQualityTransformation():TGenome_parsed(){
+TQualityTransformation::TQualityTransformation() {
 	//check what we compare
 	if(parameters().exists("RGInfo2")){
-		BAM::RGInfo::TReadGroupInfo RGInfo2(_bamFile.readGroups(), parameters().get("RGInfo2"));
+		BAM::RGInfo::TReadGroupInfo RGInfo2(_genome.bamFile().readGroups(), parameters().get("RGInfo2"));
 		_otherSeqErrors.initialize(RGInfo2);
 
 		_compareToOtherSeqErrors = true;
@@ -80,17 +80,17 @@ TQualityTransformation::TQualityTransformation():TGenome_parsed(){
 	}
 };
 
-void TQualityTransformation::_handleAlignment(){
+void TQualityTransformation::_handleAlignment(BAM::TAlignment& alignment){
 	if(_compareToOtherSeqErrors){
-		for(auto& b : _alignment){
+		for(auto& b : alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.phredInt(b).get());
+				_transformations[alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.phredInt(b).get());
 			}
 		}
 	} else {
-		for(auto& b : _alignment){
+		for(auto& b : alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[_alignment.readGroupId()].add(b.originalQuality_phredInt.get(), b.recalibratedQualityAsPhredInt.get());
+				_transformations[alignment.readGroupId()].add(b.originalQuality_phredInt.get(), b.recalibratedQualityAsPhredInt.get());
 			}
 		}
 	}
@@ -98,19 +98,19 @@ void TQualityTransformation::_handleAlignment(){
 
 void TQualityTransformation::run(){
 	//initialize transformations
-	_transformations.resize(_bamFile.numReadGroups());
+	_transformations.resize(_genome.bamFile().numReadGroups());
 
 	//traverseBAM
 	_traverseBAMPassedQC();
 
 	//write read group specific files
 	logfile().startIndent("Writing quality transformation for each read group:");
-	for (size_t rg=0; rg<_bamFile.numReadGroups(); ++rg){
-		std::string filename = _outputName + _bamFile.readGroups().getName(rg) + "_qualityTransformation.txt";
+	for (size_t rg=0; rg<_genome.bamFile().numReadGroups(); ++rg){
+		std::string filename = _genome.outputName() + _genome.bamFile().readGroups().getName(rg) + "_qualityTransformation.txt";
 		logfile().listFlush("Writing '" + filename + "' ...");
 		_transformations[rg].writeAsMatrix(filename, _label1, _label2);
 		logfile().done();
-		logfile().conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is ", _transformations[rg].RSquared(), ".");
+		logfile().conclude("R squared for read group " + _genome.bamFile().readGroups().getName(rg) + " is ", _transformations[rg].RSquared(), ".");
 	}
 
 	//write combined distribution
@@ -119,7 +119,7 @@ void TQualityTransformation::run(){
 		combined.add(t);
 	}
 
-	std::string filename = _outputName + "_qualityTransformation.txt";
+	std::string filename = _genome.outputName() + "_qualityTransformation.txt";
 	logfile().listFlush("Writing quality transformation of total data to '" + filename + "' ...");
 	combined.writeAsMatrix(filename, _label1, _label2);
 	logfile().done();
