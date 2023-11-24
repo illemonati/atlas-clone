@@ -3,6 +3,7 @@
  */
 
 #include "TEstimateGenotypeDistribution.h"
+#include "TFromTo.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -101,6 +102,7 @@ void addTaks(coretools::TMain & main) {
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
+	main.createDebugTask<GenomeTasks::TFromTo>("fromTo", "FromTo");
 };
 
 void addTests(coretools::TMain & main){
