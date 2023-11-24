@@ -284,7 +284,8 @@ void TFunctions::init(const RecalEstimatorTools::TRecalDataTable &DataTable) {
 	size_t index = _intercept.numParameters();
 	for (auto &cov : _covariates) {
 		cov->init(DataTable, index);
-		index += cov->numParameters();
+		index             += cov->numParameters();
+		_intercept.beta() += cov->adjust();
 	}
 }
 
@@ -336,8 +337,7 @@ void TFunctions::propose(double lambda, const arma::mat &_JxF) noexcept {
 
 void TFunctions::adjust() noexcept {
 	for (auto &fn : _covariates) {
-		const auto b = fn->adjust();
-		_intercept.beta() += b;
+		_intercept.beta() += fn->adjust();
 	}
 }
 

@@ -18,6 +18,7 @@
 #include "coretools/Math/TProbabilityDistributions.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
 #include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/RecalEstimatorTools.h"
@@ -444,7 +445,14 @@ public:
 		_firstParameterIndex = FirstParameterIndex;
 		_betas.assign(Covariate::N(dataTable[Covariate::index]), NAN);
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (Covariate::isUsed(dataTable[Covariate::index], i)) _betas[i] = 0.;
+			if (Covariate::isUsed(dataTable[Covariate::index], i)) {
+				if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+					const coretools::Probability p = coretools::Probability(genometools::PhredIntProbability(i));
+					_betas[i] = coretools::logit(p);
+				} else {
+					_betas[i] = 0.;
+				}
+			}
 		}
 	}
 

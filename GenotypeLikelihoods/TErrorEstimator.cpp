@@ -287,6 +287,7 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		if (nUpdated < nTot) {
 			logfile().conclude(nTot - nUpdated, " models did not improve even with log2(lambda) = ", std::log2(lambda),
 							   ", aborting Newton-Raphson.");
+			logfile().endIndent();
 			break;
 		}
 
