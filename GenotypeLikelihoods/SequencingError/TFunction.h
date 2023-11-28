@@ -474,9 +474,8 @@ public:
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		// assert(Covariate::extract(base) < _betas.size());
 		const auto val = Covariate::extract(base);
-		if (val < _betas.size()) return _betas[Covariate::extract(base)];
+		if (val < _betas.size()) return _betas[val];
 
 		return _betas.back();
 	}
@@ -486,7 +485,8 @@ public:
 		const auto val = Covariate::extract(base);
 		assert(val < _betas.size());
 
-		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
+		const size_t der_index = firstParameterIndex() + static_cast<size_t>(val);
+		der1.emplace_back(der_index, 1.0);
 		return _betas[val];
 	}
 
