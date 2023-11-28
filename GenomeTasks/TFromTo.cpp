@@ -11,6 +11,7 @@ using coretools::instances::randomGenerator;
 using genometools::Base;
 
 TFromTo::TFromTo() : _out(_genome.outputName() + "_fromto.txt.gz") {
+	_parser.openReference(true);
 	_out.writeHeader({"Chr", "Pos", "Depth", "dist5_1", "dist3_1", "dist5_2", "dist3_2", "reveresed1", "reversed2"});
 }
 
