@@ -1,7 +1,7 @@
 //
 // Created by linkv on 8/17/20.
 //
-#include "TGenotypeLikelihoodCalculator.h"
+#include "TErrorModels.h"
 #include "gtest/gtest.h"
 
 #include <memory>
