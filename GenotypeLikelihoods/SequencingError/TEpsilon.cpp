@@ -60,13 +60,8 @@ coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedBase &base,
 
 
 void TEpsilon::solveJxF() {
-	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-	_Jacobian = arma::symmatu(_Jacobian);
-
-	// scale F and J by 1/#sites
-	_Jacobian = _Jacobian / _numSitesAdded;
-	_F        = _F / _numSitesAdded;
-	_maxF     = std::max(_F.max(), -_F.min());
+	// scale maxF #sites
+	_maxF = std::max(_F.max(), -_F.min()) / _numSitesAdded;
 	if (!solve(_JxF, _Jacobian, _F))
 		UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
 		       _Jacobian);

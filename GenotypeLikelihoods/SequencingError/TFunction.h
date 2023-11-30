@@ -236,12 +236,16 @@ template<size_t O, typename Covariate> class TPolynomial final : public TFunctio
 private:
 	using Transformer =
 		std::conditional_t<std::is_same_v<Covariate, TCovariate_quality>, impl::TLogitTransform, impl::TNoTransform>;
-	std::array<double, O> _betas{1.};  // betas of the model
+	std::array<double, O> _betas{};  // betas of the model
 
 public:
 	static constexpr std::string_view name = "polynomial";
 
-	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
+	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {
+		if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+			_betas.front() = 1.;
+		}
+	}
 
 	size_t numParameters() const noexcept override { return O; }
 
