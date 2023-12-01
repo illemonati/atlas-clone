@@ -14,6 +14,7 @@
 #include <stdexcept>
 
 #include "TCigar.h"
+#include "TOutputBamFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/globalConstants.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -33,7 +34,7 @@ TTestBamFile::TTestBamFile(const std::string & Filename, const std::vector<size_
 
 	//open BAM file for writing
 	_filename = Filename;
-	_bamFile.open(_filename, _header, _chromosomes, _readGroups);
+	_bamFile = std::make_unique<TOutputBamFile>(_filename, _header, _chromosomes, _readGroups);
 };
 
 void TTestBamFile::_initialize(const std::vector<size_t> ChrLength, size_t NumReadGroups){
@@ -136,11 +137,11 @@ void TTestBamFile::_iterateFlags() {
 void TTestBamFile::openOutput(const std::string & Filename){
 	//open BAM file for writing
 	_filename = Filename;
-	_bamFile.open(_filename, _header, _chromosomes, _readGroups);
+	_bamFile = std::make_unique<TOutputBamFile>(_filename, _header, _chromosomes, _readGroups);
 };
 
 void TTestBamFile::closeOutput(){
-	_bamFile.close();
+	_bamFile.reset();
 };
 
 void TTestBamFile::_storeAlignment(const BAM::TAlignment & alignment){
@@ -150,7 +151,7 @@ void TTestBamFile::_storeAlignment(const BAM::TAlignment & alignment){
 
 void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
     //write to BAM
-    _bamFile.writeAlignment(alignment);
+    _bamFile->writeAlignment(alignment);
 };
 
 BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<genometools::PhredIntProbability> & qualities, const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
@@ -225,14 +226,14 @@ void TTestBamFile::writeDummyAlignments(size_t numAlignments, const bool & compl
 	for(size_t i=0; i<numAlignments; ++i){
 		//iterate position
 		position += dist;
-		if(position + _dummyLength > chr->end()){
+		if(position + _dummyLength > chr->to()){
 			++chr;
 			if(chr == _chromosomes.end()){
 				std::cout << "ERROR A" << std::endl;
 				DEVERROR("chromosome reached end!");
 			}
 
-			position = chr->start();
+			position = chr->from();
 		}
 		writeDummyAlignment(position, complicatedSamFlag);
 	}

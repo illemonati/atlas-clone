@@ -10,6 +10,7 @@
 
 #include "TBamFile.h"
 
+#include <memory>
 #include <stddef.h>
 #include <stdint.h>
 #include <algorithm>
@@ -42,7 +43,7 @@ protected:
 
 	//BAM file for writing
 	std::string _filename;
-	BAM::TOutputBamFile _bamFile;
+	std::unique_ptr<BAM::TOutputBamFile> _bamFile;
 
 	//tmp vars for dummy alignments
 	size_t _counter;
