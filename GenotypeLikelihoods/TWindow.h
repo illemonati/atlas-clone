@@ -16,7 +16,7 @@
 #include "TSite.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 
 namespace coretools {
 class TOutputFile;

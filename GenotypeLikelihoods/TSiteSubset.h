@@ -12,13 +12,16 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Main/TError.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "coretools/algorithms.h"
-#include "coretools/Main/TLog.h"
-#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TFile.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/algorithms.h"
+#include "coretools/Containers/TView.h"
+
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 

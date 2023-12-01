@@ -327,7 +327,7 @@ bool TBamFile::readNextAlignment(){
 			}
 
 			//jump reader and read first alignment
-			jump(_curChromosome->start());
+			jump(_curChromosome->from());
 			if(!_bamReader.GetNextAlignment(_curBamAlignment)){
 				return false;
 			}

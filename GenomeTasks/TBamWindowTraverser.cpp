@@ -192,7 +192,7 @@ bool TBamWindowTraverser::_incrementWindow(GenotypeLikelihoods::TWindow &window)
 
 	// Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond
 	// _curChromosome or 3) reached window limit
-	if (_curChromosome == _genome.bamFile().chromosomes().cend() || window.from() >= _curChromosome->end() ||
+	if (_curChromosome == _genome.bamFile().chromosomes().cend() || window.from() >= _curChromosome->to() ||
 		_windowNumber > _limitWindows) {
 		// move to next chromosome
 		if (_curChromosome == _genome.bamFile().chromosomes().cend()) { // beginning of chromosome
@@ -213,7 +213,7 @@ bool TBamWindowTraverser::_incrementWindow(GenotypeLikelihoods::TWindow &window)
 		_numWindowsOnChr = ceil(_curChromosome->length() / (double)_windowSize);
 
 		// move window to beginning of chromosome
-		const auto newFrom = _curChromosome->start() + _skipWindows * _windowSize;
+		const auto newFrom = _curChromosome->from() + _skipWindows * _windowSize;
 		window.move(newFrom, _windowSize, _curChromosome->name());
 	}
 
@@ -243,7 +243,7 @@ bool TBamWindowTraverser::_moveToNextWindow(GenotypeLikelihoods::TWindow &window
 	}
 
 	// make sure window does not go beyond chromosome end
-	if (window.to() > _curChromosome->end()) { window.resize(_curChromosome->end() - window.from()); }
+	if (window.to() > _curChromosome->to()) { window.resize(_curChromosome->to() - window.from()); }
 
 	return true;
 }

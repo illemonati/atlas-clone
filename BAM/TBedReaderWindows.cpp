@@ -128,18 +128,18 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 				curChr = vec[0];
 			}
 			if(adaptRegions){
-				if(fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).end().position() && fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).start().position()){
-					if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).end().position()) 
-						vec[2] = toString(chromosomeList.getChromosome(vec[0]).end().position());
-					if(fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).start().position())
-						vec[1] = toString(chromosomeList.getChromosome(vec[0]).start().position());
+				if(fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).to().position() && fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).from().position()){
+					if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).to().position())
+						vec[2] = toString(chromosomeList.getChromosome(vec[0]).to().position());
+					if(fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).from().position())
+						vec[1] = toString(chromosomeList.getChromosome(vec[0]).from().position());
 					//add positions
 					chrIt->second.addPosition(vec, numPositionsAdded, siteLimit);
 				}
 			} else {
-				if(fromString<uint32_t>(vec[1]) > chromosomeList.getChromosome(vec[0]).end().position() || fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).start().position()) 
+				if(fromString<uint32_t>(vec[1]) > chromosomeList.getChromosome(vec[0]).to().position() || fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).from().position())
 					UERROR("Start position for chromosome ", vec[0], " in file '", filename, "' is outside of this chromosome.");
-				if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).end().position() || fromString<uint32_t>(vec[2]) < chromosomeList.getChromosome(vec[0]).start().position()) 
+				if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).to().position() || fromString<uint32_t>(vec[2]) < chromosomeList.getChromosome(vec[0]).from().position())
 					UERROR("End position for chromosome ", vec[0], " in file '", filename, "' is outside of this chromosome.");
 				//add positions
 				chrIt->second.addPosition(vec, numPositionsAdded, siteLimit);
@@ -198,5 +198,3 @@ void TBedReaderWindows::listInitializedChromosomes(std::vector<std::string> &ini
 }
 
 }; //end namespace
-
-
