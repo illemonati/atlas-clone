@@ -18,6 +18,7 @@
 #include "coretools/Math/TProbabilityDistributions.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
 #include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/RecalEstimatorTools.h"
@@ -235,12 +236,16 @@ template<size_t O, typename Covariate> class TPolynomial final : public TFunctio
 private:
 	using Transformer =
 		std::conditional_t<std::is_same_v<Covariate, TCovariate_quality>, impl::TLogitTransform, impl::TNoTransform>;
-	std::array<double, O> _betas{1.};  // betas of the model
+	std::array<double, O> _betas{};  // betas of the model
 
 public:
 	static constexpr std::string_view name = "polynomial";
 
-	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
+	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {
+		if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+			_betas.front() = 1.;
+		}
+	}
 
 	size_t numParameters() const noexcept override { return O; }
 
@@ -444,7 +449,14 @@ public:
 		_firstParameterIndex = FirstParameterIndex;
 		_betas.assign(Covariate::N(dataTable[Covariate::index]), NAN);
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (Covariate::isUsed(dataTable[Covariate::index], i)) _betas[i] = 0.;
+			if (Covariate::isUsed(dataTable[Covariate::index], i)) {
+				if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+					const coretools::Probability p = coretools::Probability(genometools::PhredIntProbability(i));
+					_betas[i] = coretools::logit(p);
+				} else {
+					_betas[i] = 0.;
+				}
+			}
 		}
 	}
 
@@ -466,9 +478,8 @@ public:
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		// assert(Covariate::extract(base) < _betas.size());
 		const auto val = Covariate::extract(base);
-		if (val < _betas.size()) return _betas[Covariate::extract(base)];
+		if (val < _betas.size()) return _betas[val];
 
 		return _betas.back();
 	}
@@ -478,7 +489,8 @@ public:
 		const auto val = Covariate::extract(base);
 		assert(val < _betas.size());
 
-		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
+		const size_t der_index = firstParameterIndex() + static_cast<size_t>(val);
+		der1.emplace_back(der_index, 1.0);
 		return _betas[val];
 	}
 

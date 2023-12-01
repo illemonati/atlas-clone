@@ -60,7 +60,7 @@ class TEpsilon {
 	void _addToQ(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
 				const TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
-		using genometools::Genotype;
+
 		const double eps    = calcErrorRate(base);
 		const double eps_c  = 1. - eps;
 		const double leps   = std::log(eps);
@@ -84,34 +84,36 @@ class TEpsilon {
 		// get error rate
 		const double eps      = _calcErrorRate(base, der1st, der2nd);
 		const double eps_c    = 1. - eps;
-		const double epsEps_c = eps * eps_c;
 		const double leps     = std::log(eps);
 		const double leps_c   = std::log(eps_c);
 
+		double w_ij = 0.;
 		for (auto g : _makeGenotype<isInvariant>()) {
 			const double P_bbar_I_gd = P_bbar_I_gds[g];
 			const double P_g_I_d     = P_g_I_ds[g];
 
-			// add Q
-			_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1 - P_bbar_I_gd) * leps);
-
-			const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
-
-			// add first derivatives
-			for (auto dm = der1st.begin(); dm != der1st.end(); ++dm)  _F(dm->index) += w_ij * dm->derivative;
-
-			// add second derivatives to Jacobian
-			for (auto &dmn : der2nd) _Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
+			_Q   += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
+			w_ij += P_g_I_d * (eps_c - P_bbar_I_gd);
 
 		}
 
+		for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) _F(dm->index) += w_ij * dm->derivative;
+
 		// add first derivative products to Jacobian
+		const double epsEps_c = eps * eps_c;
 		for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
 			_Jacobian(dm->index, dm->index) -= epsEps_c * dm->derivative * dm->derivative;
 			for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
 				_Jacobian(dm->index, dn->index) -= epsEps_c * dm->derivative * dn->derivative;
+				_Jacobian(dn->index, dm->index) -= epsEps_c * dm->derivative * dn->derivative;
 			}
 		}
+		// add second derivatives to Jacobian
+		for (auto &dmn : der2nd) {
+			_Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
+			_Jacobian(dmn.index2, dmn.index1) += w_ij * dmn.derivative;
+		}
+
 		++_numSitesAdded;
 	}
 
