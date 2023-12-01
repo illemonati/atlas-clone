@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "TBamWindowTraverser.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
@@ -88,8 +89,8 @@ TEST_F(TBamFile_Test_ReadWrite, chromosomes){
         EXPECT_EQ(itWritten->name(), itRead->name());
         EXPECT_EQ(itWritten->length(), itRead->length());
         EXPECT_EQ(itWritten->refID(), itRead->refID());
-        EXPECT_EQ(itWritten->start().position(), itRead->start().position());
-        EXPECT_EQ(itWritten->end().position(), itRead->end().position());
+        EXPECT_EQ(itWritten->from().position(), itRead->from().position());
+        EXPECT_EQ(itWritten->to().position(), itRead->to().position());
     }
 }
 
@@ -222,7 +223,6 @@ protected:
         numSitesWithData.emplace_back(window.numSitesWithData());
         numReadsInWindow.emplace_back(window.numReadsInWindow());
     };
-	virtual void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
     // storage
@@ -720,45 +720,45 @@ public:
 
     void _handleAlignment() override {
         //get read group
-        uint16_t curReadGroup = _bamFile.curReadGroupID();
+        uint16_t curReadGroup = _genome.bamFile().curReadGroupID();
 
         //add to counters
         totalReads.add(curReadGroup);
 
-        duplicates.add(curReadGroup, _bamFile.curIsDuplicate());
-        improperPairs.add(curReadGroup, _bamFile.curIsPaired() && !_bamFile.curIsProperPair());
-        failedQC.add(curReadGroup, _bamFile.curIsFailedQC());
-        unmapped.add(curReadGroup, !_bamFile.curIsMapped());
-        secondary.add(curReadGroup, _bamFile.curIsSecondary());
-        supplementary.add(curReadGroup, _bamFile.curIsSupplementary());
-        longerThanFragmentLength.add(curReadGroup, _bamFile.curIsLongerThanFragment());
-        fwdStrand.add(curReadGroup, !_bamFile.curIsReverseStrand());
-        revStrand.add(curReadGroup, _bamFile.curIsReverseStrand());
-        firstMate.add(curReadGroup, _bamFile.curIsFirstMate());
-        secondMate.add(curReadGroup, _bamFile.curIsSecondMate());
-        names.push_back(_bamFile.curName());
+        duplicates.add(curReadGroup, _genome.bamFile().curIsDuplicate());
+        improperPairs.add(curReadGroup, _genome.bamFile().curIsPaired() && !_genome.bamFile().curIsProperPair());
+        failedQC.add(curReadGroup, _genome.bamFile().curIsFailedQC());
+        unmapped.add(curReadGroup, !_genome.bamFile().curIsMapped());
+        secondary.add(curReadGroup, _genome.bamFile().curIsSecondary());
+        supplementary.add(curReadGroup, _genome.bamFile().curIsSupplementary());
+        longerThanFragmentLength.add(curReadGroup, _genome.bamFile().curIsLongerThanFragment());
+        fwdStrand.add(curReadGroup, !_genome.bamFile().curIsReverseStrand());
+        revStrand.add(curReadGroup, _genome.bamFile().curIsReverseStrand());
+        firstMate.add(curReadGroup, _genome.bamFile().curIsFirstMate());
+        secondMate.add(curReadGroup, _genome.bamFile().curIsSecondMate());
+        names.push_back(_genome.bamFile().curName());
 
-        readLength.add(curReadGroup, _bamFile.curCIGAR().lengthRead());
-        softClippedLength.add(curReadGroup, _bamFile.curCIGAR().lengthSoftClipped());
-        mappingQuality.add(curReadGroup, _bamFile.curMappingQuality());
+        readLength.add(curReadGroup, _genome.bamFile().curCIGAR().lengthRead());
+        softClippedLength.add(curReadGroup, _genome.bamFile().curCIGAR().lengthSoftClipped());
+        mappingQuality.add(curReadGroup, _genome.bamFile().curMappingQuality());
 
         readGroup.add(curReadGroup);
-        refIDs.add(_bamFile.curPosition().refID());
+        refIDs.add(_genome.bamFile().curPosition().refID());
 
         //fragment length: only once
-        if(!_bamFile.curIsReverseStrand()){
-            fragmentLength.add(curReadGroup, _bamFile.curFragmentLength());
+        if(!_genome.bamFile().curIsReverseStrand()){
+            fragmentLength.add(curReadGroup, _genome.bamFile().curFragmentLength());
         }
     }
 
     TBamFilter() {
         //settings
-        _bamFile.readGroups().fillVectorWithNames(readGroupNames);
+        _genome.bamFile().readGroups().fillVectorWithNames(readGroupNames);
     };
 
     void filter(){
         //initialize counters
-        size_t numRG = _bamFile.readGroups().size();
+        size_t numRG = _genome.bamFile().readGroups().size();
 
         // resize distributions
         totalReads.resize(numRG);
