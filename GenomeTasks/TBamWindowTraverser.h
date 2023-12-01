@@ -18,18 +18,12 @@
 namespace GenomeTasks {
 
 class TBamWindowTraverser {
-	bool _hasWindowIndent;
-
 	// predefined windows
 	genometools::TGenomeWindowList _predefinedWindows;
-	std::multiset<genometools::TGenomeWindow>::iterator _curPredefinedWindow;
 
 	// window filters
 	double _maxMissing;
 	double _maxRefN;
-
-	size_t _numWindowsOnChr;
-	size_t _windowNumber;
 
 	// window limits
 	size_t _limitWindows;
@@ -41,6 +35,9 @@ class TBamWindowTraverser {
 	bool _applyDepthFilter;
 	bool _filterCpG;
 
+	coretools::TNumericRange<size_t> _depthFilter;
+	std::unique_ptr<coretools::TSubsamplePicker> _subsamplePicker;
+
 	// contructor functions
 	void _setWindowParameters();
 	void _setParsingLimits();
@@ -48,24 +45,15 @@ class TBamWindowTraverser {
 	void _setSiteFilters();
 	void _setMasks();
 
-	void _setCountersBeginningOfChromosome();
-	bool _incrementWindow(GenotypeLikelihoods::TWindow &window);
-	bool _moveToNextWindow(GenotypeLikelihoods::TWindow &window);
-	bool _incrementPredefinedWindow();
-	bool _moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window);
-
-	bool _moveWindow(GenotypeLikelihoods::TWindow &window);
-	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window);
+	void _fillAlignments(GenotypeLikelihoods::TWindow &window);
 	bool _readAndParseAlignment(BAM::TAlignment &_curAlignment);
 
 protected:
 	TGenome _genome;
 	TParser _parser;
-	std::vector<genometools::TChromosome>::const_iterator _curChromosome;
 
 	// window params
 	size_t _windowSize;
-	bool _chrChangedWindow;
 
 	// mask
 	bool _considerRegions;
@@ -76,16 +64,14 @@ protected:
 
 	// site filters
 	size_t _readUpToDepth;
-	coretools::TNumericRange<size_t> _depthFilter;
 	size_t _downsampleDepth;
-	std::unique_ptr<coretools::TSubsamplePicker> _subsamplePicker;
-
 
 	void _openSiteSubset(const std::string &filename, bool polymoprhic = true);
 	void _applyWindowFilters(GenotypeLikelihoods::TWindow &window);
 
 	void _traverseBAMWindows();
-	virtual void _handleWindow(GenotypeLikelihoods::TWindow& window) = 0;
+	virtual void _handleWindow(GenotypeLikelihoods::TWindow &window) = 0;
+	virtual void _onChrChange(const genometools::TChromosome &Chr)   = 0;
 
 public:
 	TBamWindowTraverser();

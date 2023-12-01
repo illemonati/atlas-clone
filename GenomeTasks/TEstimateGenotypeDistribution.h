@@ -20,6 +20,7 @@ private:
 	coretools::TOutputFile _out;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _onChrChange(const genometools::TChromosome&) override {}
 
 	double _runEM();
 	double _LL();

@@ -300,7 +300,7 @@ public:
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-class TCall:public TBamWindowTraverser {
+class TCall final:public TBamWindowTraverser {
 private:
 	std::unique_ptr<TCaller> _caller;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
@@ -308,7 +308,9 @@ private:
 	void _initializeGenotypePrior();
 	void _call(GenotypeLikelihoods::TWindow& window);
 	void _callKnwonAlleles(GenotypeLikelihoods::TWindow& window);
+
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _onChrChange(const genometools::TChromosome&) override {}
 
 public:
 	TCall();

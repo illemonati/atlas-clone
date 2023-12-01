@@ -33,18 +33,18 @@ TWriteGLF::TWriteGLF(){
 	}
 };
 
-void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow& window){
-	if(_chrChangedWindow){
-		_writer.newChromosome(*_curChromosome);
-	}
+void TWriteGLF::_onChrChange(const genometools::TChromosome &Chr) {
+	_writer.newChromosome(Chr);
+}
 
+void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow &Window) {
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	logfile().listFlushTime("Adding window to GLF file ...");
 	uint32_t pos = 0;
-	for(auto& s : window){
+	for(auto& s : Window){
 		if(!s.empty() || _printAll){
 			const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
-			_writer.writeSite(window.positionOnChr(pos), s.depth(), 0, genoLik);
+			_writer.writeSite(Window.positionOnChr(pos), s.depth(), 0, genoLik);
 		}
 		++pos;
 	}

@@ -7,10 +7,13 @@
 
 #include "TBamWindowTraverser.h"
 
+#include "TWindow.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 #include <filesystem>
 
 namespace GenomeTasks {
@@ -29,7 +32,6 @@ using coretools::instances::parameters;
 	_setMasks();
 	_setSiteFilters();
 	logfile().endIndent();
-	_numWindowsOnChr = 0;
 }
 
 void TBamWindowTraverser::_setWindowParameters() {
@@ -180,191 +182,26 @@ void TBamWindowTraverser::_openSiteSubset(const std::string &paramName, bool pol
 	logfile().endIndent();
 }
 
-void TBamWindowTraverser::_setCountersBeginningOfChromosome() {
-	_chrChangedWindow = true;
-	_windowNumber     = 1;
-}
-
-bool TBamWindowTraverser::_incrementWindow(GenotypeLikelihoods::TWindow &window) {
-	// move to next
-	window += _windowSize;
-	++_windowNumber;
-
-	// Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond
-	// _curChromosome or 3) reached window limit
-	if (_curChromosome == _genome.bamFile().chromosomes().cend() || window.from() >= _curChromosome->to() ||
-		_windowNumber > _limitWindows) {
-		// move to next chromosome
-		if (_curChromosome == _genome.bamFile().chromosomes().cend()) { // beginning of chromosome
-			_curChromosome = _genome.bamFile().chromosomes().cbegin();
-		} else {
-			++_curChromosome;
-		}
-
-		// advance if this chromosome is not used
-		while (_curChromosome != _genome.bamFile().chromosomes().cend() &&
-			   (!_curChromosome->inUse() || _skipWindows * _windowSize > _curChromosome->length())) {
-			++_curChromosome;
-		}
-
-		if (_curChromosome == _genome.bamFile().chromosomes().cend()) { return false; }
-
-		_setCountersBeginningOfChromosome();
-		_numWindowsOnChr = ceil(_curChromosome->length() / (double)_windowSize);
-
-		// move window to beginning of chromosome
-		const auto newFrom = _curChromosome->from() + _skipWindows * _windowSize;
-		window.move(newFrom, _windowSize, _curChromosome->name());
-	}
-
-	return true;
-}
-
-bool TBamWindowTraverser::_moveToNextWindow(GenotypeLikelihoods::TWindow &window) {
-	// move to next
-	if (!_incrementWindow(window)) { return false; }
-
-	// if sites defined, check if there are sites
-	if (_subsetPolymoprhic) {
-		while (!_subsetPolymoprhic->hasPositionsInWindow(window)) {
-			if (!_incrementWindow(window)) { return false; }
-		}
-	} else if(_subsetMonomorphic){
-		while (!_subsetMonomorphic->hasPositionsInWindow(window)) {
-			if (!_incrementWindow(window)) { return false; }
-		}
-	}
-
-	if (_considerRegions) {
-		if (_mask.windowIsBeyond(window)) { return false; }
-		while (!_mask.hasOverlapWith(window)) {
-			if (!_incrementWindow(window)) { return false; }
-		}
-	}
-
-	// make sure window does not go beyond chromosome end
-	if (window.to() > _curChromosome->to()) { window.resize(_curChromosome->to() - window.from()); }
-
-	return true;
-}
-
-bool TBamWindowTraverser::_incrementPredefinedWindow() {
-	const auto oldRefID = _curPredefinedWindow->refID();
-
-	++_curPredefinedWindow;
-	if (_curPredefinedWindow == _predefinedWindows.end()) { return false; }
-
-	// check if chromosome changed
-	if (_curPredefinedWindow->refID() != oldRefID) {
-		_setCountersBeginningOfChromosome();
-	} else {
-		++_windowNumber;
-	}
-
-	return true;
-}
-
-bool TBamWindowTraverser::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window) {
-	// if at beginning of BAM file: restart
-	if (_curChromosome == _genome.bamFile().chromosomes().cend()) {
-		_curPredefinedWindow = _predefinedWindows.begin();
-		_curChromosome       = _genome.bamFile().chromosomes().cbegin(_curPredefinedWindow->refID());
-		_setCountersBeginningOfChromosome();
-	} else {
-		_incrementPredefinedWindow();
-	}
-
-	// go to next accepted window
-	while (_curPredefinedWindow != _predefinedWindows.end() &&
-		   (!_genome.bamFile().chromosomes().inUse(_curPredefinedWindow->refID()) || _windowNumber < _skipWindows ||
-			_windowNumber >= _limitWindows)) {
-		_incrementPredefinedWindow();
-	}
-
-	// return false if at end
-	if (_curPredefinedWindow == _predefinedWindows.end()) { return false; }
-
-	// make sure we are on the right chromosome
-	if (_curChromosome->refID() != _curPredefinedWindow->refID()) {
-		_curChromosome = _genome.bamFile().chromosomes().cbegin(_curPredefinedWindow->refID());
-
-		// update num windows per chromosome
-		_numWindowsOnChr = _predefinedWindows.numWindowsOnChr(_curChromosome->refID());
-	}
-
-	// move coordinates of window
-	window.move(*_curPredefinedWindow, _curChromosome->name());
-
-	// move in BAM: should we jump or are we already close enough to next window
-	if (_genome.bamFile().refID() == window.refID()) {
-		// same chromosome: jump only if we are far away
-		if (_genome.bamFile().curPosition() > window.from() ||
-			_genome.bamFile().curPosition() < window.from() - _genome.bamFile().maxReadLength()) {
-			_genome.bamFile().jump(window.from() - _genome.bamFile().maxReadLength());
-		}
-	} else {
-		// different chromosome: jump
-		_genome.bamFile().jump(window.from() - _genome.bamFile().maxReadLength());
-	}
-
-	// return true as we continue reading
-	return true;
-}
-
-bool TBamWindowTraverser::_moveWindow(GenotypeLikelihoods::TWindow &window) {
-	// returns false when end of genome is reached
-	if (_predefinedWindows.empty()) {
-		// no predefined windows: regular traversing
-		if (!_moveToNextWindow(window)) { return false; }
-	} else {
-		// there are predefined windows
-		if (!_moveToNextPredefinedWindow(window)) { return false; }
-	}
-
-	// report chromosome
-	if (_hasWindowIndent) logfile().removeIndent();
-	if (_chrChangedWindow) {
-		if (_curChromosome->refID() > 0) { logfile().endIndent(); }
-		logfile().startNumbering("Parsing chromosome '" + _curChromosome->name() + "':");
-	}
-
-	// report window
-	logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ", _numWindowsOnChr,
-					 " on '", _curChromosome->name(), "':");
-	logfile().addIndent();
-	_hasWindowIndent = true;
-
-	return true;
-}
-
-//---------------------
-// read data in windows
-//---------------------
-
-bool TBamWindowTraverser::_readAndParseAlignment(BAM::TAlignment &_curAlignment) {
-	if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) return false;
-
-	_genome.bamFile().fill(_curAlignment);
-	_parser.apply(_curAlignment);
-	return true;
-}
-
-void TBamWindowTraverser::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window) {
+void TBamWindowTraverser::_fillAlignments(GenotypeLikelihoods::TWindow &window) {
 	// measure runtime
 	logfile().listFlushTime("Reading data ...");
 
-	// use last read from last window
-	BAM::TAlignment _curAlignment;
-	_genome.bamFile().fill(_curAlignment);
-	_parser.apply(_curAlignment);
-
+	// first, use last read from last window, before reading next
 	do {
-		if (_curAlignment >= window.to()) break;
+		const auto curPos = _genome.bamFile().curPosition();
+		const auto maxLen = _genome.bamFile().curCIGAR().lengthSequenced();
+		
+		if (curPos >= window.to()) break; // too far
+		if (curPos.position() + maxLen < window.fromOnChr()) continue; // too short
+
+		BAM::TAlignment _curAlignment;
+		_genome.bamFile().fill(_curAlignment);
+		_parser.apply(_curAlignment);
+
 		if (_curAlignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
 			window.addAlignment(_curAlignment);
 		}
-	} while (_readAndParseAlignment(_curAlignment));
-	// _curAlignment now holds first alignment of next window, don't discard!
+	} while (_genome.bamFile().readNextAlignmentThatPassesFilters());
 
 	// fill sites
 	if (_subsetPolymoprhic) {
@@ -378,7 +215,6 @@ void TBamWindowTraverser::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow
 		window.addReferenceBaseToSites(_parser.reference());
 	}
 
-	// report
 	logfile().doneTime();
 
 	// apply filters
@@ -417,33 +253,43 @@ void TBamWindowTraverser::_applyWindowFilters(GenotypeLikelihoods::TWindow &wind
 }
 
 void TBamWindowTraverser::_traverseBAMWindows() {
+	using GenotypeLikelihoods::TWindow;
+
+	_genome.bamFile().startProgressReporting();
 	logfile().startIndent("Traversing BAM file in windows:");
-
-	// initializing
-	_hasWindowIndent = false;
-	_curChromosome   = _genome.bamFile().chromosomes().cend(); // set chromosome to end to trigger restart.
-
-	// iterate through windows
-	GenotypeLikelihoods::TWindow window;
 	_genome.bamFile().readNextAlignmentThatPassesFilters();
-	while (_moveWindow(window)) {
-		coretools::TTimer _windowTimer;
-		_readAlignmentsIntoWindow(window);
-		if (window.passedFilters()) {
-			// do stuff in derived classes
-			_handleWindow(window);
+	for (const auto &chr : _genome.bamFile().chromosomes()) {
+		if (!chr.inUse()) continue;
+		logfile().startNumbering("Parsing chromosome '" + chr.name() + "':");
+		_onChrChange(chr);
 
-			// report end of window calculations
-			logfile().list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");
+		const size_t nWindows = std::ceil((double)chr.to().position() / _windowSize);
+		const genometools::TGenomePosition to(chr.refID(), std::min(chr.to().position(), _limitWindows*_windowSize));
+
+		for (TWindow window(chr.name(), chr.refID(), _windowSize * _skipWindows, _windowSize); window.from() < to;
+			 window += _windowSize) {
+			if (window.to() > chr.to()) window.resize(chr.to() - window.from());
+			if ((_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
+			    (_subsetMonomorphic && !_subsetMonomorphic->hasPositionsInWindow(window)) ||
+			    (_considerRegions && !_mask.hasOverlapWith(window))) {
+				continue;
+			}
+
+			logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ",
+							 nWindows, " on '", chr.name(), "':");
+
+			coretools::TTimer _windowTimer;
+			_fillAlignments(window);
+			if (window.passedFilters()) {
+				// do stuff in derived classes
+				_handleWindow(window);
+
+				// report end of window calculations
+				logfile().list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");
+			}
 		}
-		_chrChangedWindow = false;
+		logfile().endIndent();
 	}
-
-	if (_hasWindowIndent) {
-		logfile().removeIndent();
-		_hasWindowIndent = false;
-	}
-
 	logfile().endIndent();
 
 	// report

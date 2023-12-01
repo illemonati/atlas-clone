@@ -41,18 +41,17 @@ private:
 	// alignment stacks and sites
 	std::vector<BAM::TAlignment> usedAlignments;
 	std::vector<TSite> _sites;
-	
-	//details
-	size_t _numReadsInWindow;
 	std::string _chrName;
-	
-	// depth
-	bool _depthCalculated;
-	double _depth, _fractionSitesNoData, _fractionDepthAtLeastTwo, _fractionRefIsN;
-	size_t _numSitesWithData;
 
-	bool _passedFilters;
-	bool _referenceBaseAdded;
+	bool _depthCalculated           = false;
+	double _depth                   = 0;
+	double _fractionSitesNoData     = 0.;
+	double _fractionDepthAtLeastTwo = 0.;
+	double _fractionRefIsN          = 0.;
+	size_t _numSitesWithData        = 0;
+	size_t _numReadsInWindow        = 0;
+	bool _passedFilters             = false;
+	bool _referenceBaseAdded        = false;
 
 	void _calcDepth();
 
@@ -130,7 +129,7 @@ private:
 	void _clearAllUsedAlignments();
 
 public:
-	TWindow();
+	TWindow(std::string_view ChrName, size_t RefID, size_t From, size_t Length);
 	TWindow(TWindow &other, const int readUpToDepth, const coretools::Probability &downsamplingProb);
 
 	// Allow to set chromosome name when jumping
@@ -139,7 +138,6 @@ public:
 	void move(const genometools::TGenomePosition &From, const genometools::TGenomePosition &To,
 	                  const std::string ChrName);
 	void move(const genometools::TGenomeWindow &Window, const std::string ChrName);
-	void setChrName(const std::string ChrName);
 
 	// move / expand on same chromosome
 	void operator+=(size_t length);

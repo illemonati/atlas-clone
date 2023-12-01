@@ -12,6 +12,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include "genometools/GenomePositions/TGenomeWindow.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/BED/TBed.h"
 #include "coretools/Files/TOutputFile.h"
@@ -34,22 +35,14 @@ using coretools::instances::randomGenerator;
 //-------------------------------------------------------
 // TWindow: constructor
 //-------------------------------------------------------
-TWindow::TWindow(){
-	_depth = 0;
-	_fractionSitesNoData = 0.0;
-	_fractionRefIsN = 0.0;
-	_fractionDepthAtLeastTwo = 0.0;
-	_numSitesWithData = 0;
-	_numReadsInWindow = 0;
-	_referenceBaseAdded = false;
-	_passedFilters = false;
-	_depthCalculated = false;
-};
+TWindow::TWindow(std::string_view ChrName, size_t RefID, size_t From, size_t Length) : genometools::TGenomeWindow(RefID, From, Length) {
+	_chrName = ChrName;
+}
 
 TWindow::TWindow(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb){
 	//initialize coordinates and sites
 	downsampleFromOther(other, readUpToDepth, downsamplingProb);
-};
+}
 
 //-------------------------------------------------------
 // TWindow: calc depth and clear
@@ -199,10 +192,6 @@ void TWindow::move(const genometools::TGenomeWindow & Window, const std::string 
 	genometools::TGenomeWindow::move(Window);
 	_chrName = ChrName;
 	clear();
-};
-
-void TWindow::setChrName(const std::string ChrName){
-	_chrName = ChrName;
 };
 
 void TWindow::operator+=(size_t length){

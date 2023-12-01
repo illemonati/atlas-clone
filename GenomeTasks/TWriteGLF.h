@@ -20,7 +20,9 @@ class TWriteGLF final : public TBamWindowTraverser{
 private:
 	GLF::TGlfWriter _writer;
 	bool _printAll;
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+
+	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
+	void _onChrChange(const genometools::TChromosome& Chr) override;
 
 public:
 	TWriteGLF();

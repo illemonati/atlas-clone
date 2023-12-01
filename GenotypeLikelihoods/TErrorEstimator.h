@@ -98,9 +98,10 @@ private:
 	void _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
 	void _writeModels(std::string_view Intro);
+	void _handleSite(const TSite& Site, size_t Region);
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleSite(const TSite& Site, size_t Region);
+	void _onChrChange(const genometools::TChromosome&) override {}
 
 public:
 	TErrorEstimator();

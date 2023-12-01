@@ -195,14 +195,12 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().endIndent();
 	}
 
-	static GenotypeLikelihoods::TWindow destination;
-
 	for (size_t i = 0; i < downSampleProbVector.size(); ++i) {
 		coretools::Probability &p = downSampleProbVector[i];
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		destination.downsampleFromOther(window, _readUpToDepth, p);
+		GenotypeLikelihoods::TWindow destination(window, _readUpToDepth, p);
 		logfile().done();
 
 		_applyWindowFilters(destination);

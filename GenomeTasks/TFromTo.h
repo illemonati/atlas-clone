@@ -17,6 +17,7 @@ class TFromTo final : public TBamWindowTraverser {
 private:
 	coretools::TOutputFile _out;
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _onChrChange(const genometools::TChromosome&) override {}
 public:
 	TFromTo();
 	void run();
