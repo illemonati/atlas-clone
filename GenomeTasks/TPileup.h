@@ -41,7 +41,7 @@ private:
 	bool _onlySummary;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _onChrChange(const genometools::TChromosome&) override {}
+	void _handleChromosome(const genometools::TChromosome&) override {}
 public:
 	TPileup();
 	void run();

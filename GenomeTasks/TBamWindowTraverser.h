@@ -14,12 +14,12 @@
 #include "TSiteSubset.h"
 #include "TAlignment.h"
 #include "TWindow.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 
 namespace GenomeTasks {
 
 class TBamWindowTraverser {
-	// predefined windows
-	genometools::TGenomeWindowList _predefinedWindows;
+	std::vector<std::vector<genometools::TGenomeWindow>> _windows;
 
 	// window filters
 	double _maxMissing;
@@ -71,7 +71,7 @@ protected:
 
 	void _traverseBAMWindows();
 	virtual void _handleWindow(GenotypeLikelihoods::TWindow &window) = 0;
-	virtual void _onChrChange(const genometools::TChromosome &Chr)   = 0;
+	virtual void _handleChromosome(const genometools::TChromosome &Chr)   = 0;
 
 public:
 	TBamWindowTraverser();

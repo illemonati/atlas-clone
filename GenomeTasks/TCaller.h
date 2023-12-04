@@ -310,7 +310,7 @@ private:
 	void _callKnwonAlleles(GenotypeLikelihoods::TWindow& window);
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _onChrChange(const genometools::TChromosome&) override {}
+	void _handleChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TCall();

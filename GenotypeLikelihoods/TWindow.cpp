@@ -12,6 +12,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include "coretools/Main/TError.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/BED/TBed.h"
@@ -35,7 +36,7 @@ using coretools::instances::randomGenerator;
 //-------------------------------------------------------
 // TWindow: constructor
 //-------------------------------------------------------
-TWindow::TWindow(std::string_view ChrName, size_t RefID, size_t From, size_t Length) : genometools::TGenomeWindow(RefID, From, Length) {
+TWindow::TWindow(std::string_view ChrName) {
 	_chrName = ChrName;
 }
 
@@ -168,12 +169,12 @@ void TWindow::clear(){
 		s.clear();
 	}
 	_cleanUpUsedAlignments();
-	_depthCalculated = false;
-	_numSitesWithData = 0;
-	_numReadsInWindow = 0;
-	_fractionRefIsN = -1.0;
+	_depthCalculated    = false;
+	_numSitesWithData   = 0;
+	_numReadsInWindow   = 0;
+	_fractionRefIsN     = -1.0;
 	_referenceBaseAdded = false;
-	_passedFilters = false;
+	_passedFilters      = false;
 };
 
 void TWindow::move(const genometools::TGenomePosition & From, size_t Length, const std::string ChrName){
@@ -185,6 +186,12 @@ void TWindow::move(const genometools::TGenomePosition & From, size_t Length, con
 void TWindow::move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName){
 	genometools::TGenomeWindow::move(From, To);
 	_chrName = ChrName;
+	clear();
+};
+
+void TWindow::move(const genometools::TGenomeWindow & Window){
+	assert(Window.refID() == refID());
+	genometools::TGenomeWindow::move(Window);
 	clear();
 };
 

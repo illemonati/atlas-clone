@@ -42,7 +42,6 @@ public:
 
 	// add
 	void add(const BAM::TSequencedBase &base);
-	void add(BAM::TSequencedBase &&base);
 	TBaseData baseFrequencies() const noexcept;
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 

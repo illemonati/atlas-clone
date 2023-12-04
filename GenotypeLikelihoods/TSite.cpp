@@ -25,10 +25,9 @@ void TSite::clear() noexcept {
 	_bases.clear();
 	refBase  = genometools::Base::N;
 	genotype = genometools::Genotype::NN;
-};
+}
 
-void TSite::add(const BAM::TSequencedBase &base) { _bases.push_back(base); };
-void TSite::add(BAM::TSequencedBase &&base) { _bases.push_back(base); };
+void TSite::add(const BAM::TSequencedBase &base) { _bases.push_back(base); }
 
 TBaseData TSite::baseFrequencies() const noexcept {
 	TBaseData bd{};
@@ -37,7 +36,7 @@ TBaseData TSite::baseFrequencies() const noexcept {
 		for (auto &b : _bases) { bd[b.base] += weight; }
 	}
 	return bd;
-};
+}
 
 void TSite::downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker) {
 	// only subsample if depth > maxDepth
@@ -53,13 +52,13 @@ void TSite::downsample(size_t maxDepth, const coretools::TSubsamplePicker &picke
 		// swap vectors
 		_bases = std::move(newBases);
 	}
-};
+}
 
 std::string TSite::getBases() const {
 	if (empty()) return "-";
 	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""),
 			       [](auto tot, auto b) { return tot + genometools::base2char(b.base); });
-};
+}
 
 std::string TSite::getQualities() const {
 	if (empty()) return "-";
@@ -71,24 +70,24 @@ size_t TSite::refDepth() const {
 	if (refBase == genometools::Base::N) return 0;
 
 	return std::count_if(_bases.cbegin(), _bases.cend(), [this](auto b) {return b.base == refBase;});
-};
+}
 
 TBaseCounts TSite::countAlleles() const {
 	TBaseCounts alleleCounts{};
 	for (const auto &b : _bases) { ++alleleCounts[b.base]; }
 	return alleleCounts;
-};
+}
 
 coretools::TStrongArray<size_t, BAM::Mate> TSite::countMates() const {
 	coretools::TStrongArray<size_t, BAM::Mate> mateCounts{};
 	for (const auto &b : _bases) { ++mateCounts[b.mate()]; }
 	return mateCounts;
-};
+}
 
 std::array<int, 2> TSite::countFwdRev() const {
 	std::array<int, 2> frCounts{};
 	for (const auto &b : _bases) { ++frCounts[b.isReverseStrand()]; }
 	return frCounts;
-};
+}
 
 }; // namespace GenotypeLikelihoods

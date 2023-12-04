@@ -31,7 +31,7 @@ private:
 	void _writeDepthPerChromosome(size_t regionNum);
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _onChrChange(const genometools::TChromosome&) override {}
+	void _handleChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TSexEstimator();

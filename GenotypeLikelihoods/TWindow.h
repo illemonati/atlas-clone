@@ -129,7 +129,7 @@ private:
 	void _clearAllUsedAlignments();
 
 public:
-	TWindow(std::string_view ChrName, size_t RefID, size_t From, size_t Length);
+	TWindow(std::string_view ChrName);
 	TWindow(TWindow &other, const int readUpToDepth, const coretools::Probability &downsamplingProb);
 
 	// Allow to set chromosome name when jumping
@@ -137,6 +137,7 @@ public:
 	void move(const genometools::TGenomePosition &From, size_t Length, const std::string ChrName);
 	void move(const genometools::TGenomePosition &From, const genometools::TGenomePosition &To,
 	                  const std::string ChrName);
+	void move(const genometools::TGenomeWindow &Window);
 	void move(const genometools::TGenomeWindow &Window, const std::string ChrName);
 
 	// move / expand on same chromosome

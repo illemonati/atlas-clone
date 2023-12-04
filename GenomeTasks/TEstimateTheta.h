@@ -33,7 +33,7 @@ private:
 
 	void _bootstrapThetaEstimation();
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _onChrChange(const genometools::TChromosome&) override {}
+	void _handleChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TEstimateThetaLLSurface();
@@ -58,7 +58,7 @@ private:
 	size_t _numBootstraps = 0;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _onChrChange(const genometools::TChromosome&) override {}
+	void _handleChromosome(const genometools::TChromosome&) override {}
 
 	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 
@@ -80,7 +80,7 @@ private:
 	void _initializeRegion(genometools::TBed &region, const int num);
 	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _onChrChange(const genometools::TChromosome&) override {}
+	void _handleChromosome(const genometools::TChromosome&) override {}
 public:
 	TEstimateThetaRatio();
 	void run();
