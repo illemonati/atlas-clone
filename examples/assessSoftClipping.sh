@@ -3,4 +3,5 @@
 . $(dirname $0)/find_atlas
 . $(dirname $0)/simulate
 
-$atlas --task assessSoftClipping --bam ATLAS_simulations.bam --fixedSeed 0 --out assessSoftClipping --logFile assessSoftClipping.out
+$atlas --task assessSoftClipping --bam ATLAS_simulations.bam \
+	   --fixedSeed 0 --out assessSoftClipping --logFile assessSoftClipping.out
