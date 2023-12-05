@@ -63,7 +63,7 @@ std::string TSite::getBases() const {
 std::string TSite::getQualities() const {
 	if (empty()) return "-";
 	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""), [](auto tot, auto b) {
-		return tot + static_cast<char>(genometools::BaseQuality(b.recalibratedQualityAsPhredInt)); });
+		return tot + static_cast<char>(genometools::BaseQuality(b.recalQuality)); });
 }
 
 size_t TSite::refDepth() const {

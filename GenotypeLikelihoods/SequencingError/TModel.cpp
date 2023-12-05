@@ -46,12 +46,12 @@ using namespace coretools::str;
 //*********************************************************
 genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
 	if (data == Base::N) return genometools::PhredIntProbability::highest();
-	return data.originalQuality_phredInt;
+	return data.originalQuality;
 }
 
 TBaseLikelihoods TNoRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
 	if (data == Base::N) { return TBaseLikelihoods{1.}; }
-	const auto eps = static_cast<Probability>(data.originalQuality_phredInt);
+	const auto eps = static_cast<Probability>(data.originalQuality);
 	TBaseLikelihoods baseLikelihoods{(1. / 3) * eps};
 	baseLikelihoods[data.base] = eps.complement();
 	return baseLikelihoods;
@@ -61,7 +61,7 @@ void TNoRecal::simulate(BAM::TAlignment &aln) const noexcept {
 	for (auto &data : aln) {
 		if (data.base == Base::N) continue;
 
-		const auto e = static_cast<Probability>(data.originalQuality_phredInt);
+		const auto e = static_cast<Probability>(data.originalQuality);
 		if (randomGenerator().getRand() < e) {
 			const int i = randomGenerator().getRand(1, 4); // 3 bases to choose from
 			data.base   = Base((coretools::index(data.base) + i) % 4);
@@ -70,7 +70,7 @@ void TNoRecal::simulate(BAM::TAlignment &aln) const noexcept {
 }
 
 void TNoRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
-	for (auto &b : aln) b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
+	for (auto &b : aln) b.recalQuality = b.originalQuality;
 }
 
 //*********************************************************
@@ -117,7 +117,7 @@ void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
 }
 
 void TWithRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
-	for (auto &b : aln) b.recalibratedQualityAsPhredInt = phredInt(b);
+	for (auto &b : aln) b.recalQuality = phredInt(b);
 }
 
 BAM::RGInfo::TInfo TWithRecal::info() const {

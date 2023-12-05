@@ -70,14 +70,14 @@ namespace impl{
 		std::vector<BAM::TSequencedBase>::const_iterator baseIterator = secondRead.begin();
 		size_t internalPos = 0;
 		//use the recalibrated quality
-		genometools::PhredIntProbability secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+		genometools::PhredIntProbability secondReadMinQual = baseIterator->recalQuality;
 
 		while(!secondRead.isAlignedAtInternalPos(internalPos) || (secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position() != secondRead.lastAlignedPositionWithRespectToRef().position())){
 			//if the base at the current position of the iterator is aligned and its PhredIntProbability is higher (therefore the error-probability is higher and the quality is lower)
 			//save this number as the new minimum quality
 			if(secondRead.isAlignedAtInternalPos(internalPos)){
-				if (baseIterator->recalibratedQualityAsPhredInt > secondReadMinQual)
-					secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+				if (baseIterator->recalQuality > secondReadMinQual)
+					secondReadMinQual = baseIterator->recalQuality;
 			}
 			baseIterator++;
 			internalPos++;
@@ -85,11 +85,11 @@ namespace impl{
 		//base iterator starts at last position of the forward strand, then decrements until it reaches either the first aligned position of itself or the forward read
 		std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
 		internalPos = firstRead.getLastInternalPos();
-		genometools::PhredIntProbability firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
+		genometools::PhredIntProbability firstReadMinQual = baseIteratorReverse->recalQuality;
 		while (!firstRead.isAlignedAtInternalPos(internalPos) || (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position() != firstRead.position())) {
 			if(firstRead.isAlignedAtInternalPos(internalPos)){
-				if (baseIteratorReverse->recalibratedQualityAsPhredInt > firstReadMinQual)
-					firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
+				if (baseIteratorReverse->recalQuality > firstReadMinQual)
+					firstReadMinQual = baseIteratorReverse->recalQuality;
 			}
 			baseIteratorReverse++;
 			internalPos--;
@@ -113,11 +113,11 @@ namespace impl{
 		//for the first read, we start at the last base of the read and go to the base at the center of the overlap and return its quality-value
 		if (isFirst){
 			std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIterator = alignment.rbegin() + numBasesFromEnd;
-			return baseIterator->recalibratedQualityAsPhredInt;
+			return baseIterator->recalQuality;
 		} else {
 			//for the second read, we start at the first base of the read
 			std::vector<BAM::TSequencedBase>::const_iterator baseIterator = alignment.begin() + numBasesFromEnd;
-			return baseIterator->recalibratedQualityAsPhredInt;
+			return baseIterator->recalQuality;
 		}
 	}
 

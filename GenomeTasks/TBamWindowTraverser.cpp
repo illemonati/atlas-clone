@@ -248,7 +248,7 @@ void TBamWindowTraverser::_fillAlignments(GenotypeLikelihoods::TWindow &window) 
 		const auto maxLen = _genome.bamFile().curCIGAR().lengthSequenced();
 		
 		if (curPos >= window.to()) break; // too far
-		if (curPos.position() + maxLen < window.fromOnChr()) continue; // too short
+		if (curPos.position() + maxLen < window.from().position()) continue; // too short
 
 		BAM::TAlignment _curAlignment;
 		_genome.bamFile().fill(_curAlignment);

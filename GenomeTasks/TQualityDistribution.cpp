@@ -32,7 +32,7 @@ using coretools::instances::parameters;
 void TQualityDistribution::_handleAlignment(BAM::TAlignment& alignment){
 	for(auto& b : alignment){
 		if(b.base != genometools::Base::N){
-			_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
+			_qualDist.add(b.readGroupID, b.recalQuality.get());
 		}
 	}
 };
@@ -84,13 +84,13 @@ void TQualityTransformation::_handleAlignment(BAM::TAlignment& alignment){
 	if(_compareToOtherSeqErrors){
 		for(auto& b : alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.phredInt(b).get());
+				_transformations[alignment.readGroupId()].add(b.recalQuality.get(), _otherSeqErrors.phredInt(b).get());
 			}
 		}
 	} else {
 		for(auto& b : alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[alignment.readGroupId()].add(b.originalQuality_phredInt.get(), b.recalibratedQualityAsPhredInt.get());
+				_transformations[alignment.readGroupId()].add(b.originalQuality.get(), b.recalQuality.get());
 			}
 		}
 	}

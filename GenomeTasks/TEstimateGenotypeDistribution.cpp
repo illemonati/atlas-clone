@@ -87,7 +87,7 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 		nReads += s.depth();
 	}
 
-	_out.write(window.chrName(), window.fromOnChr(), window.toOnChr(), double(nReads)/_sites.size(),
+	_out.write(window.chrName(), window.from().position(), window.to().position(), double(nReads)/_sites.size(),
 			   window.size(), _sites.size(), double(window.size() - _sites.size())/window.size());
 	const auto LL = _runEM();
 	_genoDist->write(_out);

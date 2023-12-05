@@ -234,14 +234,14 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		if (_histSettings.get<Hist::Quality>()) {
 			for (auto &b : site) {
 				if (b.base != genometools::Base::N) {
-					_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
+					_qualDist.add(b.readGroupID, b.recalQuality.get());
 				}
 			}
 		}
 
 		if (_histSettings.get<Hist::Contexts>()) {
 			for (auto &b : site) {
-				_contextDist.add(b.recalibratedQualityAsPhredInt.get(), coretools::index(b.context()));
+				_contextDist.add(b.recalQuality.get(), coretools::index(b.context()));
 			}
 		}
 

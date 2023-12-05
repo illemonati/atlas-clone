@@ -44,7 +44,7 @@ genometools::PhredIntProbability TErrorModels::phredIntWithPMD(const BAM::TSeque
 };
 
 void TErrorModels::recalibrateWithPMD(BAM::TSequencedBase & base) const{
-	base.recalibratedQualityAsPhredInt = phredIntWithPMD(base);
+	base.recalQuality = phredIntWithPMD(base);
 };
 
 void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
