@@ -1273,7 +1273,7 @@ void TCall::_initializeGenotypePrior(){
 void TCall::_call(GenotypeLikelihoods::TWindow& window){
 	uint32_t pos = 0;
 	for(auto& s : window){
-		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 		_caller->call(window.chrName(), window.positionOnChr(pos), s, genoLik);
 		++pos;
 	}
@@ -1292,7 +1292,7 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 			uint32_t internalPos = it - window.from();
 			TSite& site = window[internalPos];
 			site.refBase = it.ref();
-			const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(site);
+			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
 			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
 		}
 	}
@@ -1301,7 +1301,7 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	if(window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(window, _parser.errorModels());
+		_prior->update(window, _genome.errorModels());
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");

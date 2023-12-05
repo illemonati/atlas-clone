@@ -220,7 +220,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 				_out.write(strandCounts);
 			}
 			if (_printSettings.get<Print::Likelihoods>()) {
-				const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(site);
+				const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
 				_out.write(genoLik);
 			}
 			_out.endln();

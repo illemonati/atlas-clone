@@ -13,7 +13,7 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 
 TGenome::TGenome()
-	: _bamFile(parameters().get<std::string>("bam")), _rgInfo(_bamFile.readGroups()) {
+	: _bamFile(parameters().get<std::string>("bam")), _rgInfo(_bamFile.readGroups()), _errorModels(_rgInfo) {
 	// outputname
 	if (parameters().exists("out")) {
 		_outputName = parameters().get<std::string>("out");

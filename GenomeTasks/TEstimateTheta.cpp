@@ -45,7 +45,7 @@ void TEstimateThetaLLSurface::_handleWindow(GenotypeLikelihoods::TWindow& window
 
 	// adding sites to estimator
 	for (auto &s : window) {
-		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 		_thetaEstimator.add(s, genoLik);
 	}
 
@@ -75,7 +75,7 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for (auto &s : window) {
-		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 		thetaEstimator.add(s, genoLik);
 	}
 	logfile().doneTime();
@@ -296,7 +296,7 @@ void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TWindow& window, Genoty
 		for (genometools::TGenomePosition s = std::max(it->from(), window.from()); s < it->to() && s < window.to();
 			 ++s) {
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-			genoLik = _parser.errorModels().calculateGenotypeLikelihoods(window[s - window.from()]);
+			genoLik = _genome.errorModels().calculateGenotypeLikelihoods(window[s - window.from()]);
 			data.add(window[s - window.from()], genoLik);
 		}
 		++it;

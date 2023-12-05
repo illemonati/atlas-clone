@@ -124,7 +124,7 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, const genometools::Base PreferredBase) {
 	if (!site.empty()) {
 		GenotypeLikelihoods::TGenotypeLikelihoods genoLik =
-		    _parser.errorModels().calculateGenotypeLikelihoods(site);
+		    _genome.errorModels().calculateGenotypeLikelihoods(site);
 		_sites.emplace_back(genoLik, PreferredBase);
 	}
 }

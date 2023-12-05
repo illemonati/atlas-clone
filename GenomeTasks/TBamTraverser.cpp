@@ -20,11 +20,8 @@ void TFilteredBamTraverser::_traverseBAMPassedQC() {
 	_genome.bamFile().printEndWithSummary(_genome.outputName());
 }
 
-TParsedBamTraverser::TParsedBamTraverser() : _parser(_genome) {
-	// set parsing filters
-
-	const BAM::TBamFilters filters{true};
-	_genome.bamFile().setFilters(filters);
+TParsedBamTraverser::TParsedBamTraverser() {
+	_genome.bamFile().setFilters(BAM::TBamFilters{true});
 }
 
 
@@ -33,11 +30,7 @@ void TParsedBamTraverser::_traverseBAMPassedQC() {
 	_genome.bamFile().startProgressReporting();
 	BAM::TAlignment alignment;
 	while (_genome.bamFile().readNextAlignmentThatPassesFilters()) {
-		// parse
-		_genome.bamFile().fill(alignment);
-		_parser.apply(alignment);
-
-		// handle alignment by derived classes
+		_parser.fill(_genome, alignment);
 		_handleAlignment(alignment);
 
 		// report

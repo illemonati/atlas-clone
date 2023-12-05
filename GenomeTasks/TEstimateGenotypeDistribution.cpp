@@ -19,8 +19,8 @@ double TEstimateGenotypeDistribution::_LL() {
 		TGenotypeLikelihoods P_g_I_di(1.);
 		size_t counter = 0;
 		for (auto &d_ij : site) {
-			const auto P_dij_I_bbar = _parser.errorModels().sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _parser.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
+			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 			const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
 			P_g_I_di *= P_dij_I_g;
 			if (++counter > 10) {

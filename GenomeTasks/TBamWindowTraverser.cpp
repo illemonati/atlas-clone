@@ -22,7 +22,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-	TBamWindowTraverser::TBamWindowTraverser() : _parser(_genome) {
+	TBamWindowTraverser::TBamWindowTraverser()  {
 	_genome.bamFile().setFilters(BAM::TBamFilters{true});
 
 	logfile().startIndent("Parsing window settings:");
@@ -241,6 +241,7 @@ void TBamWindowTraverser::_openSiteSubset(const std::string &paramName, bool pol
 void TBamWindowTraverser::_fillAlignments(GenotypeLikelihoods::TWindow &window) {
 	// measure runtime
 	logfile().listFlushTime("Reading data ...");
+	BAM::TAlignment alignment;
 
 	// first, use last read from last window, before reading next
 	do {
@@ -250,12 +251,10 @@ void TBamWindowTraverser::_fillAlignments(GenotypeLikelihoods::TWindow &window) 
 		if (curPos >= window.to()) break; // too far
 		if (curPos.position() + maxLen < window.fromOnChr()) continue; // too short
 
-		BAM::TAlignment _curAlignment;
-		_genome.bamFile().fill(_curAlignment);
-		_parser.apply(_curAlignment);
+		_parser.fill(_genome, alignment);
 
-		if (_curAlignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
-			window.addAlignment(_curAlignment);
+		if (alignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
+			window.addAlignment(alignment);
 		}
 	} while (_genome.bamFile().readNextAlignmentThatPassesFilters());
 
