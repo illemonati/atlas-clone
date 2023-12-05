@@ -77,8 +77,8 @@ private:
 	genometools::TBed _region1;
 	genometools::TBed _region2;
 
-	void _initializeRegion(genometools::TBed &region, const int num);
-	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
+	void _initializeRegion(genometools::TBed &region, int num);
+	void _addSites(const GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, const genometools::TBed &regions);
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _handleChromosome(const genometools::TChromosome&) override {}
 public:

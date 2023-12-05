@@ -289,15 +289,15 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
 };
 
-void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TWindow& window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &region) {
-	auto it = region.lower_bound(window);
+void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, GenotypeLikelihoods::TThetaEstimatorData &Data, const genometools::TBed &Region) {
+	auto it = Region.lower_bound(Window);
 
-	while (it != region.end() && window.overlaps(*it)) {
-		for (genometools::TGenomePosition s = std::max(it->from(), window.from()); s < it->to() && s < window.to();
+	while (it != Region.end() && Window.overlaps(*it)) {
+		for (genometools::TGenomePosition s = std::max(it->from(), Window.from()); s < it->to() && s < Window.to();
 			 ++s) {
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-			genoLik = _genome.errorModels().calculateGenotypeLikelihoods(window[s - window.from()]);
-			data.add(window[s - window.from()], genoLik);
+			genoLik = _genome.errorModels().calculateGenotypeLikelihoods(Window[s - Window.from()]);
+			Data.add(Window[s - Window.from()], genoLik);
 		}
 		++it;
 	}

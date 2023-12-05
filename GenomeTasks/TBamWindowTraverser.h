@@ -7,7 +7,6 @@
 
 #include "coretools/TTimer.h"
 #include "genometools/BED/TBed.h"
-#include "genometools/GenomePositions/TChromosomes.h"
 
 #include "TGenome.h"
 #include "TParser.h"
@@ -46,7 +45,6 @@ class TBamWindowTraverser {
 	void _setMasks();
 
 	void _fillAlignments(GenotypeLikelihoods::TWindow &window);
-	bool _readAndParseAlignment(BAM::TAlignment &_curAlignment);
 
 protected:
 	TGenome _genome;

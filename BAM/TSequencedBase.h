@@ -31,13 +31,13 @@ public:
 	genometools::Base previousBase = genometools::Base::N;
 
 	// original quality as in BAM file, but transformed to phredInt
-	genometools::PhredIntProbability originalQuality_phredInt{0};
+	genometools::PhredIntProbability originalQuality{0};
 	// Quality after recalibration (used for filtering)
-	genometools::PhredIntProbability recalibratedQualityAsPhredInt{0};
-
-	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
+	genometools::PhredIntProbability recalQuality{0};
 
 	genometools::PhredIntProbability mappingQuality{0};
+
+	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
 
 	// Do we need it if we also store fragment length?
 	uint16_t fragmentLength = 0;
@@ -61,12 +61,7 @@ public:
 	operator bool() const noexcept {return base != genometools::Base::N;}
 
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
-
-	void print() const;
 };
-
 }; // namespace BAM
-
-std::ostream &operator<<(std::ostream &os, BAM::TSequencedBase base);
 
 #endif /* TBASE_H_ */

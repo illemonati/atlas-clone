@@ -176,7 +176,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         auto baseRead = alignmentRead.begin();
         for (auto baseWritten = alignmentWritten->begin(); baseWritten != alignmentWritten->end(); baseWritten++, baseRead++){
             // all attributes of TBase
-            EXPECT_EQ(baseWritten->originalQuality_phredInt, baseRead->originalQuality_phredInt);
+            EXPECT_EQ(baseWritten->quality_orig, baseRead->quality_orig);
             /*
             EXPECT_EQ(baseWritten->recalibratedQualityAsPhredInt, baseRead->recalibratedQualityAsPhredInt);
             EXPECT_EQ(baseWritten->distFrom3Prime, baseRead->distFrom3Prime);
