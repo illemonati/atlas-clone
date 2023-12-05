@@ -86,7 +86,7 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 		_genomeWide = true;
 		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
 
-		if (_considerRegions) {
+		if (_windows.considerRegions()) {
 			logfile().list("Estimating theta at specific sites. (parameter 'regions')");
 		} else {
 			logfile().list("Estimating theta genome-wide. (use 'regions' to limit)");
@@ -200,10 +200,10 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		GenotypeLikelihoods::TWindow destination(window, _readUpToDepth, p);
+		GenotypeLikelihoods::TWindow destination(window, _windows.uptoDepth(), p);
 		logfile().done();
 
-		_applyWindowFilters(destination);
+		_windows.filter(destination);
 		_addSites(destination, estimators[i]);
 
 		if (!_genomeWide) {
@@ -257,7 +257,7 @@ void TEstimateTheta::run() {
 			// write estimates
 			//std::string filename = _genome.outputName() + "_thetaGenomeWide.txt.gz";
 			//_thetaOut.open(&_thetaEstimator, filename);
-			if (_considerRegions) {
+			if (_windows.considerRegions()) {
 				_thetaOut.write("regions", "-", "-");
 			} else {
 				_thetaOut.write("genome-wide", "-", "-");

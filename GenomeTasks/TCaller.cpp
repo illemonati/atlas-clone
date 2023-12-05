@@ -1197,7 +1197,7 @@ TCall::TCall() {
 	} else if(method == "majorityBase"){
 		_caller = std::make_unique<TCallerMajorityBase>();
 	} else if(method == "consensify"){
-		_caller = std::make_unique<TCallerConsensify>(_downsampleDepth);
+		_caller = std::make_unique<TCallerConsensify>(_windows.downsampleDepth());
 	} else if(method == "allelePresence"){
 		_caller = std::make_unique<TCallerAllelePresence>();
 	} else if(method == "MLE"){
@@ -1229,12 +1229,12 @@ TCall::TCall() {
 	//limit to sites with known alleles?
 	if(parameters().exists("alleles")){
 		logfile().startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
-		_openSiteSubset("alleles");
+		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes());
 		logfile().endIndent();
 	} else {
 		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
-		_parser.openReference(true);
+		_windows.requireReference();
 	}
 	logfile().endIndent();
 };
@@ -1281,12 +1281,12 @@ void TCall::_call(GenotypeLikelihoods::TWindow& window){
 
 void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 	//check if we need to process this window
-	if(_subsetPolymoprhic->hasPositionsInWindow(window)){
+	if(_windows.subset<true>()->hasPositionsInWindow(window)){
 		//add reference to sites
-		window.addReferenceBaseToSites(*_subsetPolymoprhic);
+		window.addReferenceBaseToSites(*_windows.subset<true>());
 
 		//only run over sites listed in that window
-		auto thesePositions = _subsetPolymoprhic->getPositionInWindow(window);
+		auto thesePositions = _windows.subset<true>()->getPositionInWindow(window);
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
 			uint32_t internalPos = it - window.from();
@@ -1305,7 +1305,7 @@ void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");
-		if(_subsetPolymoprhic){
+		if(_windows.subset<true>()){
 			_callKnwonAlleles(window);
 		} else {
 			_call(window);

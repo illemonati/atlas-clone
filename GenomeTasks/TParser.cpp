@@ -36,7 +36,7 @@ void TParser::openReference(bool required) {
 	}
 }
 
-void TParser::fill(const TGenome& genome, BAM::TAlignment& alignment) {
+void TParser::fill(const TGenome& genome, BAM::TAlignment& alignment) const {
 	// parse
 	genome.bamFile().fill(alignment);
 	alignment.parse(genome.errorModels().sequencingErrorModels());

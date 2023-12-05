@@ -136,7 +136,7 @@ TCreateNonRefBedMask::TCreateNonRefBedMask():TCreateBedMask(){
 		UERROR("maxDepthForMask must be > 1 to check for ref / non-ref status!");
 	}
 
-	_parser.openReference(true);
+	_windows.requireReference();
 };
 
 void TCreateNonRefBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){

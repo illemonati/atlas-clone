@@ -100,7 +100,7 @@ void TEstimateGenotypeDistribution::run() {
 
 
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
-	_parser.openReference(true);
+	_windows.requireReference();
 	_numEMIterations = parameters().get<int>("iterations", 200);
 	_minDeltaLL      = parameters().get<double>("minDeltaLL", 1e-6);
 	if (parameters().exists("HKY85")) {

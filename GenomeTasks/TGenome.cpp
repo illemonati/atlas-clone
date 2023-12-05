@@ -16,7 +16,7 @@ TGenome::TGenome()
 	: _bamFile(parameters().get<std::string>("bam")), _rgInfo(_bamFile.readGroups()), _errorModels(_rgInfo) {
 	// outputname
 	if (parameters().exists("out")) {
-		_outputName = parameters().get<std::string>("out");
+		_outputName = parameters().get("out");
 		logfile().list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
 	} else {
 		// guess from BAM filename.

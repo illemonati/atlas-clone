@@ -526,7 +526,7 @@ void TBamFile::startProgressReporting(size_t Frequency) const {
 	_lastProgressPrinted = 0;
 	_timer.start();
 
-	logfile().startIndent("Parsing through BAM file:");
+	logfile().startIndent("Parsing through BAM file ",_filename , ":");
 };
 
 void TBamFile::printProgress() const {

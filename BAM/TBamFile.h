@@ -95,12 +95,12 @@ public:
 	TBamFile(std::string_view Filename);
 
 	//access header info READ ONLY
-	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
-	const TReadGroups& readGroups() const { return _readGroups; };
-	const TSamHeader& samHeader() const{ return _samHeader; };
+	const genometools::TChromosomes& chromosomes() const noexcept { return _chromosomes; };
+	const TReadGroups& readGroups() const noexcept { return _readGroups; };
+	const TSamHeader& samHeader() const noexcept { return _samHeader; };
 
 	//modify header info: know what you do!
-	TReadGroups& readGroupsMutable(){ return _readGroups; };
+	TReadGroups& readGroupsMutable() noexcept { return _readGroups; };
 
 	//filters
 	void setFilters(const TBamFilters& Filters);

@@ -146,7 +146,7 @@ void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) 
 			}
 		} else {
 			// get sites and alleles from site subset
-			auto thesePositions = _subsetMonomorphic->getPositionInWindow(Window);
+			auto thesePositions = _windows.subset<false>()->getPositionInWindow(Window);
 			for (auto &it : thesePositions) { _addSite(Window[it - Window.from()], it.ref()); }
 		}
 	} catch (...) {
@@ -162,13 +162,13 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 	//  1) from an alleles file (chr, pos, allele)
 	//  2) from a BED file and the reference
 	if (parameters().exists("alleles")) {
-		_openSiteSubset("alleles", false);
+		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), false);
 		_parseFromBed = false;
 	} else if (parameters().exists("bed")) {
 		logfile().startIndent("Limiting analysis to sites listed in BED file:");
 		// open reference
 		logfile().list("Will assume that the reference allele is the preferred allele.");
-		_parser.openReference(true);
+		_windows.requireReference();
 		// parse BED
 		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
@@ -206,7 +206,7 @@ void TEstimateMutationLoad::run() {
 	if (_parseFromBed) {
 		out.writeln(_genome.bamFile().filename(), _bedFileName, prior.getPi());
 	} else {
-		out.writeln(_genome.bamFile().filename(), _subsetMonomorphic->filename(), prior.getPi());
+		out.writeln(_genome.bamFile().filename(), _windows.subset<false>()->filename(), prior.getPi());
 	}
 }
 

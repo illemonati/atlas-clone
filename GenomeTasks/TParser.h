@@ -21,7 +21,7 @@ class TParser {
 public:
 	TParser();
 
-	void fill(const TGenome& genome, BAM::TAlignment& alignment);
+	void fill(const TGenome& genome, BAM::TAlignment& alignment) const;
 	void openReference(bool required = false);
 	const genometools::TFastaReader& reference() const noexcept {return _reference;};
 };
