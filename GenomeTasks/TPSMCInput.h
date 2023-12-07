@@ -20,7 +20,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-class TPSMCInput final : public TBamWindowTraverser{
+class TPSMCInput final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	double _theta;
 	double _confidence, _logConfidence, _logConfidenceHet;

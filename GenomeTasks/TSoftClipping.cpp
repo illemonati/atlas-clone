@@ -76,7 +76,7 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping() : TBamTraverser<false>() {
+TAssessSoftClipping::TAssessSoftClipping() : TBamReadTraverser<ReadType::Filtered>() {
 	// limit input / output
 	if (parameters().exists("writeReads")) {
 		_writeAlignments     = true;
@@ -143,7 +143,7 @@ void TAssessSoftClipping::run() {
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TBamTraverser<true>(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
+	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TBamReadTraverser<ReadType::Parsed>(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
 		
 	};
 

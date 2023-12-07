@@ -11,7 +11,7 @@
 #include "TBamWindowTraverser.h"
 
 namespace GenomeTasks {
-class TEstimateGenotypeDistribution final : public TBamWindowTraverser {
+class TEstimateGenotypeDistribution final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 	std::vector<GenotypeLikelihoods::TSite> _sites;

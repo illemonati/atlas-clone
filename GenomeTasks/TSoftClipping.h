@@ -39,7 +39,7 @@ public:
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-class TAssessSoftClipping final : public TBamTraverser<false> {
+class TAssessSoftClipping final : public TBamReadTraverser<ReadType::Filtered> {
 private:
 	bool _writeAlignments = false;
 	bool _printAll        = false;
@@ -57,7 +57,7 @@ public:
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TRemoveSoftClippedBases final : public TBamTraverser<true> {
+class TRemoveSoftClippedBases final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	BAM::TOutputBamFile _outBam;
 	void _handleAlignment(BAM::TAlignment& alignment) override;

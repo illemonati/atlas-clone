@@ -1,10 +1,6 @@
 #include "TBamTraverser.h"
 
 namespace GenomeTasks {
-TFilteredBamTraverser::TFilteredBamTraverser() {
-	const BAM::TBamFilters filters{true};
-	_genome.bamFile().setFilters(filters);
-}
 
 void TFilteredBamTraverser::_traverseBAMPassedQC() {
 	// parse through bam file
@@ -19,11 +15,6 @@ void TFilteredBamTraverser::_traverseBAMPassedQC() {
 	// report
 	_genome.bamFile().printEndWithSummary(_genome.outputName());
 }
-
-TParsedBamTraverser::TParsedBamTraverser() {
-	_genome.bamFile().setFilters(BAM::TBamFilters{true});
-}
-
 
 void TParsedBamTraverser::_traverseBAMPassedQC() {
 	// parse through bam file

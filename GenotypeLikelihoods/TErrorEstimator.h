@@ -24,7 +24,7 @@ namespace GenotypeLikelihoods {
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TErrorEstimator final : public  GenomeTasks::TBamWindowTraverser {
+class TErrorEstimator final : public GenomeTasks::TBamWindowTraverser<GenomeTasks::WindowType::SingleBam> {
 private:
 	// per region
 	std::vector<size_t> _refIDs;

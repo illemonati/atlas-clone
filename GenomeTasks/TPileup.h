@@ -19,7 +19,7 @@ namespace GenomeTasks {
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup final : public TBamWindowTraverser {
+class TPileup final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;

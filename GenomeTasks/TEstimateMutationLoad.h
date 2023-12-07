@@ -122,7 +122,7 @@ public:
 //-----------------------------------
 // TEstimateMutationLoad
 //-----------------------------------
-class TEstimateMutationLoad final : public TBamWindowTraverser {
+class TEstimateMutationLoad final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::vector<MutationLoad::TSiteData> _sites;
 	bool _parseFromBed;

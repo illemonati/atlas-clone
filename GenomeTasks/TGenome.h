@@ -21,7 +21,7 @@ private:
 	GenotypeLikelihoods::TErrorModels _errorModels;
 
 public:
-	TGenome();
+	TGenome(const BAM::TBamFilters& Filters = {false});
 	~TGenome();
 
 	const BAM::TBamFile& bamFile() const noexcept {return _bamFile;}

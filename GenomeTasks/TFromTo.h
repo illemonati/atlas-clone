@@ -13,7 +13,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-class TFromTo final : public TBamWindowTraverser {
+class TFromTo final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	coretools::TOutputFile _out;
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;

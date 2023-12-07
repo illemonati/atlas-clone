@@ -39,7 +39,7 @@ public:
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-class TAllelicDepth final : public TBamWindowTraverser{
+class TAllelicDepth final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;

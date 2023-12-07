@@ -77,7 +77,7 @@ auto findInStorage(StorageType & Storage, const std::string & name){
 // TGenomeParsedWithAlignmentStorage
 //-----------------------------------------
 template<typename StorageType, typename StorageIteratorType>
-class TGenomeParsedWithAlignmentStorage : public GenomeTasks::TBamTraverser<true> {
+class TGenomeParsedWithAlignmentStorage : public TBamReadTraverser<ReadType::Parsed> {
 protected:
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
 	StorageType _alignmentStorage;

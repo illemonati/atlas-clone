@@ -21,7 +21,7 @@ namespace GenomeTasks{
 // A class to get basic characteristics of a BAM file
 //-------------------------------------------
 
-class TBamDiagnoser final : public TBamTraverser<false> {
+class TBamDiagnoser final : public TBamReadTraverser<ReadType::Filtered> {
 private:
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;

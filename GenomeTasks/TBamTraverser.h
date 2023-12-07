@@ -13,7 +13,7 @@ protected:
 	virtual void _handleAlignment() = 0;
 
 public:
-	TFilteredBamTraverser();
+	TFilteredBamTraverser() : _genome(BAM::TBamFilters{true}) {};
 };
 
 class TParsedBamTraverser  {
@@ -25,10 +25,12 @@ protected:
 	virtual void _handleAlignment(BAM::TAlignment& alignment) = 0;
 
 public:
-	TParsedBamTraverser();
+	TParsedBamTraverser() : _genome(BAM::TBamFilters{true}) {};
 };
 
-template<bool isParsed>
-using TBamTraverser = std::conditional_t<isParsed, TParsedBamTraverser, TFilteredBamTraverser>;
-}
+enum class ReadType : bool {Filtered, Parsed};
+
+template<ReadType Type>
+using TBamReadTraverser = std::conditional_t<Type == ReadType::Parsed, TParsedBamTraverser, TFilteredBamTraverser>;
+} // namespace GenomeTasks
 #endif

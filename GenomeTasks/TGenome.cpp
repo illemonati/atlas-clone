@@ -12,7 +12,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-TGenome::TGenome()
+TGenome::TGenome(const BAM::TBamFilters& Filters)
 	: _bamFile(parameters().get<std::string>("bam")), _rgInfo(_bamFile.readGroups()), _errorModels(_rgInfo) {
 	// outputname
 	if (parameters().exists("out")) {
@@ -23,6 +23,7 @@ TGenome::TGenome()
 		_outputName = coretools::str::readBeforeLast(_bamFile.filename(), ".");
 		logfile().list("Writing output files with prefix '" + _outputName + "'. (specify with 'out')");
 	}
+	_bamFile.setFilters(Filters);
 }
 
 TGenome::~TGenome() {

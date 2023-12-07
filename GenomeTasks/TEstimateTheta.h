@@ -26,7 +26,7 @@ namespace GenomeTasks {
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface final : public TBamWindowTraverser {
+class TEstimateThetaLLSurface final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	size_t _steps;
@@ -43,7 +43,7 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateTheta final : public TBamWindowTraverser {
+class TEstimateTheta final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
@@ -71,7 +71,7 @@ public:
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-class TEstimateThetaRatio final : public TBamWindowTraverser {
+class TEstimateThetaRatio final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
 	genometools::TBed _region1;

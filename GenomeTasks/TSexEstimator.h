@@ -16,7 +16,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TSexEstimator
 //----------------------------------------
-class TSexEstimator final : public TBamWindowTraverser {
+class TSexEstimator final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::vector<coretools::TCountDistribution<>> _distPerSites;
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;

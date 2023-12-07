@@ -300,7 +300,7 @@ public:
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-class TCall final:public TBamWindowTraverser {
+class TCall final:public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<TCaller> _caller;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;

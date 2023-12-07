@@ -23,7 +23,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-TContextQuantifier::TContextQuantifier():TBamTraverser<true>(){
+TContextQuantifier::TContextQuantifier() : TBamReadTraverser<ReadType::Parsed>(){
 
 };
 

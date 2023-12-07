@@ -21,7 +21,7 @@ namespace GenomeTasks {
 // TPMDEstimator.h
 //----------------------------------------
 
-class TPMDEstimator final : public TBamTraverser<true> {
+class TPMDEstimator final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	BAM::TReadGroupMap _readGroupMap;
 	GenotypeLikelihoods::oldPMD::TModels _pmd;

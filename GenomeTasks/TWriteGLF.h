@@ -16,7 +16,7 @@ namespace GenomeTasks{
 //-------------------------------------------
 // TWriteGLF
 //-------------------------------------------
-class TWriteGLF final : public TBamWindowTraverser{
+class TWriteGLF final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GLF::TGlfWriter _writer;
 	bool _printAll;
