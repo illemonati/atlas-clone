@@ -216,7 +216,7 @@ public:
 		_genome.bamFile().setExternalFilterReason("Orphan");
 
 		//now parse BAM file
-		_genome.bamFile().startProgressReporting(1000000);
+		_genome.bamFile().startProgressReporting();
 		while(_genome.bamFile().readNextAlignment()){
 			//if on new chromosome, empty storage
 			if(_genome.bamFile().chrChanged()){

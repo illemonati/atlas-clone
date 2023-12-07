@@ -5,6 +5,7 @@
 #include "TGenome.h"
 #include "TWindow.h"
 #include "coretools/Main/TLog.h"
+#include "coretools/Strings/splitters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include <type_traits>
 
@@ -55,8 +56,17 @@ class TBamWindowTraverser {
 		if constexpr (isSingle) {
 			return {BAM::TBamFilters(true)};
 		} else {
+			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
+			const auto filter = BAM::TBamFilters(true);
 			std::vector<TGenome> vec;
-			vec.emplace_back(BAM::TBamFilters(true));
+			vec.reserve(bams.size());
+			if (bams.size() == 1) {
+				vec.emplace_back(bams.front(), filter);
+			} else {
+				for (size_t i = 0; i < bams.size(); ++i) {
+					vec.emplace_back(bams[i], filter, i);
+				}
+			}
 			return vec;
 		}
 	}
@@ -86,7 +96,7 @@ protected:
 			logfile().startIndent("Traversing BAM file in windows:");
 		} else {
 			for (auto &g : _genome) {
-				g.bamFile().startProgressReporting();
+				g.bamFile().startProgressReporting(false);
 				g.bamFile().readNextAlignmentThatPassesFilters();
 			}
 			std::string_view file = "files";
@@ -122,7 +132,7 @@ protected:
 			_genome.bamFile().printEndWithSummary(_genome.outputName());
 		} else {
 			for (auto& g: _genome) {
-				g.bamFile().printEndWithSummary(g.outputName());
+				g.bamFile().printEndWithSummary(g.outputName(), false);
 			}
 		}
 	}

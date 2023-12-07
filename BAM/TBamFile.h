@@ -75,7 +75,7 @@ private:
 
 	//report progress
 	mutable coretools::TTimer _timer;
-	mutable size_t _progressFrequency   = 100000;
+	mutable size_t _progressFrequency   = 1000000;
 	mutable size_t _lastProgressPrinted = 0;
 
 	void _fillSamHeader();
@@ -158,9 +158,9 @@ public:
 
 	//progress reporting
 	void printSummary(std::string_view outputName) const;
-	void startProgressReporting(size_t Frequency=1000000) const;
+	void startProgressReporting(bool indent = true) const;
 	void printProgress() const;
-	void printEndWithSummary(std::string_view outputName) const;
+	void printEndWithSummary(std::string_view outputName, bool indent = true) const;
 };
 
 }; //end namespace

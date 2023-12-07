@@ -521,12 +521,12 @@ void TBamFile::printSummary(std::string_view outputName) const {
 	logfile().endIndent();
 };
 
-void TBamFile::startProgressReporting(size_t Frequency) const {
-	_progressFrequency = Frequency;
+void TBamFile::startProgressReporting(bool indent) const {
 	_lastProgressPrinted = 0;
 	_timer.start();
 
-	logfile().startIndent("Parsing through BAM file ",_filename , ":");
+	if (indent) logfile().startIndent("Parsing through BAM file ",_filename , ":");
+	else logfile().list("Parsing through BAM file ",_filename , ".");
 };
 
 void TBamFile::printProgress() const {
@@ -538,10 +538,12 @@ void TBamFile::printProgress() const {
 	}
 };
 
-void TBamFile::printEndWithSummary(std::string_view outputName) const {
-	logfile().list("Reached end of BAM file in " + _timer.formattedTime() + ':');
+void TBamFile::printEndWithSummary(std::string_view outputName, bool indent) const {
+	logfile().list("Reached end of BAM file ", _filename, " in " + _timer.formattedTime() + ':');
 	logfile().conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime() + '.');
-	logfile().endIndent();
+
+	if (indent) logfile().endIndent();
+
 	printSummary(outputName);
 };
 

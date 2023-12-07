@@ -748,7 +748,7 @@ void TOverlapQuantifier::run(){
 	//prepare counter
 	coretools::TCountDistributionVector overlapDist;
 	//parse BAM file
-	_genome.bamFile().startProgressReporting(1000000);
+	_genome.bamFile().startProgressReporting();
 	while(_genome.bamFile().readNextAlignment()){
 		//if on new chromosome, empty storage
 		if(_genome.bamFile().chrChanged()){
