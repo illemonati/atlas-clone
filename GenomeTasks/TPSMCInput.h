@@ -31,7 +31,8 @@ private:
 	std::unique_ptr<GenotypeLikelihoods::TThetaEstimator> _thetaEstimator;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 public:
 	TPSMCInput();
 	void run();

@@ -26,7 +26,8 @@ protected:
 	uint32_t _minDepth;
 
 	void _createMask(const std::string fileTag);
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 public:
 	TCreateBedMask();
 };

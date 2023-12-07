@@ -22,7 +22,8 @@ private:
 	bool _printAll;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
-	void _handleChromosome(const genometools::TChromosome& Chr) override;
+	void _startChromosome(const genometools::TChromosome& Chr) override;
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TWriteGLF();

@@ -130,7 +130,8 @@ private:
 	genometools::TBed _bedFile;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 	void _addSite(const GenotypeLikelihoods::TSite& site, const genometools::Base PreferredBase);
 public:

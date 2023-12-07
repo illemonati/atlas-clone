@@ -22,7 +22,13 @@ private:
 
 public:
 	TGenome(const BAM::TBamFilters& Filters = {false});
+	TGenome(std::string_view Name, const BAM::TBamFilters& Filters = {false});
+
 	~TGenome();
+	TGenome(TGenome&&) = default;
+	TGenome(const TGenome&) = delete;
+	TGenome& operator=(TGenome&&) = default;
+	TGenome& operator=(const TGenome&) = delete;
 
 	const BAM::TBamFile& bamFile() const noexcept {return _bamFile;}
 	BAM::TBamFile& bamFile() noexcept {return _bamFile;}

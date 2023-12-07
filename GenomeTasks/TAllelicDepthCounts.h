@@ -45,7 +45,8 @@ private:
 	bool _writeEmpty;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TAllelicDepth();

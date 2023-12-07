@@ -33,7 +33,7 @@ TWriteGLF::TWriteGLF(){
 	}
 };
 
-void TWriteGLF::_handleChromosome(const genometools::TChromosome &Chr) {
+void TWriteGLF::_startChromosome(const genometools::TChromosome &Chr) {
 	_writer.newChromosome(Chr);
 }
 
