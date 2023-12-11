@@ -33,7 +33,7 @@ TWriteGLF::TWriteGLF(){
 	}
 };
 
-void TWriteGLF::_handleChromosome(const genometools::TChromosome &Chr) {
+void TWriteGLF::_startChromosome(const genometools::TChromosome &Chr) {
 	_writer.newChromosome(Chr);
 }
 
@@ -43,7 +43,7 @@ void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow &Window) {
 	uint32_t pos = 0;
 	for(auto& s : Window){
 		if(!s.empty() || _printAll){
-			const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 			_writer.writeSite(Window.positionOnChr(pos), s.depth(), 0, genoLik);
 		}
 		++pos;

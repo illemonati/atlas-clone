@@ -26,14 +26,15 @@ namespace GenomeTasks {
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface final : public TBamWindowTraverser {
+class TEstimateThetaLLSurface final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	size_t _steps;
 
 	void _bootstrapThetaEstimation();
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TEstimateThetaLLSurface();
@@ -43,7 +44,7 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateTheta final : public TBamWindowTraverser {
+class TEstimateTheta final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
@@ -58,7 +59,8 @@ private:
 	size_t _numBootstraps = 0;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 
@@ -71,16 +73,17 @@ public:
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-class TEstimateThetaRatio final : public TBamWindowTraverser {
+class TEstimateThetaRatio final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
 	genometools::TBed _region1;
 	genometools::TBed _region2;
 
-	void _initializeRegion(genometools::TBed &region, const int num);
-	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
+	void _initializeRegion(genometools::TBed &region, int num);
+	void _addSites(const GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, const genometools::TBed &regions);
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 public:
 	TEstimateThetaRatio();
 	void run();

@@ -56,7 +56,7 @@ void TSexEstimator::_initializeRegion(std::string_view regionsFile, int regionNu
 	logfile().startIndent((std::string) "Region " + std::to_string(regionNum+1) + ":");
 	logfile().list((std::string) "Reading region ", regionNum+1, " from file '", regionsFile, "'...");
 
-	_regions.push_back(std::make_unique<BAM::TBedReaderWindows>(std::string(regionsFile), _windowSize, _genome.bamFile().chromosomes(), _siteLimit, _adaptRegions));
+	_regions.push_back(std::make_unique<BAM::TBedReaderWindows>(std::string(regionsFile), _windows.windowSize(), _genome.bamFile().chromosomes(), _siteLimit, _adaptRegions));
 	coretools::TCountDistribution<> distPerSite;
 	_distPerSites.push_back(distPerSite);
 
@@ -74,7 +74,7 @@ void TSexEstimator::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			if (_regions[i]->containsChromosome(window.chrName())) {
 				// find chromosome of current genome window in TBedReaderWindows
 				const auto chromosome  = _regions[i]->findChromosome(window.chrName());
-				const size_t windowNum = window.from().position() / _windowSize;
+				const size_t windowNum = window.from().position() / window.size();
 				if (chromosome->windows.count(windowNum)) {
 					// find Bed window with sites to keep in current genome window
 					const auto bedWindow = chromosome->windows.find(windowNum)->second;

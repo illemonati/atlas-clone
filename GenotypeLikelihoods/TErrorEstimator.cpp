@@ -49,7 +49,7 @@ using genometools::Base;
 TErrorEstimator::TErrorEstimator()
 	: _rgMap(_genome.bamFile().readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
 	  _onlyLL(parameters().exists("onlyLL")) {
-	_parser.openReference(true);
+	_windows.requireReference();
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
 
@@ -477,29 +477,29 @@ void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 	for (const auto &data : Site) _pmd.model(data).psi()->add(data, Site.refBase);
 }
 
-void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& window) {
+void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 	if (!_regions.empty()) { // Either sites
 		for (size_t r = 0; r < _regions.size(); ++r) {
 			auto &region = _regions[r];
-			for (auto lb = region.firstOverlap(window); lb != region.end() && window.overlaps(*lb); ++lb) {
+			for (auto lb = region.firstOverlap(Window); lb != region.end() && Window.overlaps(*lb); ++lb) {
 				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
-				const size_t pStart = std::max(lb->from().position(), window.from().position()) - window.from().position();
-				const size_t pStop  = std::min(lb->to().position(), window.to().position()) - window.from().position();
+				const size_t pStart = std::max(lb->from().position(), Window.from().position()) - Window.from().position();
+				const size_t pStop  = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
 				for (auto p = pStart; p < pStop; ++p) {
-					const auto s = window[p];
-					_handleSite(window[p], r);
+					const auto s = Window[p];
+					_handleSite(Window[p], r);
 				}
 			}
 		}
 	} else { // or chromosomes
 		size_t region = 0;
 		if (!_refIDs.empty()) {
-			const auto rIt = std::find(_refIDs.begin(), _refIDs.end(), window.refID());
+			const auto rIt = std::find(_refIDs.begin(), _refIDs.end(), Window.refID());
 			if (rIt == _refIDs.end()) return;
 
 			region = std::distance(_refIDs.begin(), rIt);
 		}
-		for (const auto &s : window) {
+		for (const auto &s : Window) {
 			_handleSite(s, region);
 		}
 	}

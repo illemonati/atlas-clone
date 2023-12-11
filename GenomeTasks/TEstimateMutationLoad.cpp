@@ -124,30 +124,30 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, const genometools::Base PreferredBase) {
 	if (!site.empty()) {
 		GenotypeLikelihoods::TGenotypeLikelihoods genoLik =
-		    _parser.errorModels().calculateGenotypeLikelihoods(site);
+		    _genome.errorModels().calculateGenotypeLikelihoods(site);
 		_sites.emplace_back(genoLik, PreferredBase);
 	}
 }
 
-void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& window) {
+void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
 	try {
 		if (_parseFromBed) {
 			// get sites from bed file and alleles from reference
-			auto it = _bedFile.lower_bound(window);
-			while (it != _bedFile.end() && window.overlaps(*it)) {
-				for (genometools::TGenomePosition s = std::max(it->from(), window.from());
-				     s < it->to() && s < window.to(); ++s) {
-					const GenotypeLikelihoods::TSite &site = window[s - window.from()];
+			auto it = _bedFile.lower_bound(Window);
+			while (it != _bedFile.end() && Window.overlaps(*it)) {
+				for (genometools::TGenomePosition s = std::max(it->from(), Window.from());
+				     s < it->to() && s < Window.to(); ++s) {
+					const GenotypeLikelihoods::TSite &site = Window[s - Window.from()];
 					_addSite(site, site.refBase);
 				}
 				++it;
 			}
 		} else {
 			// get sites and alleles from site subset
-			auto thesePositions = _subsetMonomorphic->getPositionInWindow(window);
-			for (auto &it : thesePositions) { _addSite(window[it - window.from()], it.ref()); }
+			auto thesePositions = _windows.subset<false>()->getPositionInWindow(Window);
+			for (auto &it : thesePositions) { _addSite(Window[it - Window.from()], it.ref()); }
 		}
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
@@ -162,13 +162,13 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 	//  1) from an alleles file (chr, pos, allele)
 	//  2) from a BED file and the reference
 	if (parameters().exists("alleles")) {
-		_openSiteSubset("alleles", false);
+		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), false);
 		_parseFromBed = false;
 	} else if (parameters().exists("bed")) {
 		logfile().startIndent("Limiting analysis to sites listed in BED file:");
 		// open reference
 		logfile().list("Will assume that the reference allele is the preferred allele.");
-		_parser.openReference(true);
+		_windows.requireReference();
 		// parse BED
 		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
@@ -206,7 +206,7 @@ void TEstimateMutationLoad::run() {
 	if (_parseFromBed) {
 		out.writeln(_genome.bamFile().filename(), _bedFileName, prior.getPi());
 	} else {
-		out.writeln(_genome.bamFile().filename(), _subsetMonomorphic->filename(), prior.getPi());
+		out.writeln(_genome.bamFile().filename(), _windows.subset<false>()->filename(), prior.getPi());
 	}
 }
 

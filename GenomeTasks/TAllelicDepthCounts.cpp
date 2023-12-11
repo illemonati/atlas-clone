@@ -134,12 +134,12 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 // TAllelicDepth
 //------------------------------------------
 TAllelicDepth::TAllelicDepth() : TBamWindowTraverser(){
-	logfile().list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
-	if(_readUpToDepth > 100){
-		logfile().warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument readUpToDepth to limit.");
+	logfile().list("Will assemble allelic depth up to a max depth of ", _windows.uptoDepth(), ". (parameter 'readUpToDepth')");
+	if(_windows.uptoDepth() > 100){
+		logfile().warning("Allocating count table for a max depth of ", _windows.uptoDepth(), " uses a lot of memory! Use argument readUpToDepth to limit.");
 	}
 
-	_counts.resize(_readUpToDepth);
+	_counts.resize(_windows.uptoDepth());
 
 	if(parameters().exists("printAll")){
 		_writeEmpty = true;

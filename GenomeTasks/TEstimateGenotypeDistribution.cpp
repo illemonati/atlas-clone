@@ -19,8 +19,8 @@ double TEstimateGenotypeDistribution::_LL() {
 		TGenotypeLikelihoods P_g_I_di(1.);
 		size_t counter = 0;
 		for (auto &d_ij : site) {
-			const auto P_dij_I_bbar = _parser.errorModels().sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _parser.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
+			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 			const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
 			P_g_I_di *= P_dij_I_g;
 			if (++counter > 10) {
@@ -87,7 +87,7 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 		nReads += s.depth();
 	}
 
-	_out.write(window.chrName(), window.fromOnChr(), window.toOnChr(), double(nReads)/_sites.size(),
+	_out.write(window.chrName(), window.from().position(), window.to().position(), double(nReads)/_sites.size(),
 			   window.size(), _sites.size(), double(window.size() - _sites.size())/window.size());
 	const auto LL = _runEM();
 	_genoDist->write(_out);
@@ -100,7 +100,7 @@ void TEstimateGenotypeDistribution::run() {
 
 
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
-	_parser.openReference(true);
+	_windows.requireReference();
 	_numEMIterations = parameters().get<int>("iterations", 200);
 	_minDeltaLL      = parameters().get<double>("minDeltaLL", 1e-6);
 	if (parameters().exists("HKY85")) {

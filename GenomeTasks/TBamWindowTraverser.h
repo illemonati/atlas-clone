@@ -1,80 +1,148 @@
 #ifndef TBAMWINDOWTRAVERSER_H_
 #define TBAMWINDOWTRAVERSER_H_
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "coretools/TTimer.h"
-#include "genometools/BED/TBed.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-
+#include "TBamWindows.h"
 #include "TGenome.h"
-#include "TParser.h"
-#include "TSiteSubset.h"
-#include "TAlignment.h"
 #include "TWindow.h"
-#include "genometools/GenomePositions/TGenomeWindow.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Strings/splitters.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include <type_traits>
 
 namespace GenomeTasks {
 
+enum class WindowType : bool {SingleBam, MultiBam};
+
+template<WindowType Type>
 class TBamWindowTraverser {
-	std::vector<std::vector<genometools::TGenomeWindow>> _windows;
+	constexpr static bool isSingle = Type == WindowType::SingleBam;
+	using GType = std::conditional_t<isSingle, TGenome, std::vector<TGenome> >;
 
-	// window filters
-	double _maxMissing;
-	double _maxRefN;
+	void _fillWindow(TGenome &genome, GenotypeLikelihoods::TWindow &Window) {
+		BAM::TAlignment alignment;
 
-	// window limits
-	size_t _limitWindows;
-	size_t _skipWindows;
+		// first, use last read from last window, before reading next
+		do {
+			const auto curPos = genome.bamFile().curPosition();
+			const auto maxLen = genome.bamFile().curCIGAR().lengthSequenced();
 
-	bool _doMasking;
-	genometools::TBed _mask;
+			if (curPos >= Window.to()) break;                                    // too far
+			if (curPos.position() + maxLen < Window.from().position()) continue; // too short
 
-	bool _applyDepthFilter;
-	bool _filterCpG;
+			_windows.parser().fill(genome, alignment);
 
-	coretools::TNumericRange<size_t> _depthFilter;
-	std::unique_ptr<coretools::TSubsamplePicker> _subsamplePicker;
+			if (alignment.lastAlignedPositionWithRespectToRef() >= Window.from()) { Window.addAlignment(alignment); }
+		} while (genome.bamFile().readNextAlignmentThatPassesFilters());
+	}
 
-	// contructor functions
-	void _setWindowParameters();
-	void _setParsingLimits();
-	void _setWindowFilters();
-	void _setSiteFilters();
-	void _setMasks();
+	void _fillAlignments(GenotypeLikelihoods::TWindow &Window) {
+		coretools::instances::logfile().listFlushTime("Reading data ...");
 
-	void _fillAlignments(GenotypeLikelihoods::TWindow &window);
-	bool _readAndParseAlignment(BAM::TAlignment &_curAlignment);
+		if constexpr (isSingle) {
+			_fillWindow(_genome, Window);
+		} else {
+			for (auto& g: _genome) {
+				_fillWindow(g, Window);
+			}
+		}
+		_windows.fillSites(Window);
+
+		coretools::instances::logfile().doneTime();
+
+		_windows.filter(Window);
+	}
+
+	static GType _initGenome() {
+		if constexpr (isSingle) {
+			return {BAM::TBamFilters(true)};
+		} else {
+			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
+			const auto filter = BAM::TBamFilters(true);
+			std::vector<TGenome> vec;
+			vec.reserve(bams.size());
+			if (bams.size() == 1) {
+				vec.emplace_back(bams.front(), filter);
+			} else {
+				for (size_t i = 0; i < bams.size(); ++i) {
+					vec.emplace_back(bams[i], filter, i);
+				}
+			}
+			return vec;
+		}
+	}
+
+	static const TGenome& _front(const GType& Genome) {
+		if constexpr (isSingle) {
+			return Genome;
+		} else {
+			return Genome.front();
+		}
+	}
+
+	static const genometools::TChromosomes& _chromosomes(const GType& Genome) {
+		return _front(Genome).bamFile().chromosomes();
+	}
 
 protected:
-	TGenome _genome;
-	TParser _parser;
+	GType _genome = _initGenome();
+	TBamWindows _windows{_chromosomes(_genome)};
 
-	// window params
-	size_t _windowSize;
+	void _traverseBAMWindows() {
+		using coretools::instances::logfile;
 
-	// mask
-	bool _considerRegions;
+		if constexpr (isSingle) {
+			_genome.bamFile().startProgressReporting();
+			_genome.bamFile().readNextAlignmentThatPassesFilters();
+			logfile().startIndent("Traversing BAM file in windows:");
+		} else {
+			for (auto &g : _genome) {
+				g.bamFile().startProgressReporting(false);
+				g.bamFile().readNextAlignmentThatPassesFilters();
+			}
+			std::string_view file = "files";
+			if (_genome.size() < 2) file.remove_suffix(1);
+			logfile().startIndent("Traversing BAM ", file, " in windows:");
+		}
 
-	// sites
-	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetPolymorphic> _subsetPolymoprhic;
-	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetMonomorphic> _subsetMonomorphic;
+		for (const auto &chr : _chromosomes(_genome)) {
+			if (!chr.inUse()) continue;
 
-	// site filters
-	size_t _readUpToDepth;
-	size_t _downsampleDepth;
+			logfile().startNumbering("Parsing chromosome '" + chr.name() + "':");
+			_startChromosome(chr);
 
-	void _openSiteSubset(const std::string &filename, bool polymoprhic = true);
-	void _applyWindowFilters(GenotypeLikelihoods::TWindow &window);
+			GenotypeLikelihoods::TWindow window(chr.refID(), chr.name());
+			for (const auto &gWindow : _windows[chr.refID()]) {
+				window.move(gWindow);
+				logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ",
+								 _windows[chr.refID()].size(), " on '", chr.name(), "':");
 
-	void _traverseBAMWindows();
-	virtual void _handleWindow(GenotypeLikelihoods::TWindow &window) = 0;
-	virtual void _handleChromosome(const genometools::TChromosome &Chr)   = 0;
+				coretools::TTimer _windowTimer;
+				_fillAlignments(window);
+				if (window.passedFilters()) {
+					_handleWindow(window);
+					logfile().list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");
+				}
+			}
+			_endChromosome(chr);
+			logfile().endNumbering();
+		}
+		logfile().endIndent();
+
+		if constexpr (isSingle) {
+			_genome.bamFile().printEndWithSummary(_genome.outputName());
+		} else {
+			for (auto& g: _genome) {
+				g.bamFile().printEndWithSummary(g.outputName(), false);
+			}
+		}
+	}
+
+	virtual void _handleWindow(GenotypeLikelihoods::TWindow &window)   = 0;
+	virtual void _startChromosome(const genometools::TChromosome &Chr) = 0;
+	virtual void _endChromosome(const genometools::TChromosome &Chr)   = 0;
 
 public:
-	TBamWindowTraverser();
+	TBamWindowTraverser() {}
 };
 
 } // namespace GenomeTasks

@@ -81,7 +81,7 @@ struct TCovariate_quality {
 	static constexpr Covariates index      = Covariates::Quality;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept {
-		return base.originalQuality_phredInt.get();
+		return base.originalQuality.get();
 	}
 
 	static size_t N(const std::vector<size_t>& qualities) noexcept {

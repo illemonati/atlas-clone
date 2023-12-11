@@ -170,7 +170,7 @@ public:
 		for (auto &b : _bases) {
 			if (!F.pass(b)) {
 				b.base                          = genometools::Base::N;
-				b.recalibratedQualityAsPhredInt = 0;
+				b.recalQuality = 0;
 			}
 		}
 	}

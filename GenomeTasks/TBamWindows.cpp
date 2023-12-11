@@ -1,46 +1,32 @@
-/*
- * TGenome.cpp
- *
- *  Created on: Mar 15, 2015
- *      Author: wegmannd
- */
-
-#include "TBamWindowTraverser.h"
-
-#include "TWindow.h"
-#include "coretools/Files/TFile.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Math/TSubsamplePicker.h"
-#include "coretools/Strings/stringFunctions.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenomePositions/TGenomeWindow.h"
-#include <algorithm>
-#include <filesystem>
+#include "TBamWindows.h"
 
 namespace GenomeTasks {
+
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-	TBamWindowTraverser::TBamWindowTraverser() : _parser(_genome) {
-	_genome.bamFile().setFilters(BAM::TBamFilters{true});
+TBamWindows::TBamWindows(const genometools::TChromosomes& Chromosomes)  {
+	_parser.openReference(); // non-mandatory
 
 	logfile().startIndent("Parsing window settings:");
-	_setParsingLimits();
 	_setWindowFilters();
-	_setMasks();
+	_setMasks(Chromosomes);
 	_setSiteFilters();
-	_setWindowParameters();
+	_setWindowParameters(Chromosomes);
 	logfile().endIndent();
 }
 
-void TBamWindowTraverser::_setWindowParameters() {
+void TBamWindows::requireReference() const {
+	if (!_parser.reference().isOpen())  UERROR("No reference provided! (Use parameter fasta to provide a reference)");
+}
+
+void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromosomes) {
 	const auto sWindow = parameters().get<std::string>("window", "1000000");
 	size_t lTot        = 0;
 	size_t nTot        = 0;
 	size_t nUsed       = 0;
 
-	_windows.resize(_genome.bamFile().chromosomes().size());
+	_windows.resize(Chromosomes.size());
 
 	if (std::filesystem::exists(sWindow)) {
 		logfile().listFlush("Reading windows defined in BED file '", sWindow, "' (parameter window) ...");
@@ -50,7 +36,7 @@ void TBamWindowTraverser::_setWindowParameters() {
 		std::vector<std::string> vec;
 
 		while (iFile.read(vec)) {
-			size_t refId = _genome.bamFile().chromosomes().refID(vec[0]);
+			size_t refId = Chromosomes.refID(vec[0]);
 			size_t start = coretools::str::fromString<size_t, true>(vec[1]);
 			size_t end   = coretools::str::fromString<size_t, true>(vec[2]);
 			windows.emplace_back(refId, start, end-start);
@@ -58,7 +44,7 @@ void TBamWindowTraverser::_setWindowParameters() {
 		std::sort(windows.begin(), windows.end());
 
 		for (auto &window: windows) {
-			const auto& chr = _genome.bamFile().chromosomes()[window.refID()];
+			const auto& chr = Chromosomes[window.refID()];
 			if (!chr.inUse() || (_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
 				(_subsetMonomorphic && !_subsetMonomorphic->hasPositionsInWindow(window)) ||
 				(_considerRegions && !_mask.hasOverlapWith(window))) {
@@ -81,13 +67,23 @@ void TBamWindowTraverser::_setWindowParameters() {
 		coretools::str::fromString(sWindow, _windowSize);
 		logfile().list("Setting window size to ", _windowSize, ". (parameter 'window')");
 
-		for (const auto& chr: _genome.bamFile().chromosomes()) {
+		// limit windows
+		const auto skip = parameters().get<size_t>("skipWindows", 0);
+		if (skip > 0)
+			logfile().list("Will skip the first ", skip, " windows per chromosome. (parameter 'skipWindows')");
+		const auto limit = parameters().get<size_t>("limitWindows", 1000000000);
+		if (parameters().exists("limitWindows"))
+			logfile().list("Will limit analysis to the first ", limit,
+						" windows per chromosome. (parameter 'limitWindows')");
+		if (limit <= skip) UERROR("limitWindows has to be larger than skipWindows!");
+
+		for (const auto& chr: Chromosomes) {
 			if (!chr.inUse()) continue;
 
 			++nUsed;
-			const genometools::TGenomePosition from(chr.refID(), _windowSize * _skipWindows);
+			const genometools::TGenomePosition from(chr.refID(), _windowSize * skip);
 			const genometools::TGenomePosition to(chr.refID(),
-												  std::min(chr.to().position(), _limitWindows * _windowSize));
+												  std::min(chr.to().position(), limit * _windowSize));
 
 			for (genometools::TGenomeWindow window(from, _windowSize); window.from() < to; window += _windowSize) {
 				if ((_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
@@ -107,19 +103,7 @@ void TBamWindowTraverser::_setWindowParameters() {
 						   " bp on ", nUsed, " chromosomes.");
 }
 
-void TBamWindowTraverser::_setParsingLimits() {
-	// limit windows
-	_skipWindows = parameters().get<int>("skipWindows", 0);
-	if (_skipWindows > 0)
-		logfile().list("Will skip the first ", _skipWindows, " windows per chromosome. (parameter 'skipWindows')");
-	_limitWindows = parameters().get<long>("limitWindows", 1000000000);
-	if (parameters().exists("limitWindows"))
-		logfile().list("Will limit analysis to the first ", _limitWindows,
-					   " windows per chromosome. (parameter 'limitWindows')");
-	if (_limitWindows <= _skipWindows) UERROR("limitWindows has to be larger than skipWindows!");
-}
-
-void TBamWindowTraverser::_setWindowFilters() {
+void TBamWindows::_setWindowFilters() {
 	// filter for missing reference
 	_maxMissing = parameters().get<double>("maxMissing", 1.0);
 	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
@@ -132,7 +116,6 @@ void TBamWindowTraverser::_setWindowFilters() {
 
 	_maxRefN = parameters().get<double>("maxRefN", 1.0);
 	if (_maxRefN < 0.0 || _maxRefN > 1.0) UERROR("maxRefN must be within interval [0,1]!");
-	_parser.openReference();
 	if (_maxRefN < 1.0 && !_parser.reference().isOpen())
 		UERROR("Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			   "(use 'fasta' to provide a reference)");
@@ -140,10 +123,10 @@ void TBamWindowTraverser::_setWindowFilters() {
 				   ". (parameter 'maxRefN')");
 }
 
-void TBamWindowTraverser::_setSiteFilters() {
+void TBamWindows::_setSiteFilters() {
 	// depth filter
-	_readUpToDepth = parameters().get<size_t>("readUpToDepth", 1000);
-	logfile().list("Will read data up to depth ", _readUpToDepth,
+	_upToDepth = parameters().get<size_t>("readUpToDepth", 1000);
+	logfile().list("Will read data up to depth ", _upToDepth,
 				   " and ignore additional bases. (parameter 'readUpToDepth')");
 
 	// depth filter
@@ -171,14 +154,14 @@ void TBamWindowTraverser::_setSiteFilters() {
 	if (parameters().exists("filterCpG")) {
 		_filterCpG = true;
 		logfile().list("Will filter out CpG sites. (parameter 'filterCpG')");
-		_parser.openReference(true);
+		requireReference();
 	} else {
 		_filterCpG = false;
 		logfile().list("Will keep CpG sites. (use 'filterCpG' to remove)");
 	}
 }
 
-void TBamWindowTraverser::_setMasks() {
+void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 	// normal mask
 	if (parameters().exists("mask") || parameters().exists("regions")) {
 		std::string filename;
@@ -200,7 +183,7 @@ void TBamWindowTraverser::_setMasks() {
 
 		// read file
 		logfile().listFlush("Reading file ...");
-		_mask.add(filename, _genome.bamFile().chromosomes());
+		_mask.add(filename, Chromosomes);
 		logfile().done();
 		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.numChromosomesWithWindows(), " chromosomes.");
 		logfile().endIndent();
@@ -210,7 +193,7 @@ void TBamWindowTraverser::_setMasks() {
 	}
 }
 
-void TBamWindowTraverser::_openSiteSubset(const std::string &paramName, bool polymorphic) {
+void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, bool polymorphic) {
 	//report
 	if(polymorphic){
 		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
@@ -231,53 +214,14 @@ void TBamWindowTraverser::_openSiteSubset(const std::string &paramName, bool pol
 	const auto filename = parameters().get(paramName);
 
 	if(polymorphic){
-		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, _genome.bamFile().chromosomes());
+		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, Chromosomes);
 	} else {
-		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, _genome.bamFile().chromosomes());
+		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, Chromosomes);
 	}	
 	logfile().endIndent();
 }
 
-void TBamWindowTraverser::_fillAlignments(GenotypeLikelihoods::TWindow &window) {
-	// measure runtime
-	logfile().listFlushTime("Reading data ...");
-
-	// first, use last read from last window, before reading next
-	do {
-		const auto curPos = _genome.bamFile().curPosition();
-		const auto maxLen = _genome.bamFile().curCIGAR().lengthSequenced();
-		
-		if (curPos >= window.to()) break; // too far
-		if (curPos.position() + maxLen < window.fromOnChr()) continue; // too short
-
-		BAM::TAlignment _curAlignment;
-		_genome.bamFile().fill(_curAlignment);
-		_parser.apply(_curAlignment);
-
-		if (_curAlignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
-			window.addAlignment(_curAlignment);
-		}
-	} while (_genome.bamFile().readNextAlignmentThatPassesFilters());
-
-	// fill sites
-	if (_subsetPolymoprhic) {
-		window.fillSitesSubset(*_subsetPolymoprhic, _readUpToDepth);
-		window.addReferenceBaseToSites(*_subsetPolymoprhic);
-	} else if (_subsetMonomorphic) {
-		window.fillSitesSubset(*_subsetMonomorphic, _readUpToDepth);
-		window.addReferenceBaseToSites(*_subsetMonomorphic);
-	} else {
-		window.fillSites(_readUpToDepth);
-		window.addReferenceBaseToSites(_parser.reference());
-	}
-
-	logfile().doneTime();
-
-	// apply filters
-	_applyWindowFilters(window);
-}
-
-void TBamWindowTraverser::_applyWindowFilters(GenotypeLikelihoods::TWindow &window) {
+void TBamWindows::filter(GenotypeLikelihoods::TWindow &window) {
 	// apply site-specific filters
 	if (window.numReadsInWindow() > 0) {
 		// apply masks and filters
@@ -308,39 +252,20 @@ void TBamWindowTraverser::_applyWindowFilters(GenotypeLikelihoods::TWindow &wind
 	}
 }
 
-void TBamWindowTraverser::_traverseBAMWindows() {
-	using GenotypeLikelihoods::TWindow;
-
-	_genome.bamFile().startProgressReporting();
-	logfile().startIndent("Traversing BAM file in windows:");
-	_genome.bamFile().readNextAlignmentThatPassesFilters();
-	for (const auto &chr : _genome.bamFile().chromosomes()) {
-		if (!chr.inUse()) continue;
-		logfile().startNumbering("Parsing chromosome '" + chr.name() + "':");
-		_handleChromosome(chr);
-		TWindow window(chr.name());
-
-		for (const auto& gWindow: _windows[chr.refID()]) {
-			window.move(gWindow);
-			logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ",
-							 _windows[chr.refID()].size(), " on '", chr.name(), "':");
-
-			coretools::TTimer _windowTimer;
-			_fillAlignments(window);
-			if (window.passedFilters()) {
-				// do stuff in derived classes
-				_handleWindow(window);
-
-				// report end of window calculations
-				logfile().list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");
-			}
-		}
-		logfile().endIndent();
+void TBamWindows::fillSites(GenotypeLikelihoods::TWindow &Window) {
+	// fill sites
+	if (_subsetPolymoprhic) {
+		Window.fillSitesSubset(*_subsetPolymoprhic, _upToDepth);
+		Window.addReferenceBaseToSites(*_subsetPolymoprhic);
+	} else if (_subsetMonomorphic) {
+		Window.fillSitesSubset(*_subsetMonomorphic, _upToDepth);
+		Window.addReferenceBaseToSites(*_subsetMonomorphic);
+	} else {
+		Window.fillSites(_upToDepth);
+		Window.addReferenceBaseToSites(_parser.reference());
 	}
-	logfile().endIndent();
-
-	// report
-	_genome.bamFile().printEndWithSummary(_genome.outputName());
 }
 
-} // namespace GenomeTasks
+
+
+}

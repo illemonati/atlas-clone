@@ -18,7 +18,7 @@ public:
 	TQualityFilter();
 
 	bool pass(const BAM::TSequencedBase & base) const {
-		return _range.within(base.originalQuality_phredInt);
+		return _range.within(base.originalQuality);
 	};
 };
 

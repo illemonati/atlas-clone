@@ -45,7 +45,7 @@ void TEstimateThetaLLSurface::_handleWindow(GenotypeLikelihoods::TWindow& window
 
 	// adding sites to estimator
 	for (auto &s : window) {
-		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 		_thetaEstimator.add(s, genoLik);
 	}
 
@@ -75,7 +75,7 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for (auto &s : window) {
-		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 		thetaEstimator.add(s, genoLik);
 	}
 	logfile().doneTime();
@@ -86,7 +86,7 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 		_genomeWide = true;
 		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
 
-		if (_considerRegions) {
+		if (_windows.considerRegions()) {
 			logfile().list("Estimating theta at specific sites. (parameter 'regions')");
 		} else {
 			logfile().list("Estimating theta genome-wide. (use 'regions' to limit)");
@@ -200,10 +200,10 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		GenotypeLikelihoods::TWindow destination(window, _readUpToDepth, p);
+		GenotypeLikelihoods::TWindow destination(window, _windows.uptoDepth(), p);
 		logfile().done();
 
-		_applyWindowFilters(destination);
+		_windows.filter(destination);
 		_addSites(destination, estimators[i]);
 
 		if (!_genomeWide) {
@@ -257,7 +257,7 @@ void TEstimateTheta::run() {
 			// write estimates
 			//std::string filename = _genome.outputName() + "_thetaGenomeWide.txt.gz";
 			//_thetaOut.open(&_thetaEstimator, filename);
-			if (_considerRegions) {
+			if (_windows.considerRegions()) {
 				_thetaOut.write("regions", "-", "-");
 			} else {
 				_thetaOut.write("genome-wide", "-", "-");
@@ -289,15 +289,15 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
 };
 
-void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TWindow& window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &region) {
-	auto it = region.lower_bound(window);
+void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, GenotypeLikelihoods::TThetaEstimatorData &Data, const genometools::TBed &Region) {
+	auto it = Region.lower_bound(Window);
 
-	while (it != region.end() && window.overlaps(*it)) {
-		for (genometools::TGenomePosition s = std::max(it->from(), window.from()); s < it->to() && s < window.to();
+	while (it != Region.end() && Window.overlaps(*it)) {
+		for (genometools::TGenomePosition s = std::max(it->from(), Window.from()); s < it->to() && s < Window.to();
 			 ++s) {
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-			genoLik = _parser.errorModels().calculateGenotypeLikelihoods(window[s - window.from()]);
-			data.add(window[s - window.from()], genoLik);
+			genoLik = _genome.errorModels().calculateGenotypeLikelihoods(Window[s - Window.from()]);
+			Data.add(Window[s - Window.from()], genoLik);
 		}
 		++it;
 	}

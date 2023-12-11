@@ -6,7 +6,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-TParser::TParser(TGenome &genome) : _errorModels(genome.rgInfo()) {
+TParser::TParser() {
 	if (parameters().exists("trim3") || parameters().exists("trim5")) {
 		_trim3 = parameters().get<int>("trim3", 0);
 		if (_trim3 < 0) UERROR("trimming distance trim3 must be >= 0!");
@@ -36,9 +36,10 @@ void TParser::openReference(bool required) {
 	}
 }
 
-void TParser::apply(BAM::TAlignment &alignment) {
+void TParser::fill(const TGenome& genome, BAM::TAlignment& alignment) const {
 	// parse
-	alignment.parse(_errorModels.sequencingErrorModels());
+	genome.bamFile().fill(alignment);
+	alignment.parse(genome.errorModels().sequencingErrorModels());
 
 	if (_trimReads) { alignment.trimRead(_trim3, _trim5); }
 	alignment.filter(_qualityFilter); // always on

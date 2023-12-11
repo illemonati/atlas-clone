@@ -12,6 +12,12 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 
 TBamFilters::TBamFilters(bool Enable) {
+	enable(FilterType::MappedLength, coretools::TNumericRange<size_t>(0, true, 500, true),
+		   "MappedLength outside [0, 500]");
+
+	// MappedLength doesn't count as enabled
+	_enabled = false;
+
 	if (!Enable) return;
 
 	// alignment filters
@@ -211,11 +217,6 @@ TBamFilters::TBamFilters(bool Enable) {
 void TBamFilters::resize(size_t numRG, size_t numChrom, std::string_view Filename) {
 	_numRG    = numRG;
 	_numChrom = numChrom;
-	enable(FilterType::MappedLength, coretools::TNumericRange<size_t>(0, true, 500, true),
-		   "MappedLength outside [0, 500]");
-
-	// MappedLength doesn't count as enabled
-	_enabled = false;
 
 	if (parameters().exists("bamLog")) {
 		std::string logFilename = parameters().get<std::string>("bamLog");

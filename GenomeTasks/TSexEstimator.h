@@ -16,7 +16,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TSexEstimator
 //----------------------------------------
-class TSexEstimator final : public TBamWindowTraverser {
+class TSexEstimator final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::vector<coretools::TCountDistribution<>> _distPerSites;
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;
@@ -31,7 +31,8 @@ private:
 	void _writeDepthPerChromosome(size_t regionNum);
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TSexEstimator();

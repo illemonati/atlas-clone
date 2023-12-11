@@ -40,7 +40,7 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	impl::addUsed(_tables[SequencingError::Covariates::FragmentLength], base.fragmentLength);
 	impl::addUsed(_tables[SequencingError::Covariates::MappingQuality], base.mappingQuality.get());
 	impl::addUsed(_tables[SequencingError::Covariates::Position], base.distFrom5Prime);
-	impl::addUsed(_tables[SequencingError::Covariates::Quality], base.originalQuality_phredInt.get());
+	impl::addUsed(_tables[SequencingError::Covariates::Quality], base.originalQuality.get());
 }
 
 //--------------------------------------------------------------------

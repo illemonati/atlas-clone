@@ -176,7 +176,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         auto baseRead = alignmentRead.begin();
         for (auto baseWritten = alignmentWritten->begin(); baseWritten != alignmentWritten->end(); baseWritten++, baseRead++){
             // all attributes of TBase
-            EXPECT_EQ(baseWritten->originalQuality_phredInt, baseRead->originalQuality_phredInt);
+            EXPECT_EQ(baseWritten->originalQuality, baseRead->originalQuality);
             /*
             EXPECT_EQ(baseWritten->recalibratedQualityAsPhredInt, baseRead->recalibratedQualityAsPhredInt);
             EXPECT_EQ(baseWritten->distFrom3Prime, baseRead->distFrom3Prime);
@@ -204,7 +204,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 // TBamFile - windows
 //-------------------------------------------------------------
 
-class TGenomeWindow_Test : public GenomeTasks::TBamWindowTraverser {
+class TGenomeWindow_Test : public GenomeTasks::TBamWindowTraverser<GenomeTasks::WindowType::SingleBam> {
 protected:
     std::vector<genometools::TGenomeWindow> _windows_visited;
 
@@ -687,8 +687,8 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
 using coretools::TCountDistribution;
 using coretools::TCountDistributionVector;
 
-class TBamFilter : public GenomeTasks::TBamTraverser<false> {
-    // class very similar to TBamDiagnoser, but inherits from TBamTraverser<false> -> can apply all filters
+class TBamFilter : public GenomeTasks::TBamReadTraverser<GenomeTasks::ReadType::Filtered> {
+    // class very similar to TBamDiagnoser, but inherits from TBamTraverser<Traverser::Filtered> -> can apply all filters
 public:
     // distributions
     TCountDistribution<> totalReads;

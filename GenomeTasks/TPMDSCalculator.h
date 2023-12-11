@@ -22,7 +22,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
-class TPMDSCalculator final : public TBamTraverser<true> {
+class TPMDSCalculator final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	coretools::Probability _pi;
 	bool _doFilter = false;

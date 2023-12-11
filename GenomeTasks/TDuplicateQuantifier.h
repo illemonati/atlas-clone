@@ -21,7 +21,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-class TDuplicateQuantifier final : public TBamTraverser<false> {
+class TDuplicateQuantifier final : public TBamReadTraverser<ReadType::Filtered> {
 private:
 	TGenome _genome;
 	coretools::TCountDistributionVector<> _countsPerReadGroup;

@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-class TQualityDistribution final : public TBamTraverser<true> {
+class TQualityDistribution final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	coretools::TCountDistributionVector<> _qualDist;
 
@@ -32,7 +32,7 @@ public:
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-class TQualityTransformation final : public TBamTraverser<true> {
+class TQualityTransformation final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	std::vector<coretools::TCountDistributionVector<>> _transformations;
 	bool _compareToOtherSeqErrors;

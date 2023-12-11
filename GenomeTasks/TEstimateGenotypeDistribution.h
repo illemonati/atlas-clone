@@ -11,7 +11,7 @@
 #include "TBamWindowTraverser.h"
 
 namespace GenomeTasks {
-class TEstimateGenotypeDistribution final : public TBamWindowTraverser {
+class TEstimateGenotypeDistribution final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 	std::vector<GenotypeLikelihoods::TSite> _sites;
@@ -20,7 +20,8 @@ private:
 	coretools::TOutputFile _out;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 	double _runEM();
 	double _LL();

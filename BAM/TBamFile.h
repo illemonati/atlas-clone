@@ -75,7 +75,7 @@ private:
 
 	//report progress
 	mutable coretools::TTimer _timer;
-	mutable size_t _progressFrequency   = 100000;
+	mutable size_t _progressFrequency   = 1000000;
 	mutable size_t _lastProgressPrinted = 0;
 
 	void _fillSamHeader();
@@ -95,12 +95,12 @@ public:
 	TBamFile(std::string_view Filename);
 
 	//access header info READ ONLY
-	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
-	const TReadGroups& readGroups() const { return _readGroups; };
-	const TSamHeader& samHeader() const{ return _samHeader; };
+	const genometools::TChromosomes& chromosomes() const noexcept { return _chromosomes; };
+	const TReadGroups& readGroups() const noexcept { return _readGroups; };
+	const TSamHeader& samHeader() const noexcept { return _samHeader; };
 
 	//modify header info: know what you do!
-	TReadGroups& readGroupsMutable(){ return _readGroups; };
+	TReadGroups& readGroupsMutable() noexcept { return _readGroups; };
 
 	//filters
 	void setFilters(const TBamFilters& Filters);
@@ -158,9 +158,9 @@ public:
 
 	//progress reporting
 	void printSummary(std::string_view outputName) const;
-	void startProgressReporting(size_t Frequency=1000000) const;
+	void startProgressReporting(bool indent = true) const;
 	void printProgress() const;
-	void printEndWithSummary(std::string_view outputName) const;
+	void printEndWithSummary(std::string_view outputName, bool indent = true) const;
 };
 
 }; //end namespace

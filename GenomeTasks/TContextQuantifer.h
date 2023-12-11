@@ -17,7 +17,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-class TContextQuantifier:public TBamTraverser<true> {
+class TContextQuantifier:public TBamReadTraverser<ReadType::Parsed> {
 private:
 	coretools::TCountDistributionVector<> _contextCounts;
 

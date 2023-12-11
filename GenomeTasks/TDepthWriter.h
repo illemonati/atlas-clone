@@ -20,12 +20,14 @@ namespace GenomeTasks{
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-class TDepthWriter:public TBamWindowTraverser{
+class TDepthWriter final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	coretools::TOutputFile _out;
 	coretools::TCountDistribution<> _distPerSite;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _startChromosome(const genometools::TChromosome &) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 public:
 	void run();
 };

@@ -31,7 +31,7 @@ void addNames(std::vector<std::string> &vec) {
 
 bool parseField(std::set<std::string> &fields, const std::string &tag, const std::string &explanation) {
 	if (fields.find(tag) != fields.end()) {
-		logfile().list(explanation + " (" + tag + ")");
+		logfile().list(explanation, " (", tag, ")");
 		fields.erase(fields.find(tag));
 		return true;
 	}
@@ -47,8 +47,8 @@ TPileup::TPileup() {
 	_onlySummary = parameters().exists("onlySummaries");
 	if (!_onlySummary) {
 		// open output file
-		const std::string filename = _genome.outputName() + "_pileup.txt.gz";
-		logfile().list("Writing pileup to file '" + filename + "'.");
+		const std::string filename = _genome.front().outputName() + "_pileup.txt.gz";
+		logfile().list("Writing pileup to file '", filename, "'.");
 		_out.open(filename);
 
 		// parse output fields
@@ -82,10 +82,10 @@ TPileup::TPileup() {
 
 		// compile header
 		std::vector<std::string> header = {"chromosome", "position"};
-		if (_parser.reference()) { header.push_back("reference"); }
+		if (_windows.parser().reference()) { header.push_back("reference"); }
 		if (_printSettings.get<Print::Depth>()) {
 			header.push_back("depth");
-			if (_parser.reference()) { header.push_back("refDepth"); }
+			if (_windows.parser().reference()) { header.push_back("refDepth"); }
 		}
 		if (_printSettings.get<Print::Bases>()) { header.push_back("bases"); }
 		if (_printSettings.get<Print::Qualities>()) { header.push_back("qualities"); }
@@ -94,7 +94,7 @@ TPileup::TPileup() {
 			header.push_back("numC");
 			header.push_back("numG");
 			header.push_back("numT");
-			if (_parser.reference()) {
+			if (_windows.parser().reference()) {
 				header.push_back("numRef");
 				header.push_back("numNonRef");
 			}
@@ -156,20 +156,17 @@ TPileup::TPileup() {
 			}
 		}
 		if (_histSettings.get<Hist::Depths>()) {
-			_outDepthHistogram.open(_genome.outputName() + "_depthPerWindow.txt.gz", {"window", "depth"});
-			_outDepthPerChromosome.open(_genome.outputName() + "_depthPerChromosome.txt.gz", {"chromosome", "depth"});
+			_outDepthHistogram.open(_genome.front().outputName() + "_depthPerWindow.txt.gz", {"window", "depth"});
+			_outDepthPerChromosome.open(_genome.front().outputName() + "_depthPerChromosome.txt.gz", {"chromosome", "depth"});
 		}
 
 		if (_histSettings.get<Hist::AllelicDepth>()) {
-			logfile().list("Will assemble allelic depth up to a max depth of " +
-			               coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
-			if (_readUpToDepth > 100) {
-				logfile().warning("Allocating count table for a max depth of " +
-				                  coretools::str::toString(_readUpToDepth) +
-				                  " uses a lot of memory! Use argument readUpToDepth to limit.");
+			logfile().list("Will assemble allelic depth up to a max depth of ", _windows.uptoDepth(), ". (parameter 'readUpToDepth')");
+			if (_windows.uptoDepth()> 100) {
+				logfile().warning("Allocating count table for a max depth of ",_windows.uptoDepth(), " uses a lot of memory! Use argument readUpToDepth to limit.");
 			}
 
-			_counts.resize(_readUpToDepth);
+			_counts.resize(_windows.uptoDepth());
 
 			if (parameters().exists("includeZero")) {
 				_writeEmpty = true;
@@ -196,17 +193,17 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			_out.write(window.chrName(),
 			           window.positionOnChr(pos) + 1); // positions are zero-based internally
 
-			if (_parser.reference()) { _out.write(site.refBase); }
+			if (_windows.parser().reference()) { _out.write(site.refBase); }
 			if (_printSettings.get<Print::Depth>()) {
 				_out.write(site.depth());
-				if (_parser.reference()) { _out.write(site.refDepth()); }
+				if (_windows.parser().reference()) { _out.write(site.refDepth()); }
 			}
 			if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
 			if (_printSettings.get<Print::Qualities>()) { _out.write(site.getQualities()); }
 			if (_printSettings.get<Print::Alleles>()) {
 				const auto alleleCounts = site.countAlleles();
 				_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
-				if (_parser.reference()) {
+				if (_windows.parser().reference()) {
 					_out.write(alleleCounts[site.refBase], alleleCounts.size() - alleleCounts[site.refBase]);
 				}
 				_out.write((int)coretools::numNonZero(alleleCounts));
@@ -220,7 +217,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 				_out.write(strandCounts);
 			}
 			if (_printSettings.get<Print::Likelihoods>()) {
-				const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(site);
+				const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
 				_out.write(genoLik);
 			}
 			_out.endln();
@@ -234,14 +231,14 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		if (_histSettings.get<Hist::Quality>()) {
 			for (auto &b : site) {
 				if (b.base != genometools::Base::N) {
-					_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
+					_qualDist.add(b.readGroupID, b.recalQuality.get());
 				}
 			}
 		}
 
 		if (_histSettings.get<Hist::Contexts>()) {
 			for (auto &b : site) {
-				_contextDist.add(b.recalibratedQualityAsPhredInt.get(), coretools::index(b.context()));
+				_contextDist.add(b.recalQuality.get(), coretools::index(b.context()));
 			}
 		}
 
@@ -260,10 +257,13 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		    .writeDelim();
 		_outDepthHistogram.writeln(window.depth());
 		logfile().done();
-		if (_genome.bamFile().chrChanged()) {
-			_outDepthPerChromosome.writeln(window.chrName(), _depthPerSitePerChromosome.mean());
-			_depthPerSitePerChromosome.clear();
-		}
+	}
+}
+
+void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
+	if (_histSettings.get<Hist::Depths>()) {
+		_outDepthPerChromosome.writeln(Chr.name(), _depthPerSitePerChromosome.mean());
+		_depthPerSitePerChromosome.clear();
 	}
 }
 
@@ -272,22 +272,21 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Depths>()) {
 		// write distribution
-		logfile().list("Writing depth per site distribution to file '", _genome.outputName(), "_depthPerSiteHistogram.txt.gz'");
-		logfile().list("Writing average depth per window to file '", _genome.outputName(), "_depthPerWindow.txt.gz'");
-		logfile().list("Writing average depth per chromosome to file '", _genome.outputName(), "_depthPerChromosome.txt.gz'");
-		_depthPerSite.write(_genome.outputName() + "_depthPerSiteHistogram.txt.gz", "depth");
-		_outDepthPerChromosome.writeln(_genome.bamFile().curChromosome().name(), _depthPerSitePerChromosome.mean());
+		logfile().list("Writing depth per site distribution to file '", _genome.front().outputName(), "_depthPerSiteHistogram.txt.gz'");
+		logfile().list("Writing average depth per window to file '", _genome.front().outputName(), "_depthPerWindow.txt.gz'");
+		logfile().list("Writing average depth per chromosome to file '", _genome.front().outputName(), "_depthPerChromosome.txt.gz'");
+		_depthPerSite.write(_genome.front().outputName() + "_depthPerSiteHistogram.txt.gz", "depth");
 	}
 
 	if (_histSettings.get<Hist::Quality>()) {
 		// print distribution
-		std::string outputFileName = _genome.outputName() + "_qualHistogram.txt.gz";
-		logfile().list("Writing quality distribution to '" + outputFileName + "'.");
+		std::string outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
+		logfile().list("Writing quality distribution to '", outputFileName, "'.");
 		coretools::TOutputFile out(outputFileName, {"readGroup", "quality", "counts"});
 
 		// get read group names
 		std::vector<std::string> readGroupNames;
-		_genome.bamFile().readGroups().fillVectorWithNames(readGroupNames);
+		_genome.front().bamFile().readGroups().fillVectorWithNames(readGroupNames);
 		// write combined
 		_qualDist.resize(readGroupNames.size()); // make sure it has the right size
 		_qualDist.writeCombined(out, "allReadGroups");
@@ -296,8 +295,8 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Contexts>()) {
 		// write counts
-		std::string outputFileName = _genome.outputName() + "_contextInformation.txt.gz";
-		logfile().list("Writing context information to file '" + outputFileName + "'.");
+		std::string outputFileName = _genome.front().outputName() + "_contextInformation.txt.gz";
+		logfile().list("Writing context information to file '", outputFileName, "'.");
 
 		std::vector<std::string> contextLabels;
 
@@ -311,8 +310,8 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::AllelicDepth>()) {
 		// write to file
-		std::string outputFileName = _genome.outputName() + "_allelicDepth.txt.gz";
-		logfile().list("Writing allelic depth table to '" + outputFileName + "' ...");
+		std::string outputFileName = _genome.front().outputName() + "_allelicDepth.txt.gz";
+		logfile().list("Writing allelic depth table to '", outputFileName, "' ...");
 		_counts.write(outputFileName, _writeEmpty);
 		logfile().done();
 	}

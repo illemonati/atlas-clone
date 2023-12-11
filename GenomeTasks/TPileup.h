@@ -19,7 +19,7 @@ namespace GenomeTasks {
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup final : public TBamWindowTraverser {
+class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 private:
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -40,8 +40,9 @@ private:
 	bool _writeEmpty;
 	bool _onlySummary;
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
+	void _startChromosome(const genometools::TChromosome& ) override {}
+	void _endChromosome(const genometools::TChromosome& Chr) override;
 public:
 	TPileup();
 	void run();

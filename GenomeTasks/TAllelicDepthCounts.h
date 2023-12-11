@@ -39,13 +39,14 @@ public:
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-class TAllelicDepth final : public TBamWindowTraverser{
+class TAllelicDepth final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleChromosome(const genometools::TChromosome&) override {}
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TAllelicDepth();

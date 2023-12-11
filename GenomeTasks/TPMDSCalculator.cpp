@@ -49,7 +49,7 @@ double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
 	double PMDS = 0.0;
 	for (size_t d = 0; d < alignment.size(); ++d) {
 		if (alignment.isAlignedAtInternalPos(d)) {
-			PMDS += _parser.errorModels().calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d),
+			PMDS += _genome.errorModels().calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d),
 																   _pi);
 		}
 	}
