@@ -1,0 +1,12 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+#. $(dirname $0)/simulate --chrLength 10000000 --seqType paired --numReadGroups 2
+
+$atlas --task filterBAM --bam ATLAS_simulations.bam \
+	   --fixedSeed 0 --out filterBAM --logFile filterBAM.out
+
+$atlas --task BAMDiagnostics  --bam ATLAS_simulations.bam --splitMergeInput --out bd --logFile bd.out 
+
+$atlas --task splitMerge --bam ATLAS_simulations.bam --readGroupSettings bd_splitMergeInput.txt \
+	   --fixedSeed 0 --out filterBAM --logFile filterBAM.out

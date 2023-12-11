@@ -82,7 +82,7 @@ const std::string& TAlignmentMergerEntry::name() const {
 	return _alignment->name();
 };
 
-void TAlignmentMergerEntry::setAsNonProperPair() const{
+void TAlignmentMergerEntry::setAsNonProperPair() {
 	_alignment->setIsProperPair(false);
 	_ready = true;
 };
@@ -92,21 +92,10 @@ bool TAlignmentMergerEntry::operator<(const TAlignmentMergerEntry & other) const
 }
 
 //-----------------------------------------
-// TAlignmentStorage
-//-----------------------------------------
-void addToContainer(TAlignmentStorage & Storage, BAM::TAlignment* Alignment, bool readyForWriting){
-	Storage.emplace_back(Alignment, readyForWriting);
-}
-
-void addToContainer(TAlignmentStorageSorted & Storage, BAM::TAlignment* Alignment, bool readyForWriting){
-	Storage.emplace(Alignment, readyForWriting);
-}
-
-//-----------------------------------------
 // TBamFilter
 //-----------------------------------------
 
-void TBamFilter::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate){
+void TBamFilter::_handleMates(BAM::TAlignment & alignment, iterator mate){
 	if(!alignment.isProperPair()){
 		//not a proper pair: mark mate as as improper
 		mate->setAsNonProperPair();

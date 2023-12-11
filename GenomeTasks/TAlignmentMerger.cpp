@@ -7,6 +7,7 @@
 
 #include "TAlignmentMerger.h"
 
+#include <algorithm>
 #include <math.h>
 #include <memory>
 #include <stdlib.h>
@@ -666,7 +667,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	}
 };
 
-void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageSortedIterator mate){
+void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, iterator mate){
 	ReadGroupType type = _rgSettings.getType(alignment.readGroupId());
 
 	if(type == ReadGroupType::single){
@@ -681,21 +682,18 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignment
 		if(!alignment.isParsed()){
 			alignment.parse();
 		}
-
-		//since mate position couldbe affected by merge: extract from storage and put back in
-		BAM::TAlignment* mateAlignment = mate->stealAlignment();
-		_alignmentStorage.erase(mate);		
 		
-		if(!mateAlignment->isParsed()){
-			mateAlignment->parse();
+		if(!mate->alignment().isParsed()){
+			mate->alignment().parse();
 		}
 
-		_merger->merge(alignment, *mateAlignment);		
-		addToContainer(_alignmentStorage, mateAlignment, true);
+		_merger->merge(alignment, mate->alignment());
+		mate->makeReady();
 		}
 
 	//add alignment to container
-	addToContainer(_alignmentStorage, &alignment, true);
+	_alignmentStorage.emplace_back(&alignment, true);
+	std::stable_sort(_alignmentStorage.begin(), _alignmentStorage.end());
 };
 
 void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
@@ -703,7 +701,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 
 	if(settings.type == ReadGroupType::unchanged){
 		//add as ready for writing
-		addToContainer(_alignmentStorage, &alignment, true);
+		_alignmentStorage.emplace_back(&alignment, true);
 	} else if(settings.type == ReadGroupType::single || settings.type == ReadGroupType::mixed){
 		//truncate
 		if(!_allowForLarger && alignment.length() > settings.maxCycles){
@@ -714,13 +712,13 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 		}
 
 		//add as ready for writing
-		addToContainer(_alignmentStorage, &alignment, true);
+		_alignmentStorage.emplace_back(&alignment, true);
 
 	} else if(settings.type == ReadGroupType::paired){
 		//is orphan
 		if(_keepOrphans){
 			//add as ready for writing
-			addToContainer(_alignmentStorage, &alignment, true);
+			_alignmentStorage.emplace_back(&alignment, true);
 		} else {
 			//filter out (ignore) but write reason to bam log
 			_genome.bamFile().filterOut(alignment);

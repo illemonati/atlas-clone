@@ -111,14 +111,14 @@ public:
 // TAlignmentSplitMerger
 //-----------------------------------------
 class TAlignmentSplitMerger final
-	: public BamFilter::TGenomeParsedWithAlignmentStorage<BamFilter::TAlignmentStorageSorted, BamFilter::TAlignmentStorageSortedIterator> {
+	: public BamFilter::TGenomeParsedWithAlignmentStorage {
 private:
 	std::unique_ptr<TAlignmentMerger> _merger;
 	TAlignmentMergerReadGroupSettings _rgSettings;
 	bool _allowForLarger;
 
 	void _initializeMerger();
-	void _handleMates(BAM::TAlignment & alignment, BamFilter::TAlignmentStorageSortedIterator mate) override;
+	void _handleMates(BAM::TAlignment & alignment, iterator mate) override;
 	void _handleSingle(BAM::TAlignment & alignment) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
@@ -136,7 +136,7 @@ class TOverlapQuantifier{
 private:
 	TGenome _genome;
 	TAlignmentMerger _merger;
-	BamFilter::TAlignmentStorage _alignmentStorage;
+	std::vector<BamFilter::TAlignmentMergerEntry> _alignmentStorage;
 
 public:
 	TOverlapQuantifier();

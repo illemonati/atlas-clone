@@ -15,10 +15,13 @@
 #include "coretools/Strings/toString.h"
 
 #include "TBamFile.h"
-#include "TBamTraverser.h"
+#include "TGenome.h"
 #include "TOutputBamFile.h"
+#include "TParser.h"
 
-namespace BAM { class TAlignment; }
+namespace BAM {
+class TAlignment;
+}
 namespace genometools { class TGenomePosition; }
 
 namespace GenomeTasks::BamFilter {
@@ -28,8 +31,8 @@ namespace GenomeTasks::BamFilter {
 //-----------------------------------------
 class TAlignmentMergerEntry{
 private:
-	mutable BAM::TAlignment* _alignment;
-	mutable bool _ready;
+	BAM::TAlignment* _alignment;
+	bool _ready;
 
 public:
 
@@ -41,27 +44,14 @@ public:
 	//getters
 	bool ready() const { return _ready; }
 	const BAM::TAlignment& alignment() const { return *_alignment; }
-	BAM::TAlignment* stealAlignment() const { BAM::TAlignment* tmp = _alignment; _alignment = nullptr; return tmp; }
+	BAM::TAlignment& alignment() { return *_alignment; }
 	const std::string& name() const;
 
 	//setters
-	void makeReady() const { _ready = true; }
-	void setAsNonProperPair() const;
+	void makeReady() { _ready = true; }
+	void setAsNonProperPair() ;
 	bool operator<(const TAlignmentMergerEntry & other) const;
 };
-
-//-----------------------------------------
-// TAlignmentStorage
-//-----------------------------------------
-typedef std::vector< TAlignmentMergerEntry > TAlignmentStorage;
-typedef std::vector< TAlignmentMergerEntry >::iterator TAlignmentStorageIterator;
-
-void addToContainer(TAlignmentStorage & Storage, BAM::TAlignment* Alignment, bool readyForWriting);
-
-typedef std::multiset< TAlignmentMergerEntry, std::less<TAlignmentMergerEntry> > TAlignmentStorageSorted;
-typedef std::multiset< TAlignmentMergerEntry, std::less<TAlignmentMergerEntry> >::iterator TAlignmentStorageSortedIterator;
-
-void addToContainer(TAlignmentStorageSorted & Storage, BAM::TAlignment* Alignment, bool readyForWriting);
 
 template<typename StorageType>
 auto findInStorage(StorageType & Storage, const std::string & name){
@@ -76,11 +66,17 @@ auto findInStorage(StorageType & Storage, const std::string & name){
 //-----------------------------------------
 // TGenomeParsedWithAlignmentStorage
 //-----------------------------------------
-template<typename StorageType, typename StorageIteratorType>
-class TGenomeParsedWithAlignmentStorage : public TBamReadTraverser<ReadType::Parsed> {
+class TGenomeParsedWithAlignmentStorage {
+public:
+	using container = std::vector<TAlignmentMergerEntry>;
+	using iterator  = typename container::iterator;
+
 protected:
+	TGenome _genome;
+	TParser _parser;
+
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
-	StorageType _alignmentStorage;
+	container _alignmentStorage;
 
 	BAM::TOutputBamFile _outBam;
 
@@ -91,35 +87,28 @@ protected:
 	bool _removeSoftClippedBases;
 	size_t _maxNumberOfSoftClippedBases;
 
-	void _writeAlignment(StorageIteratorType & it){
-		//save the alignment to the bam file
-		_outBam.writeAlignment(it->alignment());
-		//delete it->alignment;
-		it = _alignmentStorage.erase(it);
-	}
-
-	void _writeOrFilterAsOrphan(StorageIteratorType & it){
-		if(it->ready()){
-			_writeAlignment(it);
-		} else if(_keepOrphans){
-			//set as improper pair
-			it->setAsNonProperPair();
-			//write to BAM file
-			_writeAlignment(it);
+	void _writeOrFilter(TAlignmentMergerEntry& Entry) {
+		if (Entry.ready()) {
+			_outBam.writeAlignment(Entry.alignment());
+		} else if (_keepOrphans) {
+			// set as improper pair
+			Entry.setAsNonProperPair();
+			// write to BAM file
+			_outBam.writeAlignment(Entry.alignment());
 		} else {
-			//write reason to bam log
-			_genome.bamFile().filterOut(it->alignment());
-			it = _alignmentStorage.erase(it);
+			// write reason to bam log
+			_genome.bamFile().filterOut(Entry.alignment());
 		}
 	}
 
 	void _writeAll(){
 		//write everything and mark reads with missing mates as improper.
 		//reads still in storage are no-proper pairs: write or add to black list
-		auto it = _alignmentStorage.begin();
-		while(it != _alignmentStorage.end()){
-			_writeOrFilterAsOrphan(it);
+		for (auto& s: _alignmentStorage) {
+			_writeOrFilter(s);
 		}
+		_alignmentStorage.clear();
+
 		//clear blacklist: future reads will anyways be orphans
 		_blacklist.clear();
 	}
@@ -127,12 +116,15 @@ protected:
 	void _writeUpTo(const genometools::TGenomePosition & position){
 		//writes all that are ready or too far away
 		auto it = _alignmentStorage.begin();
+
 		while(it != _alignmentStorage.end() &&
 			  it->alignment() < position &&
 			  (it->ready() || (position - it->alignment()) > _maxDistanceBetweenMates)
 	    ){
-			_writeOrFilterAsOrphan(it);
+			_writeOrFilter(*it);
+			++it;
 		}
+		_alignmentStorage.erase(_alignmentStorage.begin(), it);
 	}
 
 	BAM::TAlignment* _parseIntoNewAlignment(){
@@ -148,17 +140,14 @@ protected:
 		return alignment;
 	}
 
-	//overriding _handleAligment from TGenome to do nothing
-	void _handleAlignment(BAM::TAlignment&) override {}
-
 	//pure virtual functions
-	virtual void _handleMates(BAM::TAlignment & alignment, StorageIteratorType mate) = 0;
+	virtual void _handleMates(BAM::TAlignment & alignment, iterator mate) = 0;
 	virtual void _handleSingle(BAM::TAlignment & alignment) = 0;
 	virtual bool _alignmentCanBeWrittenUnchanged() = 0;
 
 
 public:
-	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()){
+	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _genome(BAM::TBamFilters{true}), _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()){
 		using coretools::instances::parameters;
 		using coretools::instances::logfile;
 		//max distance between mates
@@ -211,7 +200,7 @@ public:
 
 	}
 
-	virtual void traverseBAM(){
+	void traverseBAM(){
 		//open writer
 		_genome.bamFile().setExternalFilterReason("Orphan");
 
@@ -249,20 +238,20 @@ public:
 						if(_blacklist.isInBlacklist(alignment->name())){
 							//TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
 							//alignment->setIsProperPair(false);
-							addToContainer(_alignmentStorage, alignment, false);
+							_alignmentStorage.emplace_back(alignment, false);
 							_blacklist.remove(alignment->name());
 						} else {
 							//check if mate is in storage.
-							StorageIteratorType mate = findInStorage(_alignmentStorage, alignment->name());
+							auto mate = findInStorage(_alignmentStorage, alignment->name());
 							if(mate == _alignmentStorage.end()){
 								//no mate found
 								if(alignment->isProperPair()){
-									//proper pair: add to storage and wait for mate
-									addToContainer(_alignmentStorage, alignment, false);
+									// proper pair: add to storage and wait for mate
+									_alignmentStorage.emplace_back(alignment, false);
 								} else {
 									//improper pair: add to blacklist and ready to write
 									_blacklist.add(alignment->name());
-									addToContainer(_alignmentStorage, alignment, true);
+									_alignmentStorage.emplace_back(alignment, false);
 								}
 							} else {
 								if(alignment->readGroupId() != mate->alignment().readGroupId()){
@@ -300,9 +289,9 @@ public:
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-class TBamFilter final:public TGenomeParsedWithAlignmentStorage<TAlignmentStorage, TAlignmentStorageIterator>{
+class TBamFilter final:public TGenomeParsedWithAlignmentStorage {
 protected:
-	void _handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate) override;
+	void _handleMates(BAM::TAlignment & alignment, iterator mate) override;
 	void _handleSingle(BAM::TAlignment & alignment) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
