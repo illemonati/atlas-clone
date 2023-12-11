@@ -122,7 +122,7 @@ private:
 	void _clear();
 
 public:
-	TWindow(std::string_view ChrName) : _chrName(ChrName) {};
+	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {};
 	TWindow(const TWindow &other, const int readUpToDepth, const coretools::Probability &downsamplingProb) {
 		downsampleFromOther(other, readUpToDepth, downsamplingProb);
 	}

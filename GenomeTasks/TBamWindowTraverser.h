@@ -110,7 +110,7 @@ protected:
 			logfile().startNumbering("Parsing chromosome '" + chr.name() + "':");
 			_startChromosome(chr);
 
-			GenotypeLikelihoods::TWindow window(chr.name());
+			GenotypeLikelihoods::TWindow window(chr.refID(), chr.name());
 			for (const auto &gWindow : _windows[chr.refID()]) {
 				window.move(gWindow);
 				logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ",

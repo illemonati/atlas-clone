@@ -261,8 +261,10 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 }
 
 void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
-	_outDepthPerChromosome.writeln(Chr.name(), _depthPerSitePerChromosome.mean());
-	_depthPerSitePerChromosome.clear();
+	if (_histSettings.get<Hist::Depths>()) {
+		_outDepthPerChromosome.writeln(Chr.name(), _depthPerSitePerChromosome.mean());
+		_depthPerSitePerChromosome.clear();
+	}
 }
 
 void TPileup::run() {
