@@ -179,7 +179,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 								UERROR("Mates '", alignment.name(), "' are in different read groups!");
 							}
 							// mate found
-							_handleMates(mate);
+							_handleMates(*mate);
 						}
 					}
 				} else {

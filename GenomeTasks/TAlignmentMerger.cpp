@@ -667,35 +667,32 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	}
 };
 
-void TAlignmentSplitMerger::_handleMates(iterator mate){
+void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &Mate) {
 	auto &alignment = _waitingList.back().alignment;
 	const auto type = _rgSettings.getType(alignment.readGroupId());
 
-	if(type == ReadGroupType::single){
-		UERROR("Paired reads found in single-end read group '", _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
-	} else if(!alignment.isProperPair()){
-		//not a proper pair: mark mate as as improper too
-		mate->alignment.setIsProperPair(false);
-		mate->status = AlignmentStatus::ready;
-	} else if(type == ReadGroupType::paired || type == ReadGroupType::mixed){
-		//attempt merging: make sure alignments are parsed
-		//Note: if we recalibrate, they were already parsed
-		if(!alignment.isParsed()){
-			alignment.parse();
-		}
-		
-		if(!mate->alignment.isParsed()){
-			mate->alignment.parse();
-		}
+	if (type == ReadGroupType::single) {
+		UERROR("Paired reads found in single-end read group '",
+			   _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
+	} else if (!alignment.isProperPair()) {
+		// not a proper pair: mark mate as as improper too
+		Mate.alignment.setIsProperPair(false);
+		Mate.status = AlignmentStatus::ready;
+	} else if (type == ReadGroupType::paired || type == ReadGroupType::mixed) {
+		// attempt merging: make sure alignments are parsed
+		// Note: if we recalibrate, they were already parsed
+		if (!alignment.isParsed()) { alignment.parse(); }
 
-		_merger->merge(alignment, mate->alignment);
-		mate->status = AlignmentStatus::ready;
-		}
+		if (!Mate.alignment.isParsed()) { Mate.alignment.parse(); }
 
-	//add alignment to container
+		_merger->merge(alignment, Mate.alignment);
+		Mate.status = AlignmentStatus::ready;
+	}
+
+	// add alignment to container
 	_waitingList.back().status = AlignmentStatus::ready;
 	std::stable_sort(_waitingList.begin(), _waitingList.end());
-};
+}
 
 void TAlignmentSplitMerger::_handleSingle(){
 	auto &alignment      = _waitingList.back().alignment;
@@ -718,13 +715,7 @@ void TAlignmentSplitMerger::_handleSingle(){
 
 	} else if(settings.type == ReadGroupType::paired){
 		//is orphan
-		if(_keepOrphans){
-			//add as ready for writing
-			_waitingList.back().status = AlignmentStatus::ready;
-		} else {
-			//filter out (ignore) but write reason to bam log
-			_genome.bamFile().filterOut(alignment);
-		}
+		_waitingList.back().status = AlignmentStatus::orphan;
 	}
 };
 

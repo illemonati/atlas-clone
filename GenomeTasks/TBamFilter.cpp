@@ -4,13 +4,13 @@
 namespace GenomeTasks {
 using namespace coretools::str;
 
-void TBamFilter::_handleMates(iterator mate) {
+void TBamFilter::_handleMates(TWaitingAlignment &Mate) {
 	if (!_waitingList.back().alignment.isProperPair()) {
 		// not a proper pair: mark mate as as improper
-		mate->alignment.setIsProperPair(false);
+		Mate.alignment.setIsProperPair(false);
 	}
 	// mark both as ready for writing
-	mate->status               = AlignmentStatus::ready;
+	Mate.status                = AlignmentStatus::ready;
 	_waitingList.back().status = AlignmentStatus::ready;
 };
 

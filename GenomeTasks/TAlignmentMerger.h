@@ -119,7 +119,7 @@ private:
 	bool _allowForLarger;
 
 	void _initializeMerger();
-	void _handleMates(iterator mate) override;
+	void _handleMates(TWaitingAlignment &Mate) override;
 	void _handleSingle() override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 

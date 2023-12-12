@@ -47,9 +47,9 @@ protected:
 	BAM::TAlignment _parseIntoNewAlignment();
 
 	//pure virtual functions
-	virtual void _handleMates(iterator mate)       = 0;
-	virtual void _handleSingle()                   = 0;
-	virtual bool _alignmentCanBeWrittenUnchanged() = 0;
+	virtual void _handleMates(TWaitingAlignment &Mate) = 0;
+	virtual void _handleSingle()                       = 0;
+	virtual bool _alignmentCanBeWrittenUnchanged()     = 0;
 
 public:
 	TWaitingListBamTraverser(std::string_view OutName);
