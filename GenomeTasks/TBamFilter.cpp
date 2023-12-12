@@ -4,19 +4,19 @@
 namespace GenomeTasks {
 using namespace coretools::str;
 
-void TBamFilter::_handleMates(BAM::TAlignment &alignment, iterator mate) {
-	if (!alignment.isProperPair()) {
+void TBamFilter::_handleMates(iterator mate) {
+	if (!_waitingList.back().alignment.isProperPair()) {
 		// not a proper pair: mark mate as as improper
 		mate->alignment.setIsProperPair(false);
 	}
 	// mark both as ready for writing
-	mate->status = AlignmentStatus::ready;
-	_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+	mate->status               = AlignmentStatus::ready;
+	_waitingList.back().status = AlignmentStatus::ready;
 };
 
-void TBamFilter::_handleSingle(BAM::TAlignment &alignment) {
+void TBamFilter::_handleSingle() {
 	// read is single end: add for writing
-	_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+	_waitingList.back().status = AlignmentStatus::ready;
 };
 
 bool TBamFilter::_alignmentCanBeWrittenUnchanged() {

@@ -119,8 +119,8 @@ private:
 	bool _allowForLarger;
 
 	void _initializeMerger();
-	void _handleMates(BAM::TAlignment & alignment, iterator mate) override;
-	void _handleSingle(BAM::TAlignment & alignment) override;
+	void _handleMates(iterator mate) override;
+	void _handleSingle() override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:

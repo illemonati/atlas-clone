@@ -40,15 +40,16 @@ protected:
 	bool _removeSoftClippedBases;
 	size_t _maxNumberOfSoftClippedBases;
 
-	void _writeOrFilter(TWaitingAlignment& Entry); 
+	void _writeOrFilter(TWaitingAlignment& WAlignment);
+	void _writeOrphan(TWaitingAlignment& WAlignment);
 	void _writeAll();
 	void _writeUpTo(const genometools::TGenomePosition & position);
 	BAM::TAlignment _parseIntoNewAlignment();
 
 	//pure virtual functions
-	virtual void _handleMates(BAM::TAlignment &alignment, iterator mate) = 0;
-	virtual void _handleSingle(BAM::TAlignment &alignment)               = 0;
-	virtual bool _alignmentCanBeWrittenUnchanged()                       = 0;
+	virtual void _handleMates(iterator mate)       = 0;
+	virtual void _handleSingle()                   = 0;
+	virtual bool _alignmentCanBeWrittenUnchanged() = 0;
 
 public:
 	TWaitingListBamTraverser(std::string_view OutName);

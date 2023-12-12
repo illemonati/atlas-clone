@@ -667,8 +667,9 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	}
 };
 
-void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, iterator mate){
-	ReadGroupType type = _rgSettings.getType(alignment.readGroupId());
+void TAlignmentSplitMerger::_handleMates(iterator mate){
+	auto &alignment = _waitingList.back().alignment;
+	const auto type = _rgSettings.getType(alignment.readGroupId());
 
 	if(type == ReadGroupType::single){
 		UERROR("Paired reads found in single-end read group '", _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
@@ -692,16 +693,17 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, iterator m
 		}
 
 	//add alignment to container
-	_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+	_waitingList.back().status = AlignmentStatus::ready;
 	std::stable_sort(_waitingList.begin(), _waitingList.end());
 };
 
-void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
-	const TAlignmentMergerReadGroupSetting& settings = _rgSettings.getSettings(alignment.readGroupId());
+void TAlignmentSplitMerger::_handleSingle(){
+	auto &alignment      = _waitingList.back().alignment;
+	const auto &settings = _rgSettings.getSettings(alignment.readGroupId());
 
 	if(settings.type == ReadGroupType::unchanged){
 		//add as ready for writing
-		_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+		_waitingList.back().status = AlignmentStatus::ready;
 	} else if(settings.type == ReadGroupType::single || settings.type == ReadGroupType::mixed){
 		//truncate
 		if(!_allowForLarger && alignment.length() > settings.maxCycles){
@@ -712,13 +714,13 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 		}
 
 		//add as ready for writing
-		_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+		_waitingList.back().status = AlignmentStatus::ready;
 
 	} else if(settings.type == ReadGroupType::paired){
 		//is orphan
 		if(_keepOrphans){
 			//add as ready for writing
-			_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+			_waitingList.back().status = AlignmentStatus::ready;
 		} else {
 			//filter out (ignore) but write reason to bam log
 			_genome.bamFile().filterOut(alignment);
