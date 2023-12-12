@@ -8,70 +8,25 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-TAlignmentMergerEntry::TAlignmentMergerEntry(BAM::TAlignment *Alignment, bool readyForWriting) {
-	_alignment = Alignment;
-	_ready     = readyForWriting;
-};
-
-TAlignmentMergerEntry::TAlignmentMergerEntry(TAlignmentMergerEntry &&other) {
-	// copy from other
-	_alignment = other._alignment;
-	_ready     = other._ready;
-
-	// set other to default
-	other._alignment = nullptr;
-	other._ready     = false;
-};
-
-TAlignmentMergerEntry::~TAlignmentMergerEntry() { delete _alignment; };
-
-TAlignmentMergerEntry &TAlignmentMergerEntry::operator=(TAlignmentMergerEntry &&other) {
-	if (this != &other) {
-		// free object
-		delete _alignment;
-
-		// copy from other
-		_alignment = other._alignment;
-		_ready     = other._ready;
-
-		// set other to default
-		other._alignment = nullptr;
-		other._ready     = false;
-	}
-
-	return *this;
-};
-
-const std::string &TAlignmentMergerEntry::name() const { return _alignment->name(); };
-
-void TAlignmentMergerEntry::setAsNonProperPair() {
-	_alignment->setIsProperPair(false);
-	_ready = true;
-};
-
-bool TAlignmentMergerEntry::operator<(const TAlignmentMergerEntry &other) const {
-	return _alignment->position() < other._alignment->position();
-}
-
-void TWaitingListBamTraverser::_writeOrFilter(TAlignmentMergerEntry &Entry) {
-	if (Entry.ready()) {
-		_outBam.writeAlignment(Entry.alignment());
+void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
+	if (WAlignment.status == AlignmentStatus::ready) {
+		_outBam.writeAlignment(WAlignment.alignment);
 	} else if (_keepOrphans) {
 		// set as improper pair
-		Entry.setAsNonProperPair();
+		WAlignment.alignment.setIsProperPair(false);
 		// write to BAM file
-		_outBam.writeAlignment(Entry.alignment());
+		_outBam.writeAlignment(WAlignment.alignment);
 	} else {
 		// write reason to bam log
-		_genome.bamFile().filterOut(Entry.alignment());
+		_genome.bamFile().filterOut(WAlignment.alignment);
 	}
 }
 
 void TWaitingListBamTraverser::_writeAll() {
 	// write everything and mark reads with missing mates as improper.
 	// reads still in storage are no-proper pairs: write or add to black list
-	for (auto &s : _alignmentStorage) { _writeOrFilter(s); }
-	_alignmentStorage.clear();
+	for (auto &s : _waitingList) { _writeOrFilter(s); }
+	_waitingList.clear();
 
 	// clear blacklist: future reads will anyways be orphans
 	_blacklist.clear();
@@ -79,24 +34,24 @@ void TWaitingListBamTraverser::_writeAll() {
 
 void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &position) {
 	// writes all that are ready or too far away
-	auto it = _alignmentStorage.begin();
+	auto it = _waitingList.begin();
 
-	while (it != _alignmentStorage.end() && it->alignment() < position &&
-		   (it->ready() || (position - it->alignment()) > _maxDistanceBetweenMates)) {
+	while (it != _waitingList.end() && it->alignment < position &&
+		   (it->status == AlignmentStatus::ready || (position - it->alignment) > _maxDistanceBetweenMates)) {
 		_writeOrFilter(*it);
 		++it;
 	}
-	_alignmentStorage.erase(_alignmentStorage.begin(), it);
+	_waitingList.erase(_waitingList.begin(), it);
 }
 
-BAM::TAlignment *TWaitingListBamTraverser::_parseIntoNewAlignment() {
-	BAM::TAlignment *alignment = new BAM::TAlignment;
-	_genome.bamFile().fill(*alignment);
+BAM::TAlignment TWaitingListBamTraverser::_parseIntoNewAlignment() {
+	BAM::TAlignment alignment;
+	_genome.bamFile().fill(alignment);
 	if (_recalibrate) {
 		if (_incorporatePMD) {
-			alignment->recalibrateWithPMD(_genome.errorModels());
+			alignment.recalibrateWithPMD(_genome.errorModels());
 		} else {
-			alignment->parse(_genome.errorModels().sequencingErrorModels());
+			alignment.parse(_genome.errorModels().sequencingErrorModels());
 		}
 	}
 	return alignment;
@@ -182,46 +137,48 @@ void TWaitingListBamTraverser::traverseBAM() {
 				_genome.bamFile().writeCurAlignment(_outBam);
 			} else {
 				// parse alignment
-				BAM::TAlignment *alignment = _parseIntoNewAlignment();
+				BAM::TAlignment alignment = _parseIntoNewAlignment();
 
 				if (_removeSoftClippedBases) {
 					// parse and then remove softclipped reads
-					alignment->parse();
-					alignment->removeSoftClippedBases(_maxNumberOfSoftClippedBases);
+					alignment.parse();
+					alignment.removeSoftClippedBases(_maxNumberOfSoftClippedBases);
 				}
 
 				// if read is paired, check for mate
-				if (alignment->isPaired()) {
+				if (alignment.isPaired()) {
 					// if mate is in blacklist: add as improper pair for writing
-					if (_blacklist.isInBlacklist(alignment->name())) {
+					if (_blacklist.isInBlacklist(alignment.name())) {
 						// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
 						// alignment->setIsProperPair(false);
-						_alignmentStorage.emplace_back(alignment, false);
-						_blacklist.remove(alignment->name());
+						_waitingList.emplace_back(alignment, AlignmentStatus::orphan);
+						_blacklist.remove(alignment.name());
 					} else {
 						// check if mate is in storage.
-						auto mate = findInStorage(_alignmentStorage, alignment->name());
-						if (mate == _alignmentStorage.end()) {
+						auto mate = std::find_if(
+							_waitingList.begin(), _waitingList.end(),
+							[alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
+						if (mate == _waitingList.end()) {
 							// no mate found
-							if (alignment->isProperPair()) {
+							if (alignment.isProperPair()) {
 								// proper pair: add to storage and wait for mate
-								_alignmentStorage.emplace_back(alignment, false);
+								_waitingList.emplace_back(alignment, AlignmentStatus::orphan);
 							} else {
 								// improper pair: add to blacklist and ready to write
-								_blacklist.add(alignment->name());
-								_alignmentStorage.emplace_back(alignment, false);
+								_blacklist.add(alignment.name());
+								_waitingList.emplace_back(alignment, AlignmentStatus::orphan);
 							}
 						} else {
-							if (alignment->readGroupId() != mate->alignment().readGroupId()) {
-								UERROR("Mates '", alignment->name(), "' are in different read groups!");
+							if (alignment.readGroupId() != mate->alignment.readGroupId()) {
+								UERROR("Mates '", alignment.name(), "' are in different read groups!");
 							}
 							// mate found
-							_handleMates(*alignment, mate);
+							_handleMates(alignment, mate);
 						}
 					}
 				} else {
 					// read is single end
-					_handleSingle(*alignment);
+					_handleSingle(alignment);
 				}
 			}
 		} else {

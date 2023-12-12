@@ -674,8 +674,8 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, iterator m
 		UERROR("Paired reads found in single-end read group '", _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
 	} else if(!alignment.isProperPair()){
 		//not a proper pair: mark mate as as improper too
-		mate->setAsNonProperPair();
-		mate->makeReady();
+		mate->alignment.setIsProperPair(false);
+		mate->status = AlignmentStatus::ready;
 	} else if(type == ReadGroupType::paired || type == ReadGroupType::mixed){
 		//attempt merging: make sure alignments are parsed
 		//Note: if we recalibrate, they were already parsed
@@ -683,17 +683,17 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, iterator m
 			alignment.parse();
 		}
 		
-		if(!mate->alignment().isParsed()){
-			mate->alignment().parse();
+		if(!mate->alignment.isParsed()){
+			mate->alignment.parse();
 		}
 
-		_merger->merge(alignment, mate->alignment());
-		mate->makeReady();
+		_merger->merge(alignment, mate->alignment);
+		mate->status = AlignmentStatus::ready;
 		}
 
 	//add alignment to container
-	_alignmentStorage.emplace_back(&alignment, true);
-	std::stable_sort(_alignmentStorage.begin(), _alignmentStorage.end());
+	_waitingList.emplace_back(alignment, AlignmentStatus::ready);
+	std::stable_sort(_waitingList.begin(), _waitingList.end());
 };
 
 void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
@@ -701,7 +701,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 
 	if(settings.type == ReadGroupType::unchanged){
 		//add as ready for writing
-		_alignmentStorage.emplace_back(&alignment, true);
+		_waitingList.emplace_back(alignment, AlignmentStatus::ready);
 	} else if(settings.type == ReadGroupType::single || settings.type == ReadGroupType::mixed){
 		//truncate
 		if(!_allowForLarger && alignment.length() > settings.maxCycles){
@@ -712,13 +712,13 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 		}
 
 		//add as ready for writing
-		_alignmentStorage.emplace_back(&alignment, true);
+		_waitingList.emplace_back(alignment, AlignmentStatus::ready);
 
 	} else if(settings.type == ReadGroupType::paired){
 		//is orphan
 		if(_keepOrphans){
 			//add as ready for writing
-			_alignmentStorage.emplace_back(&alignment, true);
+			_waitingList.emplace_back(alignment, AlignmentStatus::ready);
 		} else {
 			//filter out (ignore) but write reason to bam log
 			_genome.bamFile().filterOut(alignment);
@@ -729,7 +729,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 bool TAlignmentSplitMerger::_alignmentCanBeWrittenUnchanged(){
 	return  !_recalibrate &&
 			!_genome.bamFile().curIsPaired() &&
-			_alignmentStorage.empty() &&
+			_waitingList.empty() &&
 			_rgSettings.getType(_genome.bamFile().curReadGroupID())==ReadGroupType::unchanged;
 }
 
@@ -757,30 +757,31 @@ void TOverlapQuantifier::run(){
 		//check if first alignment in storage is too far away from current alignment
 		//if yes, first alignment in storage is considered an orphan
 		auto it = _alignmentStorage.begin();
-		while(it != _alignmentStorage.end() && (_genome.bamFile().curPosition() - it->alignment()) > _genome.bamFile().maxReadLength()){
+		while(it != _alignmentStorage.end() && (_genome.bamFile().curPosition() - it->alignment) > _genome.bamFile().maxReadLength()){
 			it = _alignmentStorage.erase(it);
 		}
 
 		//check if read passed filters and is proper pair
 		if(_genome.bamFile().curPassedQC() && _genome.bamFile().curIsProperPair()){
 			//parse alignment
-			std::unique_ptr<BAM::TAlignment> alignment = std::make_unique<BAM::TAlignment>();
-			_genome.bamFile().fill(*alignment.get());
+			BAM::TAlignment alignment;
+			_genome.bamFile().fill(alignment);
 
 			//check if mate is in storage.
-			auto mate = findInStorage(_alignmentStorage, alignment->name());
-			if(mate == _alignmentStorage.end()){
-				//add alignment to storage and wait for mate
-				_alignmentStorage.emplace_back(alignment.release(), false);
+			auto mate = std::find_if(_alignmentStorage.begin(), _alignmentStorage.end(),
+									 [alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
+			if (mate == _alignmentStorage.end()) {
+				    // add alignment to storage and wait for mate
+				_alignmentStorage.emplace_back(alignment, AlignmentStatus::orphan);
 			} else {
-				//mate found
-				if(alignment->readGroupId() != mate->alignment().readGroupId()){
-					UERROR("Mates '", alignment->name(), "' are in different read groups!");
+				    // mate found
+				    if (alignment.readGroupId() != mate->alignment.readGroupId()) {
+					UERROR("Mates '", alignment.name(), "' are in different read groups!");
 				}
 
 				//calculate overlap and fragment length and add to storage
-				size_t overlap = _merger.determineOverlapLength(*alignment, mate->alignment());
-				size_t fragmentLength = alignment->fragmentLength();
+				size_t overlap = _merger.determineOverlapLength(alignment, mate->alignment);
+				size_t fragmentLength = alignment.fragmentLength();
 
 				overlapDist.add(fragmentLength, overlap);
 			}

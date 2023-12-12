@@ -8,43 +8,20 @@
 
 namespace GenomeTasks {
 
-class TAlignmentMergerEntry{
-private:
-	BAM::TAlignment* _alignment;
-	bool _ready;
+enum class AlignmentStatus {orphan, filtered, ready};
 
-public:
-
-	TAlignmentMergerEntry(BAM::TAlignment* Alignment, bool readyForWriting);
-	TAlignmentMergerEntry(TAlignmentMergerEntry && other);
-	~TAlignmentMergerEntry();
-	TAlignmentMergerEntry& operator=(TAlignmentMergerEntry && other);
-
-	//getters
-	bool ready() const { return _ready; }
-	const BAM::TAlignment& alignment() const { return *_alignment; }
-	BAM::TAlignment& alignment() { return *_alignment; }
-	const std::string& name() const;
-
-	//setters
-	void makeReady() { _ready = true; }
-	void setAsNonProperPair() ;
-	bool operator<(const TAlignmentMergerEntry & other) const;
+struct TWaitingAlignment{
+	BAM::TAlignment alignment;
+	AlignmentStatus status;
+	TWaitingAlignment(BAM::TAlignment Alignment, AlignmentStatus Status) : alignment(Alignment), status(Status) {}
 };
-
-template<typename StorageType>
-auto findInStorage(StorageType & Storage, const std::string & name){
-	for(auto it=Storage.begin(); it!=Storage.end(); ++it){
-		if(it->name() == name){
-			return it;
-		}
-	}
-	return Storage.end();
+inline bool operator<(const TWaitingAlignment& lhs, const TWaitingAlignment& rhs) {
+	return lhs.alignment < rhs.alignment;
 }
 
 class TWaitingListBamTraverser {
 public:
-	using container = std::vector<TAlignmentMergerEntry>;
+	using container = std::vector<TWaitingAlignment>;
 	using iterator  = typename container::iterator;
 
 protected:
@@ -52,7 +29,7 @@ protected:
 	TParser _parser;
 
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
-	container _alignmentStorage;
+	container _waitingList;
 
 	BAM::TOutputBamFile _outBam;
 
@@ -63,10 +40,10 @@ protected:
 	bool _removeSoftClippedBases;
 	size_t _maxNumberOfSoftClippedBases;
 
-	void _writeOrFilter(TAlignmentMergerEntry& Entry); 
+	void _writeOrFilter(TWaitingAlignment& Entry); 
 	void _writeAll();
 	void _writeUpTo(const genometools::TGenomePosition & position);
-	BAM::TAlignment* _parseIntoNewAlignment();
+	BAM::TAlignment _parseIntoNewAlignment();
 
 	//pure virtual functions
 	virtual void _handleMates(BAM::TAlignment &alignment, iterator mate) = 0;

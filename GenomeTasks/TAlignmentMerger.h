@@ -137,7 +137,7 @@ class TOverlapQuantifier{
 private:
 	TGenome _genome;
 	TAlignmentMerger _merger;
-	std::vector<TAlignmentMergerEntry> _alignmentStorage;
+	std::vector<TWaitingAlignment> _alignmentStorage;
 
 public:
 	TOverlapQuantifier();
