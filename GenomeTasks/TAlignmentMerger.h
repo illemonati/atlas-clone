@@ -12,6 +12,7 @@
 #include <set>
 
 #include "TBamFilter.h"
+#include "TWaitingListBamTraverser.h"
 
 namespace BAM { class TAlignment; }
 namespace BAM { class TReadGroups; }
@@ -111,7 +112,7 @@ public:
 // TAlignmentSplitMerger
 //-----------------------------------------
 class TAlignmentSplitMerger final
-	: public BamFilter::TGenomeParsedWithAlignmentStorage {
+	: public TWaitingListBamTraverser {
 private:
 	std::unique_ptr<TAlignmentMerger> _merger;
 	TAlignmentMergerReadGroupSettings _rgSettings;
@@ -136,7 +137,7 @@ class TOverlapQuantifier{
 private:
 	TGenome _genome;
 	TAlignmentMerger _merger;
-	std::vector<BamFilter::TAlignmentMergerEntry> _alignmentStorage;
+	std::vector<TAlignmentMergerEntry> _alignmentStorage;
 
 public:
 	TOverlapQuantifier();

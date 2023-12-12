@@ -53,7 +53,7 @@
 
 void addTaks(coretools::TMain & main) {
 	//BAM
-	main.createRegularTask<GenomeTasks::BamFilter::TBamFilter>("filterBAM", "Writing reads that pass filters to BAM file");
+	main.createRegularTask<GenomeTasks::TBamFilter>("filterBAM", "Writing reads that pass filters to BAM file");
 	main.createRegularTask<GenomeTasks::AlignmentMerger::TAlignmentSplitMerger>("splitMerge", "Splitting single-end reads and merging paired-end reads in BAM file");
 	main.createRegularTask<GenomeTasks::TReadGroupMerger>("mergeRG", "Merging read groups in a BAM file");
 	main.createRegularTask<GenomeTasks::TPileup>("pileup", "Printing pileup from BAM file");

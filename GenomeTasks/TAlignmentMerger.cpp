@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "TBamFilters.h"
+#include "TWaitingListBamTraverser.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -43,7 +44,6 @@ namespace AlignmentMerger{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
-using namespace GenomeTasks::BamFilter;
 using namespace coretools::str;
 
 
@@ -616,7 +616,7 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 // TAlignmentSplitMerger
 //-----------------------------------------
 
-TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage("_splitMerged.bam") {
+TAlignmentSplitMerger::TAlignmentSplitMerger() : TWaitingListBamTraverser("_splitMerged.bam") {
 	//parse read group settings
 	_rgSettings.initialize(_genome.bamFile().readGroupsMutable());
 

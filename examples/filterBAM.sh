@@ -3,7 +3,7 @@
 . $(dirname $0)/find_atlas
 . $(dirname $0)/simulate --type HW --F 0.1 \
   --sampleSize 19 --chrLength 1111 --fracPoly 1.0 \
-  --alpha 2.0 --beta 2.0 --seqType single --seqCycles 101
+  --alpha 2.0 --beta 2.0 --seqType paired --seqCycles 101
 
 $atlas --task filterBAM --bam ATLAS_simulations_ind1.bam \
 	   --fixedSeed 0 --filterSoftClips --out filterBAM_1 --logFile filterBAM_1.out
