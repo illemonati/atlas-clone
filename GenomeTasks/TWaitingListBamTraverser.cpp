@@ -65,6 +65,38 @@ BAM::TAlignment TWaitingListBamTraverser::_parseIntoNewAlignment() {
 	return alignment;
 }
 
+void TWaitingListBamTraverser::_setMasks(const genometools::TChromosomes& Chromosomes) {
+	// normal mask
+	if (parameters().exists("mask") || parameters().exists("regions")) {
+		std::string filename;
+
+		if (parameters().exists("mask")) {
+			if (parameters().exists("regions")) UERROR("Cannot use mask and regions at the same time.");
+
+			filename = parameters().get<std::string>("mask");
+			logfile().startIndent("Will mask all sites listed in BED file '" + filename + "':");
+			_doMasking       = true;
+			_considerRegions = false;
+		} else {
+			filename = parameters().get<std::string>("regions");
+			logfile().startIndent("Will limit analysis to sites listed in BED file '" + filename +
+								  "' (parameter 'regions'):");
+			_doMasking       = false;
+			_considerRegions = true;
+		}
+
+		// read file
+		logfile().listFlush("Reading file ...");
+		_mask.add(filename, Chromosomes);
+		logfile().done();
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.numChromosomesWithWindows(), " chromosomes.");
+		logfile().endIndent();
+	} else {
+		_doMasking       = false;
+		_considerRegions = false;
+	}
+}
+
 TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 	: _genome(BAM::TBamFilters{true}), _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()) {
 	// max distance between mates
@@ -119,6 +151,8 @@ TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 		logfile().list("Will not remove softclipped bases. (Use parameter 'removeSoftClippedBases' to do so)");
 		_removeSoftClippedBases = false;
 	}
+
+	_setMasks(_genome.bamFile().chromosomes());
 }
 
 void TWaitingListBamTraverser::traverseBAM() {
@@ -142,6 +176,9 @@ void TWaitingListBamTraverser::traverseBAM() {
 		if (_genome.bamFile().curPassedQC()) {
 			// if single end, unchanged and storage is empty: write directly
 			if (_alignmentCanBeWrittenUnchanged()) {
+				if (_doMasking && _mask.hasOverlapWith(_genome.bamFile().curPosition())) continue;
+				if (_considerRegions && !_mask.hasOverlapWith(_genome.bamFile().curPosition())) continue;
+
 				_genome.bamFile().writeCurAlignment(_outBam);
 			} else {
 				// parse alignment
@@ -167,24 +204,32 @@ void TWaitingListBamTraverser::traverseBAM() {
 							_waitingList.begin(), _waitingList.end() - 1,
 							[alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
 						if (mate == _waitingList.end() - 1) {
-							// no mate found
-							if (alignment.isProperPair()) {
-								// proper pair: add to storage and wait for mate
-							} else {
-								// improper pair: add to blacklist and ready to write
-								_blacklist.add(alignment.name());
+							// waiting for 2nd mate
+							if (!alignment.isProperPair()) {
+								_blacklist.add(alignment.name()); // add to blacklist and ready to write
 							}
 						} else {
+							// both mates available
 							if (alignment.readGroupId() != mate->alignment.readGroupId()) {
 								UERROR("Mates '", alignment.name(), "' are in different read groups!");
 							}
-							// mate found
-							_handleMates(*mate);
+							if ((_doMasking && (_mask.hasOverlapWith(alignment) || _mask.hasOverlapWith(mate->alignment))) ||
+								(_considerRegions && !_mask.hasOverlapWith(alignment) && !_mask.hasOverlapWith(mate->alignment))) {
+								_waitingList.back().status = AlignmentStatus::filterOut;
+								mate->status               = AlignmentStatus::filterOut;
+							} else {
+								_handleMates(*mate);
+							}
 						}
 					}
 				} else {
 					// read is single end
-					_handleSingle();
+					if ((_doMasking && _mask.hasOverlapWith(alignment)) ||
+						(_considerRegions && !_mask.hasOverlapWith(alignment))) {
+						_waitingList.back().status = AlignmentStatus::filterOut;
+					} else {
+						_handleSingle();
+					}
 				}
 			}
 		} else {

@@ -5,10 +5,11 @@
 #include "TGenome.h"
 #include "TOutputBamFile.h"
 #include "TParser.h"
+#include "genometools/BED/TBed.h"
 
 namespace GenomeTasks {
 
-enum class AlignmentStatus {orphan, filtered, ready};
+enum class AlignmentStatus {orphan, filterOut, ready};
 
 struct TWaitingAlignment{
 	BAM::TAlignment alignment;
@@ -23,6 +24,12 @@ class TWaitingListBamTraverser {
 public:
 	using container = std::vector<TWaitingAlignment>;
 	using iterator  = typename container::iterator;
+
+private:
+	bool _doMasking       = false;
+	bool _considerRegions = false;
+	genometools::TBed _mask;
+	void _setMasks(const genometools::TChromosomes& Chromosomes);
 
 protected:
 	TGenome _genome;
