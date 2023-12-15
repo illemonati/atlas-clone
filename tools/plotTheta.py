@@ -11,65 +11,93 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot theta data(s)")
     parser.add_argument("files", nargs='*', help="Data")
     parser.add_argument("--title", default="theta")
-    parser.add_argument("--depth0", type=float, default=10.)
+    parser.add_argument("--dMin", type=float, default=0.)
+    parser.add_argument("--median",  action="store_true")
+    parser.add_argument("--yMin",  type=float, default=1e-4)
+    parser.add_argument("--yMax",  type=float, default=1e-2)
+    parser.add_argument("--nPlots",  type=int, default=1)
 
     args = parser.parse_args()
     # get header and cols
+    nFiles = len(args.files)
     for i, file in enumerate(args.files):
-        f     = gzip.open(file)
-        probs = {}
+        label = file.split("_theta.txt.gz")[0]
+        f      = gzip.open(file)
+        idepths = []
+        ithetas = []
+        il95s   = []
+        iu95s   = []
         for j, key in enumerate(f.readline().split()):
             key = key.decode()
-            if "theta_MLE" in key:
-                if key[0] == "p":
-                    p = float(key[1:].split("_")[0])
-                else:
-                    p = 1.
-                if not p in probs:
-                    probs[p] = []
-                probs[p].append(j)
+            if key.endswith("depth"): idepths.append(j)
+            elif key.endswith("thetaMLE"): ithetas.append(j)
+            elif key.endswith("thetaC95l"): il95s.append(j)
+            elif key.endswith("thetaC95u"): iu95s.append(j)
         f.close()
 
         # get average and std
         data = genfromtxt(file, skip_header=1)
         if len(data.shape) == 1:
             data = array([data])
-        means = []
-        stds = []
-        for p in probs.keys():
-            d = []
-            for c in probs[p]:
-                d = r_[d, data[:, c]]
-            print(d)
-            means.append(nanmean(d))
-            stds.append(nanstd(d))
 
-        depths = r_[list(probs.keys())]*args.depth0
-        means = r_[means]
-        stds  = r_[stds]
+        depths = []
+        for j in idepths:
+            depths.append(data[:, j])
 
-        print(file, depths, means, stds)
+        thetas = []
+        for j in ithetas:
+            thetas.append(data[:, j])
+
+        l95s = []
+        for j in il95s:
+            l95s.append(data[:, j])
+
+        u95s = []
+        for j in iu95s:
+            u95s.append(data[:, j])
+
 
         fmts= ["o-", "s-", "X-", "d-", "p-", "<-", "^-", ">-"]
         mks = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
-        ax1 = plt.subplot(211)
-        plt.errorbar(depths, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
-        #plt.xscale("log")
-        plt.yscale("log")
-        plt.hlines(means[0], 0, 1.1*args.depth0, "k", "dashed")
-        plt.subplot(212, sharex=ax1)
-        plt.errorbar(depths, means/means[0], yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
-        #plt.xscale("log")
-        plt.ylabel(r"$\theta/\theta_0$")
-        plt.hlines(1, 0, 1.1*args.depth0, "k", "dashed")
-        plt.xlabel(r"Depth")
+        for j in range(len(thetas)):
+            iis = where(u95s[j] < 10.)
+            thetas[j] = thetas[j][iis]
+            print(j, len(l95s[j]), len(thetas[j]))
 
-    plt.subplot(211)
-    #plt.ylim(5e-4, 2e-3)
-    #plt.xlim(min(depths)/1.1, max(depths)*1.1)
-    plt.legend()
-    plt.title(args.title)
-    plt.ylabel(r"$\theta$")
+        if args.median:
+            print("using median")
+            mdepths = [nanmedian(d) for d in depths]
+            mthetas = [nanmedian(t) for t in thetas]
+        else:
+            print("using mean")
+            mdepths = [nanmean(d) for d in depths]
+            mthetas = [nanmean(t) for t in thetas]
+
+        sdepths = [nanstd(d) for d in depths]
+        sthetas = [nanstd(t) for t in thetas]
+
+        print(label)
+        print("depth:", mdepths)
+        print("theta:", mthetas)
+
+        filesPerPlots = nFiles/args.nPlots
+        iPlot = int(i/filesPerPlots) + 1
+        plt.subplot(args.nPlots, 1, iPlot)
+
+        plt.errorbar(mdepths, mthetas, xerr=sdepths, yerr=sthetas, fmt=fmts[i], markersize=mks[i],linewidth=2, capsize=6, label=label)
+        plt.hlines(mthetas[0], 0, 1.5*max(mdepths), plt.gca().lines[-1].get_color(), "dashed")
+        print(plt.gca().lines[-1].get_color())
+        if iPlot < int((i+1)/filesPerPlots) + 1:
+            plt.xscale("log")
+            plt.yscale("log")
+            plt.ylabel(r"$\theta$")
+            if iPlot == args.nPlots:
+                plt.xlabel(r"Depth")
+            plt.xlim(max(mdepths)*1.5, min(mdepths)/1.5)
+            plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
+            plt.legend()
+            plt.ylim(args.yMin, args.yMax)
+
     plt.show()
     #plt.savefig(args.files[0].split('_')[0] + ".png")

@@ -8,11 +8,11 @@
 #ifndef TALLELICDEPTHCOUNTS_H_
 #define TALLELICDEPTHCOUNTS_H_
 
-#include <stdint.h>
 #include <string>
+#include <vector>
 
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
+#include "TBamWindowTraverser.h"
+#include "TGenotypeData.h"
 
 namespace GenomeTasks{
 
@@ -33,18 +33,20 @@ public:
 	void addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts);
 	void addSiteZeroDepth();
 	void write(const std::string &filename, bool printEmpty);
+	size_t size() const noexcept {return _counts.size();}
 };
 
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-class TAllelicDepth:public TGenome_windows{
+class TAllelicDepth final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TAllelicDepth();

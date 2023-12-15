@@ -8,19 +8,19 @@
 #ifndef THAPLOTYPESIMULATOR_H_
 #define THAPLOTYPESIMULATOR_H_
 
-#include <stddef.h>
-#include <stdint.h>
 #include <array>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
+
 #include "SFS.h"
-#include "coretools/Files/TFile.h"
 #include "TGenotypeData.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "coretools/Containers/TStrongArray.h"
+
 
 namespace genometools { class TChromosome; }
 namespace genometools { class TChromosomes; }
@@ -125,8 +125,11 @@ struct TSimulatorHWSite {
 class TSimulatorHW : public THaplotypeSimulator {
 private:
 	int _sampleSize;
-	double _fracPoly, _alpha, _beta, _F;
-	double _cumulGenoProb[3];
+	coretools::Probability _fracPoly;
+	double _alpha;
+	double _beta;
+	double _F;
+	std::array<double, 3> _cumulGenoProb;
 	TSimulatorMutationtable _mutTable;
 	bool _writeTrueAlleleFreq = false;
 	coretools::TOutputFile _trueFreqFile;

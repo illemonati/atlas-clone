@@ -13,7 +13,6 @@
 
 #include "coretools/Files/gzstream.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
-#include "coretools/Main/TError.h"
 
 namespace genometools { class TPopulationSamples; }
 

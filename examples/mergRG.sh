@@ -7,4 +7,5 @@
 echo "SimReadGroup1 SimReadGroup2" > rgs.txt
 echo "SimReadGroup3 SimReadGroup4 SimReadGroup5 SimReadGroup6 SimReadGroup7 SimReadGroup8 SimReadGroup9 SimReadGroup10" >> rgs.txt
 
-$atlas --task mergeRG --bam ATLAS_simulations.bam --readGroups rgs.txt --fixedSeed 0 --out mergeRG --logFile mergeRG.out
+$atlas --task mergeRG --bam ATLAS_simulations.bam --readGroups rgs.txt \
+	   --fixedSeed 0 --out mergeRG --logFile mergeRG.out

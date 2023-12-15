@@ -8,10 +8,12 @@
 #ifndef TRHO_H_
 #define TRHO_H_
 
+#include "coretools/Containers/TStrongArray.h"
+#include "genometools/GenotypeTypes.h"
+
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
-#include "genometools/GenotypeTypes.h"
-#include "coretools/Containers/TStrongArray.h"
+
 namespace GenotypeLikelihoods::SequencingError {
 
 //--------------------------------------------------------------------
@@ -33,12 +35,12 @@ public:
 	const TBaseProbabilities& operator[](genometools::Base from) const noexcept {
 		return _rho[from];
 	}
-	std::string definition() const noexcept;
 
 	// functions used to estimate
 	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 
+	void log() const;
 	BAM::RGInfo::TInfo info() const;
 };
 

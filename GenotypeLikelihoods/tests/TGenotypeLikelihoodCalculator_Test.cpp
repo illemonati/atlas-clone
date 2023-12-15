@@ -1,11 +1,12 @@
 //
 // Created by linkv on 8/17/20.
 //
-#include "TGenotypeLikelihoodCalculator.h"
+#include "TErrorModels.h"
 #include "gtest/gtest.h"
 
 #include <memory>
 
+#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
@@ -20,8 +21,8 @@ using genometools::Genotype;
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;
-	BAM::TReadGroups rg;
-    TGenotypeLikelihoodCalculator calculator(&rg);
+	BAM::RGInfo::TReadGroupInfo rgi;
+    TErrorModels calculator(rgi);
 
 	const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
@@ -41,10 +42,11 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
     TSite site;
 	BAM::TReadGroups rg;
 	rg.add("test");
-    TGenotypeLikelihoodCalculator calculator(&rg);
+	BAM::RGInfo::TReadGroupInfo rgi(rg);
+    TErrorModels calculator(rgi);
 
     BAM::TSequencedBase base;
-    base.originalQuality_phredInt = 20;
+    base.quality_orig = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
     base.base = Base::A;

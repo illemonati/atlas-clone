@@ -8,15 +8,11 @@
 #ifndef TVCFDIAGNOSTICS_H_
 #define TVCFDIAGNOSTICS_H_
 
-#include <fstream>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
-#include "genometools/BED/TBed.h"
 
 namespace VCF{
 
@@ -106,9 +102,9 @@ public:
 	void fixIntAsFloat();
 	void run() {
 		using coretools::instances::parameters; 
-		if (parameters().parameterExists("fixInt")) {
+		if (parameters().exists("fixInt")) {
 			fixIntAsFloat();
-		} else if (parameters().parameterExists("writeBED")) {
+		} else if (parameters().exists("writeBED")) {
 			vcfToInvariantBed();
 		} else {
 			assessAllelicImbalance();

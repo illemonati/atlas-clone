@@ -71,10 +71,10 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 // TGlfMultiReader
 //----------------------------------------------------
 TGlfMultiReader::TGlfMultiReader() {
-	_minDepth = parameters().getParameterWithDefault<size_t>("minDepth", 0);
+	_minDepth = parameters().get<size_t>("minDepth", 0);
 	if (_minDepth > 0) logfile().list("Will only keep sites with depth >= " + toString(_minDepth) + ".");
 
-	_windowSize = parameters().getParameterWithDefault<size_t>("window", 100000);
+	_windowSize = parameters().get<size_t>("window", 100000);
 	if (_windowSize == 0) UERROR("Window size must be at least 1!");
 };
 
@@ -103,7 +103,7 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> &FileNames) {
 
 void TGlfMultiReader::openGLFs() {
 	using namespace coretools::str;
-	const auto parameter = parameters().getParameter<std::string>("glf");
+	const auto parameter = parameters().get<std::string>("glf");
 	// assume that GLF file names are given in a file if string does not contain ".gz"
 	if (!stringContains(parameter, ".gz")) {
 		logfile().list("Reading glf input names from file '" + parameter + "'");
@@ -121,7 +121,7 @@ void TGlfMultiReader::openGLFs() {
 		}
 		in.close();
 	} else {
-		parameters().fillParameterIntoContainer("glf", _GLFNames, ',');
+		parameters().fill("glf", _GLFNames);
 	}
 	_openGLFs();
 };

@@ -11,12 +11,14 @@
 #include "TReadSimulators.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Main/globalConstants.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace Simulations {
 
 using BAM::RGInfo::TReadGroupInfo;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using genometools::Base;
 
 void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
@@ -74,7 +76,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_readGroups = RGinfo.createReadGroups(RgInfoFileName);
 	using BAM::RGInfo::InfoType;
 	logfile().addIndent();
-	RGinfo.parse(InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::pmd, InfoType::recal, InfoType::RGFrequency);
+	RGinfo.parse(InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::pmd, InfoType::recal, InfoType::RGFrequency, InfoType::duplicationRate);
 	logfile().endIndent();
 
 	// complete RG details
@@ -113,7 +115,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile){
 	//sample which simulator to use
-	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequenies);
+	size_t thisSimulator = _cumulSimGroupFrequenies.size() < 2 ? 0 : randomGenerator().pickOne(_cumulSimGroupFrequenies);
 	_readSimulators[thisSimulator]->simulate(Position, Haplotype, BamFile);
 }
 

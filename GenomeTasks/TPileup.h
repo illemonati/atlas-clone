@@ -8,15 +8,10 @@
 #ifndef GENOMETASKS_TPILEUP_H_
 #define GENOMETASKS_TPILEUP_H_
 
-#include <array>
-#include <set>
-#include <string>
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Math/counters.h"
 
-#include "coretools/Containers/TBitSet.h"
-#include "coretools/Files/TFile.h"
-#include "TGenome.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TTask.h"
+#include "TBamWindowTraverser.h"
 #include "TAllelicDepthCounts.h"
 
 namespace GenomeTasks {
@@ -24,7 +19,7 @@ namespace GenomeTasks {
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup : public TGenome_windows {
+class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 private:
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -35,18 +30,19 @@ private:
 	coretools::TCountDistributionVector<> _qualDist;
 	coretools::TCountDistributionVector<> _contextDist;
 
-	// what to print?
-	coretools::TBitSet<8> _printSettings;
-	enum {OnlySitesWithData, Depth, Bases, Qualities, Alleles, Mates, Strand, Likelihoods};
+	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, Qualities, Alleles, Mates, Strand, Likelihoods, max};
+	coretools::TStrongBitSet<Print> _printSettings;
 
-	coretools::TBitSet<8> _histSettings;
-	enum {Depths, Quality, Contexts, AllelicDepth};
+	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, max};
+	coretools::TStrongBitSet<Hist> _histSettings;
 
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
+	bool _onlySummary;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
+	void _startChromosome(const genometools::TChromosome& ) override {}
+	void _endChromosome(const genometools::TChromosome& Chr) override;
 public:
 	TPileup();
 	void run();

@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <vector>
 
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "TSite.h"
@@ -24,8 +23,8 @@ using coretools::instances::parameters;
 //-------------------------------------------
 // TGLFWriter
 //-------------------------------------------
-TWriteGLF::TWriteGLF():TGenome_windows(){
-	if(parameters().parameterExists("printAll")){
+TWriteGLF::TWriteGLF(){
+	if(parameters().exists("printAll")){
 		_printAll = true;
 		logfile().list("Will write all sites, even those without data. (parameter 'printAll')");
 	} else {
@@ -34,18 +33,18 @@ TWriteGLF::TWriteGLF():TGenome_windows(){
 	}
 };
 
-void TWriteGLF::_handleWindow(){
-	if(_chrChangedWindow){
-		_writer.newChromosome(*_curChromosome);
-	}
+void TWriteGLF::_startChromosome(const genometools::TChromosome &Chr) {
+	_writer.newChromosome(Chr);
+}
 
+void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow &Window) {
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	logfile().listFlushTime("Adding window to GLF file ...");
 	uint32_t pos = 0;
-	for(auto& s : _window){
+	for(auto& s : Window){
 		if(!s.empty() || _printAll){
-			_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-			_writer.writeSite(_window.positionOnChr(pos), s.depth(), 0, _genoLik);
+			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
+			_writer.writeSite(Window.positionOnChr(pos), s.depth(), 0, genoLik);
 		}
 		++pos;
 	}
@@ -54,7 +53,7 @@ void TWriteGLF::_handleWindow(){
 
 void TWriteGLF::run(){
 	//open GLF file
-	std::string outputFileName = _outputName + ".glf.gz";
+	const auto outputFileName = _genome.outputName() + ".glf.gz";
 	logfile().list("Will write genotype likelihoods to GLF file '" + outputFileName + "'.");
 	_writer.open(outputFileName);
 

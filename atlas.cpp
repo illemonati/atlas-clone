@@ -2,6 +2,8 @@
  * atlas.cpp
  */
 
+#include "TEstimateGenotypeDistribution.h"
+#include "TFromTo.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -11,7 +13,6 @@
 #include "TContextQuantifer.h"
 #include "TDuplicateQuantifier.h"
 #include "TIlluminaIdentifier.h"
-#include "TPMDEstimator.h"
 #include "TPMDSCalculator.h"
 #include "TPileup.h"
 #include "TQualityDistribution.h"
@@ -29,9 +30,8 @@
 #include "TCreateBedMask.h"
 #include "TDepthWriter.h"
 #include "TDistanceEstimator.h"
-#include "TEstimateErrors.h"
+#include "TErrorEstimator.h"
 #include "TEstimateMutationLoad.h"
-#include "TEstimateRecalibration.h"
 #include "TEstimateTheta.h"
 #include "TF2Estimator.h"
 #include "TGLF.h"
@@ -63,13 +63,11 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TRemoveSoftClippedBases>("removeSoftClippedBases", "Removing soft clipped bases from reads");
 	main.createRegularTask<GenomeTasks::TQualityTransformation>("qualityTransformation", "Printing Quality Transformation");
 	main.createRegularTask<GenomeTasks::TBamDownsampler>("downsample", "Downsampling a BAM file");
-	main.createRegularTask<GenomeTasks::TPMDEstimator>("PMD", "Estimating Post-Mortem Damage (PMD) patterns");
 	main.createRegularTask<GenomeTasks::TPMDSCalculator>("PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");
 	main.createRegularTask<GenomeTasks::TIlluminaIdentifier>("identifyIlluminaReadGroups", "Reassigning read groups based on the platform unit in their name");
 
 	//window tasks
-	main.createRegularTask<GenomeTasks::TEstimateErrors>("estimateErrors", "Estimating PMD pattern and Sequencing Errors", "Kousathanas et al. (2017) Genetics");
-	main.createRegularTask<GenomeTasks::TEstimateRecalibration>("recal", "Estimating error re-calibration parameters", "Kousathanas et al. (2017) Genetics");
+	main.createRegularTask<GenotypeLikelihoods::TErrorEstimator>("estimateErrors", "Estimating PMD pattern and Sequencing Errors", "Kousathanas et al. (2017) Genetics");
 	main.createRegularTask<GenomeTasks::TMaskCreator>("createMask", "Creating a mask BED file");
 	main.createRegularTask<GenomeTasks::TAllelicDepth>("allelicDepth", "Writing genotype likelihoods to a GLF file");
 	main.createRegularTask<GenomeTasks::TPSMCInput>("PSMC", "Generating a PSMC Input file probabilistically");
@@ -79,6 +77,7 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TWriteGLF>("GLF", "Writing genotype likelihoods to a GLF file");
 	main.createRegularTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating the distribution of depth among sites and writing depth per window");
 	main.createRegularTask<GenomeTasks::TEstimateMutationLoad>("mutationLoad", "Estimating mutation load across the genome");
+	main.createRegularTask<GenomeTasks::TEstimateGenotypeDistribution>("genotypeDistribution", "Estimating genotype Distribution");
 
 	//Population tools
 	main.createRegularTask<GLF::TGLFPrinter>("printGLF", "Printing a GLF file to screen");
@@ -103,6 +102,7 @@ void addTaks(coretools::TMain & main) {
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
+	main.createDebugTask<GenomeTasks::TFromTo>("fromTo", "FromTo");
 };
 
 void addTests(coretools::TMain & main){

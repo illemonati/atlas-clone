@@ -9,8 +9,6 @@
 #ifndef TPMDFUNCTION_H_
 #define TPMDFUNCTION_H_
 
-#include <armadillo>
-#include <map>
 #include <string>
 #include <vector>
 

@@ -8,19 +8,14 @@
 #ifndef GENOMETASKS_TESTIMATETHETA_H_
 #define GENOMETASKS_TESTIMATETHETA_H_
 
-#include <set>
-#include <stdint.h>
-#include <string>
 #include <vector>
 
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
+#include "coretools/Types/probability.h"
 #include "genometools/BED/TBed.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
+
+#include "TBamWindowTraverser.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
-#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 class TThetaEstimatorData;
@@ -31,14 +26,15 @@ namespace GenomeTasks {
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface : public TGenome_windows {
+class TEstimateThetaLLSurface final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	size_t _steps;
 
 	void _bootstrapThetaEstimation();
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
 	TEstimateThetaLLSurface();
@@ -48,7 +44,7 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateTheta : public TGenome_windows {
+class TEstimateTheta final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
@@ -62,11 +58,11 @@ private:
 	bool _onlyBootstraps    = false;
 	size_t _numBootstraps = 0;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
-	void _addSites();
 
 	void _bootstrapThetaEstimation();
 public:
@@ -77,17 +73,17 @@ public:
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-class TEstimateThetaRatio : public TGenome_windows {
+class TEstimateThetaRatio final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
 	genometools::TBed _region1;
 	genometools::TBed _region2;
 
-	void _initializeRegion(genometools::TBed &region, const int num);
-	void _addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
-	void _handleWindow() override;
-	void _handleAlignment() override {}
-
+	void _initializeRegion(genometools::TBed &region, int num);
+	void _addSites(const GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, const genometools::TBed &regions);
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 public:
 	TEstimateThetaRatio();
 	void run();

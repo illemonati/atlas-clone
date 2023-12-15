@@ -79,8 +79,8 @@ public:
 		parameters().clear();
 
 		filename = "test.vcf.gz";
-		parameters().addParameter("vcf", filename);
-		parameters().addParameter("minMAF", "0");
+		parameters().add("vcf", filename);
+		parameters().add("minMAF", "0");
 	}
 
 	void writeVcfFile() {
@@ -108,7 +108,7 @@ public:
 		TOutputFile sampleFile("test.samples");
 		for (auto &it : samplesToKeep) { sampleFile.writeln(it); }
 		// add to parameters
-		parameters().addParameter("samples", "test.samples");
+		parameters().add("samples", "test.samples");
 	}
 };
 

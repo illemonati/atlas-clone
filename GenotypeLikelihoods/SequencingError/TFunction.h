@@ -9,31 +9,24 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 
 #include <array>
-#include <cmath>
-#include <cstdint>
-#include <iomanip>
-#include <iterator>
-#include <memory>
-#include <stddef.h>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
-#include "TReadGroupInfo.h"
-#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Math/TProbabilityDistributions.h"
-#include "SequencingError/TCovariate.h"
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
+#include "genometools/PhredProbabilityTypes.h"
+
+#include "SequencingError/RecalEstimatorTools.h"
+#include "SequencingError/TCovariate.h"
 #include "TDerivatives.h"
+#include "TReadGroupInfo.h"
 
-#include <armadillo>
-
-namespace GenotypeLikelihoods {
-namespace SequencingError {
+namespace GenotypeLikelihoods::SequencingError {
 
 //--------------------------------------------------------------
 // TCovariateFunction
@@ -64,17 +57,10 @@ public:
 	virtual double getEta(const BAM::TSequencedBase &base) const noexcept   = 0;
 	virtual double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
-	virtual double adjustParametersPostEstimation() noexcept                = 0;
+	virtual double adjust() noexcept                                        = 0;
 	virtual std::string typeString() const noexcept                         = 0;
 	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
-	virtual std::string modelString() const {
-		return typeString()
-			.append(1, '[')
-			.append(
-				std::accumulate(begin() + 1, end(), coretools::str::toString(*begin()),
-								[](auto tot, auto b) { return tot.append(1, ',').append(coretools::str::toString(b)); }))
-			.append(1, ']');
-	}
+	virtual void log() const; 
 };
 
 class TNoFunction final : public TFunction{
@@ -96,9 +82,9 @@ public:
 	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}
 	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &,
 						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
-	double adjustParametersPostEstimation() noexcept override {return 0.;}
+	double adjust() noexcept override {return 0.;}
 	std::string typeString() const noexcept override {return "";}
-	std::string modelString() const noexcept override {return "";}
+	void log() const noexcept  override {}; 
 	void addInfo(BAM::RGInfo::TInfo &) const override {};
 };
 
@@ -132,11 +118,8 @@ public:
 		 info[name] = _beta;
 	}
 
-	std::string modelString() const {
-		return typeString()
-			.append(1, '[')
-			.append(coretools::str::toString(_beta))
-			.append(1, ']');
+	void log() const {
+		coretools::instances::logfile().list(typeString(), ": ", _beta);
 	}
 };
 
@@ -253,12 +236,16 @@ template<size_t O, typename Covariate> class TPolynomial final : public TFunctio
 private:
 	using Transformer =
 		std::conditional_t<std::is_same_v<Covariate, TCovariate_quality>, impl::TLogitTransform, impl::TNoTransform>;
-	std::array<double, O> _betas{1.};  // betas of the model
+	std::array<double, O> _betas{};  // betas of the model
 
 public:
 	static constexpr std::string_view name = "polynomial";
 
-	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
+	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {
+		if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+			_betas.front() = 1.;
+		}
+	}
 
 	size_t numParameters() const noexcept override { return O; }
 
@@ -272,7 +259,7 @@ public:
 		_firstParameterIndex = FirstParameterIndex;
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	double adjust() noexcept override { return 0.; }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const double v = Transformer::transform(Covariate::extract(base));
@@ -325,11 +312,23 @@ public:
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		return std::string(Covariate::name).append(1, ':').append(name).append(1, '0' + O);
+		return toString(Covariate::name, ":", name, O);
 	}
 
 	void addInfo(BAM::RGInfo::TInfo& info) const override {
 		info[Covariate::name] = {{name, _betas}};
+	}
+
+	void log() const override {
+		using coretools::instances::logfile;
+		using coretools::str::toString;
+		const auto var = TCovariate_quality::name.substr(0, 1);
+		auto out = toString(_betas[0], "*", var);
+		for (size_t i = 1; i < _betas.size(); ++i) {
+			if (_betas[i] < 0) out += toString(" - ", -_betas[i], "*", var, "^", i+1);
+			else out += toString(" + ", _betas[i], "*", var, "^", i+1);
+		}
+		logfile().list(typeString(), ": ", out);
 	}
 };
 
@@ -416,7 +415,7 @@ public:
 		return phiCumul *_betas.front();
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	double adjust() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 
 	void addInfo(BAM::RGInfo::TInfo& info) const override {
@@ -448,43 +447,56 @@ public:
 
 	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
-		_betas.resize(Covariate::N(dataTable), 0.);
-		for (size_t i = 0; i < Covariate::N(dataTable); ++i) {
-			if (!Covariate::isUsed(dataTable, i)) _betas[i] = NAN;
+		_betas.assign(Covariate::N(dataTable[Covariate::index]), NAN);
+		for (size_t i = 0; i < _betas.size(); ++i) {
+			if (Covariate::isUsed(dataTable[Covariate::index], i)) {
+				if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+					const coretools::Probability p = coretools::Probability(genometools::PhredIntProbability(i));
+					_betas[i] = coretools::logit(p);
+				} else {
+					_betas[i] = 0.;
+				}
+			}
 		}
 	}
 
-	double adjustParametersPostEstimation() noexcept override {
+	double adjust() noexcept override {
 		double mean = 0.;
 		size_t N    = 0;
-		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i])) {
+		for (auto bi : _betas) {
+			if (!std::isnan(bi)) {
 				++N;
-				mean += _betas[i];
+				mean += bi;
 			}
 		}
-		if (N > 0) mean /= N;
-		for (auto &bi: _betas) bi -= mean; // NaN - number = NaN
+		if (N > 1) mean /= N;
+
+		for (auto &bi : _betas) {
+			if (!std::isnan(bi)) { bi -= mean; }
+		}
 		return mean;
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		//assert(Covariate::extract(base) < _betas.size());
 		const auto val = Covariate::extract(base);
-		if (val < _betas.size()) return _betas[Covariate::extract(base)];
+		if (val < _betas.size()) return _betas[val];
+
 		return _betas.back();
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-						  std::vector<T2ndDerivative> &) const noexcept override {
+				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
 		assert(val < _betas.size());
 
-		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
+		const size_t der_index = firstParameterIndex() + static_cast<size_t>(val);
+		der1.emplace_back(der_index, 1.0);
 		return _betas[val];
-		
 	}
-	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	std::string typeString() const noexcept override {
+		return std::string(Covariate::name).append(1, ':').append(name);
+	}
 
 	void addInfo(BAM::RGInfo::TInfo &info) const override {
 		BAM::RGInfo::TInfo ar = nlohmann::json::array();
@@ -494,25 +506,38 @@ public:
 		info[Covariate::name] = {{name, ar}};
 	}
 
-	std::string modelString() const override {
-		std::string ret = typeString().append(1, '[');
-		bool hasData    = false;
+	void log() const override {
+		using coretools::str::toString;
+		using coretools::instances::logfile;
+		constexpr size_t Nmax = 3;
+
+		std::vector<size_t> iis;
+		iis.reserve(_betas.size());
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i])) {
-				hasData = true;
-				ret.append(coretools::str::toString(i))
-					.append(1, ':')
-					.append(coretools::str::toString(_betas[i]))
-					.append(1, ',');
-			}
+			if (!std::isnan(_betas[i])) iis.push_back(i);
 		}
-		if (hasData) ret.back() = ']'; // replace last ',' with ']'
-		else ret.append(1, ']');
-		return ret;
+		if (iis.empty()) {
+			logfile().list(typeString(), ": []");
+			return;
+		}
+
+		std::string ret = "[";
+		if (iis.size() <= 2 * Nmax) {
+			for (auto i : iis) ret.append(toString(i, ": ", _betas[i], ", "));
+		} else {
+			for (size_t j = 0; j < Nmax; ++j)
+				ret.append(toString(iis[j], ": ", _betas[iis[j]], ", "));
+			ret.append("..., ");
+			const auto jStart = iis.size() - 1 - Nmax;
+			for (size_t j = 0; j < Nmax; ++j)
+				ret.append(toString(iis[jStart + j], ": ", _betas[iis[jStart + j]], ", "));
+		}
+		ret.pop_back();
+		ret.back() = ']';
+		logfile().list(typeString(), ": ", ret);
 	}
 };
 
-} // namespace SequencingError
-} // namespace GenotypeLikelihoods
+} // namespace GenotypeLikelihoods::SequencingError
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_ */

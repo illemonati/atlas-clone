@@ -8,29 +8,29 @@
 #ifndef GENOMETASKS_TPMDSCALCULATOR_H_
 #define GENOMETASKS_TPMDSCALCULATOR_H_
 
-#include <set>
 #include <string>
 
-#include "TBamFile.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Math/TNumericRange.h"
+
+#include "TBamTraverser.h"
+#include "TOutputBamFile.h"
+
 
 namespace GenomeTasks{
 
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
-class TPMDSCalculator:public TGenome_parsed{
+class TPMDSCalculator final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	coretools::Probability _pi;
 	bool _doFilter = false;
 	coretools::TNumericRange<double> _filterRange;
 	BAM::TOutputBamFile _outBam;
 
-	double _calculatePMDS();
-	void _handleAlignment() override;
+	double _calculatePMDS(BAM::TAlignment& alignment);
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TPMDSCalculator();

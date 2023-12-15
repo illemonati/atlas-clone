@@ -17,7 +17,6 @@
 #include "coretools/Files/TFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -35,24 +34,24 @@ using coretools::str::toString;
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TGenome_windows() {
-	_steps = parameters().getParameterWithDefault<int>("steps", 100);
+TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TBamWindowTraverser() {
+	_steps = parameters().get<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
 	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
 };
 
-void TEstimateThetaLLSurface::_handleWindow() {
+void TEstimateThetaLLSurface::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	logfile().startIndent("Calculating likelihood surface for Theta:");
 
 	// adding sites to estimator
-	for (auto &s : _window) {
-		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		_thetaEstimator.add(s, _genoLik);
+	for (auto &s : window) {
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
+		_thetaEstimator.add(s, genoLik);
 	}
 
 	// open file
 	std::string filename =
-		_outputName + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
+		_genome.outputName() + window.chrName() + "_" + toString(window.from().position()) + "_LLsurface.txt";
 	logfile().listFlushTime("Writing LL surface to file '" + filename + "' ...");
 	coretools::TOutputFile out(filename);
 
@@ -76,27 +75,25 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for (auto &s : window) {
-		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		thetaEstimator.add(s, _genoLik);
+		const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
+		thetaEstimator.add(s, genoLik);
 	}
 	logfile().doneTime();
 };
 
-void TEstimateTheta::_addSites() { _addSites(_window, _thetaEstimator); };
-
-TEstimateTheta::TEstimateTheta() : TGenome_windows() {
-	if (parameters().parameterExists("genomeWide")) {
+TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
+	if (parameters().exists("genomeWide")) {
 		_genomeWide = true;
 		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
 
-		if (_considerRegions) {
+		if (_windows.considerRegions()) {
 			logfile().list("Estimating theta at specific sites. (parameter 'regions')");
 		} else {
 			logfile().list("Estimating theta genome-wide. (use 'regions' to limit)");
 		}
 
 		// bootstraps
-		_numBootstraps = parameters().getParameterWithDefault<int>("bootstraps", 0);
+		_numBootstraps = parameters().get<int>("bootstraps", 0);
 		if (_numBootstraps > 0) {
 			logfile().list("Will estimate theta fpr ", _numBootstraps,
 						   " bootstrap replicates. (parameter 'bootstraps')");
@@ -104,7 +101,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 			logfile().list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
 		}
 
-		if (parameters().parameterExists("onlyBootstrap")) {
+		if (parameters().exists("onlyBootstrap")) {
 			_onlyBootstraps = true;
 			logfile().list("Will only bootstrap");
 		} else {
@@ -118,12 +115,12 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 
 	// read downsampling rates
 
-	if (parameters().parameterExists("prob")) {
-		parameters().fillParameterIntoContainerRepeatIndexes("prob", downSampleProbVector, ',');
-	} else if (parameters().parameterExists("depth")) {
+	if (parameters().exists("prob")) {
+		parameters().fill("prob", downSampleProbVector);
+	} else if (parameters().exists("depth")) {
 		std::vector<double> depths;
-		parameters().fillParameterIntoContainerRepeatIndexes("depth", depths, ',');
-		double averageDepth = parameters().getParameter<double>("averageDepth");
+		parameters().fill("depth", depths);
+		double averageDepth = parameters().get<double>("averageDepth");
 		for (auto &it : depths) {
 			if (averageDepth >= it) {
 				downSampleProbVector.push_back(it / averageDepth);
@@ -153,7 +150,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	}
 
 	// open output
-	std::string filename = _outputName + "_theta.txt.gz";
+	std::string filename = _genome.outputName() + "_theta.txt.gz";
 	if (_printFullData) {
 		const std::string prefix = downSampleProbVector.empty()? "" : "p1.0_";
 		_thetaOut.addEstimator(&_thetaEstimator, prefix);
@@ -172,7 +169,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	_thetaOut.open(filename);
 
 	// print all windows?
-	if (parameters().parameterExists("printAll")) {
+	if (parameters().exists("printAll")) {
 		_printAll = true;
 		logfile().list(
 			"Will print all windows, also those for which no estimation was possible. (parameter 'printAll')");
@@ -182,13 +179,13 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	}
 };
 
-void TEstimateTheta::_handleWindow() {
+void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// estimate on full data
 	bool pass = false;
 	if (_printFullData) {
 		logfile().startIndent("Using full data:");
 
-		_addSites();
+		_addSites(window, _thetaEstimator);
 		if (!_genomeWide) {
 			logfile().startIndent("Estimating Theta:");
 
@@ -198,17 +195,15 @@ void TEstimateTheta::_handleWindow() {
 		logfile().endIndent();
 	}
 
-	static GenotypeLikelihoods::TWindow destination;
-
 	for (size_t i = 0; i < downSampleProbVector.size(); ++i) {
 		coretools::Probability &p = downSampleProbVector[i];
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		destination.downsampleFromOther(_window, _readUpToDepth, p);
+		GenotypeLikelihoods::TWindow destination(window, _windows.uptoDepth(), p);
 		logfile().done();
 
-		_applyWindowFilters(destination);
+		_windows.filter(destination);
 		_addSites(destination, estimators[i]);
 
 		if (!_genomeWide) {
@@ -221,7 +216,7 @@ void TEstimateTheta::_handleWindow() {
 
 	// write output & clear
 	if (!_genomeWide) {
-		if (pass || _printAll) _thetaOut.write(_window);
+		if (pass || _printAll) _thetaOut.write(window);
 
 		_thetaEstimator.clear();
 		for (auto &e : estimators) { e.clear(); }
@@ -260,9 +255,9 @@ void TEstimateTheta::run() {
 			_thetaEstimator.estimateTheta();
 			for (auto& e: estimators) e.estimateTheta();
 			// write estimates
-			//std::string filename = _outputName + "_thetaGenomeWide.txt.gz";
+			//std::string filename = _genome.outputName() + "_thetaGenomeWide.txt.gz";
 			//_thetaOut.open(&_thetaEstimator, filename);
-			if (_considerRegions) {
+			if (_windows.considerRegions()) {
 				_thetaOut.write("regions", "-", "-");
 			} else {
 				_thetaOut.write("genome-wide", "-", "-");
@@ -278,7 +273,7 @@ void TEstimateTheta::run() {
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-TEstimateThetaRatio::TEstimateThetaRatio() : TGenome_windows(), _thetaEstimatorRatio() {
+TEstimateThetaRatio::TEstimateThetaRatio() : TBamWindowTraverser(), _thetaEstimatorRatio() {
 	// read the two regions to be used
 	logfile().startIndent("Reading regions:");
 	_initializeRegion(_region1, 1);
@@ -287,35 +282,33 @@ TEstimateThetaRatio::TEstimateThetaRatio() : TGenome_windows(), _thetaEstimatorR
 
 void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int num) {
 	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
-	std::string regionsFile = parameters().getParameter<std::string>("region" + std::to_string(num));
-	logfile().list((std::string) "Reading regions " + std::to_string(num) + " from file '" + regionsFile + " (parameter 'region" + std::to_string(num) +
-				   "') ...");
-	region.add(regionsFile, _bamFile.chromosomes());
+	std::string regionsFile = parameters().get<std::string>("region" + std::to_string(num));
+	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
+	region.add(regionsFile, _genome.bamFile().chromosomes());
 	logfile().done();
-	logfile().conclude("Read " + toString(region.size()) + " sites on " + toString(region.numChromosomesWithWindows()) +
-					   " chromosomes.");
+	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
 };
 
-void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &region) {
-	auto it = region.lower_bound(_window);
+void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, GenotypeLikelihoods::TThetaEstimatorData &Data, const genometools::TBed &Region) {
+	auto it = Region.lower_bound(Window);
 
-	while (it != region.end() && _window.overlaps(*it)) {
-		for (genometools::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to();
+	while (it != Region.end() && Window.overlaps(*it)) {
+		for (genometools::TGenomePosition s = std::max(it->from(), Window.from()); s < it->to() && s < Window.to();
 			 ++s) {
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-			genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[s - _window.from()]);
-			data.add(_window[s - _window.from()], genoLik);
+			genoLik = _genome.errorModels().calculateGenotypeLikelihoods(Window[s - Window.from()]);
+			Data.add(Window[s - Window.from()], genoLik);
 		}
 		++it;
 	}
 };
 
-void TEstimateThetaRatio::_handleWindow() {
+void TEstimateThetaRatio::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	try {
-		_addSites(*_thetaEstimatorRatio.pointerToDataContainer(), _region1);
-		_addSites(*_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
+		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer(), _region1);
+		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
 			   "regions or limiting to sites with a minimal depth (>=2 recommended).");
@@ -325,7 +318,7 @@ void TEstimateThetaRatio::_handleWindow() {
 
 void TEstimateThetaRatio::run() {
 	_traverseBAMWindows();
-	_thetaEstimatorRatio.estimateRatio(_outputName);
+	_thetaEstimatorRatio.estimateRatio(_genome.outputName());
 };
 
 }; // namespace GenomeTasks

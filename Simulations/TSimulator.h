@@ -8,28 +8,21 @@
 #ifndef TSIMULATOR_H_
 #define TSIMULATOR_H_
 
-#include <stddef.h>
-#include <stdint.h>
 #include <array>
-#include <exception>
-#include <functional>
-#include <map>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
-#include "../BAM/TReadGroupInfo.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "TGlfMultiReader.h"
-#include "THaplotypeSimulator.h"
+
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "TReadGroups.h"
-#include "TSimulatorAuxiliaryTools.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "genometools/GenotypeTypes.h"
+
+#include "TGlfMultiReader.h"
+#include "THaplotypeSimulator.h"
+#include "TReadGroupInfo.h"
 #include "TReadSimulators.h"
 
 namespace genometools { class PhredIntProbability; }
@@ -109,9 +102,9 @@ struct TSimulationRunner {
 	void run() {
 		using namespace coretools::instances;
 		// initialize simulator
-		auto method = parameters().getParameterWithDefault<std::string>("type", "one");
+		auto method = parameters().get<std::string>("type", "one");
 
-		if (parameters().parameterExists("vcf")) {
+		if (parameters().exists("vcf")) {
 			logfile().startIndent("Simulating VCF Files:");
 			auto simulator = TVCFSimulator{method};
 			simulator.runSimulations();

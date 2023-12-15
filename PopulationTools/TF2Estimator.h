@@ -5,14 +5,10 @@
 #ifndef ATLAS_TF2ESTIMATOR_H
 #define ATLAS_TF2ESTIMATOR_H
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
-#include "coretools/Main/TParameters.h"
-#include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
-#include "coretools/Main/TTask.h"
 
 namespace PopulationTools {
 //------------------------------------------------

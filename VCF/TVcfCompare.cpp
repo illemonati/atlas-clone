@@ -122,13 +122,13 @@ void TGenotypeComparisonTable::write(const std::string filename){
 // TVCFComapreVCF
 //--------------------------------------------------------------
 
-TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName){
+TVcfComapreVCF::TVcfComapreVCF(std::string_view filename, std::string_view sampleName){
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
-		logfile().list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
+		logfile().list("Reading sample '", sampleName, "' from VCF file '", filename, "'.");
 		_vcfFile = std::make_unique<genometools::TVcfFileSingleLine>(filename, false);
 	} else {
-		logfile().list("Reading sample '" + sampleName + "' from gzipped VCF file '" + filename + "'.");
+		logfile().list("Reading sample '", sampleName, "' from gzipped VCF file '", filename, "'.");
 		_vcfFile = std::make_unique<genometools::TVcfFileSingleLine>(filename, true);
 	}
 
@@ -203,11 +203,8 @@ void TVcfCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int
 TVcfCompare::TVcfCompare() {
 	//open vcf files
 	logfile().startIndent("Open VCF files to compare:");
-	std::vector<std::string> fileNames;
-	parameters().fillParameterIntoContainer("vcf", fileNames, ',');
-
-	std::vector<std::string> sampleNames;
-	parameters().fillParameterIntoContainer("samples", sampleNames, ',');
+	const auto fileNames   = parameters().get<std::vector<std::string>>("vcf");
+	const auto sampleNames = parameters().get<std::vector<std::string>>("samples");
 
 	//currently only implemented for comparing two VCFs
 	if (fileNames.size() == 1) {
@@ -227,20 +224,20 @@ TVcfCompare::TVcfCompare() {
 	logfile().endIndent();
 
 	//are filters in place?
-	int minDepth = parameters().getParameterWithDefault<int>("minDepth", 0);
+	int minDepth = parameters().get<int>("minDepth", 0);
 	if(minDepth > 0){
 		logfile().list("Will consider genotypes with depth < " + toString(minDepth) + " as missing.");
 	}
-	double minQual = parameters().getParameterWithDefault("minQual", 0.0);
+	double minQual = parameters().get("minQual", 0.0);
 	if(minQual > 0){
 		logfile().list("Will consider genotypes with quality < " + toString(minQual) + " as missing.");
 	}
 
 	//limitLines
-	if(parameters().parameterExists("limitLines")){
+	if(parameters().exists("limitLines")){
 		_limitLines = true;
 		logfile().list("Will stop reading after ", _limitLines, " lines.");
-		_lineLimit = parameters().getParameter<int>("limitLines");
+		_lineLimit = parameters().get<int>("limitLines");
 	}
 
 	//set filters in VCF files
@@ -248,7 +245,7 @@ TVcfCompare::TVcfCompare() {
 		it.setFilters(minDepth, minQual);
 	}
 
-	_outName = parameters().getParameter<std::string>("out", false);
+	_outName = parameters().get("out", "");
 	if(_outName.empty()){
 		//guess from filename
 		//get base name of first VCF file

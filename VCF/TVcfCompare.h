@@ -8,13 +8,12 @@
 #ifndef VCF_TVCFCOMPARE_H_
 #define VCF_TVCFCOMPARE_H_
 
-#include <memory>
-#include <stdint.h>
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
+
 #include "genometools/GenotypeTypes.h"
-#include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
 
 namespace VCF{
@@ -63,7 +62,7 @@ private:
 	double _minQual = 0.;
 
 public:
-	TVcfComapreVCF(std::string & filename, std::string & sampleName);
+	TVcfComapreVCF(std::string_view filename, std::string_view sampleName);
 
 	void next();
 	void setFilters(const int mindepth, const double minQual);

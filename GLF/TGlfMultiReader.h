@@ -8,28 +8,17 @@
 #ifndef GLF_TGLFMULTIREADER_H_
 #define GLF_TGLFMULTIREADER_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <algorithm>
 #include <array>
-#include <iterator>
-#include <ostream>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "coretools/Containers/TStrongArray.h"
-#include "fmt/core.h"
-
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Files/gzstream.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 
-#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TFastaReader.h"
 
 #include "TGLF.h"
 #include "genometools/TFastaReader.h"

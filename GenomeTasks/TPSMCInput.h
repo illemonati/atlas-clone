@@ -8,14 +8,11 @@
 #ifndef GENOMETASKS_TPSMCINPUT_H_
 #define GENOMETASKS_TPSMCINPUT_H_
 
-#include <stdint.h>
 #include <iosfwd>
 #include <memory>
-#include <string>
 
-#include "TGenome.h"
+#include "TBamWindowTraverser.h"
 #include "TGenotypeData.h"
-#include "coretools/Main/TTask.h"
 #include "TThetaEstimator.h"
 
 namespace GenomeTasks{
@@ -23,7 +20,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-class TPSMCInput:public TGenome_windows{
+class TPSMCInput final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	double _theta;
 	double _confidence, _logConfidence, _logConfidenceHet;
@@ -33,8 +30,9 @@ private:
 	size_t _nCharOnLine;
 	std::unique_ptr<GenotypeLikelihoods::TThetaEstimator> _thetaEstimator;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _startChromosome(const genometools::TChromosome&) override {}
+	void _endChromosome(const genometools::TChromosome&) override {}
 public:
 	TPSMCInput();
 	void run();

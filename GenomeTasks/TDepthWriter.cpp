@@ -20,29 +20,29 @@ using coretools::instances::logfile;
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-void TDepthWriter::_handleWindow(){
+void TDepthWriter::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().listFlush("Writing sequencing depth estimates to file ...");
-	_out.writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position()).writeDelim();
-	_out.writeln(_window.depth());
+	_out.writeNoDelim(window.chrName(), ':', window.from().position() + 1, '-', window.to().position()).writeDelim();
+	_out.writeln(window.depth());
 	logfile().done();
 
 	logfile().listFlush("Adding per site depth to distribution ...");
-	for(auto& s : _window){
+	for(auto& s : window){
 		_distPerSite.add(s.depth());
 	}
 	logfile().done();
 };
 
-void TDepthWriter::writeDepth(){
-	const std::string filename = _outputName + "_depthPerWindow.txt.gz";
+void TDepthWriter::run(){
+	const std::string filename = _genome.outputName() + "_depthPerWindow.txt.gz";
 	logfile().list("Writing per window depth estimates to '", filename, "'.");
 	_out.open(filename, {"window", "depth"});
 
 	_traverseBAMWindows();
 
 	//write distribution
-	logfile().list("Writing depth per site distribution to file '", _outputName, "_depthPerSiteHistogram.txt' ...");
-	_distPerSite.write(_outputName + "_depthPerSiteHistogram.txt", "depth");
+	logfile().list("Writing depth per site distribution to file '", _genome.outputName(), "_depthPerSiteHistogram.txt' ...");
+	_distPerSite.write(_genome.outputName() + "_depthPerSiteHistogram.txt", "depth");
 };
 
 

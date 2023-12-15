@@ -4,17 +4,6 @@
  *  Created on: Apr 19, 2018
  *      Author: wegmannd
  */
-
-#include "TAlignment.h"
-#include "TSequencedBase.h"
-#include "coretools/Main/TError.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "TBamFilter.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Types/strongTypes.h"
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
@@ -22,6 +11,21 @@
 #include <memory>
 #include <stdexcept>
 #include <stdlib.h>
+
+#include "SequencingError/TModels.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/strongTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TFastaReader.h"
+
+#include "TAlignment.h"
+#include "TBamFilter.h"
+#include "TBaseFilter.h"
+#include "TSequencedBase.h"
+#include "TErrorModels.h"
 
 namespace BAM {
 
@@ -138,7 +142,7 @@ void TAlignment::_parseBasesQualities() {
 			// soft-clipped bases on left are before bamAlignment.Position
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d, ++p) {
 				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
+				_bases[d].originalQuality = genometools::BaseQuality(_qualities[d]);
 				_bases[d].setAligned(true);
 				_alignedPosition.push_back(p);
 			}
@@ -152,7 +156,7 @@ void TAlignment::_parseBasesQualities() {
 				// soft-clipped bases on 5' are before bamAlignment.Position
 				// need to initialize quality for quality filter and bases for context
 				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
+				_bases[d].originalQuality = genometools::BaseQuality(_qualities[d]);
 				_bases[d].setAligned(false);
 				_alignedPosition.push_back(-1);
 			}
@@ -162,7 +166,7 @@ void TAlignment::_parseBasesQualities() {
 		case ('I'):
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
 				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
+				_bases[d].originalQuality = genometools::BaseQuality(_qualities[d]);
 				_bases[d].setAligned(false);
 				_alignedPosition.push_back(-1);
 			}
@@ -201,7 +205,7 @@ void TAlignment::_parseBasesQualities() {
 
 void TAlignment::_setQualitiesNoRecal() {
 	// No recal: set recalibrated quality = original quality
-	for (auto &b : _bases) { b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt; }
+	for (auto &b : _bases) { b.recalQuality = b.originalQuality; }
 };
 
 void TAlignment::_setDistancesFromEnds() {
@@ -369,7 +373,7 @@ void TAlignment::_updateSequenceAndQualities() const {
 
 		for (size_t b = 0; b < _bases.size(); ++b) {
 			_sequence[b]  = genometools::base2char(_bases[b].base);
-			_qualities[b] = static_cast<char>(genometools::BaseQuality(_bases[b].recalibratedQualityAsPhredInt));
+			_qualities[b] = static_cast<char>(genometools::BaseQuality(_bases[b].recalQuality));
 		}
 
 		_sequenceAndQualitiesChanged = false;
@@ -389,23 +393,12 @@ std::string TAlignment::qualities() const {
 //--------------------------------------------
 // filters and other functions to modify data
 //--------------------------------------------
-void TAlignment::filter(const TBaseFilter &Filter) {
-	if (Filter) {
-		// set quality = 0 and base = N if outside quality filter
-		for (auto &b : _bases) {
-			if (!Filter.pass(b)) {
-				b.base                          = genometools::Base::N;
-				b.recalibratedQualityAsPhredInt = 0;
-			}
-		}
-	}
-};
 
 void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 	for (auto &b : _bases) {
 		if (b.distFrom3Prime < trimmingLength3Prime || b.distFrom5Prime < trimmingLength5Prime) {
 			b.base                          = genometools::Base::N;
-			b.recalibratedQualityAsPhredInt = 0;
+			b.recalQuality = 0;
 		}
 	}
 
@@ -452,12 +445,12 @@ void TAlignment::binQualityScoresIllumina() {
 		DEVERROR("Read was not parsed!");
 
 	// bin quality scores as done by Illumina
-	for (auto &b : _bases) { b.recalibratedQualityAsPhredInt.makeIllumina(); }
+	for (auto &b : _bases) { b.recalQuality.makeIllumina(); }
 
 	_sequenceAndQualitiesChanged = true;
 };
 
-void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator) {
+void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator) {
 	GLCalculator.recalibrateWithPMD(*this);
 	_sequenceAndQualitiesChanged = true;
 };
@@ -482,7 +475,7 @@ void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKee
 		double r = coretools::instances::randomGenerator().getRand();
 		if (r > fractionToKeep) {
 			b.base                          = genometools::Base::N;
-			b.recalibratedQualityAsPhredInt = 0;
+			b.recalQuality = 0;
 		}
 	}
 	_sequenceAndQualitiesChanged = true;

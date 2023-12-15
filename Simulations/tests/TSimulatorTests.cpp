@@ -102,9 +102,9 @@ TEST(TVCFSimulator, findMajorMinorAllele_4) {
 	EXPECT_TRUE(counterMinor[genometools::Base::C] > 0);
 }
 
-TEST(TVCFSimulator, calculateGenotypeLikelihoods_diploid) {
-	coretools::instances::parameters().addParameter("error", 0.05);
-	TVcfWriter vcfSimulator;
+TEST(TVCFSimulator, _calculateGenotypeLikelihoods_diploid) {
+	coretools::instances::parameters().add("error", 0.05);
+	TVCFSimulatorBridge vcfSimulator;
 
 	auto GTL = vcfSimulator.calculateGenotypeLikelihoods(10, 20, true);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoFirst]), 26243);
@@ -112,9 +112,9 @@ TEST(TVCFSimulator, calculateGenotypeLikelihoods_diploid) {
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoSecond]), 13456);
 }
 
-TEST(TVCFSimulator, calculateGenotypeLikelihoods_haploid) {
-	coretools::instances::parameters().addParameter("error", 0.05);
-	TVcfWriter vcfSimulator;
+TEST(TVCFSimulator, _calculateGenotypeLikelihoods_haploid) {
+	coretools::instances::parameters().add("error", 0.05);
+	TVCFSimulatorBridge vcfSimulator;
 
 	auto GTL = vcfSimulator.calculateGenotypeLikelihoods(10, 20, false);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidFirst]), 26243);
@@ -129,11 +129,11 @@ void simulate(){
 TEST(TVCFSimulator, integrationTest) {
 	coretools::instances::randomGenerator().setSeed(0);
 	size_t numSamples = 20;
-	coretools::instances::parameters().addParameter("sampleSize", numSamples);
-	coretools::instances::parameters().addParameter("chrLength", "1000,1000");
-	coretools::instances::parameters().addParameter("ploidy", "1,2");
-	coretools::instances::parameters().addParameter("depth", "10");
-	coretools::instances::parameters().addParameter("out", "./vcfSimulatorTest");
+	coretools::instances::parameters().add("sampleSize", numSamples);
+	coretools::instances::parameters().add("chrLength", "1000,1000");
+	coretools::instances::parameters().add("ploidy", "1,2");
+	coretools::instances::parameters().add("depth", "10");
+	coretools::instances::parameters().add("out", "./vcfSimulatorTest");
 
 	// simulate
 	simulate();

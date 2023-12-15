@@ -8,9 +8,10 @@
 #ifndef PMD_TPERREADGROUP_H_
 #define PMD_TPERREADGROUP_H_
 
-#include "TFunction.h"
-#include "TAlignment.h"
-#include "TModel.h"
+#include <memory>
+#include <type_traits>
+#include <vector>
+
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -18,10 +19,11 @@
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
-#include <cstddef>
-#include <memory>
-#include <type_traits>
-#include <vector>
+
+#include "TFunction.h"
+#include "TAlignment.h"
+#include "TModel.h"
+
 namespace GenotypeLikelihoods::oldPMD {
 namespace impl {
 

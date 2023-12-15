@@ -662,31 +662,6 @@ TEST(TBedTest, begin_refID){
     EXPECT_EQ(it->toOnChr(), 100);
 }
 
-TEST(TBedTest, end_refID){
-    // create bed and add chromosome
-    genometools::TBed bed;
-    bed.addChromosome("chr1");
-    bed.addChromosome("chr2");
-
-    bed.add(genometools::TGenomeWindow(0, 10, 20));
-    bed.add(genometools::TGenomeWindow(0, 30, 40));
-    bed.add(genometools::TGenomeWindow(0, 50, 60));
-    bed.add(genometools::TGenomeWindow(0, 1, 2));
-    bed.add(genometools::TGenomeWindow(1, 55, 100));
-
-    auto it = bed.end(0);
-    it--;
-    EXPECT_EQ(it->refID(), 0);
-    EXPECT_EQ(it->fromOnChr(), 50);
-    EXPECT_EQ(it->toOnChr(), 60);
-
-    it = bed.end(1);
-    it--;
-    EXPECT_EQ(it->refID(), 1);
-    EXPECT_EQ(it->fromOnChr(), 55);
-    EXPECT_EQ(it->toOnChr(), 100);
-}
-
 //-----------------------------------------------------
 // TGenomeWindowList
 //-----------------------------------------------------

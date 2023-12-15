@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "TAlignment.h"
+#include "TBamTraverser.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
@@ -75,15 +76,15 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping() : TGenome_filtered() {
+TAssessSoftClipping::TAssessSoftClipping() : TBamReadTraverser<ReadType::Filtered>() {
 	// limit input / output
-	if (parameters().parameterExists("writeReads")) {
+	if (parameters().exists("writeReads")) {
 		_writeAlignments     = true;
-		std::string filename = _outputName + "_softClippingStats.txt.gz";
+		const auto filename = _genome.outputName() + "_softClippingStats.txt.gz";
 		logfile().list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
 
 		// write all reads?
-		if (parameters().parameterExists("printAll")) {
+		if (parameters().exists("printAll")) {
 			_printAll = true;
 			logfile().list("Writing soft clipping stats for all reads to file. (parameter 'printAll')");
 		} else {
@@ -92,7 +93,7 @@ TAssessSoftClipping::TAssessSoftClipping() : TGenome_filtered() {
 		}
 
 		bool printSequences = false;
-		if (parameters().parameterExists("printSequences")) {
+		if (parameters().exists("printSequences")) {
 			printSequences = true;
 			logfile().list("Writing soft clipped bases to file. (parameter 'printSequences')");
 		} else {
@@ -107,13 +108,13 @@ TAssessSoftClipping::TAssessSoftClipping() : TGenome_filtered() {
 
 void TAssessSoftClipping::_handleAlignment() {
 	// add to counters
-	const BAM::TCigar &cigar = _bamFile.curCIGAR();
+	const BAM::TCigar &cigar = _genome.bamFile().curCIGAR();
 	left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
 	right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
 	total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft() + cigar.lengthSoftClippedRight());
 
 	// write to file
-	if (_writeAlignments && (cigar.lengthSoftClipped() > 0 || _printAll)) { statFile.write(_bamFile); }
+	if (_writeAlignments && (cigar.lengthSoftClipped() > 0 || _printAll)) { statFile.write(_genome.bamFile()); }
 };
 
 void TAssessSoftClipping::run() {
@@ -122,17 +123,17 @@ void TAssessSoftClipping::run() {
 
 	// write counts
 	logfile().startIndent("Writing soft clipping distributions:");
-	std::string filename = _outputName + "_softClippingMatrixLeft.txt";
+	std::string filename = _genome.outputName() + "_softClippingMatrixLeft.txt";
 	logfile().listFlush("Writing distribution of soft clipping on left to file '" + filename + "' ...");
 	left.write(filename, "readLength", "softClippedLengthLeft");
 	logfile().done();
 
-	filename = _outputName + "_softClippingMatrixRight.txt";
+	filename = _genome.outputName() + "_softClippingMatrixRight.txt";
 	logfile().listFlush("Writing distribution of soft clipping on right to file '" + filename + "' ...");
 	left.write(filename, "readLength", "softClippedLengthRight");
 	logfile().done();
 
-	filename = _outputName + "_softClippingMatrixBoth.txt";
+	filename = _genome.outputName() + "_softClippingMatrixBoth.txt";
 	logfile().listFlush("Writing distribution of soft clipping on both combined to file '" + filename + "' ...");
 	left.write(filename, "readLength", "softClippedLengthBoth");
 	logfile().done();
@@ -142,23 +143,20 @@ void TAssessSoftClipping::run() {
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TGenome_parsed(){};
+	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TBamReadTraverser<ReadType::Parsed>(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
+		
+	};
 
-void TRemoveSoftClippedBases::_handleAlignment() {
-	_alignment.removeSoftClippedBases();
-	_outBam.writeAlignment(_alignment);
+void TRemoveSoftClippedBases::_handleAlignment(BAM::TAlignment& alignment) {
+	alignment.removeSoftClippedBases();
+	_outBam.writeAlignment(alignment);
 };
 
 void TRemoveSoftClippedBases::run() {
-	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
-	logfile().list("Writing reads after soft-clip trimming to file '" + filename + "'.");
-	_openBamForWriting(filename, _outBam);
+	logfile().list("Writing reads after soft-clip trimming to file '", _genome.outputName(),  "_softClippedBasesRemoved.bam'.");
 
 	// traverse BAM
 	_traverseBAMPassedQC();
-
-	// report
-	_outBam.close();
 };
 
 }; // namespace GenomeTasks

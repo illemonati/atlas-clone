@@ -6,4 +6,5 @@ bname=$(basename $0)
 name=${bname%.sh}
 out=$name/$name
 
-$atlas --task GLF --bam BAM/BAM.bam --printAll --out $out --logFile $out.out 2> $out.err > /dev/null
+$atlas --task GLF --bam BAM/BAM.bam --printAll \
+	   --out $out --logFile $out.out 2> $out.err > /dev/null

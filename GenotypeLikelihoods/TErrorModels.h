@@ -8,32 +8,33 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 
-#include "oldPMD/TModels.h"
-#include "SequencingError/TModels.h"
-#include "TAlignment.h"
-#include "TGenotypeData.h"
-#include "TGenotypeDistribution.h"
-#include "TSite.h"
 #include "coretools/Types/probability.h"
 #include "genometools/PhredProbabilityTypes.h"
 
+#include "PMD/TModels.h"
+#include "SequencingError/TModels.h"
+#include "TGenotypeData.h"
+#include "TReadGroupInfo.h"
+
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
+namespace BAM { class TAlignment; }
 
 namespace GenotypeLikelihoods{
+class TSite;
 
-class TGenotypeLikelihoodCalculator{
+class TErrorModels{
 private:
-	oldPMD::TModels _pmdModels;
-	SequencingError::TModels _sequencingErrorModels;
+	PMD::TModels _pmd;
+	SequencingError::TModels _recal;
 
 public:
-	TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups);
+	TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo);
 
-	const SequencingError::TModels& sequencingErrorModels() const { return _sequencingErrorModels; };
-	SequencingError::TModels& sequencingErrorModels() { return _sequencingErrorModels; };
-	const oldPMD::TModels& postMortemDamageModels() const { return _pmdModels; };
-	oldPMD::TModels& postMortemDamageModels() { return _pmdModels; };
+	const SequencingError::TModels& sequencingErrorModels() const { return _recal; };
+	SequencingError::TModels& sequencingErrorModels() { return _recal; };
+	const PMD::TModels& postMortemDamageModels() const { return _pmd; };
+	PMD::TModels& postMortemDamageModels() { return _pmd; };
 
 	coretools::Probability errorWithPMD(const BAM::TSequencedBase & base) const;
 	genometools::PhredIntProbability phredIntWithPMD(const BAM::TSequencedBase & base) const;

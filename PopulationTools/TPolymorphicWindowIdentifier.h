@@ -8,9 +8,6 @@
 #ifndef POPULATIONTOOLS_TPolymorphicWindowIdentifier_H_
 #define POPULATIONTOOLS_TPolymorphicWindowIdentifier_H_
 
-#include <string>
-#include "coretools/Main/TTask.h"
-
 namespace PopulationTools{
 
 class TPolymorphicWindowIdentifier{

@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "TBamFilters.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -24,7 +25,6 @@
 #include "coretools/Files/TFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -70,14 +70,14 @@ namespace impl{
 		std::vector<BAM::TSequencedBase>::const_iterator baseIterator = secondRead.begin();
 		size_t internalPos = 0;
 		//use the recalibrated quality
-		genometools::PhredIntProbability secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+		genometools::PhredIntProbability secondReadMinQual = baseIterator->recalQuality;
 
 		while(!secondRead.isAlignedAtInternalPos(internalPos) || (secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position() != secondRead.lastAlignedPositionWithRespectToRef().position())){
 			//if the base at the current position of the iterator is aligned and its PhredIntProbability is higher (therefore the error-probability is higher and the quality is lower)
 			//save this number as the new minimum quality
 			if(secondRead.isAlignedAtInternalPos(internalPos)){
-				if (baseIterator->recalibratedQualityAsPhredInt > secondReadMinQual)
-					secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+				if (baseIterator->recalQuality > secondReadMinQual)
+					secondReadMinQual = baseIterator->recalQuality;
 			}
 			baseIterator++;
 			internalPos++;
@@ -85,11 +85,11 @@ namespace impl{
 		//base iterator starts at last position of the forward strand, then decrements until it reaches either the first aligned position of itself or the forward read
 		std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
 		internalPos = firstRead.getLastInternalPos();
-		genometools::PhredIntProbability firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
+		genometools::PhredIntProbability firstReadMinQual = baseIteratorReverse->recalQuality;
 		while (!firstRead.isAlignedAtInternalPos(internalPos) || (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position() != firstRead.position())) {
 			if(firstRead.isAlignedAtInternalPos(internalPos)){
-				if (baseIteratorReverse->recalibratedQualityAsPhredInt > firstReadMinQual)
-					firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
+				if (baseIteratorReverse->recalQuality > firstReadMinQual)
+					firstReadMinQual = baseIteratorReverse->recalQuality;
 			}
 			baseIteratorReverse++;
 			internalPos--;
@@ -113,11 +113,11 @@ namespace impl{
 		//for the first read, we start at the last base of the read and go to the base at the center of the overlap and return its quality-value
 		if (isFirst){
 			std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIterator = alignment.rbegin() + numBasesFromEnd;
-			return baseIterator->recalibratedQualityAsPhredInt;
+			return baseIterator->recalQuality;
 		} else {
 			//for the second read, we start at the first base of the read
 			std::vector<BAM::TSequencedBase>::const_iterator baseIterator = alignment.begin() + numBasesFromEnd;
-			return baseIterator->recalibratedQualityAsPhredInt;
+			return baseIterator->recalQuality;
 		}
 	}
 
@@ -217,8 +217,8 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 	_settings.clear();
 
 	//check if we only merge without truncation
-	if(parameters().parameterExists("pairedReadGroups")){
-		std::string pairedRG = parameters().getParameter<std::string>("pairedReadGroups");
+	if(parameters().exists("pairedReadGroups")){
+		std::string pairedRG = parameters().get<std::string>("pairedReadGroups");
 		if(pairedRG == "all"){
 			//mark all as paired
 			for (size_t rg = 0; rg < readGroups.size(); ++rg) { _settings.emplace(rg, ReadGroupType::paired, 0); }
@@ -247,8 +247,8 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//do we have to ignore read groups present in file?
 		std::vector<std::string> vec;
 		std::set<size_t> readGroupsToIgnore;
-		if(parameters().parameterExists("ignoreReadGroups")){
-			std::string ignoredReadGroupsFile = parameters().getParameter<std::string>("ignoreReadGroups");
+		if(parameters().exists("ignoreReadGroups")){
+			std::string ignoredReadGroupsFile = parameters().get<std::string>("ignoreReadGroups");
 			logfile().listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
 			coretools::TInputFile in(ignoredReadGroupsFile, false);
 			while(in.read(vec)){
@@ -260,7 +260,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		}
 
 		//read file with read group settings
-		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
+		std::string readGroupSettingsFile = parameters().get<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
 		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "seqCycles"});
 
@@ -614,12 +614,13 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 //-----------------------------------------
 // TAlignmentSplitMerger
 //-----------------------------------------
-TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage() {
+
+TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage("_splitMerged.bam") {
 	//parse read group settings
-	_rgSettings.initialize(_bamFile.readGroupsMutable());
+	_rgSettings.initialize(_genome.bamFile().readGroupsMutable());
 
 	//allow for reads to exceed max cycle length?
-	if(_rgSettings.needTruncation() || parameters().parameterExists("allowForLarger")){
+	if(_rgSettings.needTruncation() || parameters().exists("allowForLarger")){
 		_allowForLarger = true;
 		logfile().list("Adding single end reads that are longer than maxCycles to 'truncated' read group without throwing an error. (parameter 'allowForLarger')");
 	} else {
@@ -635,13 +636,13 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStora
 void TAlignmentSplitMerger::_initializeMerger() {
 	// check if keepAllReads is turned on
 	// TODO: what is the basic set of filters needed?
-	if(!_bamFile.improperPairsFilterEnabled()){
+	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){
 		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
 
 	//set merging method
 	//TODO: update wiki to reflect change in names
-	std::string method = parameters().getParameterWithDefault<std::string>("mergingMethod", "middle");
+	std::string method = parameters().get<std::string>("mergingMethod", "middle");
 	if(method == "none"){
 		_merger = std::make_unique<TAlignmentMerger>();
 		logfile().list("Merging method: no merging. (parameter 'mergingMethod')");
@@ -665,15 +666,11 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	}
 };
 
-void TAlignmentSplitMerger::_openBamFileForWriting(){
-	TGenome_basic::_openBamForWriting(_outputName + "_splitMerged.bam", _outBam);
-};
-
 void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageSortedIterator mate){
 	ReadGroupType type = _rgSettings.getType(alignment.readGroupId());
 
 	if(type == ReadGroupType::single){
-		UERROR("Paired reads found in single-end read group '", _bamFile.readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
+		UERROR("Paired reads found in single-end read group '", _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
 	} else if(!alignment.isProperPair()){
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();
@@ -726,30 +723,35 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 			addToContainer(_alignmentStorage, &alignment, true);
 		} else {
 			//filter out (ignore) but write reason to bam log
-			_bamFile.filterOut(alignment);
+			_genome.bamFile().filterOut(alignment);
 		}
 	}
 };
 
 bool TAlignmentSplitMerger::_alignmentCanBeWrittenUnchanged(){
 	return  !_recalibrate &&
-			!_bamFile.curIsPaired() &&
+			!_genome.bamFile().curIsPaired() &&
 			_alignmentStorage.empty() &&
-			_rgSettings.getType(_bamFile.curReadGroupID())==ReadGroupType::unchanged;
+			_rgSettings.getType(_genome.bamFile().curReadGroupID())==ReadGroupType::unchanged;
 }
 
 //-----------------------------------------
 // TOverlapQuantifier
 //-----------------------------------------
 
+TOverlapQuantifier::TOverlapQuantifier() {
+	// filter bamFile
+	_genome.bamFile().setFilters(BAM::TBamFilters{true});
+}
+
 void TOverlapQuantifier::run(){
 	//prepare counter
 	coretools::TCountDistributionVector overlapDist;
 	//parse BAM file
-	_bamFile.startProgressReporting(1000000);
-	while(_bamFile.readNextAlignment()){
+	_genome.bamFile().startProgressReporting();
+	while(_genome.bamFile().readNextAlignment()){
 		//if on new chromosome, empty storage
-		if(_bamFile.chrChanged()){
+		if(_genome.bamFile().chrChanged()){
 			//clear storage
 			_alignmentStorage.clear();
 		}
@@ -757,15 +759,15 @@ void TOverlapQuantifier::run(){
 		//check if first alignment in storage is too far away from current alignment
 		//if yes, first alignment in storage is considered an orphan
 		auto it = _alignmentStorage.begin();
-		while(it != _alignmentStorage.end() && (_bamFile.curPosition() - it->alignment()) > _bamFile.maxReadLength()){
+		while(it != _alignmentStorage.end() && (_genome.bamFile().curPosition() - it->alignment()) > _genome.bamFile().maxReadLength()){
 			it = _alignmentStorage.erase(it);
 		}
 
 		//check if read passed filters and is proper pair
-		if(_bamFile.curPassedQC() && _bamFile.curIsProperPair()){
+		if(_genome.bamFile().curPassedQC() && _genome.bamFile().curIsProperPair()){
 			//parse alignment
 			std::unique_ptr<BAM::TAlignment> alignment = std::make_unique<BAM::TAlignment>();
-			_bamFile.fill(*alignment.get());
+			_genome.bamFile().fill(*alignment.get());
 
 			//check if mate is in storage.
 			auto mate = findInStorage(_alignmentStorage, alignment->name());
@@ -787,15 +789,14 @@ void TOverlapQuantifier::run(){
 		}
 
 		//report
-		_bamFile.printProgress();
+		_genome.bamFile().printProgress();
 	}
 
 	//done parsing bam file: report
-	_bamFile.printSummary(_outputName);
-	_bamFile.close();
+	_genome.bamFile().printSummary(_genome.outputName());
 
 	//write distribution
-	std::string filename = _outputName + "_overlapStats.txt";
+	std::string filename = _genome.outputName() + "_overlapStats.txt";
 	logfile().listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
 	const std::vector<std::string> header = {"fragmentLength", "overlap", "count"};
 	coretools::TOutputFile out(filename, header);

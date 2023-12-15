@@ -8,23 +8,16 @@
 #ifndef TRECALIBRATIONEMMODEL_H_
 #define TRECALIBRATIONEMMODEL_H_
 
-#include <limits>
-#include <stdint.h>
-#include <string>
+#include "genometools/PhredProbabilityTypes.h"
 
-#include "TAlignment.h"
 #include "TEpsilon.h"
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
 #include "TRho.h"
-#include "TSequencedBase.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 namespace BAM {
 class TSequencedBase;
+class TAlignment;
 }
 
 namespace GenotypeLikelihoods {

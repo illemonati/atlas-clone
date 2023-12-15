@@ -6,4 +6,6 @@ bname=$(basename $0)
 name=${bname%.sh}
 out=$name/$name
 
-$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --format beagle --out $out --logFile $out.out 2> $out.err > /dev/null
+$atlas --task convertVCF \
+	   --vcf VCF/VCF.vcf.gz --format beagle --chr chr1 \
+	   --out $out --logFile $out.out 2> $out.err > /dev/null

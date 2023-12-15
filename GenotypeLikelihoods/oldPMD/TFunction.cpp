@@ -4,6 +4,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include <tuple>
+#include <armadillo>
 
 namespace GenotypeLikelihoods::oldPMD {
 
@@ -141,10 +142,10 @@ auto fillFAndJacobian(const std::vector<Probability> &Empiric, const std::array<
 }
 
 auto estimateWithNewtonRaphson(const std::vector<Probability> &Empiric, std::array<double, 3> Parameters) {
-	const double epsilon = parameters().getParameterWithDefault<double>("epsilon", 0.001);
+	const double epsilon = parameters().get<double>("epsilon", 0.001);
 	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
 	               toString(epsilon) + ". (parameter 'epsilon')");
-	const double numNRIterations = parameters().getParameterWithDefault<int>("numNR", 100);
+	const double numNRIterations = parameters().get<int>("numNR", 100);
 	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR')");
 	// Conduct Newton-Raphson to refine
 	//----------------------------------

@@ -11,21 +11,19 @@
 #include <string>
 #include <vector>
 
-#include "TGenome.h"
+#include "TBamTraverser.h"
 #include "SequencingError/TModels.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Math/counters.h"
 
 namespace GenomeTasks{
 
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-class TQualityDistribution:public TGenome_parsed{
+class TQualityDistribution final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	coretools::TCountDistributionVector<> _qualDist;
 
-	void _handleAlignment();
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	void compileQualityDistribution();
@@ -34,31 +32,18 @@ public:
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-class TQualityTransformation:public TGenome_parsed{
+class TQualityTransformation final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	std::vector<coretools::TCountDistributionVector<>> _transformations;
 	bool _compareToOtherSeqErrors;
 	std::string _label1, _label2;
 	GenotypeLikelihoods::SequencingError::TModels _otherSeqErrors;
 
-	void _handleAlignment();
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TQualityTransformation();
 	void run();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_qualityDist:public coretools::TTask{
-public:
-	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
-
-	void run(){
-		TQualityDistribution qualDist;
-		qualDist.compileQualityDistribution();
-	};
 };
 
 }; // end namespace

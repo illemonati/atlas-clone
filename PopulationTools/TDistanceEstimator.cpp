@@ -13,6 +13,7 @@
 #include <exception>
 #include <ostream>
 
+#include "coretools/Main/TParameters.h"
 #include "coretools/enum.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -117,27 +118,24 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 	//read EM parameters
 	using namespace coretools::instances;
 	logfile().startIndent("Parameters of EM algorithm:");
-	maxNumEMIterations = parameters().getParameterWithDefault<int>("iterations", 100);
+	maxNumEMIterations = parameters().get<int>("iterations", 100);
 	logfile().list("Will run up to ", maxNumEMIterations, " iterations.");
-	epsilonForEM = parameters().getParameterWithDefault("maxEps", 0.000001);
+	epsilonForEM = parameters().get("maxEps", 0.000001);
 	logfile().list("Will run EM until deltaLL < ", epsilonForEM, ".");
 	logfile().endIndent();
 
 	//set how to calculate distances
 //	distanceWeight = new double[9];
-	if(parameters().parameterExists("distWeights")){
+	if(parameters().exists("distWeights")){
 		logfile().list("Using user-provided distance weights.");
-		std::vector<double> vec;
-		std::vector<std::string> tmp;
-		parameters().fillParameterIntoContainer("distWeights", tmp, ',');
-		coretools::str::repeatIndexes(tmp, vec);
+		const auto vec = parameters().get<std::vector<double>>("distWeights");
 		if(vec.size() != 9)
 			UERROR("Wrong number of distance weights! Required are nine values for aa/aa, aa/ab, ab/aa, aa/bb, ab/ab, ab/ac, aa/bc, ab/cc, ab/cd");
 
 		distanceObject = std::make_unique<TDistanceUser>(vec);
 
 	} else {
-		std::string distType = parameters().getParameterWithDefault<std::string>("distType", "squaredDiff");
+		std::string distType = parameters().get<std::string>("distType", "squaredDiff");
 		logfile().list("Using distance type '" + distType + "'.");
 		if(distType == "probMismatch"){
 			distanceObject = std::make_unique<TDistanceProbMismatch>();
@@ -531,13 +529,13 @@ TDistanceEstimator::TDistanceEstimator(){
 	numGLFs = 0;
 
 	//outputname
-	outputName = coretools::instances::parameters().getParameterWithDefault<std::string>("out", "ATLAS");
+	outputName = coretools::instances::parameters().get<std::string>("out", "ATLAS");
 	coretools::instances::logfile().list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 }
 
 void TDistanceEstimator::openGLF(){
 	using namespace coretools::instances;
-	parameters().fillParameterIntoContainer("glf", GLFNames, ',');
+	parameters().fill("glf", GLFNames);
 	numGLFs = GLFNames.size();
 	if(numGLFs < 2)
 		UERROR("At least two GLF files have to be provided to estimate distances!");
@@ -562,7 +560,7 @@ void TDistanceEstimator::run(){
 	TEMforDistanceEstimation EM_object;
 
 	//in windows or whole genome?
-	long windowLen = coretools::instances::parameters().getParameterWithDefault("window", -1L);
+	long windowLen = coretools::instances::parameters().get("window", -1L);
 	if(windowLen < 0)
 		estimateDistanceGenomeWide(EM_object);
 	else

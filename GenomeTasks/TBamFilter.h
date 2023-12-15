@@ -8,29 +8,20 @@
 #ifndef TBAMFILTER_H_
 #define TBAMFILTER_H_
 
-#include <functional>
-#include <memory>
-#include <set>
-#include <stdint.h>
 #include <string>
 
-#include "TBamFile.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
+
+#include "TBamFile.h"
+#include "TBamTraverser.h"
+#include "TOutputBamFile.h"
 
 namespace BAM { class TAlignment; }
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
 namespace genometools { class TGenomePosition; }
 
-namespace GenomeTasks{
-
-namespace BamFilter{
-
-using coretools::instances::parameters;
-using coretools::instances::logfile;
-using namespace coretools::str;
+namespace GenomeTasks::BamFilter {
 
 //-----------------------------------------
 // TAlignmentMergerEntry
@@ -86,7 +77,7 @@ auto findInStorage(StorageType & Storage, const std::string & name){
 // TGenomeParsedWithAlignmentStorage
 //-----------------------------------------
 template<typename StorageType, typename StorageIteratorType>
-class TGenomeParsedWithAlignmentStorage:public TGenome_parsed{
+class TGenomeParsedWithAlignmentStorage : public TBamReadTraverser<ReadType::Parsed> {
 protected:
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
 	StorageType _alignmentStorage;
@@ -117,7 +108,7 @@ protected:
 			_writeAlignment(it);
 		} else {
 			//write reason to bam log
-			_bamFile.filterOut(it->alignment().name(), it->alignment().isSecondMate(), it->alignment().readGroupId(), it->alignment().refID());
+			_genome.bamFile().filterOut(it->alignment());
 			it = _alignmentStorage.erase(it);
 		}
 	}
@@ -146,35 +137,36 @@ protected:
 
 	BAM::TAlignment* _parseIntoNewAlignment(){
 		BAM::TAlignment* alignment = new BAM::TAlignment;
-		_bamFile.fill(*alignment);
+		_genome.bamFile().fill(*alignment);
 		if(_recalibrate){
 			if(_incorporatePMD){
-				alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
+				alignment->recalibrateWithPMD(_genome.errorModels());
 			} else {
-				alignment->parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
+				alignment->parse(_genome.errorModels().sequencingErrorModels());
 			}
 		}
 		return alignment;
 	}
 
 	//overriding _handleAligment from TGenome to do nothing
-	void _handleAlignment() override {}
+	void _handleAlignment(BAM::TAlignment&) override {}
 
 	//pure virtual functions
-	virtual void _openBamFileForWriting() = 0;
 	virtual void _handleMates(BAM::TAlignment & alignment, StorageIteratorType mate) = 0;
 	virtual void _handleSingle(BAM::TAlignment & alignment) = 0;
 	virtual bool _alignmentCanBeWrittenUnchanged() = 0;
 
 
 public:
-	TGenomeParsedWithAlignmentStorage(){
+	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()){
+		using coretools::instances::parameters;
+		using coretools::instances::logfile;
 		//max distance between mates
-		_maxDistanceBetweenMates = parameters().getParameterWithDefault<int>("acceptedDistance", 2000);
-		logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
+		_maxDistanceBetweenMates = parameters().template get<int>("acceptedDistance", 2000);
+		logfile().list("Mates that are farther than ", _maxDistanceBetweenMates, " apart will be considered orphans. (parameter 'acceptedDistance')");
 
 		//keep orphans
-		if(parameters().parameterExists("keepOrphans")){
+		if(parameters().exists("keepOrphans")){
 			_keepOrphans = true;
 			logfile().list("Will keep orphaned reads. (parameter 'keepOrphans')");
 		} else {
@@ -183,13 +175,13 @@ public:
 		}
 
 		//recalibrate BAM?
-		if(_genotypeLikelihoodCalculator.sequencingErrorModels().recalibrates() || parameters().parameterExists("incorporatePMD")){
+		if(_genome.errorModels().sequencingErrorModels().recalibrates() || parameters().exists("incorporatePMD")){
 			_recalibrate = true;
 			logfile().list("Will write recalibrated quality scores.");
-			if(parameters().parameterExists("incorporatePMD")){
+			if(parameters().exists("incorporatePMD")){
 				logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 				_incorporatePMD = true;
-				if(!_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()){
+				if(!_genome.errorModels().postMortemDamageModels().hasPMD()){
 					UERROR("No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.");
 				}
 			} else {
@@ -202,12 +194,12 @@ public:
 			_incorporatePMD = false;
 		}
 
-		if (parameters().parameterExists("removeSoftClippedBases")){
+		if (parameters().exists("removeSoftClippedBases")){
 			_removeSoftClippedBases = true;
 			//if parameter is set and a number is given -> use this as max number of softclipped bases, else remove all
-			if(!parameters().getParameter<std::string>("removeSoftClippedBases").empty()){
-				_maxNumberOfSoftClippedBases = parameters().getParameter<size_t>("removeSoftClippedBases");
-				logfile().list("Will leave up to " + toString(_maxNumberOfSoftClippedBases) + " softclipped bases per end. (parameter 'removeSoftClippedBases')");
+			if(!parameters().template get<std::string>("removeSoftClippedBases").empty()){
+				_maxNumberOfSoftClippedBases = parameters().template get<size_t>("removeSoftClippedBases");
+				logfile().list("Will leave up to ", _maxNumberOfSoftClippedBases, " softclipped bases per end. (parameter 'removeSoftClippedBases')");
 			} else {
 				_maxNumberOfSoftClippedBases = 0;
 				logfile().list("Will remove all softclipped bases. (parameter 'removeSoftClippedBases')");
@@ -221,27 +213,26 @@ public:
 
 	virtual void traverseBAM(){
 		//open writer
-		_openBamFileForWriting();
-		_bamFile.setExternalFilterReason("Orphan");
+		_genome.bamFile().setExternalFilterReason("Orphan");
 
 		//now parse BAM file
-		_bamFile.startProgressReporting(1000000);
-		while(_bamFile.readNextAlignment()){
+		_genome.bamFile().startProgressReporting();
+		while(_genome.bamFile().readNextAlignment()){
 			//if on new chromosome, empty storage
-			if(_bamFile.chrChanged()){
+			if(_genome.bamFile().chrChanged()){
 				//write all ready currently in storage
 				_writeAll();
 			}
 
 			//check if first alignment in storage is too far away from current alignment
 			//if yes, first alignment in storage is considered an orphan
-			_writeUpTo(_bamFile.curPosition());
+			_writeUpTo(_genome.bamFile().curPosition());
 			
 			//check if read passed filters
-			if(_bamFile.curPassedQC()){
+			if(_genome.bamFile().curPassedQC()){
 				//if single end, unchanged and storage is empty: write directly
 				if(_alignmentCanBeWrittenUnchanged()){
-					_bamFile.writeCurAlignment(_outBam);
+					_genome.bamFile().writeCurAlignment(_outBam);
 				} else {
 					//parse alignment
 					BAM::TAlignment* alignment = _parseIntoNewAlignment();
@@ -289,22 +280,20 @@ public:
 			} else {
 				//Did not pass QC: filter out
 				//need to store in blacklist if it was paired
-				if(_bamFile.curIsProperPair()){
-					_blacklist.add(_bamFile.curName());
+				if(_genome.bamFile().curIsProperPair()){
+					_blacklist.add(_genome.bamFile().curName());
 				}
 			}
 
 			//report
-			_bamFile.printProgress();
+			_genome.bamFile().printProgress();
 		}
 
 		//write reads still in storage
 		_writeAll();
 
 		//done parsing bam file: report
-		_bamFile.printSummary(_outputName);
-		_bamFile.close();
-		_outBam.close();
+		_genome.bamFile().printSummary(_genome.outputName());
 	}
 };
 
@@ -313,18 +302,17 @@ public:
 //-----------------------------------------
 class TBamFilter final:public TGenomeParsedWithAlignmentStorage<TAlignmentStorage, TAlignmentStorageIterator>{
 protected:
-	void _openBamFileForWriting() override;
 	void _handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate) override;
 	void _handleSingle(BAM::TAlignment & alignment) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:
-	TBamFilter() : TGenomeParsedWithAlignmentStorage() {}
+	TBamFilter() : TGenomeParsedWithAlignmentStorage("_filtered.bam") {}
 	void run() {
 		traverseBAM();
 	}
 };
-} // namespace BamFilter
-} // namespace GenomeTasks
+
+} // namespace GenomeTasks::BamFilter
 
 #endif /* TBAMFILTER_H_ */

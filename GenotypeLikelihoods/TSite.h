@@ -8,16 +8,16 @@
 #ifndef TSITE_H_
 #define TSITE_H_
 
-#include <stddef.h>
-#include <stdint.h>
 #include <array>
 #include <string>
 #include <vector>
 
+#include "coretools/Math/TSubsamplePicker.h"
+
 #include "genometools/GenotypeTypes.h"
+
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "coretools/Math/TSubsamplePicker.h"
 
 namespace GenotypeLikelihoods {
 
@@ -31,8 +31,8 @@ private:
 	std::vector<BAM::TSequencedBase> _bases;
 public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
-	genometools::Base refBase = genometools::Base::N;
-	genometools::Genotype genotype  = genometools::Genotype::NN;
+	genometools::Base refBase      = genometools::Base::N;
+	genometools::Genotype genotype = genometools::Genotype::NN;
 
 	void clear() noexcept;
 
@@ -42,7 +42,6 @@ public:
 
 	// add
 	void add(const BAM::TSequencedBase &base);
-	void add(BAM::TSequencedBase &&base);
 	TBaseData baseFrequencies() const noexcept;
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 

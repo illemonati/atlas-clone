@@ -8,15 +8,12 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
-#include <cstdint>
-#include <stdint.h>
-#include <zlib.h>
 #include <array>
-#include <cstring>
-#include <exception>
 #include <map>
 #include <string>
 #include <vector>
+#include <zlib.h>
+
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Containers/TDualStrongArray.h"
@@ -124,7 +121,7 @@ public:
 	void open(const std::string &Filename, const std::string &Header = "");
 	void newChromosome(const genometools::TChromosome &chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
-		       GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
+		       const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
 };
 
 //----------------------------------------------------
@@ -198,10 +195,7 @@ public:
 };
 
 struct TGLFPrinter {
-	void run() {
-		TGlfReader reader(coretools::instances::parameters().getParameter<std::string>("glf"));
-		reader.printToEnd();
-	};
+	void run();
 };
 
 }; // namespace GLF

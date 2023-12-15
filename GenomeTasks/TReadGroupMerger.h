@@ -8,20 +8,18 @@
 #ifndef GENOMETASKS_TREADGROUPMERGER_H_
 #define GENOMETASKS_TREADGROUPMERGER_H_
 
-#include <stdint.h>
-#include <string>
 #include <vector>
 
 #include "TGenome.h"
-#include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
 
 //--------------------------------------
 // TReadGroupMerger
 //--------------------------------------
-class TReadGroupMerger:public TGenome_basic{
+class TReadGroupMerger {
 private:
+	TGenome _genome;
 	std::vector<uint16_t> readGroupMap;
 public:
 	TReadGroupMerger();

@@ -15,6 +15,7 @@
 #include <ostream>
 #include <utility>
 
+#include "coretools/Containers/TView.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TLog.h"
@@ -42,19 +43,19 @@ std::string toString(const TBaseProbabilities &probs) {
 }
 } // namespace impl
 
-Base sampleBase(const coretools::TStrongArray<double, Base> &cumulProbs) {
-	return genometools::Base(randomGenerator().pickOne(cumulProbs));
-}
-
 Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulProbs) {
 	using namespace genometools;
-	return Base((coretools::index(base) + randomGenerator().pickOne(cumulProbs)) % coretools::index(Base::max));
+	using coretools::index;
+	constexpr auto iMax = index(Base::max);
+	const auto iBase    = index(base);
+	const auto iAdd     = index(randomGenerator().pickOne(cumulProbs));
+	return Base((iBase + iAdd) % iMax);
 }
 
 THaplotypeSimulator::THaplotypeSimulator(){
-    if(parameters().parameterExists("refDiv")){
-    	parameters().fillParameter("refDiv", _referenceDivergence);
-    	_referenceDivergence = parameters().getParameter<coretools::Probability>("refDiv");
+    if(parameters().exists("refDiv")){
+    	parameters().fill("refDiv", _referenceDivergence);
+    	_referenceDivergence = parameters().get<coretools::Probability>("refDiv");
     	logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ". (parameter 'refDiv')");
     } else {
     	_referenceDivergence = 0.01;
@@ -66,9 +67,9 @@ THaplotypeSimulator::THaplotypeSimulator(){
 	_cumulRef[Base::T] = 1.0;
 
 	// base frequencies
-	if(parameters().parameterExists("baseFreq")){
+	if(parameters().exists("baseFreq")){
 		std::vector<double> freq;
-		coretools::str::fillContainerFromString(parameters().getParameter<std::string>("baseFreq"), freq, ',');
+		coretools::str::fillContainerFromString(parameters().get<std::string>("baseFreq"), freq, ',');
 		if (freq.size() != 4) UERROR("baseFreq vector must have size = 4!");
 		std::array<double, 4> ar;
 		std::copy(freq.begin(), freq.end(), ar.begin());
@@ -90,9 +91,7 @@ THaplotypeSimulator::THaplotypeSimulator(){
 //---------------------------------------------------------
 TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeSimulator() {
 	// now theta
-	std::vector<std::string> tmp;
-	parameters().fillParameterIntoContainerWithDefault("theta", tmp, ',', {"0.001"});
-	coretools::str::repeatIndexes(tmp, _thetas);
+	parameters().fill("theta", _thetas, {0.001});
 	if (_thetas.size() == 1) {
 		logfile().list("Will simulate a single individual with theta = ", _thetas[0], ".");
 		for (unsigned int i = 1; i < nChoromosomes; ++i) _thetas.push_back(_thetas[0]);
@@ -112,8 +111,8 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (size_t l = 0; l < chromosome.length(); ++l) {
-		haplotypes(0, 0, l) = sampleBase(_cumulBaseFreq);
-		haplotypes(0, 1, l) = sampleBase(mutTable[haplotypes(0, 0, l)]);
+		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
+		haplotypes(0, 1, l) = randomGenerator().pickOne(mutTable[haplotypes(0, 0, l)]);
 
 		// decide on reference sequence
 		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
@@ -131,7 +130,7 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 
 	// now simulate genotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
-		haplotypes(0, 0, l) = sampleBase(_cumulBaseFreq);
+		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 
 		// decide on ref
@@ -146,10 +145,7 @@ TSimulatorPair::TSimulatorPair() : THaplotypeSimulator() {
 	logfile().startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
 	// Initialize phis
-	std::vector<std::string> tmp;
-	parameters().fillParameterIntoContainer("phi", tmp, ',');
-	coretools::str::repeatIndexes(tmp, _phis);
-
+	parameters().fill("phi", _phis);
 	if (_phis.size() != 9)
 		UERROR("Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, "
 			   "01/01, 01/02, 00/12, 01/22, 01/23");
@@ -329,17 +325,14 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	const auto nChromosomes = chromosomes.size();
 
 	// sample size
-	_sampleSize = parameters().getParameterWithDefault<int>("sampleSize", 10);
+	_sampleSize = parameters().get<int>("sampleSize", 10);
 
 	// read SFS
 	logfile().startIndent("Initializing SFS:");
-	if (parameters().parameterExists("sfs")) {
+	if (parameters().exists("sfs")) {
 		logfile().startIndent("Reading SFS from files:");
 
-		std::vector<std::string> tmp;
-		std::vector<std::string> sfsFileNames;
-		parameters().fillParameterIntoContainer("sfs", tmp, ',');
-		coretools::str::repeatIndexes(tmp, sfsFileNames);
+		auto sfsFileNames = parameters().get<std::vector<std::string>>("sfs");
 
 		// if a single SFS is given: use it for all chromosomes
 		if (sfsFileNames.size() == 1) {
@@ -351,14 +344,11 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 			UERROR("Number of SFS files does not match number of chromosomes!");
 
 		// initialize SFS from files
-		const bool folded = parameters().parameterExists("folded");
+		const bool folded = parameters().exists("folded");
 		_initializeSFS(chromosomes, sfsFileNames, folded);
-	} else if (parameters().parameterExists("theta")) {
+	} else if (parameters().exists("theta")) {
 		// parse theta from command line
-		std::vector<std::string> tmp;
-		parameters().fillParameterIntoContainer("theta", tmp, ',');
-		std::vector<double> thetas;
-		coretools::str::repeatIndexes(tmp, thetas);
+		auto thetas = parameters().get<std::vector<double>>("theta");
 		if (thetas.size() == 1) {
 			logfile().list("Will simulate from SFS with theta = ", thetas.front(), ".");
 			for (unsigned int _ = 1; _ < nChromosomes; ++_) thetas.push_back(thetas.front());
@@ -366,7 +356,7 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 			logfile().list("Will simulate data from chromosome specific SFS with thetas " +
 				       coretools::str::concatenateString(thetas, ", "));
 		}
-		const bool folded = parameters().parameterExists("folded");
+		const bool folded = parameters().exists("folded");
 		_initializeSFS(chromosomes, thetas, folded);
 	} else
 		UERROR("Either argument sfs or theta must be provided to simulate population samples!");
@@ -377,7 +367,7 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 
 void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas, bool folded) {
 	if (thetas.size() != chromosomes.size()) UERROR("Number of theta values does not match number of chromosomes!");
-	const auto outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_simulations");
+	const auto outname = parameters().get<std::string>("out", "ATLAS_simulations");
 
 	// generate SFS for each chromosome
 	logfile().listFlush("Initializing SFS ...");
@@ -428,8 +418,8 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	// now simulate haplotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// pick alleles
-		const Base ancestral = sampleBase(_cumulBaseFreq);
-		const Base derived   = sampleBase(_mutTable[ancestral]);
+		const Base ancestral = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base derived   = randomGenerator().pickOne(_mutTable[ancestral]);
 
 		//simulate haplotypes
 		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteHaploid(l, haplotypes, ancestral, derived);
@@ -452,8 +442,8 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 					       const genometools::TChromosome &chromosome) {
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// pick alleles
-		const Base ancestral = sampleBase(_cumulBaseFreq);
-		const Base derived   = sampleBase(_mutTable[ancestral]);
+		const Base ancestral = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base derived   = randomGenerator().pickOne(_mutTable[ancestral]);
 
 		//simulate haplotypes
 		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteDiploid(l, haplotypes, ancestral, derived);
@@ -474,13 +464,13 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 // TSimulatorHardyWeinberg
 //---------------------------------------------------------
 TSimulatorHW::TSimulatorHW()
-    : THaplotypeSimulator(), _fracPoly(parameters().getParameterWithDefault("fracPoly", 0.1)),
-      _alpha(parameters().getParameterWithDefault("alpha", 0.5)),
-      _beta(parameters().getParameterWithDefault("beta", 0.5)), _F(parameters().getParameterWithDefault("F", 0.0)),
+    : THaplotypeSimulator(), _fracPoly(parameters().get("fracPoly", coretools::Probability(0.1))),
+      _alpha(parameters().get("alpha", 0.5)),
+      _beta(parameters().get("beta", 0.5)), _F(parameters().get("F", 0.0)),
       _mutTable(_baseFreq) {
 
 	// sample size
-	_sampleSize = parameters().getParameterWithDefault<int>("sampleSize", 10);
+	_sampleSize = parameters().get<int>("sampleSize", 10);
 	logfile().list("Will simulate ", _sampleSize, " individuals. (parameter 'sampleSize')");
 
 	// parameters of beta distribution
@@ -499,8 +489,8 @@ TSimulatorHW::TSimulatorHW()
 	}
 
 	// write true allele freq?
-	if (parameters().parameterExists("writeTrueAlleleFreq")) {
-		const auto outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_simulations");
+	if (parameters().exists("writeTrueAlleleFreq")) {
+		const auto outname = parameters().get<std::string>("out", "ATLAS_simulations");
 		const auto alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
 		logfile().list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
 		_trueFreqFile.open(alleleFreqFile);
@@ -608,7 +598,7 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 
 			// simulate genotypes
 			for (int i = 0; i < _sampleSize; ++i) {
-				int geno = randomGenerator().pickOne(3, _cumulGenoProb);
+				int geno = randomGenerator().pickOne(_cumulGenoProb);
 				if (geno == 0) {
 					haplotypes(i, 0, l) = site.reference;
 					haplotypes(i, 1, l) = site.reference;

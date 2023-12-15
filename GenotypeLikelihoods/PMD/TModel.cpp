@@ -1,5 +1,7 @@
 #include "TModel.h"
 #include "TSequencedBase.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {
 
@@ -24,8 +26,23 @@ TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedBase &,
 	return TBaseProbabilities::normalize(Psum);
 }
 
+TBaseBaseProbabilities TNoPMD::P_b_bbar(genometools::Genotype g, const BAM::TSequencedBase &,
+								const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	TBaseBaseProbabilities bbProbs{};
+	double sum = 0.;
+	for (const auto b: {genometools::first(g), genometools::second(g)}) {
+		const auto bbar  = b; // only this is possible
+		bbProbs[b][bbar] = P_dij_bbar[bbar];
+		sum             += bbProbs[b][bbar];
+	}
+	for (auto& bProbs: bbProbs) for (auto& prob: bProbs) prob.scale(sum);
+	return bbProbs;
+}
+
 TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedBase &data,
 									const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	// Assuming genotype g = bb
+	// This is also, due to normalization, P_b_bbar with genotype g = bb
 	switch (b) {
 	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
 	case Base::C: {
@@ -40,14 +57,40 @@ TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedBase &data,
 	}
 }
 
+namespace impl {
+double bbProbs(Base b, TBaseBaseProbabilities &probs, double pCT, double pGA,
+			   const TBaseLikelihoods &P_dij_bbar) {
+	double sum = 0.;
+	switch (b) {
+	case Base::A: {
+			sum += probs[Base::A][Base::A] = P_dij_bbar[Base::A];
+			break;
+	}
+	case Base::C: {
+			sum += probs[Base::C][Base::C] = (1. - pCT) * P_dij_bbar[Base::C];
+			sum += probs[Base::C][Base::T] = pCT * P_dij_bbar[Base::T];
+	} break;
+	case Base::G: {
+			sum += probs[Base::G][Base::G] = (1. - pGA) * P_dij_bbar[Base::G];
+			sum += probs[Base::G][Base::A] = pGA * P_dij_bbar[Base::A];
+	} break;
+	default: {
+			sum += probs[Base::T][Base::T] = P_dij_bbar[Base::T];
+			break;
+	}
+	}
+	return sum;
+}
+} // namespace impl
+
 TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
 
 		TBaseData Psum{0};
-		for (const auto a : {first(g), second(g)}) {
-			switch (a) {
+		for (const auto b : {first(g), second(g)}) {
+			switch (b) {
 			case Base::A: Psum[Base::A] += P_dij_bbar[Base::A]; break;
 			case Base::C: {
 				Psum[Base::C] += (1. - pCT) * P_dij_bbar[Base::C];
@@ -62,6 +105,22 @@ TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
 		}
 		return TBaseProbabilities::normalize(Psum);
 	return TBaseProbabilities::normalize({1., 0., 0., 0.});
+}
+
+
+
+TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedBase &data,
+								const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	const auto pCT = _psi.prob<Type::CT>(data);
+	const auto pGA = _psi.prob<Type::GA>(data);
+
+	TBaseBaseProbabilities bbProbs{};
+	const double sum = genometools::isHomozygous(g)
+						   ? impl::bbProbs(genometools::first(g), bbProbs, pCT, pGA, P_dij_bbar)
+						   : impl::bbProbs(genometools::first(g), bbProbs, pCT, pGA, P_dij_bbar) +
+								 impl::bbProbs(genometools::second(g), bbProbs, pCT, pGA, P_dij_bbar);
+	for (auto& bProbs: bbProbs) for (auto& prob: bProbs) prob.scale(sum);
+	return bbProbs;
 }
 
 TBaseLikelihoods TWithPMD::P_dij(const TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {

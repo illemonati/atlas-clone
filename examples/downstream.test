@@ -1,0 +1,60 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+
+simulate() {
+	M=000000
+	$atlas --task simulate --chrLength ${L1}$M,${LX}$M --ploidy 2,1 --depth $depth,10 $2 \
+		--fixedSeed 0 --out $1 --logFile $1.out 2> $1.err
+}
+
+theta() {
+	$atlas --task theta --averageDepth $depth --depth $depths --chr chr1 \
+	   	--bam $1.bam $3 \
+	   	--fixedSeed 0 --out $2 --logFile $2.out 2> $2.err
+}
+estimate() {
+	$atlas --task estimateErrors --maxF 0.0000000001 --minDeltaLL 1e-2 \
+		--chr chr2 --ploidy 1 \
+		--bam $1.bam --fasta $1.fasta \
+		--fixedSeed 0 --out $1 --logFile ${1}_estimation.out 2> ${1}_estimation.err
+
+}
+
+L1=10 #Mb
+LX=1 #Mb
+depths="23.26,20,10,5,2,1,0.5,0.2,0.1,0.05"
+depth=$(echo $depths | awk -F "," '{print $1}')
+binned="--baseQuality categorical(12,22,27,32,37,41)"
+
+: '
+simulate "bar0" "$binned --theta 0.00577" > /dev/null &
+simulate "barPMD" "--RGInfo ../bar.json --recal - $binned --fragmentLength gamma(10,0.2)[30,101] --mappingQuality normal(45,10)[30,60] --theta 0.00299" > /dev/null &
+simulate "barAll" "--RGInfo ../bar.json $binned --fragmentLength gamma(10,0.2)[30,101] --mappingQuality normal(45,10)[30,60] --theta 0.00205"
+wait
+echo "all Simulations done"
+
+theta "bar0" "bar0_0" > /dev/null &
+theta "barPMD" "barPMD_0" > /dev/null &
+theta "barAll" "barAll_0"
+wait
+echo "all theta_0 done"
+
+theta "bar0" "bar0_PMD" "--RGInfo ../bar.json --recal -" > /dev/null &
+theta "barPMD" "barPMD_PMD" "--RGInfo ../bar.json --recal -" > /dev/null &
+theta "barAll" "barAll_PMD" "--RGInfo ../bar.json --recal -"
+echo "all theta_PMD done"
+wait
+
+theta "bar0" "bar0_real" "--RGInfo ../bar.json" > /dev/null &
+theta "barPMD" "barPMD_real" "--RGInfo ../bar.json" > /dev/null &
+theta "barAll" "barAll_real" "--RGInfo ../bar.json"
+wait'
+
+estimate "bar0"
+theta "bar0" "bar0_est" "--RGInfo bar0_RGInfo.json" > /dev/null &
+estimate "barPMD"
+theta "barPMD" "barPMD_est" "--RGInfo barPMD_RGInfo.json" > /dev/null &
+estimate "barAll"
+theta "barAll" "barAll_est" "--RGInfo barAll_RGInfo.json"
+wait

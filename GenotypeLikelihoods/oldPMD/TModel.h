@@ -9,13 +9,13 @@
 #ifndef TPMDTYPE_H_
 #define TPMDTYPE_H_
 
-#include "TAlignment.h"
-#include "TGenotypeData.h"
-#include "TFunction.h"
-#include "TSequencedBase.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
+
+#include "TAlignment.h"
+#include "TGenotypeData.h"
+#include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods::oldPMD {
 

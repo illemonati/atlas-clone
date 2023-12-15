@@ -10,11 +10,11 @@
 
 #include <string>
 
-#include "TBamFile.h"
-#include "coretools/Files/TFile.h"
-#include "TGenome.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/counters.h"
+
+#include "TBamFile.h"
+#include "TBamTraverser.h"
+#include "TOutputBamFile.h"
 
 namespace GenomeTasks {
 
@@ -39,7 +39,7 @@ public:
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-class TAssessSoftClipping : public TGenome_filtered {
+class TAssessSoftClipping final : public TBamReadTraverser<ReadType::Filtered> {
 private:
 	bool _writeAlignments = false;
 	bool _printAll        = false;
@@ -57,10 +57,10 @@ public:
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TRemoveSoftClippedBases : public TGenome_parsed {
+class TRemoveSoftClippedBases final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	BAM::TOutputBamFile _outBam;
-	void _handleAlignment() override;
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TRemoveSoftClippedBases();

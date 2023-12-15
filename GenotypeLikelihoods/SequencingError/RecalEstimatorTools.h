@@ -8,19 +8,14 @@
 #ifndef GENOTYPELIKELIHOODS_RECALESTIMATORTOOLS_H_
 #define GENOTYPELIKELIHOODS_RECALESTIMATORTOOLS_H_
 
-#include <stddef.h>
-#include <array>
-#include <cstdint>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
-#include "TSequencedBase.h"
-#include "coretools/Containers/TBitSet.h"
-#include "TReadGroups.h"
 #include "coretools/Containers/TStrongArray.h"
 
-namespace BAM { class TSequencedBase; }
+#include "SequencingError/TCovariate.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+
 namespace GenotypeLikelihoods { class TSite; }
 
 namespace GenotypeLikelihoods::RecalEstimatorTools {
@@ -30,19 +25,13 @@ private:
 	uint64_t _counts = 0;
 	//all vectors are uint16_t, which is used by seq error models for all covariates
 // Object to store for which qualities and positions data is available.
-	std::vector<bool> _positions;
-	std::vector<bool> _fragmentLengths;
-	std::vector<bool> _qualities;
-	std::vector<bool> _mappingQualities;
+	coretools::TStrongArray<std::vector<size_t>, SequencingError::Covariates> _tables;
 
 public:
 	void add(const BAM::TSequencedBase & base);
 
-	constexpr size_t size() const noexcept { return _counts; };
-	const std::vector<bool> &positions() const noexcept { return _positions; };
-	const std::vector<bool> &fragmentLengths() const noexcept { return _fragmentLengths; };
-	const std::vector<bool> &qualities() const noexcept { return _qualities; };
-	const std::vector<bool> &mappingQualities() const noexcept { return _mappingQualities; };
+	constexpr size_t size() const noexcept { return _counts; }
+	const std::vector<size_t>& operator[](SequencingError::Covariates cov) const {return _tables[cov];}
 };
 
 using TRecalDataTableOneReadGroup = coretools::TStrongArray<TRecalDataTable, BAM::Mate>;
@@ -55,20 +44,16 @@ private:
 	size_t _N_g1 = 0;
 
 public:
-	TRecalDataTables() = default;
 	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)
-	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
-	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject, const std::vector<TSite> & sites)
-	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){
-		add(sites);
-	};
+	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){}
 
-	void initialize(const BAM::TReadGroupMap* ReadGroupMapObject);
-	void add(const std::vector<TSite> & sites);
+	void add(const TSite & site);
 
-	constexpr size_t size() const noexcept {return _size;};
-	constexpr size_t nSites_g1() const noexcept {return _N_g1;};
-	const TRecalDataTableOneReadGroup& operator[](uint16_t readGroupId) const;
+	constexpr size_t size() const noexcept {return _size;}
+	constexpr size_t nSites_g1() const noexcept {return _N_g1;}
+	const TRecalDataTableOneReadGroup& operator[](size_t readGroupId) const;
+
+	void write(std::string_view Name) const;
 };
 
 }; // namespace GenotypeLikelihoods::RecalEstimatorTools

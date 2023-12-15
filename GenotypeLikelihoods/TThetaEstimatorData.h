@@ -8,7 +8,6 @@
 #ifndef TTHETAESTIMATORDATA_H_
 #define TTHETAESTIMATORDATA_H_
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 #include <zlib.h>
@@ -58,10 +57,10 @@ public:
 class TThetaEstimatorData {
 private:
 	// counters
-	size_t _numSitesCoveredTwiceOrMore;
-	size_t _totNumSitesAdded;
+	size_t _numSites;
+	size_t _numSitesData;
+	size_t _numSites2x;
 	double _cumulativeDepth;
-	size_t _numSitesWithData;
 
 	std::vector<GenotypeLikelihoods::TBaseData> _baseFreqs;
 	std::vector<size_t> _numBootstrapRepsPerEntry;
@@ -91,8 +90,8 @@ public:
 	void bootstrap();
 	void clearBootstrap() noexcept { _numBootstrapRepsPerEntry.clear(); }
 
-	size_t size() { return _totNumSitesAdded; };
-	size_t sizeWithData() { return _numSitesWithData; };
+	size_t size() { return _numSites; };
+	size_t sizeWithData() { return _numSitesData; };
 
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix);
 	void writeSite(coretools::TOutputFile &out);

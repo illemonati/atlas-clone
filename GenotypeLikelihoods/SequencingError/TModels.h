@@ -8,20 +8,19 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 
-#include <string>
 #include <vector>
+
+#include "coretools/Containers/TStrongArray.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/TModel.h"
 #include "TAlignment.h"
 #include "TReadGroupInfo.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
 
-namespace GenotypeLikelihoods {
-namespace SequencingError {
+namespace GenotypeLikelihoods::SequencingError  {
 
 //--------------------------------------------------------------------------
 // TModels
@@ -37,7 +36,7 @@ private:
 
 public:
 	void initialize(size_t NReadGroups, std::string_view RecalString = "", std::string_view RhoString = "");
-	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
+	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
 
 	void pool(const BAM::TReadGroupMap& rgMap);
 	void reset(size_t rgID, BAM::Mate mate) noexcept { _pModels[rgID][mate] = &_noRecal; }
@@ -66,7 +65,7 @@ public:
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
 };
-} // namespace SequencingError
-}; // namespace GenotypeLikelihoods
+
+} // namespace GenotypeLikelihoods::SequencingError
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_ */

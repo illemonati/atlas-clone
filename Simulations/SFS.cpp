@@ -18,10 +18,12 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/algorithms.h"
 #include "coretools/Files/TFile.h"
+#include "genometools/GenotypeTypes.h"
 
 
 namespace Simulations {
 using coretools::instances::randomGenerator;
+using genometools::Base;
 //--------------------------------
 // Class to store and SFS
 //--------------------------------
@@ -44,8 +46,8 @@ SFS::SFS(const std::string &filename) {
 	in.read(vec, true);
 
 	// now store as fraction
-	coretools::fillFromNormalized(sfs, vec);
-	coretools::fillCumulative(sfs, sfsCumulative);
+	coretools::fillFromNormalized(_sfs, vec);
+	_sfsPicker.init(_sfs);
 }
 
 SFS::SFS(const SFS &other, double MonoFrac) {
@@ -55,14 +57,14 @@ SFS::SFS(const SFS &other, double MonoFrac) {
 	_numChrPerPop = other._numChrPerPop;
 	_numChr = other._numChr;
 	double sum = 0.0;
-	sfs.push_back(MonoFrac);
-	for (size_t i = 1; i < other.sfs.size(); ++i) {
-		sfs.push_back(other.sfs[i]);
-		sum += other.sfs[i];
+	_sfs.push_back(MonoFrac);
+	for (size_t i = 1; i < other._sfs.size(); ++i) {
+		_sfs.push_back(other._sfs[i]);
+		sum += other._sfs[i];
 	}
 	sum = sum / (1.0 - MonoFrac);
-	for (auto &s : sfs) s /= sum;
-	coretools::fillCumulative(sfs, sfsCumulative);
+	for (auto &s : _sfs) s /= sum;
+	_sfsPicker.init(_sfs);
 }
 
 SFS::SFS(size_t numChr, double theta) {
@@ -71,14 +73,14 @@ SFS::SFS(size_t numChr, double theta) {
 	_dimensions = { numChr + 1 };
 	_numChr = numChr;
 	float sum = 0;
-	sfs.push_back(0);
+	_sfs.push_back(0);
 	for (size_t i = 1; i < _dimensions[0] + 1; ++i) {
-		sfs.push_back(theta / i);
-		sum += sfs.back();
+		_sfs.push_back(theta / i);
+		sum += _sfs.back();
 	}
 	if (sum > 1.0) UERROR("The choice of theta and sample size results in too many mutations in the SFS!");
-	sfs.front() = 1.0 - sum;
-	coretools::fillCumulative(sfs, sfsCumulative);
+	_sfs.front() = 1.0 - sum;
+	_sfsPicker.init(_sfs);
 }
 
 SFS::SFS(size_t numChr, size_t onlyThisBin) {
@@ -86,9 +88,9 @@ SFS::SFS(size_t numChr, size_t onlyThisBin) {
 	_numChrPerPop = { numChr };
 	_dimensions = { numChr + 1 };
 	_numChr = numChr;
-	sfs.resize(numChr + 1, 0.);
-	sfs[onlyThisBin] = 1.0;
-	coretools::fillCumulative(sfs, sfsCumulative);
+	_sfs.resize(numChr + 1, 0.);
+	_sfs[onlyThisBin] = 1.0;
+	_sfsPicker.init(_sfs);
 }
 
 void SFS::writeToFile(const std::string& filename, bool writeLog) const {
@@ -104,11 +106,11 @@ void SFS::writeToFile(const std::string& filename, bool writeLog) const {
 	out << "\n";
 
 	if (writeLog) {
-		out << log(sfs[0]);
-		for (size_t i = 1; i < sfs.size(); ++i) { out << " " << log(sfs[i]); }
+		out << log(_sfs[0]);
+		for (size_t i = 1; i < _sfs.size(); ++i) { out << " " << log(_sfs[i]); }
 	} else {
-		out << sfs[0];
-		for (size_t i = 1; i < sfs.size(); ++i) { out << " " << sfs[i]; }
+		out << _sfs[0];
+		for (size_t i = 1; i < _sfs.size(); ++i) { out << " " << _sfs[i]; }
 	}
 	out << "\n";
 	out.close();
@@ -151,7 +153,7 @@ size_t SFS::_simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, Base ance
 	}
 
 	// pick derived allele frequency
-	size_t index = randomGenerator().pickOne(sfsCumulative);
+	const auto index = _sfsPicker(randomGenerator().getRand());
 
 	//is it polymorphic?
 	if(index == 0){
@@ -177,33 +179,6 @@ size_t SFS::simulateSiteHaploid(size_t l, TSimulatorHaplotypes & haplotypes, Bas
 			[this](const size_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
 				return _setDerivedHaploid(l, haplotypes, N, k, shift, derived);
 			});
-
-	/*
-	//returns allele count
-	//set all as ancestral
-	for (size_t i = 0; i < haplotypes.size(); ++i) {
-		haplotypes(i, 0, l) = ancestral;
-		haplotypes(i, 1, l) = ancestral;
-	}
-
-	// pick derived allele frequency
-	size_t index = randomGenerator().pickOne(sfsCumulative);
-
-	//is it polymorphic?
-	if(index == 0){
-		//monomorphic
-		return 0;
-	}
-
-	// is polymorphic
-	auto subscripts = coretools::getSubscripts(index, _dimensions);
-	size_t shift = 0;
-	for(size_t pop = 0; pop < _dimensions.size(); ++pop){
-		_setDerivedDiploid(l, haplotypes, _dimensions[pop], subscripts[pop], shift, derived);
-		shift += _dimensions[pop];
-	}
-	return std::accumulate(subscripts.begin(), subscripts.end(), 0);
-	*/
 }
 
 size_t SFS::simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived){
@@ -211,68 +186,12 @@ size_t SFS::simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, Bas
 				[this](size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
 					return _setDerivedDiploid(l, haplotypes, N, k, shift, derived);
 				});
-	/*
-	//Note: SFS site matches # ind, not # haplotypes. Both haplotypes of an individual are always identical
-	//returns allele count
-	//set all as ancestral
-	for (size_t i = 0; i < haplotypes.size(); ++i) {
-		haplotypes(i, 0, l) = ancestral;
-		haplotypes(i, 1, l) = ancestral;
-	}
-
-	// pick derived allele frequency
-	size_t index = randomGenerator().pickOne(sfsCumulative);
-
-	//is it polymorphic?
-	if(index == 0){
-		//monomorphic
-		return 0;
-	}
-
-	// is polymorphic
-	auto subscripts = coretools::getSubscripts(index, _dimensions);
-	size_t shift = 0;
-	for(size_t pop = 0; pop < _dimensions.size(); ++pop){
-		_setDerivedDiploid(l, haplotypes, _dimensions[pop], subscripts[pop], shift, derived);
-		shift += _dimensions[pop];
-	}
-	return std::accumulate(subscripts.begin(), subscripts.end(), 0);
-	*/
 }
 
 double SFS::calcLLOneSite(const std::vector<double> &gl) {
 	double LL = 0.0;
-	for (size_t i = 0; i < sfs.size(); ++i) LL += exp(gl[i]) * sfs[i];
+	for (size_t i = 0; i < _sfs.size(); ++i) LL += exp(gl[i]) * _sfs[i];
 	return log(LL);
 }
 
-/*
-//--------------------------------------
-// SFSfolded
-//--------------------------------------
-SFSfolded::SFSfolded(size_t sampleSize, float theta) {
-	// generate sfs from theta
-	float sum = 0;
-	sfs.push_back(0);
-	for (size_t i = 1; i < sampleSize + 1; ++i) {
-		sfs.push_back((theta / i)+(theta/(2*sampleSize-i)));
-		sum += sfs.back();
-	}
-	if (sum > 1.0) UERROR("The choice of theta and sample size results in too many mutations in the SFS!");
-	sfs.front() = 1.0 - sum;
-	_fillFrequencies();
-	_fillCumulative();
-}
-
-double SFSfolded::calcLLOneSite(const std::vector<float> &gl) {
-	const auto dimension = sfs.size();
-	double LL            = 0.0;
-	for (size_t i = 0; i < dimension; ++i) LL += exp(gl[i]) * sfs[i];
-
-	int j = dimension - 1;
-	for (size_t i = dimension; i < 2 * dimension - 1; ++i, --j) LL += exp(gl[i]) * sfs[j];
-
-	return log(LL);
-}
-*/
 } // namespace Simulations

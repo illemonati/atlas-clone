@@ -34,14 +34,14 @@ TVcfDiagnostics::TVcfDiagnostics() {
 	chr = -1;
 
 	// open vcf file
-	std::string vcfFileName = parameters().getParameterFilename("vcf");
+	std::string vcfFileName = parameters().get("vcf");
 	auto ending      = coretools::str::readAfterLast(vcfFileName, '.');
 	bool isZipped           = (ending == "gz");
 	_openVCF(vcfFileName, isZipped);
 
 	// read output name
 	auto tmp = coretools::str::readBeforeLast(vcfFileName, ".vcf");
-	_outName        = parameters().getParameterWithDefault("out", tmp);
+	_outName        = parameters().get("out", tmp);
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 
@@ -146,10 +146,10 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 	logfile().list("Writing files to '" + _outName + "_allelicDepth.txt'");
 
 	// limit input?
-	int maxDP = parameters().getParameterWithDefault<int>("maxDepth", 100);
+	int maxDP = parameters().get<int>("maxDepth", 100);
 	logfile().list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
 
-	int inputLines = parameters().getParameterWithDefault<int>("inputLines", -1);
+	int inputLines = parameters().get<int>("inputLines", -1);
 	if (inputLines <= 0) {
 		logfile().list("Reading whole vcf.");
 	} else
@@ -157,7 +157,7 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 
 	// initialize tables
 	logfile().startIndent("Initializing count tables:");
-	std::string qualityString = parameters().getParameterWithDefault<std::string>("qualities", "0,10,20,30,40,50");
+	std::string qualityString = parameters().get<std::string>("qualities", "0,10,20,30,40,50");
 	std::vector<int> qualities;
 	coretools::str::fillContainerFromString(qualityString, qualities, ',');
 

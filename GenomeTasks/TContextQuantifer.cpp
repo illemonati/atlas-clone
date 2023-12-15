@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "TBamTraverser.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
@@ -22,12 +23,12 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-TContextQuantifier::TContextQuantifier():TGenome_parsed(){
+TContextQuantifier::TContextQuantifier() : TBamReadTraverser<ReadType::Parsed>(){
 
 };
 
-void TContextQuantifier::_handleAlignment(){
-	for(auto& b : _alignment){
+void TContextQuantifier::_handleAlignment(BAM::TAlignment& alignment){
+	for(auto& b : alignment){
 		genometools::BaseContext context = b.context();
 		if(context != genometools::BaseContext::NN){					
 			_contextCounts.add(b.readGroupID, coretools::index(context));
@@ -35,7 +36,7 @@ void TContextQuantifier::_handleAlignment(){
 	}
 };
 
-void TContextQuantifier::quantifyContexts(){
+void TContextQuantifier::run(){
 	using coretools::instances::logfile;
 	_contextCounts.clear();
 
@@ -43,7 +44,7 @@ void TContextQuantifier::quantifyContexts(){
 	_traverseBAMPassedQC();
 
 	//write counts
-	std::string outputFileName = _outputName + "_contextInformation.txt.gz";
+	std::string outputFileName = _genome.outputName() + "_contextInformation.txt.gz";
 	logfile().list("Writing context information to file '" + outputFileName + "'.");
 
 	std::vector<std::string> contextLabels;

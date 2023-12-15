@@ -5,10 +5,6 @@
 #ifndef ATLAS_TVCFCONVERTER_H
 #define ATLAS_TVCFCONVERTER_H
 
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -16,11 +12,8 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Storage/TStorage.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
-#include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace genometools {
@@ -351,7 +344,7 @@ public:
 struct TVCFConverter {
 	void run() {
 		using namespace coretools::instances;
-		std::string format = parameters().getParameter<std::string>("format");
+		std::string format = parameters().get<std::string>("format");
 
 		if (format == "beagle") {
 			logfile().startIndent("Converting a VCF to Beagle format, old version (parameter 'format'):");
@@ -369,7 +362,7 @@ struct TVCFConverter {
 			logfile().startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
 			// posterior or call?
-			std::string genoType = parameters().getParameterWithDefault<std::string>("genotypes", "call");
+			std::string genoType = parameters().get<std::string>("genotypes", "call");
 			if (genoType == "posterior") {
 				TVcfToLFMM<false> vcfToLFMMPostGeno;
 				vcfToLFMMPostGeno.run();

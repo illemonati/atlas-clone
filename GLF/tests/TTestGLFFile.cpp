@@ -71,7 +71,7 @@ void TTestGLFFile::_iteratePosition() {
     _dummyPos += _dummyDist + 1; // + 1 because % can return 0, but then we would like distance of 1
 
     // next chromosome?
-    if (genometools::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->end()){
+    if (genometools::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->to()){
         writeNewChromosome();
     }
 }
@@ -174,7 +174,7 @@ void TTestGLFFile::writeNewChromosome() {
         DEVERROR("void TTestBamFile::writeDummyAlignments(size_t numAlignments): chromosome reached end!");
     }
 
-    _dummyPos = _dummyCurChr->start().position();
+    _dummyPos = _dummyCurChr->from().position();
 
     _glfFile.newChromosome(*_dummyCurChr);
 }

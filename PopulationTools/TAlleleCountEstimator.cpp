@@ -334,10 +334,10 @@ TSiteAlleleFrequencyLikelihoods::getLogAlleleFrequencyLikelihoods() const {
 void runCounts() {
 	// read samples
 	genometools::TPopulationSamples samples;
-	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if (parameters().exists("samples")) samples.readSamples(parameters().get<std::string>("samples"));
 
 	// open VCF reader
-	std::string vcfFilename = parameters().getParameter<std::string>("vcf");
+	std::string vcfFilename = parameters().get<std::string>("vcf");
 	logfile().startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	genometools::TPopulationLikelihoodReaderLocus reader(false);
 	reader.openVCF(vcfFilename);
@@ -357,9 +357,14 @@ void runCounts() {
 
 	// create out file
 	std::string tmp                   = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
+<<<<<<< HEAD
 	std::string outname               = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type                  = parameters().getParameterWithDefault<std::string>("outFormat", "default");
 	logfile().list("Setting outFormat to " + type + ". (parameter 'outFormat')");
+=======
+	std::string outname               = parameters().get<std::string>("out", tmp);
+	std::string type                  = parameters().get<std::string>("outFormat", "default");
+>>>>>>> beta
 	std::unique_ptr<TAlleleCountFile> alleleCountFile{impl::prepareOutputFile(type, outname)};
 
 	// write header
@@ -398,10 +403,10 @@ void runLikelihoods() {
 	// TODO: write proper saf
 	// read samples
 	genometools::TPopulationSamples samples;
-	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if (parameters().exists("samples")) samples.readSamples(parameters().get<std::string>("samples"));
 
 	// open VCF reader
-	const auto vcfFilename = parameters().getParameter<std::string>("vcf");
+	const auto vcfFilename = parameters().get<std::string>("vcf");
 	logfile().startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	genometools::TPopulationLikelihoodReaderLocus reader(false);
 	reader.openVCF(vcfFilename);
@@ -415,7 +420,7 @@ void runLikelihoods() {
 
 	// prepare site allele frequency likelihood calculators
 	const auto tmp     = coretools::str::readBeforeLast(vcfFilename, ".vcf");
-	const auto outname = parameters().getParameterWithDefault("out", tmp);
+	const auto outname = parameters().get("out", tmp);
 	logfile().list("Will write estimated allele counts to file '", outname, "'.");
 
 	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
@@ -451,10 +456,10 @@ void runTransform() {
 	gettimeofday(&start, NULL);
 
 	// get parameters for in and output
-	std::string countsFileName = parameters().getParameter<std::string>("transform");
+	std::string countsFileName = parameters().get<std::string>("transform");
 	std::string tmp(coretools::str::readBeforeLast(countsFileName, "_alleleCounts.txt.gz"));
-	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
-	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");
+	std::string outname        = parameters().get<std::string>("out", tmp);
+	std::string type           = parameters().get<std::string>("outFormat", "default");
 
 	logfile().list("Use option 'outFormat' to produce alleleCounts file in different formats.");
 
@@ -488,9 +493,9 @@ void runTransform() {
 };
 
 void TAlleleCounter::run() {
-	if (parameters().parameterExists("dosaf")) {
+	if (parameters().exists("dosaf")) {
 		runLikelihoods();
-	} else if (parameters().parameterExists("transform")) {
+	} else if (parameters().exists("transform")) {
 		runTransform();
 	} else {
 		runCounts();
