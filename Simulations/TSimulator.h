@@ -83,40 +83,16 @@ public:
 };
 
 //---------------------------------------------------------
-// TVCFWriterSimulation
-//---------------------------------------------------------
-
-class TVCFWriterSimulation : public GLF::TGlfMultiReaderVcf {
-public:
-	TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
-	                     const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods);
-
-	void writeSite(const std::string &ChrName, size_t Position, genometools::PhredIntProbability VariantQuality,
-	               genometools::Base RefAllele, genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
-	               const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
-	               const std::vector<size_t> &Depths);
-};
-
-//---------------------------------------------------------
 // TVCFSimulator
 //---------------------------------------------------------
 
 class TVCFSimulator : public TSimulator {
 private:
 	coretools::Probability _error = 0.05;
-	std::unique_ptr<TVCFWriterSimulation> _vcf;
+	std::unique_ptr<genometools::TVcfWriter> _vcf;
 
 protected:
-	GLF::TMultiGLFDataSampleOneAllelicCombination _calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
-	                                                                            bool IsDiploid);
-	size_t _simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b, genometools::Base Ref,
-	                                            size_t Depth, bool IsDiploid);
-	std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination>
-	_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid, size_t avgDepth);
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
-	std::pair<genometools::Base, genometools::Base>
-	_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
-	                      genometools::Base RefAllele);
 
 public:
 	TVCFSimulator(const std::string &method);

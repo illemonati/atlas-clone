@@ -21,162 +21,13 @@
 #include "genometools/TFastaReader.h"
 
 #include "TGLF.h"
+#include "genometools/TFastaReader.h"
+#include "genometools/VCF/TVcfWriter.h"
+
+using TGenotypeLikelihoodsOneAllelicCombinationVector = std::vector<genometools::TGenotypeLikelihoodsOneAllelicCombination>;
+using TGenotypeLikelihoodsAllCombinationsVector                      = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
 
 namespace GLF {
-
-//----------------------------------------------------
-// TMultiGLFDataSample
-//----------------------------------------------------
-class TMultiGLFDataSample {
-private:
-	TGLFLikelihoods _glf;//{{genometools::HighPrecisionPhredIntProbability::highest()}};
-	size_t _depth = 0;
-public:
-	TMultiGLFDataSample(bool isHaploid = true)
-		: _glf(genometools::HighPrecisionPhredIntProbability::highest(), Ploidy((!isHaploid))) {}
-	constexpr TMultiGLFDataSample(const TGLFLikelihoods &GLs, uint16_t Depth) : _glf(GLs), _depth{Depth} {};
-
-	constexpr bool hasData() const noexcept { return _depth > 0; };
-	constexpr size_t depth() const noexcept { return _depth; };
-	constexpr bool isHaploid() const noexcept { return _glf.isType(Ploidy::haploid); };
-
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype G) const noexcept {
-		return _glf[G]; // asserts if diploid
-	};
-
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base B) const noexcept {
-		return _glf[B]; // asserts if diploid
-	};
-};
-
-//-------------------------------------
-// TGenotypeLikelihoodsOneAllelicCombination
-//-------------------------------------
-class TMultiGLFDataSampleOneAllelicCombination {
-private:
-	enum : uint8_t {NOTMISSING_DIPLOID = 0, MISSING_DIPLOID = 1, NOTMISSING_HAPLOID = 2, MISSING_HAPLOID = 3};
-
-	coretools::TBitSet<2> _flags{MISSING_DIPLOID};
-	std::array<coretools::Probability, 3> _GLs{coretools::Probability::highest(), coretools::Probability::highest(), coretools::Probability::highest()};
-
-public:
-	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _flags(MISSING_DIPLOID | isHaploid * MISSING_HAPLOID){}
-
-	TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
-							   genometools::HighPrecisionPhredIntProbability het,
-							   genometools::HighPrecisionPhredIntProbability homoSecond)
-		: _flags(NOTMISSING_DIPLOID), _GLs({coretools::Probability(homoFirst), coretools::Probability(het), coretools::Probability(homoSecond)})  {}
-
-	TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
-							   genometools::HighPrecisionPhredIntProbability second)
-		:  _flags(NOTMISSING_HAPLOID), _GLs({coretools::Probability(first), coretools::Probability(second), coretools::Probability::highest()})  {}
-
-	constexpr bool isMissing() const noexcept { return _flags.get<0>();}
-	constexpr bool isHaploid() const noexcept { return _flags.get<1>();}
-
-	constexpr coretools::Probability
-	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
-		assert(isHaploid() == genometools::isHaploid(Genotype));
-		return _GLs[genometools::altAlleleCounts(Genotype)];
-	};
-};
-
-using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAllelicCombination>;
-using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
-
-TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
-										genometools::AllelicCombination alleleicCombination);
-
-//----------------------------------------------------
-// TGlfMultiReaderVcfLocusDefinition
-//----------------------------------------------------
-class TGlfMultiReaderVcf {
-private:
-	bool _usePhredScaledLikelihoods;
-
-protected:
-	coretools::TOutputFile _vcf;
-
-	genometools::Base _ref{};
-	genometools::Base _alt{};
-
-	genometools::Genotype _refHom{};
-	genometools::Genotype _het{};
-	genometools::Genotype _altHom{};
-
-	void _setMajorMinor(genometools::Base refAllele, genometools::Base altAllele);
-	void _writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf);
-	void _writeSiteInformation(const std::string & ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality, size_t Depth);
-
-	template<size_t NumGeno>
-	auto _getSecondHighestGTL(size_t IndexBest,
-	                          const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL) {
-		if constexpr (NumGeno == 2) { // haploid
-			return GTL[1 - IndexBest]; // the other one
-		} else {
-			constexpr std::array<std::array<size_t, 2>, NumGeno> a = {{{1, 2}, {0, 2}, {0, 1}}}; // the two other ones
-			return std::min(GTL[a[IndexBest][0]], GTL[a[IndexBest][1]]);
-		}
-	}
-
-	template<size_t NumGeno>
-	auto _writeGenotypeAndQuality(const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL) {
-		std::array<std::string, NumGeno> genotypeStrings;
-		if constexpr (NumGeno == 2){ genotypeStrings = {"0", "1"}; } // haploid
-		else { genotypeStrings = {"0/0", "0/1", "1/1"}; } // diploid
-
-		const auto min     = std::min_element(GTL.cbegin(), GTL.cend());
-		const auto minQual = *min;
-		const auto in      = std::distance(GTL.cbegin(), min);
-
-		// get all genotypes with minQual (=MLE)
-		std::vector<size_t> mleGenotypes;
-		for (size_t i = 0; i < NumGeno; ++i) {
-			if (GTL[i] == minQual) { mleGenotypes.push_back(i); }
-		}
-
-		// write genotype quality
-		if (mleGenotypes.size() > 1) {
-			const auto mleGeno = mleGenotypes[coretools::instances::randomGenerator().sample(mleGenotypes.size())];
-			_vcf.writeNoDelim(genotypeStrings[mleGeno], ":0:");
-		} else {
-			auto slq = _getSecondHighestGTL(in, GTL);
-			_vcf.writeNoDelim(genotypeStrings[mleGenotypes.front()], ':', genometools::PhredIntProbability(slq - minQual).get(), ':');
-		}
-
-		return minQual;
-	}
-
-	template<size_t NumGeno>
-	void _writeCell(bool IsMissing, size_t Depth, const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL){
-		if (IsMissing) {
-			if constexpr (NumGeno == 3) { _vcf.write("./.:.:.:."); } // diploid
-			else { _vcf.write(".:.:.:."); } // haploid
-			return;
-		}
-
-		// write genotype and genotype quality
-		const auto minQual = _writeGenotypeAndQuality(GTL);
-
-		// write depth
-		_vcf.writeNoDelim(Depth, ':');
-
-		// write likelihoods
-		_writeLikelihood(GTL[0] - minQual);
-		for (size_t g = 1; g < NumGeno; g++){
-			_vcf.writeNoDelim(',');
-			_writeLikelihood(GTL[g] - minQual);
-		}
-		_vcf.writeDelim();
-	}
-
-public:
-	TGlfMultiReaderVcf(const std::string & Filename, const std::string & Source, const std::vector<std::string> &sampleNames,
-			   bool UsePhredScaledLikelihoods);
-
-	void writeSite(const std::string &chrName, uint32_t position, genometools::PhredIntProbability varianTQuality,
-		       const TMultiGLFData &data, genometools::Base Ref, genometools::Base Alt);
-};
 
 //----------------------------------------------------
 // TGlfMultiReader
@@ -200,7 +51,7 @@ private:
 	uint32_t _minDepth = 0;
 	size_t _windowStart = 0;
 	size_t _windowSize  = 64;
-	std::vector<TMultiGLFData> _dataWindow;
+	std::vector<TGenotypeLikelihoodsAllCombinationsVector> _dataWindow;
 	std::vector<size_t> _numActive;
 
 	// reference
@@ -216,7 +67,7 @@ private:
 	bool _moveToNextChromosome();
 
 public:
-	const TMultiGLFData& data(size_t iWindow) const noexcept {return _dataWindow[iWindow];};
+	const TGenotypeLikelihoodsAllCombinationsVector& data(size_t iWindow) const noexcept {return _dataWindow[iWindow];};
 
 	TGlfMultiReader();
 

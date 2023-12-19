@@ -14,18 +14,18 @@
 #include <vector>
 #include <zlib.h>
 
-#include "TGenotypeData.h"
-#include "coretools/Containers/TDualStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-
+#include "coretools/Containers/TDualStrongArray.h"
+#include "TGenotypeData.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TTask.h"
+#include "genometools/VCF/TVcfWriter.h"
 
 namespace genometools { class TChromosome; }
 
 namespace GLF {
-
-enum class Ploidy : uint8_t { min = 0, haploid = min, diploid = 1, max = 2 };
-
+using genometools::Ploidy;
 using TGLFLikelihoods = coretools::TDualStrongArray<genometools::HighPrecisionPhredIntProbability, genometools::Base, genometools::Genotype, 4, 10, Ploidy>;
 
 //----------------------------------------------------
