@@ -12,6 +12,9 @@ L="100$k"
 . $(dirname $0)/simulate --recal $recal --pmd $pmd --baseQuality "unif()[0,93]" \
 	--chrLength $L,$L --depth 9 --ploidy 2,1 --numReadGroups 1
 
+echo "chr2 0 5000" > bed.bed
+echo "chr2 10000 200000" >> bed.bed
+
 rModels=("intercept;quality" "intercept;quality:polynomial3;position:polynomial3;fragmentLength:polynomial3;mappingQuality:polynomial3;context;" "intercept;quality;position;fragmentLength;mappingQuality;context")
 for i in {0..2}; do
 	name="diplo$i"
@@ -24,6 +27,6 @@ for i in {0..2}; do
 	name="haplo$i"
 	$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
 		   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-		   --chr chr2  --ploidy 1  --window 4567 \
+		   --regions bed.bed --ploidy 1  --window 4567 \
 		--fixedSeed 0 --out $name --logFile $name.out
 done

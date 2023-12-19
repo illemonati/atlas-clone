@@ -5,9 +5,19 @@
 
 rm ATLAS_simulations.bam.bai # will automatically recreate it
 
+echo "chr1 0 1000" > bed.bed
+echo "chr1 2000 3000" >> bed.bed
+echo "chr1 4000 5000" >> bed.bed
+echo "chr1 6000 7000" >> bed.bed
+echo "chr1 8000 9000" >> bed.bed
+echo "chr1 10000 11000" >> bed.bed
+echo "chr1 12000 13000" >> bed.bed
+echo "chr1 14000 15000" >> bed.bed
+echo "chr1 16000 17000" >> bed.bed
+
 # theta
 $atlas --task theta --bam ATLAS_simulations.bam --printAll \
-	   --extraVerbose --window 4567 \
+	   --extraVerbose --window 4567 --regions bed.bed \
 	   --fixedSeed 0 --out standard --logFile standard.out
 
 # theta with downsample
