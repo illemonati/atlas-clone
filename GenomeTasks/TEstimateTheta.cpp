@@ -284,13 +284,13 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
 	std::string regionsFile = parameters().get<std::string>("region" + std::to_string(num));
 	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
-	region.add(regionsFile, _genome.bamFile().chromosomes());
+	region.parse(regionsFile, _genome.bamFile().chromosomes());
 	logfile().done();
-	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
+	logfile().conclude("Read ", region.size(),  " sites on ", region.NChrWindows(), " chromosomes.");
 };
 
 void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, GenotypeLikelihoods::TThetaEstimatorData &Data, const genometools::TBed &Region) {
-	auto it = Region.lower_bound(Window);
+	auto it = Region.begin(Window);
 
 	while (it != Region.end() && Window.overlaps(*it)) {
 		for (genometools::TGenomePosition s = std::max(it->from(), Window.from()); s < it->to() && s < Window.to();

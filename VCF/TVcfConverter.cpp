@@ -22,6 +22,7 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
 #include "genometools/BED/TBed.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/VCF/TPopulationLikelihoodLocus.h"
 

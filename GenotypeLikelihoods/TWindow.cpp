@@ -240,7 +240,7 @@ void TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		//only keep sites in BED
 		genometools::TGenomePosition pos = from();
 		//size_t pos = from().position();
-		auto it = mask.lower_bound(*this);
+		auto it = mask.begin(*this);
 		while(it != mask.end() && overlaps(*it)){
 			//mask until start of BED window
 			for(; pos < it->from() && pos < to(); ++pos){
@@ -256,7 +256,7 @@ void TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		}
 	} else {
 		//mask all sites in BED
-		auto it = mask.lower_bound(*this);
+		auto it = mask.begin(*this);
 		while(it != mask.end() && overlaps(*it)){
 
 			for(genometools::TGenomePosition s = std::max(it->from(), from()); s < std::min(it->to(), to()); ++s){

@@ -36,14 +36,14 @@ FetchContent_Declare(coretools
 include(FetchContent)
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           a0a8200
+  GIT_TAG           7772f90
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
 include(FetchContent)
 FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           6008a57
+  GIT_TAG           95f0885
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 

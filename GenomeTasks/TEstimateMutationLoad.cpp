@@ -135,7 +135,7 @@ void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) 
 	try {
 		if (_parseFromBed) {
 			// get sites from bed file and alleles from reference
-			auto it = _bedFile.lower_bound(Window);
+			auto it = _bedFile.begin(Window);
 			while (it != _bedFile.end() && Window.overlaps(*it)) {
 				for (genometools::TGenomePosition s = std::max(it->from(), Window.from());
 				     s < it->to() && s < Window.to(); ++s) {
@@ -172,9 +172,9 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 		// parse BED
 		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
-		_bedFile.add(_bedFileName, _genome.bamFile().chromosomes());
+		_bedFile.parse(_bedFileName, _genome.bamFile().chromosomes());
 		logfile().done();
-		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.numChromosomesWithWindows(),
+		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.NChrWindows(),
 		                   " chromosomes.");
 		_parseFromBed = true;
 		logfile().endIndent();

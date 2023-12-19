@@ -539,7 +539,7 @@ template<typename Estimator> void iterate(double maxF) {
 	genometools::TVcfWriter vcf;
 
 	// open vcf file
-	if (coretools::instances::parameters().parameterExists("bgz")) {
+	if (coretools::instances::parameters().exists("bgz")) {
 		vcf = genometools::TVcfWriter(new GLF::TBGzWriter (outname + ".vcf.gz"), "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
 	} else {
 		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);

@@ -47,7 +47,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 			const auto& chr = Chromosomes[window.refID()];
 			if (!chr.inUse() || (_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
 				(_subsetMonomorphic && !_subsetMonomorphic->hasPositionsInWindow(window)) ||
-				(_considerRegions && !_mask.hasOverlapWith(window))) {
+				(_considerRegions && !_mask.overlaps(window))) {
 				logfile().list("Ignoring window [", window.from().position(), ", ", window.to().position(), "] on chr ", chr.name(), "!");
 				continue;
 			}
@@ -88,7 +88,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 			for (genometools::TGenomeWindow window(from, _windowSize); window.from() < to; window += _windowSize) {
 				if ((_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
 					(_subsetMonomorphic && !_subsetMonomorphic->hasPositionsInWindow(window)) ||
-					(_considerRegions && !_mask.hasOverlapWith(window))) {
+					(_considerRegions && !_mask.overlaps(window))) {
 					continue;
 				}
 				if (window.to() > chr.to()) window.resize(chr.to() - window.from());
@@ -183,9 +183,9 @@ void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 
 		// read file
 		logfile().listFlush("Reading file ...");
-		_mask.add(filename, Chromosomes);
+		_mask.parse(filename, Chromosomes);
 		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.numChromosomesWithWindows(), " chromosomes.");
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");
 		logfile().endIndent();
 	} else {
 		_doMasking       = false;

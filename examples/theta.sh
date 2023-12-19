@@ -12,8 +12,6 @@ echo "chr1 6000 7000" >> bed.bed
 echo "chr1 8000 9000" >> bed.bed
 echo "chr1 10000 11000" >> bed.bed
 echo "chr1 12000 13000" >> bed.bed
-echo "chr1 14000 15000" >> bed.bed
-echo "chr1 16000 17000" >> bed.bed
 
 # theta
 $atlas --task theta --bam ATLAS_simulations.bam --printAll \

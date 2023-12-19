@@ -481,7 +481,7 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 	if (!_regions.empty()) { // Either sites
 		for (size_t r = 0; r < _regions.size(); ++r) {
 			auto &region = _regions[r];
-			for (auto lb = region.firstOverlap(Window); lb != region.end() && Window.overlaps(*lb); ++lb) {
+			for (auto lb = region.begin(Window); lb != region.end() && Window.overlaps(*lb); ++lb) {
 				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
 				const size_t pStart = std::max(lb->from().position(), Window.from().position()) - Window.from().position();
 				const size_t pStop  = std::min(lb->to().position(), Window.to().position()) - Window.from().position();

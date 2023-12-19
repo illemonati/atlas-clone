@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "coretools/Main/TParameters.h"
+#include "coretools/Main/TLog.h"
 #include "genometools/VCF/TVcfFile.h"
 
 namespace VCF{

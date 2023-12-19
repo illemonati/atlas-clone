@@ -87,9 +87,9 @@ void TWaitingListBamTraverser::_setMasks(const genometools::TChromosomes& Chromo
 
 		// read file
 		logfile().listFlush("Reading file ...");
-		_mask.add(filename, Chromosomes);
+		_mask.parse(filename, Chromosomes);
 		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.numChromosomesWithWindows(), " chromosomes.");
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");
 		logfile().endIndent();
 	} else {
 		_doMasking       = false;
@@ -176,8 +176,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 		if (_genome.bamFile().curPassedQC()) {
 			// if single end, unchanged and storage is empty: write directly
 			if (_alignmentCanBeWrittenUnchanged()) {
-				if (_doMasking && _mask.hasOverlapWith(_genome.bamFile().curPosition())) continue;
-				if (_considerRegions && !_mask.hasOverlapWith(_genome.bamFile().curPosition())) continue;
+				if (_doMasking && _mask.overlaps(_genome.bamFile().curPosition())) continue;
+				if (_considerRegions && !_mask.overlaps(_genome.bamFile().curPosition())) continue;
 
 				_genome.bamFile().writeCurAlignment(_outBam);
 			} else {
@@ -213,8 +213,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 							if (alignment.readGroupId() != mate->alignment.readGroupId()) {
 								UERROR("Mates '", alignment.name(), "' are in different read groups!");
 							}
-							if ((_doMasking && (_mask.hasOverlapWith(alignment) || _mask.hasOverlapWith(mate->alignment))) ||
-								(_considerRegions && !_mask.hasOverlapWith(alignment) && !_mask.hasOverlapWith(mate->alignment))) {
+							if ((_doMasking && (_mask.overlaps(alignment) || _mask.overlaps(mate->alignment))) ||
+								(_considerRegions && !_mask.overlaps(alignment) && !_mask.overlaps(mate->alignment))) {
 								_waitingList.back().status = AlignmentStatus::filterOut;
 								mate->status               = AlignmentStatus::filterOut;
 							} else {
@@ -224,8 +224,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 					}
 				} else {
 					// read is single end
-					if ((_doMasking && _mask.hasOverlapWith(alignment)) ||
-						(_considerRegions && !_mask.hasOverlapWith(alignment))) {
+					if ((_doMasking && _mask.overlaps(alignment)) ||
+						(_considerRegions && !_mask.overlaps(alignment))) {
 						_waitingList.back().status = AlignmentStatus::filterOut;
 					} else {
 						_handleSingle();
