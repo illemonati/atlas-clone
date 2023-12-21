@@ -226,13 +226,11 @@ void TBamWindows::filter(GenotypeLikelihoods::TWindow &window) {
 	if (window.numReadsInWindow() > 0) {
 		// apply masks and filters
 		if (_doMasking) {
-			logfile().listFlush("Masking sites ...");
-			window.applyMask(_mask, _considerRegions);
-			logfile().done();
+			const auto N = window.applyMask(_mask, _considerRegions);
+			logfile().list("Masking ", N, " sites.");
 		} else if (_considerRegions) {
-			logfile().listFlush("Masking sites outside regions ...");
-			window.applyMask(_mask, _considerRegions);
-			logfile().done();
+			const auto N = window.applyMask(_mask, _considerRegions);
+			logfile().list("Masking ", N, " sites outside regions.");
 		}
 
 		// filter sites

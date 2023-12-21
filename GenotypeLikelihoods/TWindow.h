@@ -52,6 +52,7 @@ private:
 	mutable size_t _numSitesWithData        = 0;
 
 	size_t _numReadsInWindow = 0;
+	size_t _numMaskedSites   = 0;
 	bool _passedFilters      = false;
 	bool _referenceBaseAdded = false;
 
@@ -164,7 +165,7 @@ public:
 	};
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);
 
-	void applyMask(genometools::TBed &mask, bool doInverseMasking);
+	size_t applyMask(genometools::TBed &mask, bool doInverseMasking);
 	void maskCpG(const genometools::TFastaReader &reference);
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;

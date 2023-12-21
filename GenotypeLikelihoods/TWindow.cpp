@@ -52,12 +52,13 @@ void TWindow::_calcDepth() const {
 			}
 		}
 
-		_depth /= size();
-		_fractionRefIsN /= size();
+		const auto realSize = size() - _numMaskedSites;
+		_depth /= realSize;
+		_fractionRefIsN /= realSize;
 
 		_numSitesWithData        = size() - noData;
-		_fractionSitesNoData     = (double)noData / size();
-		_fractionDepthAtLeastTwo = (double)plentyData / size();
+		_fractionSitesNoData     = (double)(noData - _numMaskedSites) / realSize;
+		_fractionDepthAtLeastTwo = (double)plentyData / realSize;
 	}
 }
 
@@ -235,16 +236,18 @@ void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & referenc
 	}
 };
 
-void TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
-	if(doInverseMasking){
+size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
+	_numMaskedSites = 0;
+	if (doInverseMasking) {
 		//only keep sites in BED
-		genometools::TGenomePosition pos = from();
+		auto pos = from();
 		//size_t pos = from().position();
 		auto it = mask.begin(*this);
 		while(it != mask.end() && overlaps(*it)){
 			//mask until start of BED window
 			for(; pos < it->from() && pos < to(); ++pos){
 				_sites[pos - from()].clear();
+				++_numMaskedSites;
 			}
 			//jump to end of BED window
 			pos = it->to();
@@ -253,6 +256,7 @@ void TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		//clear until end of window
 		for(; pos < to(); ++pos){
 			_sites[pos - from()].clear();
+			++_numMaskedSites;
 		}
 	} else {
 		//mask all sites in BED
@@ -261,10 +265,12 @@ void TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 
 			for(genometools::TGenomePosition s = std::max(it->from(), from()); s < std::min(it->to(), to()); ++s){
 				_sites[s - from()].clear();
+				++_numMaskedSites;
 			}
 			++it;
 		}
 	}
+	return _numMaskedSites;
 };
 
 void TWindow::maskCpG(const genometools::TFastaReader & reference){
