@@ -208,6 +208,12 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::FragmentLength);
 			logfile().list("Fragment length: keep all. (use 'filterFragmentLength' to limit)");
 		}
+
+		if (parameters().exists("readGroup")) {
+			enable(FilterType::ReadGroup, "Read group not in use");
+		} else {
+			disable(FilterType::ReadGroup);
+		}
 	}
 	logfile().endIndent();
 

@@ -8,24 +8,24 @@ namespace GenomeTasks {
 
 class TFilteredBamTraverser  {
 protected:
-	TGenome _genome;
+	TGenome _genome{BAM::TBamFilters{true}};
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
 
 public:
-	TFilteredBamTraverser() : _genome(BAM::TBamFilters{true}) {};
+	virtual ~TFilteredBamTraverser() = default;
 };
 
 class TParsedBamTraverser  {
 protected:
-	TGenome _genome;
+	TGenome _genome{BAM::TBamFilters{true}};
 	TParser _parser;
 
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment(BAM::TAlignment& alignment) = 0;
 
 public:
-	TParsedBamTraverser() : _genome(BAM::TBamFilters{true}) {};
+	virtual ~TParsedBamTraverser() = default;
 };
 
 enum class ReadType : bool {Filtered, Parsed};

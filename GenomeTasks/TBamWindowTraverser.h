@@ -147,7 +147,7 @@ protected:
 	virtual void _endChromosome(const genometools::TChromosome &Chr)   = 0;
 
 public:
-	TBamWindowTraverser() {}
+	virtual ~TBamWindowTraverser() = default;
 };
 
 } // namespace GenomeTasks
