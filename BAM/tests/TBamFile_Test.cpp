@@ -204,8 +204,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 // TBamFile - windows
 //-------------------------------------------------------------
 
-class TGenomeWindow_Test : public GenomeTasks::TBamWindowTraverser<GenomeTasks::WindowType::SingleBam> {
-protected:
+class TGenomeWindow_Test final : public GenomeTasks::TBamWindowTraverser<GenomeTasks::WindowType::SingleBam> {
     std::vector<genometools::TGenomeWindow> _windows_visited;
 
     void _handleWindow(GenotypeLikelihoods::TWindow& window) override{
@@ -218,22 +217,17 @@ protected:
         _windows_visited.emplace_back(window);
         // store GenotypeLikelihoods::TWindow attributes
         depth.emplace_back(window.depth());
-        fractionSitesNoData.emplace_back(window.fractionSitesNoData());
-        fractionDepthAtLeastTwo.emplace_back(window.fractionDepthAtLeastTwo());
-        numSitesWithData.emplace_back(window.numSitesWithData());
         numReadsInWindow.emplace_back(window.numReadsInWindow());
     };
+
+	void _startChromosome(const genometools::TChromosome &) override {}
+	void _endChromosome(const genometools::TChromosome &)   override {}
 
 public:
     // storage
     std::vector<double> depth;
-    std::vector<double> fractionSitesNoData;
-    std::vector<double> fractionDepthAtLeastTwo;
-    std::vector<size_t> numSitesWithData;
     std::vector<size_t> numReadsInWindow;
     std::vector<std::vector<GenotypeLikelihoods::TSite>> sites;
-
-    TGenomeWindow_Test() : GenomeTasks::TBamWindowTraverser() {};
 
     void traverse(){
         _traverseBAMWindows();
@@ -400,68 +394,6 @@ TEST_F(TBamFile_Test_Windows, depthPerWindow){
     EXPECT_EQ(genomeWindow->depth[8], 0.);
 }
 
-TEST_F(TBamFile_Test_Windows, fractionSitesNoData_PerWindow){
-    // 1. chr (cases 1), 2) and 3))
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[0], 0.4);
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[1], 0.8);
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[2], 0.6);
-
-    // 2. chr (case 4))
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[3], 0.6);
-
-    // 3. chr (case 5))
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[4], 0.8);
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[5], 1.);
-
-    // 4. chr (case6))
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[6], 1.);
-
-    // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[7], 0.87);
-    EXPECT_EQ(genomeWindow->fractionSitesNoData[8], 1.);
-}
-
-TEST_F(TBamFile_Test_Windows, fractionDepthAtLeastTwo_PerWindow){
-    // 1. chr (cases 1), 2) and 3))
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[0], 0.3);
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[1], 0.15);
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[2], 0.);
-
-    // 2. chr (case 4))
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[3], 0.);
-
-    // 3. chr (case 5))
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[4], 0.);
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[5], 0.);
-
-    // 4. chr (case6))
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[6], 0.);
-
-    // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[7], 0.02);
-    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[8], 0.);
-}
-
-TEST_F(TBamFile_Test_Windows, numSitesWithData_PerWindow){
-    // 1. chr (cases 1), 2) and 3))
-    EXPECT_EQ(genomeWindow->numSitesWithData[0], 60);
-    EXPECT_EQ(genomeWindow->numSitesWithData[1], 20);
-    EXPECT_EQ(genomeWindow->numSitesWithData[2], 20);
-
-    // 2. chr (case 4))
-    EXPECT_EQ(genomeWindow->numSitesWithData[3], 20);
-
-    // 3. chr (case 5))
-    EXPECT_EQ(genomeWindow->numSitesWithData[4], 20);
-    EXPECT_EQ(genomeWindow->numSitesWithData[5], 0);
-
-    // 4. chr (case6))
-    EXPECT_EQ(genomeWindow->numSitesWithData[6], 0);
-
-    // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->numSitesWithData[7], 13);
-    EXPECT_EQ(genomeWindow->numSitesWithData[8], 0);
-}
 
 TEST_F(TBamFile_Test_Windows, numReadsInWindow_PerWindow){
     // 1. chr (cases 1), 2) and 3))

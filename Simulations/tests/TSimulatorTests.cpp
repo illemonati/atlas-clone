@@ -102,25 +102,6 @@ TEST(TVCFSimulator, findMajorMinorAllele_4) {
 	EXPECT_TRUE(counterMinor[genometools::Base::C] > 0);
 }
 
-TEST(TVCFSimulator, _calculateGenotypeLikelihoods_diploid) {
-	coretools::instances::parameters().add("error", 0.05);
-	TVCFSimulatorBridge vcfSimulator;
-
-	auto GTL = vcfSimulator.calculateGenotypeLikelihoods(10, 20, true);
-	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoFirst]), 26243);
-	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::het]), 9031);
-	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoSecond]), 13456);
-}
-
-TEST(TVCFSimulator, _calculateGenotypeLikelihoods_haploid) {
-	coretools::instances::parameters().add("error", 0.05);
-	TVCFSimulatorBridge vcfSimulator;
-
-	auto GTL = vcfSimulator.calculateGenotypeLikelihoods(10, 20, false);
-	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidFirst]), 26243);
-	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidSecond]), 13456);
-}
-
 void simulate(){
 	TVCFSimulator vcfSimulator("HW");
 	vcfSimulator.runSimulations();

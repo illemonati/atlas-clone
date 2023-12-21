@@ -279,8 +279,9 @@ bool TBamFile::readNextAlignment(){
 
 
 	//check if it has no read group
-	bool pass = true;
-	do {
+	bool pass =false;
+	while (!pass) {
+		pass = true;
 		// get next alignment
 		if (!_readNextAlignmentFromFile()) { return false; }
 
@@ -294,7 +295,7 @@ bool TBamFile::readNextAlignment(){
 			++_numNotAligned[_curReadGroupID];
 			pass = false;
 		}
-	} while (!pass);
+	}
 
 	//check if chromosome changed
 	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){

@@ -92,12 +92,17 @@ protected:
 
 		if constexpr (isSingle) {
 			_genome.bamFile().startProgressReporting();
-			_genome.bamFile().readNextAlignmentThatPassesFilters();
+			if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) {
+				UERROR("No read of file '", _genome.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
+			} 
+
 			logfile().startIndent("Traversing BAM file in windows:");
 		} else {
 			for (auto &g : _genome) {
 				g.bamFile().startProgressReporting(false);
-				g.bamFile().readNextAlignmentThatPassesFilters();
+				if (!g.bamFile().readNextAlignmentThatPassesFilters()) {
+					UERROR("No read of file '", g.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
+				}
 			}
 			std::string_view file = "files";
 			if (_genome.size() < 2) file.remove_suffix(1);

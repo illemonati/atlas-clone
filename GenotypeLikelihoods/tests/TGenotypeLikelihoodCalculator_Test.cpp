@@ -46,7 +46,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
     TErrorModels calculator(rgi);
 
     BAM::TSequencedBase base;
-    base.quality_orig = 20;
+    base.originalQuality = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
     base.base = Base::A;
