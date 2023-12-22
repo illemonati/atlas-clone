@@ -2,6 +2,7 @@
 
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 
 namespace GenomeTasks {
 
@@ -174,10 +175,12 @@ void TWaitingListBamTraverser::traverseBAM() {
 
 		// check if read passed filters
 		if (_genome.bamFile().curPassedQC()) {
+			const genometools::TGenomeWindow alnWin(_genome.bamFile().curPosition(),
+													_genome.bamFile().curCIGAR().lengthRead());
 			// if single end, unchanged and storage is empty: write directly
 			if (_alignmentCanBeWrittenUnchanged()) {
-				if (_doMasking && _mask.overlaps(_genome.bamFile().curPosition())) continue;
-				if (_considerRegions && !_mask.overlaps(_genome.bamFile().curPosition())) continue;
+				if (_doMasking && _mask.overlaps(alnWin)) continue;
+				if (_considerRegions && !_mask.overlaps(alnWin)) continue;
 
 				_genome.bamFile().writeCurAlignment(_outBam);
 			} else {
@@ -213,8 +216,9 @@ void TWaitingListBamTraverser::traverseBAM() {
 							if (alignment.readGroupId() != mate->alignment.readGroupId()) {
 								UERROR("Mates '", alignment.name(), "' are in different read groups!");
 							}
-							if ((_doMasking && (_mask.overlaps(alignment) || _mask.overlaps(mate->alignment))) ||
-								(_considerRegions && !_mask.overlaps(alignment) && !_mask.overlaps(mate->alignment))) {
+							const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
+							if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
+							    (_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
 								_waitingList.back().status = AlignmentStatus::filterOut;
 								mate->status               = AlignmentStatus::filterOut;
 							} else {
@@ -224,8 +228,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 					}
 				} else {
 					// read is single end
-					if ((_doMasking && _mask.overlaps(alignment)) ||
-						(_considerRegions && !_mask.overlaps(alignment))) {
+					if ((_doMasking && _mask.overlaps(alnWin)) ||
+						(_considerRegions && !_mask.overlaps(alnWin))) {
 						_waitingList.back().status = AlignmentStatus::filterOut;
 					} else {
 						_handleSingle();
