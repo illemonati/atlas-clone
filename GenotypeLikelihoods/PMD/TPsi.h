@@ -56,16 +56,14 @@ class TPsi {
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
 
-		const auto end  = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
-		const auto pos  = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
-
+		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
 		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
 		auto &tSum          = _tableSums[end][realType];
-		// tSum has already the correct size
+		if (tSum.empty()) return; // wrong pattern
 
-		if (pos >= tSum.size()) return; // Not enough data or wrong pattern
+		const auto pos  = std::min<size_t>(tSum.size() - 1, end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime);
 
-		tSum[pos].numDenom.num += P_b_bbar_I_gdij[From][To] * P_g_I_di;
+		tSum[pos].numDenom.num   += P_b_bbar_I_gdij[From][To] * P_g_I_di;
 		tSum[pos].numDenom.denom += (P_b_bbar_I_gdij[From][To] + P_b_bbar_I_gdij[From][From]) * P_g_I_di;
 	}
 

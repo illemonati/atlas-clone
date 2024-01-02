@@ -262,17 +262,17 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 		logfile().endIndent();
 
-		double lambda   = 0.5;
+		int shift = 1;
 		while(nUpdated < nTot) {
-			logfile().startIndent("Backtracing with lambda = ", lambda, ":");
-			for (auto &e : _epsilons) e->propose(lambda);
+			logfile().startIndent("Backtracing with lambda = 1/2^", shift, " :");
+			for (auto &e : _epsilons) e->propose(1./(1 << shift));
 			
 			nUpdated = _calculateQ();
 			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 			logfile().endIndent();
 
-			lambda /= 2;
-			if (lambda < 1e-20) break;
+			++shift;
+			if (shift > 30) break;
 		}
 
 		double newQ = 0.;
@@ -285,7 +285,7 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		const auto deltaQ = newQ - oldQ;
 
 		if (nUpdated < nTot) {
-			logfile().conclude(nTot - nUpdated, " models did not improve even with log2(lambda) = ", std::log2(lambda),
+			logfile().conclude(nTot - nUpdated, " models did not improve even with log2(lambda) = ", shift - 1,
 							   ", aborting Newton-Raphson.");
 			logfile().endIndent();
 			break;
@@ -394,6 +394,12 @@ void TErrorEstimator::_runEM() {
 
 		_updatePbbar();
 
+		if (!_noEpsilon) {
+			logfile().startIndent("Estimating epsilon:");
+			_updateEpsilon(deltaLL);
+			logfile().endIndent();
+		}
+
 		if (!_noRho) {
 			logfile().list("Estimating rho");
 			for (auto &rho : _rhos) rho->estimate();
@@ -402,12 +408,6 @@ void TErrorEstimator::_runEM() {
 		if (!_noPsi) {
 			logfile().list("Estimating psi");
 			for (auto &psi : _psis) psi->estimate();
-		}
-
-		if (!_noEpsilon) {
-			logfile().startIndent("Estimating epsilon:");
-			_updateEpsilon(deltaLL);
-			logfile().endIndent();
 		}
 
 		const double LL = _calculateLL_updatePg();

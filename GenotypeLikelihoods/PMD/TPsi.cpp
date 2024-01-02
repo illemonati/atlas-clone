@@ -150,11 +150,25 @@ void TPsi::estimateInit() noexcept {
 			auto &table = _tables[e][t];
 			auto &tSum  = _tableSums[e][t];
 
+			// add up end to have enough data
+			for (size_t i = tSum.size() - 1; i > 0; --i) {
+				const auto &ts      = tSum[i];
+				if (ts.fromTo.fromSum + ts.fromTo.toSum < 100) {
+					auto& ts_m = tSum[i - 1]; // i > 0 -> always ok
+					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
+					ts_m.fromTo.fromTo += ts.fromTo.fromTo;
+					ts_m.fromTo.toSum += ts.fromTo.toSum;
+					ts_m.fromTo.toFrom += ts.fromTo.toFrom;
+					tSum.pop_back();
+				} else {
+					break;
+				}
+			}
 			table.clear();
-			for (auto& ts: tSum) {
+			for (auto &ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				table.push_back(std::max(1e-4, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0, so add a litle bit
+				table.push_back(std::max(1e-20, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0
 				sums[t] += std::max(0, ts.fromTo.fromTo - ts.fromTo.toFrom);
 				ts.numDenom.num   = 0.;
 				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
