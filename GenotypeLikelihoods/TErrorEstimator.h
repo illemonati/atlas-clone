@@ -53,10 +53,11 @@ private:
 
 	bool _writeRestart = false;
 	bool _onlyLL       = false;
-	bool _noPi         = true;
-	bool _noRho        = true;
-	bool _noPsi        = true;
-	bool _noEpsilon    = true;
+
+	size_t _nPi      = -1;
+	size_t _nRho     = -1;
+	size_t _nPsi     = -1;
+	size_t _nEpsilon = -1;
 
 	void _initializeModels();
 	void _runEM();
