@@ -28,7 +28,6 @@
 namespace GLF {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using genometools::HighPrecisionPhredIntProbability;
 
 using coretools::str::toString;
 

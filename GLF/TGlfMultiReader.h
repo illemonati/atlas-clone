@@ -97,8 +97,9 @@ public:
 	std::string chr() const { return _curChr.name(); }
 	constexpr uint32_t position(size_t iWindow) const noexcept { return _windowStart + iWindow; }
 	bool hasRef() const noexcept {return fastaReader.isOpen();}
-	genometools::Base refBase(size_t iWindow) const noexcept {
-		return hasRef() ? fastaReader(_curRefId, position(iWindow)) : genometools::Base::N;
+	coretools::TView<genometools::Base> refView() const {
+		assert(hasRef());
+		return fastaReader.view(_curRefId, _windowStart, std::min(_windowSize, _curChr.length() - _windowStart));
 	}
 };
 
