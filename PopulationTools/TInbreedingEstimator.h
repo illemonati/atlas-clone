@@ -15,59 +15,100 @@
 #include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
-#include "stattools/ParametersObservations/TObservationTyped.h"
-#include "stattools/ParametersObservations/TParameterTyped.h"
+#include "coretools/Types/TStringHash.h"
+#include "stattools/Deterministics/TLinkFunctions.h"
+#include "stattools/ParametersObservations/TObservation.h"
+#include "stattools/ParametersObservations/TParameter.h"
+#include "stattools/Priors/TPriorBernouilli.h"
+#include "stattools/Priors/TPriorBeta.h"
+#include "stattools/Priors/TPriorUniform.h"
 
-namespace stattools {
-class TDAGBuilder;
-}
 namespace stattools {
 class TObservationBase;
 }
 
 namespace PopulationTools {
 
-typedef coretools::Probability TypeF;             // F in [0, 1]
-typedef coretools::Probability TypeP;             // p in [0, 1]
-typedef coretools::WeakType<double> TypeLogGamma; // log_gamma in (-inf, inf) -> gamma = exp(log_gamma) is > 0
-typedef coretools::ZeroOneOpen<double> TypePi;    // pi in (0, 1)
-typedef coretools::WeakType<bool> TypeFModel;     // FModel = 0,1
-typedef coretools::WeakType<bool> TypePModel;     // PModel = 0,1
-typedef genometools::HighPrecisionPhredIntProbability PhredType;
-typedef genometools::TSampleLikelihoods<PhredType> TypeGTL;
+class TInbreedingEstimatorPrior; // forward declaration
+
+//------------------------------------------
+// Types and parameter specifications
+//------------------------------------------
+
+namespace inbr {
+
+using TypeF        = coretools::Probability;      // F in [0, 1]
+using TypeP        = coretools::Probability;      // p in [0, 1]
+using TypeLogGamma = coretools::Unbounded;        // log_gamma in (-inf, inf) -> gamma = exp(log_gamma) is > 0
+using TypeGamma    = coretools::StrictlyPositive; // gamma in (0, inf]
+using TypePi       = coretools::ZeroOneOpen;      // pi in (0, 1)
+using TypeFModel   = coretools::Boolean;          // FModel = 0,1
+using TypePModel   = coretools::Boolean;          // PModel = 0,1
+using PhredType    = genometools::HighPrecisionPhredIntProbability;
+using TypeGTL      = genometools::TSampleLikelihoods<PhredType>;
+
+constexpr static size_t NumDimParams = 1;
+constexpr static size_t NumDimGTL    = 2;
+
+using BoxOnFModel = stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, NumDimParams>;
+using SpecFModel  = stattools::ParamSpec<TypeFModel, stattools::Hash<coretools::toHash("fModel")>, BoxOnFModel>;
+
+using BoxOnF = stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, NumDimParams>;
+using SpecF =
+    stattools::ParamSpec<TypeF, stattools::Hash<coretools::toHash("f")>, BoxOnF, stattools::RJMCMC<SpecFModel>>;
+
+using BoxOnPi = stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, NumDimParams>;
+using SpecPi  = stattools::ParamSpec<TypePi, stattools::Hash<coretools::toHash("pi")>, BoxOnPi>;
+
+using BoxOnPModel = stattools::prior::TBernouilliInferred<stattools::TParameterBase, TypePModel, NumDimParams, SpecPi>;
+using SpecPModel  = stattools::ParamSpec<TypePModel, stattools::Hash<coretools::toHash("pModel")>, BoxOnPModel>;
+
+using BoxOnLogGamma = stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogGamma, NumDimParams>;
+using SpecLogGamma  = stattools::ParamSpec<TypeLogGamma, stattools::Hash<coretools::toHash("logGamma")>, BoxOnLogGamma>;
+
+using BoxOnGamma = stattools::det::TExp<stattools::TParameterBase, TypeGamma, NumDimParams, SpecLogGamma>;
+using SpecGamma  = stattools::ParamSpec<TypeGamma, stattools::Hash<coretools::toHash("gamma")>, BoxOnGamma>;
+
+using BoxOnP = stattools::prior::TBetaSymmetricZeroMixtureInferred<stattools::TParameterBase, TypeP, NumDimParams,
+                                                                   SpecGamma, SpecPModel, TInbreedingEstimatorPrior>;
+using SpecP  = stattools::ParamSpec<TypeP, stattools::Hash<coretools::toHash("p")>, BoxOnP,
+                                    stattools::RJMCMC<SpecPModel>, stattools::Parallelize<true>>;
+
+using BoxOnObs = TInbreedingEstimatorPrior;
+using SpecObs  = stattools::TObservation<TypeGTL, NumDimGTL, BoxOnObs>;
+
+} // namespace inbr
 
 //------------------------------------------
 // TInbreedingEstimatorPrior
 //------------------------------------------
 
 class TInbreedingEstimatorPrior
-    : public stattools::prior::TBaseLikelihoodPrior<stattools::TObservationBase, TypeGTL, 2> {
+    : public stattools::prior::TBaseLikelihoodPrior<stattools::TObservationBase, inbr::TypeGTL, 2> {
 private:
-	using typename TBase<stattools::TObservationBase, TypeGTL, 2>::Storage;
+	using Base = TStochasticBase<stattools::TObservationBase, inbr::TypeGTL, 2>;
+
+	using typename Base::Storage;
+	using typename Base::UpdatedStorage;
+	using BoxType = TInbreedingEstimatorPrior;
+
+	using TypeParamF      = stattools::TParameter<inbr::SpecF, BoxType>;
+	using TypeParamP      = stattools::TParameter<inbr::SpecP, BoxType>;
+	using TypeParamFModel = stattools::TParameter<inbr::SpecFModel, BoxType>;
+	using TypeParamPModel = stattools::TParameter<inbr::SpecPModel, BoxType>;
 
 	// parameters
-	stattools::TParameterTyped<TypeF, 1> *_F;
-	stattools::TParameterTyped<TypeP, 1> *_p;
-	stattools::TParameterTyped<TypeFModel, 1> *_FModel;
-	stattools::TParameterTyped<TypeFModel, 1> *_pModel;
+	TypeParamF *_F;
+	TypeParamP *_p;
+	TypeParamFModel *_FModel;
+	TypeParamPModel *_pModel;
 
 	// dimensions
 	size_t _numLoci    = 0;
 	size_t _numSamples = 0;
 
-	// proposal probability for model switch F
-	coretools::Probability _q_FModel_To_HWE        = 0;
-	coretools::LogProbability _log_q_FModel_To_HWE = 0;
-
-	// propose new values of F after model switch
-	coretools::StrictlyPositive<double> _lambdaNewF = coretools::StrictlyPositive<double>::min();
-
-	// proposal probability for model switch p
-	coretools::Probability _q_PModel_To_NullModel        = 0;
-	coretools::LogProbability _log_q_PModel_To_NullModel = 0;
-
-	// propose new values of p after model switch
-	coretools::StrictlyPositive<double> _lambdaNewP = coretools::StrictlyPositive<double>::min();
+	// openMP
+	size_t _numThreads = 1;
 
 	// initial estimates for p
 	const std::vector<double> &_initialEstimatesP;
@@ -90,40 +131,37 @@ private:
 	void _setInitialP();
 
 	// common update function
-	double _calculateLLRatio_UpdateP(const Storage &Data, size_t Locus);
+	[[nodiscard]] double _calculateLLRatio_UpdateP(size_t Locus) const;
 
 	// update functions for F
-	void _updateF(const Storage &Data);
-	void _updateRegularF(const Storage &Data);
-	void _updateFToHWE(const Storage &Data);
-	void _updateHWEToF(const Storage &Data);
-
-	// update functions for p
-	void _updateP(const Storage &Data, size_t Locus);
-	void _updatePToNull(const Storage &Data, size_t Locus);
-	void _updateRegularP(const Storage &Data, size_t Locus);
-	void _updateNullToP(const Storage &Data, size_t Locus);
+	[[nodiscard]] double _calculateLLRatio_FToHWE() const;
+	[[nodiscard]] double _calculateLLRatio_HWEToF() const;
 
 	// simulate values
 	void _simulateUnderPrior(Storage *) override;
 
 public:
-	TInbreedingEstimatorPrior(stattools::TParameterTyped<TypeF, 1> *F, stattools::TParameterTyped<TypeP, 1> *P,
-	                          stattools::TParameterTyped<TypeFModel, 1> *FModel,
-	                          stattools::TParameterTyped<TypeFModel, 1> *PModel,
+	TInbreedingEstimatorPrior(TypeParamF *F, TypeParamP *P, TypeParamFModel *FModel, TypeParamPModel *PModel,
 	                          const std::vector<double> &InitialEstimatesP);
-	void initializeInferred() override;
+	void initialize() override;
 
 	[[nodiscard]] std::string name() const override;
 
 	// estimate initial values
-	void estimateInitialPriorParameters() override;
+	void guessInitialValues() override;
+
+	// updates
+	[[nodiscard]] double calculateLLRatio(TypeParamF *, size_t) const;
+	[[nodiscard]] double calculateLLRatio(TypeParamP *, size_t) const;
+	[[nodiscard]] double calculateLLRatio(TypeParamFModel *, size_t) const;
+	[[nodiscard]] double calculateLLRatio(TypeParamPModel *, size_t) const;
+	void updateTempVals(TypeParamF *, size_t, bool);
+	void updateTempVals(TypeParamP *, size_t, bool);
+	void updateTempVals(TypeParamFModel *, size_t, bool);
+	void updateTempVals(TypeParamPModel *, size_t, bool);
 
 	// full log densities
 	[[nodiscard]] double getSumLogPriorDensity(const Storage &Data) const override;
-
-	// update all hyperprior parameters
-	void updateParams() override;
 };
 
 //------------------------------------------
@@ -132,18 +170,35 @@ public:
 
 class TInbreedingEstimatorModel {
 private:
-	// parameters
-	stattools::TParameterTyped<TypeF, 1> _F;
-	stattools::TParameterTyped<TypeFModel, 1> _FModel;
-	stattools::TParameterTyped<TypePi, 1> _pi;
-	stattools::TParameterTyped<TypePModel, 1> _pModel;
-	stattools::TParameterTyped<TypeLogGamma, 1> _log_gamma;
-	stattools::TParameterTyped<TypeP, 1> _p;
-	stattools::TObservationTyped<TypeGTL, 2> _observation;
+	// parameters and boxes
+	inbr::BoxOnFModel _boxOnFModel;
+	stattools::TParameter<inbr::SpecFModel, inbr::BoxOnObs> _FModel;
+
+	inbr::BoxOnF _boxOnF;
+	stattools::TParameter<inbr::SpecF, inbr::BoxOnObs> _F;
+
+	inbr::BoxOnPi _boxOnPi;
+	stattools::TParameter<inbr::SpecPi, inbr::BoxOnPModel> _pi;
+
+	inbr::BoxOnPModel _boxOnPModel;
+	stattools::TParameter<inbr::SpecPModel, inbr::BoxOnObs> _pModel;
+
+	inbr::BoxOnLogGamma _boxOnLogGamma;
+	stattools::TParameter<inbr::SpecLogGamma, inbr::BoxOnGamma> _logGamma;
+
+	inbr::BoxOnGamma _boxOnGamma;
+	stattools::TParameter<inbr::SpecGamma, inbr::BoxOnP> _gamma;
+
+	inbr::BoxOnP _boxOnP;
+	stattools::TParameter<inbr::SpecP, inbr::BoxOnObs> _p;
+
+	inbr::BoxOnObs _boxOnObs;
+	stattools::TObservation<inbr::TypeGTL, inbr::NumDimGTL, inbr::BoxOnObs> _observation;
 
 public:
-	TInbreedingEstimatorModel(const std::string &Filename, stattools::TDAGBuilder &DAGBuilder,
-	                          const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods);
+	TInbreedingEstimatorModel(
+	    const std::string &Filename,
+	    const genometools::TPopulationLikelihoods<stattools::TValueFixed<inbr::TypeGTL>> &Likelihoods);
 };
 
 //------------------------------------------
@@ -153,7 +208,7 @@ public:
 class TInbreedingEstimator {
 private:
 	// data
-	genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> _likelihoods;
+	genometools::TPopulationLikelihoods<stattools::TValueFixed<inbr::TypeGTL>> _likelihoods;
 
 	// read input data
 	void _readData();
