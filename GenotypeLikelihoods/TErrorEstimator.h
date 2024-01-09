@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include "coretools/Containers/TStrongArray.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/GenotypeTypes.h"
 
@@ -18,6 +19,7 @@
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TSite.h"
+#include "genometools/VCF/TVcfWriter.h"
 
 namespace GenotypeLikelihoods {
 
@@ -98,6 +100,63 @@ private:
 
 	void _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
+
+	template<genometools::Ploidy P>
+	double _calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist) {
+		using genometools::Genotype;
+		using genometools::Base;
+		coretools::TSumLogProbability LL{};
+		for (const auto &site : sites) {
+			if (site.genotype == Genotype::NN) { // unknown genotype
+				const auto ref = site.refBase;
+				TGenotypeLikelihoods P_g_I_di{1.};
+				for (const auto &d_ij : site) {
+					const auto P_dij_I_bbar = _recal.P_dij(d_ij);
+					const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
+					if constexpr (P == genometools::Ploidy::diploid) {
+						const auto P_dij_I_g = base2genotype<genometools::Ploidy::diploid>(P_dij_I_b);
+						double max           = 0.;
+						for (auto g = Genotype::min; g < Genotype::max; ++g) {
+							P_g_I_di[g] *= P_dij_I_g[g];
+							max = std::max<double>(max, P_g_I_di[g]);
+						}
+						if (max < 1e-2) {
+							LL.add(max);
+							for (auto &p : P_g_I_di) p.scale(max);
+						}
+					} else {
+						double max = 0.;
+						for (auto b = Base::min; b < Base::max; ++b) {
+							const auto g = genometools::genotype(b, b);
+							P_g_I_di[g] *= P_dij_I_b[b];
+							max = std::max<double>(max, P_g_I_di[g]);
+						}
+						if (max < 1e-2) {
+							LL.add(max);
+							for (auto b = Base::min; b < Base::max; ++b) {
+								const auto g = genometools::genotype(b, b);
+								P_g_I_di[g].scale(max);
+							}
+						}
+					}
+				}
+				LL.add(genoDist->normalize_add(P_g_I_di, ref));
+				_P_g_I_dis.push_back(P_g_I_di);
+			} else { // known genotype.
+				_P_g_I_dis.emplace_back(0.);
+				_P_g_I_dis.back()[site.genotype] = 1.; // Probability of correct genotype is 1
+				double P_g                       = 1.;
+				for (auto &d_ij : site) {
+					const auto L_eps = _recal.P_dij(d_ij);
+					const auto L_D   = _pmd.P_dij(d_ij, L_eps);
+					P_g *= genoDist->getGenotypeLikelihood(L_D, site.genotype);
+				}
+				LL.add(P_g);
+			}
+		}
+		return LL.getSum();
+	}
+
 	void _writeModels(std::string_view Intro);
 	void _handleSite(const TSite& Site, size_t Region);
 

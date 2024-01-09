@@ -16,6 +16,7 @@
 
 #include "genometools/GenotypeTypes.h"
 
+#include "genometools/VCF/TVcfWriter.h"
 #include "stattools/MLEInference/TNelderMead.h"
 
 namespace GenotypeLikelihoods {
@@ -40,6 +41,23 @@ public:
 	virtual void addHeader(std::vector<std::string> &Header) const                                     = 0;
 	virtual void write(coretools::TOutputFile &Out) const                                              = 0;
 };
+
+template<genometools::Ploidy P>
+TGenotypeLikelihoods base2genotype(const TBaseLikelihoods &baseLikelihoods) {
+	using genometools::Base;
+	if constexpr (P == genometools::Ploidy::haploid) {
+		return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0., baseLikelihoods[Base::C], 0., 0.,
+									 baseLikelihoods[Base::G], 0., baseLikelihoods[Base::T]});
+	} else {
+		return TGenotypeLikelihoods(
+			{baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
+			 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
+			 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
+			 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::G]),
+			 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
+			 0.5 * (baseLikelihoods[Base::G] + baseLikelihoods[Base::T]), baseLikelihoods[Base::T]});
+	}
+}
 
 class THaploidDistribution final : public TGenotypeDistribution {
 	TBaseProbabilities _pi{};

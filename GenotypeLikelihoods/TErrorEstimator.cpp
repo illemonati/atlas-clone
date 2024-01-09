@@ -28,6 +28,7 @@
 #include "TGenotypeDistribution.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TVcfWriter.h"
 #include "oldPMD/TModels.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
@@ -299,42 +300,18 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 double TErrorEstimator::_calculateLL_updatePg() {
 	_P_g_I_dis.clear();
 
-	coretools::TSumLogProbability LL{};
+	double LL = 0.;
 	for (size_t r = 0; r < _regionSites.size(); ++r) {
 		const auto &sites = _regionSites[r];
 		auto &genoDist    = _genoDist[r];
-		for (auto &site : sites) {
-			if (site.genotype == Genotype::NN) { // unknown genotype
-				const auto ref = site.refBase;
-				_P_g_I_dis.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
-				auto &P_g_I_di = _P_g_I_dis.back();
-				size_t counter = 0;
-				for (auto &d_ij : site) {
-					const auto P_dij_I_bbar = _recal.P_dij(d_ij);
-					const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
-					const auto P_dij_I_g    = genoDist->P_dij(P_dij_I_b);
-					P_g_I_di *= P_dij_I_g;
-					if (++counter > 10) {
-						LL.add(coretools::normalize(P_g_I_di));
-						counter = 0;
-					}
-				}
-				LL.add(genoDist->normalize_add(P_g_I_di, ref));
-			} else { // known genotype.
-				_P_g_I_dis.emplace_back(0.);
-				_P_g_I_dis.back()[site.genotype] = 1; // Probability of correct genotype is 1
-				double P_g                       = 1.;
-				for (auto &d_ij : site) {
-					const auto L_eps = _recal.P_dij(d_ij);
-					const auto L_D   = _pmd.P_dij(d_ij, L_eps);
-					P_g *= genoDist->getGenotypeLikelihood(L_D, site.genotype);
-				}
-				LL.add(P_g);
-			}
+		if (genoDist->isInvariant()) {
+			LL += _calculateLL_updatePg<genometools::Ploidy::haploid>(sites, genoDist.get());
+		} else {
+			LL += _calculateLL_updatePg<genometools::Ploidy::diploid>(sites, genoDist.get());
 		}
 	}
-	if (!std::isfinite(LL.getSum())) UERROR("LL = ", LL.getSum(), ", you may need to pool your readgroups!");
-	return LL.getSum();
+	if (!std::isfinite(LL)) UERROR("LL = ", LL, ", you may need to pool your readgroups!");
+	return LL;
 }
 
 void TErrorEstimator::_writeModels(std::string_view Intro) {

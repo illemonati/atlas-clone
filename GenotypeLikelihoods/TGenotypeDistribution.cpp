@@ -16,6 +16,7 @@
 #include "TSequencedBase.h"
 #include "coretools/algorithms.h"
 #include "coretools/Types/probability.h"
+#include "genometools/VCF/TVcfWriter.h"
 #include "stattools/MLEInference/TNelderMead.h"
 
 #include <limits>
@@ -112,10 +113,7 @@ double het(double mu, double theta) {
 } // namespace impl
 
 TGenotypeLikelihoods THaploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
-			                     baseLikelihoods[Base::C], 0., 0.,
-								 baseLikelihoods[Base::G], 0.,
-								 baseLikelihoods[Base::T]});
+	return base2genotype<genometools::Ploidy::haploid>(baseLikelihoods);
 }
 coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 																   Genotype genotype) const {
@@ -160,13 +158,7 @@ void THaploidDistribution::write(coretools::TOutputFile &Out) const {
 }
 
 TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
-								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
-								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
-								 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::G]),
-								 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
-								 0.5 * (baseLikelihoods[Base::G] + baseLikelihoods[Base::T]),
-								 baseLikelihoods[Base::T]});
+	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);
 }
 
 coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
@@ -234,13 +226,7 @@ void TDiploidDistribution::write(coretools::TOutputFile &Out) const {
 }
 
 TGenotypeLikelihoods THKY85::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
-								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
-								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
-								 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::G]),
-								 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
-								 0.5 * (baseLikelihoods[Base::G] + baseLikelihoods[Base::T]),
-								 baseLikelihoods[Base::T]});
+	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);
 }
 
 coretools::Probability THKY85::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
@@ -300,10 +286,7 @@ void THKY85::write(coretools::TOutputFile &Out) const {
 }
 
 TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
-			                     baseLikelihoods[Base::C], 0., 0.,
-								 baseLikelihoods[Base::G], 0.,
-								 baseLikelihoods[Base::T]});
+	return base2genotype<genometools::Ploidy::haploid>(baseLikelihoods);
 }
 
 coretools::Probability THKY85_mono::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
