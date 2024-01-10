@@ -54,8 +54,8 @@ using BoxOnFModel = stattools::prior::TUniformFixed<stattools::TParameterBase, T
 using SpecFModel  = stattools::ParamSpec<TypeFModel, stattools::Hash<coretools::toHash("fModel")>, BoxOnFModel>;
 
 using BoxOnF = stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, NumDimParams>;
-using SpecF =
-    stattools::ParamSpec<TypeF, stattools::Hash<coretools::toHash("f")>, BoxOnF, stattools::RJMCMC<SpecFModel>>;
+using SpecF  = stattools::ParamSpec<TypeF, stattools::Hash<coretools::toHash("f")>, BoxOnF,
+                                    stattools::RJMCMC<SpecFModel, coretools::probdist::TBetaDistr>>;
 
 using BoxOnPi = stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, NumDimParams>;
 using SpecPi  = stattools::ParamSpec<TypePi, stattools::Hash<coretools::toHash("pi")>, BoxOnPi>;
@@ -71,8 +71,9 @@ using SpecGamma  = stattools::ParamSpec<TypeGamma, stattools::Hash<coretools::to
 
 using BoxOnP = stattools::prior::TBetaSymmetricZeroMixtureInferred<stattools::TParameterBase, TypeP, NumDimParams,
                                                                    SpecGamma, SpecPModel, TInbreedingEstimatorPrior>;
-using SpecP  = stattools::ParamSpec<TypeP, stattools::Hash<coretools::toHash("p")>, BoxOnP,
-                                    stattools::RJMCMC<SpecPModel>, stattools::Parallelize<true>>;
+using SpecP =
+    stattools::ParamSpec<TypeP, stattools::Hash<coretools::toHash("p")>, BoxOnP,
+                         stattools::RJMCMC<SpecPModel, coretools::probdist::TBetaDistr>, stattools::Parallelize<true>>;
 
 using BoxOnObs = TInbreedingEstimatorPrior;
 using SpecObs  = stattools::TObservation<TypeGTL, NumDimGTL, BoxOnObs>;

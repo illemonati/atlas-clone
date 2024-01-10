@@ -180,7 +180,7 @@ void TInbreedingEstimatorPrior::_setInitialF() {
 			// user wants to start in zero-model
 			_F->set(0.0);
 		} else {
-			_F->set(_F->getRandomExpTruncRJMCMC());
+			_F->set(_F->proposeNewValueRJMCMC());
 		}
 	}
 	// set initial z
@@ -257,6 +257,8 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
       _observation("genotypeLikelihoods", &_boxOnObs, Likelihoods.getStorage(), {}) {
 
 	_p.getDefinition().setJumpSizeForAll(false);
+	_p.getDefinition().setRJProposalDistrParams("1,100"); // parameters for Beta distribution
+	_F.getDefinition().setRJProposalDistrParams("1,100"); // parameters for Beta distribution
 }
 
 //------------------------------------------
