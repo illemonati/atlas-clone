@@ -144,6 +144,8 @@ void TPsi::estimate() noexcept {
 }
 
 void TPsi::estimateInit() noexcept {
+	constexpr int Nmin = 100;
+	constexpr double psiMin = 1./Nmin/10;
 	for (auto e = End::min; e < End::max; ++e) {
 		coretools::TStrongArray<size_t, Type> sums{};
 		for (auto t = Type::min; t < Type::max; ++t) {
@@ -153,8 +155,13 @@ void TPsi::estimateInit() noexcept {
 			// add up end to have enough data
 			for (size_t i = tSum.size() - 1; i > 0; --i) {
 				const auto &ts      = tSum[i];
-				if (ts.fromTo.fromSum + ts.fromTo.toSum < 100) {
-					auto& ts_m = tSum[i - 1]; // i > 0 -> always ok
+				auto& ts_m = tSum[i - 1]; // i > 0 -> always ok
+
+				auto merge = [](auto ts) {
+					return (ts.fromTo.fromTo <= ts.fromTo.toFrom) || (ts.fromTo.fromSum + ts.fromTo.toSum < Nmin);
+				};
+
+				if (merge(ts) || merge(ts_m)) {
 					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
 					ts_m.fromTo.fromTo += ts.fromTo.fromTo;
 					ts_m.fromTo.toSum += ts.fromTo.toSum;
@@ -168,7 +175,7 @@ void TPsi::estimateInit() noexcept {
 			for (auto &ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				table.push_back(std::max(1e-20, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0
+				table.push_back(std::max(psiMin, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0, so add something small
 				sums[t] += std::max(0, ts.fromTo.fromTo - ts.fromTo.toFrom);
 				ts.numDenom.num   = 0.;
 				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
