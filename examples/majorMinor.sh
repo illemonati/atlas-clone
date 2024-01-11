@@ -23,3 +23,8 @@ allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 $atlas --task majorMinor --glf $allSamples --method Skotte \
 	   --minMAF 0.05 --maxThreads 1 --bgz \
 	   --fixedSeed 0 --out majorMinor --logFile majorMinor.out 
+
+$atlas --task majorMinor --method Skotte \
+	--glf $allSamples --fasta ATLAS_simulations.fasta \
+	--minMAF 0.05 --maxThreads 1 --bgz \
+	--fixedSeed 0 --out majorMinor_fasta --logFile majorMinor_fasta.out 

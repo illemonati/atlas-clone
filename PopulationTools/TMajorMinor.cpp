@@ -552,14 +552,21 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counter            = 0;
 	size_t nextPrint          = dCounter;
 
+	const auto hasRef = glfReader.hasRef();
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 		std::vector<TMMData> data(ids.size());
-
+		if (hasRef) {
+			const auto refs = glfReader.refView();
 #pragma omp parallel for num_threads(maxThreads)
-		for (size_t i = 0; i < ids.size(); ++i) {
-			const auto iW  = ids[i];
-			const Base ref = glfReader.refBase(iW); // can be N
-			data[i]        = Estimator::estimate(glfReader.data(iW), maxF, ref, minMAF, minVariantQuality);
+			for (size_t i = 0; i < ids.size(); ++i) {
+				const auto iW = ids[i];
+				data[i]       = Estimator::estimate(glfReader.data(iW), maxF, refs[iW], minMAF, minVariantQuality);
+			}
+		} else {
+#pragma omp parallel for num_threads(maxThreads)
+			for (size_t i = 0; i < ids.size(); ++i) {
+				data[i] = Estimator::estimate(glfReader.data(ids[i]), maxF, Base::N, minMAF, minVariantQuality);
+			}
 		}
 
 		// pass filter?

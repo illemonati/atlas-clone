@@ -29,21 +29,21 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           1494761
+  GIT_TAG           a593d97
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
 include(FetchContent)
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           7772f90
+  GIT_TAG           4abae56
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
 include(FetchContent)
 FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           95f0885
+  GIT_TAG           da4fa45
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
@@ -58,6 +58,10 @@ FetchContent_MakeAvailable(coretools genometools stattools bamtools)
 # htslib
 include(htslib.cmake)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
