@@ -53,7 +53,9 @@ protected:
 	std::unique_ptr<coretools::probdist::TCategoricalDistribution<size_t>> _softClipDist3;
 	const GenotypeLikelihoods::PMD::TModel *_pmd;
 	const GenotypeLikelihoods::SequencingError::RGModels _recal;
-	coretools::Probability _duplicationRate, _duplicationRateAmongSimulated;
+
+	coretools::Probability _duplicationRate               = 0.;
+	coretools::Probability _duplicationRateAmongSimulated = 0.;
 
 	// contamination
 	double _contaminationRate = 0.;

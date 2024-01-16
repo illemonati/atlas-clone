@@ -7,6 +7,7 @@
 
 #include <TReadSimulator.h>
 #include <algorithm>
+#include <cstdlib>
 #include <memory>
 
 #include "coretools/Main/TRandomGenerator.h"
@@ -76,10 +77,7 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 		coretools::str::fromString(RGInfo.getString(InfoType::duplicationRate), _duplicationRate, "duplication rate is not within [0,1]!");
 		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
 		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
-		_duplicationRateAmongSimulated = _duplicationRateAmongSimulated / (_duplicationRate.complement());
-	} else {
-		_duplicationRate = 0.0;
-		_duplicationRateAmongSimulated = 0.0;
+		_duplicationRateAmongSimulated = _duplicationRate / (_duplicationRate.complement());
 	}
 }
 
@@ -189,21 +187,17 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 
 void TReadSimulator::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile){
 	// Do not simulate fraction of reads that will be duplicates
-	if(_duplicationRate == 0.0 || randomGenerator().getRand() > _duplicationRate){
-		// simlate
+	if(_duplicationRate == 0.0){
 		_simulate(Position, Haplotype);	
-
-		// write alignments
 		_writeSimulatedAlignments(BamFile);
-		
-		// write duplicates
-		// Note: to get x duplicates, we simulate (1-x) reads and among those duplicate x / (1-x)
-		if(_duplicationRate > 0.0){
-			if(randomGenerator().getRand() < _duplicationRateAmongSimulated){
-				_writeSimulatedAlignments(BamFile);
-			}
+	} else if (randomGenerator().getRand() > _duplicationRate) {
+		_simulate(Position, Haplotype);
+		_writeSimulatedAlignments(BamFile);
+
+		if (randomGenerator().getRand() < _duplicationRateAmongSimulated) {
+			_writeSimulatedAlignments(BamFile);
 		}
-	}	
+	}
 }
 
 //----------------------------------
@@ -242,23 +236,20 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-void TReadSimulatorSingleEnd::_simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype) {
-	// Does read exists or is it a duplicate?
-	// If it is a duplicate, do not simulate. Duplicates are simulated below.
-	if(_duplicationRate == 0.0 || randomGenerator().getRand() > _duplicationRate){
-		// pick a fragment
-		const auto fragmentLength = _fragmentLengthDistr.sample();
+void TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const std::vector<Base> &Haplotype) {
+	// pick a fragment
+	const auto fragmentLength = _fragmentLengthDistr.sample();
 
-		// prepare alignment
-		_simulateAlignmentDetails(Position);
-		_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+	// prepare alignment
+	_simulateAlignmentDetails(Position);
+	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
-		// simulated bases and qualities
-		_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
-	}
+	// simulated bases and qualities
+	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
 }
 
 void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & BamFile){
+	assert(_alignment.size() > 0);
 	BamFile.writeAlignment(_alignment);
 }
 
