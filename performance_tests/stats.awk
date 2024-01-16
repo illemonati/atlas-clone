@@ -9,7 +9,7 @@ END {
 	jmin = NR - N
 	if (jmin < 2) exit; # need at least N entries, first line is names
 
-	printf "\nComparing to average and standard deviation of last %d runs...", N
+	printf "\nComparing to average and standard deviation of last %d runs\n", N
 	jmax     = NR - 1
 	exitCode = 0 # all ok
 
