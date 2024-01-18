@@ -3,58 +3,74 @@
 . $(dirname $0)/find_atlas
 
 simulate() {
+	oname=sim_$1
 	M=000000
 	$atlas --task simulate --chrLength ${L1}$M,${LX}$M --ploidy 2,1 --depth $depth,10 $2 \
 		--fixedSeed 0 --out $1 --logFile $1.out 2> $1.err
 }
 
 theta() {
+	if [[ -n $2 ]]; then
+		RG="--RGInfo eE${2}_${1}_RGInfo.json"
+		oname=theta_$1_eE$2
+	else
+		RG=""
+		oname=theta_$1
+	fi
 	$atlas --task theta --averageDepth $depth --depth $depths --chr chr1 \
-	   	--bam $1.bam $3 \
-	   	--fixedSeed 0 --out $2 --logFile $2.out 2> $2.err
+		   --bam $1.bam $RG \
+		   --fixedSeed 0 --out $oname --logFile $oname.out 2> $oname.err
 }
+
 estimate() {
-	$atlas --task estimateErrors --maxF 0.0000000001 --minDeltaLL 1e-2 \
-		--chr chr2 --ploidy 1 \
+	oname=eE${2}_$1
+	$atlas --task estimateErrors --minDeltaLL 1e-2 \
+		--chr chr2 --ploidy $2 \
 		--bam $1.bam --fasta $1.fasta \
-		--fixedSeed 0 --out $1 --logFile ${1}_estimation.out 2> ${1}_estimation.err
-
+		--fixedSeed 0 --out $oname --logFile $oname.out 2> $oname.err
 }
 
+# Globals
 L1=10 #Mb
-LX=1 #Mb
-depths="23.26,20,10,5,2,1,0.5,0.2,0.1,0.05"
+LX=1  #Mb
+depths="10,5,2,1,0.5,0.2,0.1,0.05"
 depth=$(echo $depths | awk -F "," '{print $1}')
 binned="--baseQuality categorical(12,22,27,32,37,41)"
 
-: '
-simulate "bar0" "$binned --theta 0.00577" > /dev/null &
-simulate "barPMD" "--RGInfo ../bar.json --recal - $binned --fragmentLength gamma(10,0.2)[30,101] --mappingQuality normal(45,10)[30,60] --theta 0.00299" > /dev/null &
-simulate "barAll" "--RGInfo ../bar.json $binned --fragmentLength gamma(10,0.2)[30,101] --mappingQuality normal(45,10)[30,60] --theta 0.00205"
-wait
-echo "all Simulations done"
+dup="--duplicationRate 0.5"
+recal="intercept[0.0];quality:polynomial[0.9,0.01]"
+pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.2*exp(-0.3*p)+0.01"
+pmd=""
 
-theta "bar0" "bar0_0" > /dev/null &
-theta "barPMD" "barPMD_0" > /dev/null &
-theta "barAll" "barAll_0"
-wait
-echo "all theta_0 done"
+# Start here
 
-theta "bar0" "bar0_PMD" "--RGInfo ../bar.json --recal -" > /dev/null &
-theta "barPMD" "barPMD_PMD" "--RGInfo ../bar.json --recal -" > /dev/null &
-theta "barAll" "barAll_PMD" "--RGInfo ../bar.json --recal -"
-echo "all theta_PMD done"
+runDup() {
+	dup=$1
+	name="dup${dup/./_}"
+	simulate $name "--duplicationRate $dup"
+	theta $name
+	estimate $name 1
+	theta $name 1
+	estimate $name 2
+	theta $name 2
+}
+
+for dup in 0 0.5 0.2 0.1 0.05 0.02 0.01; do
+	runDup $dup > /dev/null &
+done
 wait
 
-theta "bar0" "bar0_real" "--RGInfo ../bar.json" > /dev/null &
-theta "barPMD" "barPMD_real" "--RGInfo ../bar.json" > /dev/null &
-theta "barAll" "barAll_real" "--RGInfo ../bar.json"
-wait'
+exit
+simulate "recal_pmd" "--recal $recal --pmd $pmd"
+theta "recal_pmd" > /dev/null &
+estimate "recal_pmd" "1"
+theta "recal_pmd" "1" > /dev/null &
+estimate "recal_pmd" "2"
+theta "recal_pmd" "2"
 
-estimate "bar0"
-theta "bar0" "bar0_est" "--RGInfo bar0_RGInfo.json" > /dev/null &
-estimate "barPMD"
-theta "barPMD" "barPMD_est" "--RGInfo barPMD_RGInfo.json" > /dev/null &
-estimate "barAll"
-theta "barAll" "barAll_est" "--RGInfo barAll_RGInfo.json"
-wait
+simulate "recal_pmd_dup" "--recal $recal --pmd $pmd $dup"
+theta "recal_pmd_dup" > /dev/null &
+estimate "recal_pmd_dup" "1"
+theta "recal_pmd_dup" "1" > /dev/null &
+estimate "recal_pmd_dup" "2"
+theta "recal_pmd_dup" "2"

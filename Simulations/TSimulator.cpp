@@ -39,12 +39,10 @@
 
 namespace Simulations {
 using coretools::Probability;
-using coretools::LogProbability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using genometools::Base;
-using genometools::HighPrecisionPhredIntProbability;
 using genometools::TChromosomes;
 using genometools::TChromosome;
 using genometools::TGenomePosition;
