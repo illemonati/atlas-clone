@@ -43,20 +43,24 @@ pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.2*exp(-0.3*p)+0.01"
 pmd=""
 
 # Start here
-simulate "default" ""
-theta "default" > /dev/null &
-estimate "default" "1"
-theta "default" "1" > /dev/null &
-estimate "default" "2"
-theta "default" "2"
 
-simulate "dup" "$dup"
-theta "dup" > /dev/null &
-estimate "dup" "1"
-theta "dup" "1" > /dev/null &
-estimate "dup" "2"
-theta "dup" "2"
+runDup() {
+	dup=$1
+	name="dup${dup/./_}"
+	simulate $name "--duplicationRate $dup"
+	theta $name
+	estimate $name 1
+	theta $name 1
+	estimate $name 2
+	theta $name 2
+}
 
+for dup in 0 0.5 0.2 0.1 0.05 0.02 0.01; do
+	runDup $dup > /dev/null &
+done
+wait
+
+exit
 simulate "recal_pmd" "--recal $recal --pmd $pmd"
 theta "recal_pmd" > /dev/null &
 estimate "recal_pmd" "1"
