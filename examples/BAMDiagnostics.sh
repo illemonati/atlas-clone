@@ -10,7 +10,7 @@ for i in {1..17}; do
 	u=$(echo "$i*5" | bc)
 
 	$atlas --task BAMDiagnostics --bam ATLAS_simulations_ind$i.bam \
-		   --out simple$i --logFile simple$i.out
+		   --out simple$i --perChromosome --logFile simple$i.out
 
 	$atlas --task BAMDiagnostics --bam ATLAS_simulations_ind$i.bam \
 		--filterSoftClips --fixedSeed 0 --filterMQ 0,$u \

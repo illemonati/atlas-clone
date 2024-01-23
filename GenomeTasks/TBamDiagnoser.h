@@ -13,6 +13,7 @@
 
 #include "TBamTraverser.h"
 #include "coretools/Math/counters.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace GenomeTasks{
 
@@ -26,10 +27,12 @@ private:
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 	bool _chromStats = false;
+	genometools::TGenomePosition _oldPosition{size_t(-1), -size_t(1)};
 
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
     std::vector<coretools::TCountDistributionVector<>> _readLength;
+    std::vector<coretools::TCountDistributionVector<>> _readDist;
     std::vector<coretools::TCountDistributionVector<>> _usableLength;
     std::vector<coretools::TCountDistributionVector<>> _softClippedLength;
    	std::vector<coretools::TCountDistributionVector<>> _mappingQuality;
