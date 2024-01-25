@@ -81,10 +81,10 @@ void TBamDiagnoser::_handleAlignment() {
 
     //add to counters
 	const auto& curPosition = _genome.bamFile().curPosition();
-	if (curPosition.refID() == _oldPosition.refID()) {
-		_readDist[readGroup].add(chromosome, _genome.bamFile().curPosition() - _oldPosition);
+	if (curPosition.refID() == _oldPositions[readGroup].refID()) {
+		_readDist[readGroup].add(chromosome, _genome.bamFile().curPosition() - _oldPositions[readGroup]);
 	}
-	_oldPosition = curPosition;
+	_oldPositions[readGroup] = curPosition;
 	_readLength[readGroup].add(chromosome, _genome.bamFile().curCIGAR().lengthRead());
 	_usableLength[readGroup].add(chromosome, _genome.bamFile().curCIGAR().lengthAligned());
 	_softClippedLength[readGroup].add(chromosome, _genome.bamFile().curCIGAR().lengthSoftClipped());
@@ -107,6 +107,8 @@ void TBamDiagnoser::run(){
     _passedQC.resize(numRG);
 	_passedQC.resizeDistributions(numChrom);
 
+	constexpr size_t BIG = -1;
+	_oldPositions.resize(numRG, {BIG, BIG});
     _readLength.resize(numRG);
 	_readDist.resize(numRG);
     _usableLength.resize(numRG);

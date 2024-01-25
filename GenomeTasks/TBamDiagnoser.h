@@ -27,10 +27,11 @@ private:
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 	bool _chromStats = false;
-	genometools::TGenomePosition _oldPosition{size_t(-1), -size_t(1)};
+	std::vector<genometools::TGenomePosition> _oldPositions;
 
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
+	// std::vector per readgroup, countdistributionvector per chromosome
     std::vector<coretools::TCountDistributionVector<>> _readLength;
     std::vector<coretools::TCountDistributionVector<>> _readDist;
     std::vector<coretools::TCountDistributionVector<>> _usableLength;
