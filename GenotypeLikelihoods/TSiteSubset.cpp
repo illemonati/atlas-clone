@@ -21,17 +21,12 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TFastaReader.h"
 
-namespace GenotypeLikelihoods {
-
-using coretools::instances::logfile;
-using coretools::str::toString;
-
-namespace SiteSubset {
+namespace GenotypeLikelihoods::SiteSubset {
 
 //-----------------------------------------------
 // TSitePolymorphic / TSiteMonomorphic
 //-----------------------------------------------
-TSitePolymorphic::TSitePolymorphic(uint32_t refID, uint32_t position, const std::vector<std::string> &Line,
+TSitePolymorphic::TSitePolymorphic(uint32_t refID, uint32_t position, const std::vector<std::string_view> &Line,
                                    const genometools::TChromosomes &Chromosomes)
     : TGenomePosition(refID, position) {
 	// parse first allele (reference)
@@ -52,7 +47,7 @@ void TSitePolymorphic::write(coretools::TOutputFile &out, const genometools::TCh
 	out.writeln(asFormattedString(Chromosomes, "\t"), _ref, _alt);
 }
 
-TSiteMonomorphic::TSiteMonomorphic(uint32_t refID, uint32_t position, const std::vector<std::string> &Line,
+TSiteMonomorphic::TSiteMonomorphic(uint32_t refID, uint32_t position, const std::vector<std::string_view> &Line,
                                    const genometools::TChromosomes &Chromosomes)
     : TGenomePosition(refID, position) {
 	// parse first allele (reference)
@@ -66,5 +61,4 @@ void TSiteMonomorphic::write(coretools::TOutputFile &out, const genometools::TCh
 	out.writeln(asFormattedString(Chromosomes, "\t"), _ref);
 }
 
-}; // namespace SiteSubset
-}; // namespace GenotypeLikelihoods
+} // namespace SiteSubset

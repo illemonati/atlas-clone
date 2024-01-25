@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "coretools/Files/TFile.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"

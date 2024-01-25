@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "genometools/GenotypeTypes.h"
-#include "coretools/Files/TFile.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TParameters.h"
 #include "TSite.h"

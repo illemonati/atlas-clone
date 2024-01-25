@@ -73,7 +73,7 @@ using BoxOnP = stattools::prior::TBetaSymmetricZeroMixtureInferred<stattools::TP
                                                                    SpecGamma, SpecPModel, TInbreedingEstimatorPrior>;
 using SpecP =
     stattools::ParamSpec<TypeP, stattools::Hash<coretools::toHash("p")>, BoxOnP,
-                         stattools::RJMCMC<SpecPModel, coretools::probdist::TBetaDistr>, stattools::Parallelize<true>>;
+                         stattools::RJMCMC<SpecPModel, coretools::probdist::TBetaDistr>, stattools::Parallelize<stattools::MarkovOrder::different>>;
 
 using BoxOnObs = TInbreedingEstimatorPrior;
 using SpecObs  = stattools::TObservation<TypeGTL, NumDimGTL, BoxOnObs>;

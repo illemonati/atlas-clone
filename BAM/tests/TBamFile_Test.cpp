@@ -16,7 +16,6 @@
 #include "TBamFilter.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "coretools/Files/TFile.h"
 #include "TBamTraverser.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/TLog.h"

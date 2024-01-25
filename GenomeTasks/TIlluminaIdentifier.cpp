@@ -7,7 +7,6 @@
 
 
 #include "TIlluminaIdentifier.h"
-#include "coretools/Files/TFile.h"
 #include "TBamFile.h"
 #include <string>
 #include "coretools/Main/TLog.h"

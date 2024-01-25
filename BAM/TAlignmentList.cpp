@@ -1,5 +1,6 @@
 #include "TAlignmentList.h"
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TInputFile.h"
+
 namespace BAM{
 
 TAlignmentList::TAlignmentList(std::string_view filename){
@@ -7,10 +8,10 @@ TAlignmentList::TAlignmentList(std::string_view filename){
 };
 
 void TAlignmentList::addFromFile(std::string_view filename){
-	coretools::TInputFile in(filename, 1);
+	coretools::TInputFile in(filename, coretools::FileType::NoHeader);
 	std::vector<std::string> vec;
-	while(in.read(vec)){
-		add(vec[0]);
+	for (coretools::TInputFile in(filename, coretools::FileType::NoHeader); !in.empty(); in.popFront()) {
+		add(in.get(0));
 	}
 };
 

@@ -1,4 +1,5 @@
 #include "TBamWindows.h"
+#include "coretools/Files/TInputFile.h"
 
 namespace GenomeTasks {
 
@@ -30,16 +31,14 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 
 	if (std::filesystem::exists(sWindow)) {
 		logfile().listFlush("Reading windows defined in BED file '", sWindow, "' (parameter window) ...");
-		coretools::TInputFile iFile(sWindow, 3);
 
 		std::vector<genometools::TGenomeWindow> windows;
-		std::vector<std::string> vec;
 
-		while (iFile.read(vec)) {
-			size_t refId = Chromosomes.refID(vec[0]);
-			size_t start = coretools::str::fromString<size_t, true>(vec[1]);
-			size_t end   = coretools::str::fromString<size_t, true>(vec[2]);
-			windows.emplace_back(refId, start, end-start);
+		for (coretools::TInputFile iFile(sWindow, coretools::FileType::NoHeader); !iFile.empty(); iFile.popFront()) {
+			const auto refId = Chromosomes.refID(iFile.get(0));
+			const auto start = iFile.get<size_t>(1);
+			const auto end   = iFile.get<size_t>(2);
+			windows.emplace_back(refId, start, end - start);
 		}
 		std::sort(windows.begin(), windows.end());
 

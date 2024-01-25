@@ -16,7 +16,6 @@
 #include "TAlignment.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
-#include "coretools/Files/TFile.h"
 #include "coretools/Main/TLog.h"
 #include "TReadGroupInfo.h"
 #include "TReadGroups.h"

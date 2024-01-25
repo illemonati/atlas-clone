@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Files/TFile.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/algorithms.h"
@@ -38,7 +38,7 @@ namespace SiteSubset {
 	private:
 		genometools::Base _ref, _alt;
 	public:
-		TSitePolymorphic(uint32_t refID, uint32_t position, const std::vector<std::string> & Line, const genometools::TChromosomes & Chromosomes);		
+		TSitePolymorphic(uint32_t refID, uint32_t position, const std::vector<std::string_view> & Line, const genometools::TChromosomes & Chromosomes);		
 
 		static std::vector<std::string> getHeader() {
 			return {"Chr", "Pos", "Allele1", "Allele2"};
@@ -53,7 +53,7 @@ namespace SiteSubset {
 	private:
 		genometools::Base _ref;
 	public:
-		TSiteMonomorphic(uint32_t refID, uint32_t position, const std::vector<std::string> & Line, const genometools::TChromosomes & Chromosomes);
+		TSiteMonomorphic(uint32_t refID, uint32_t position, const std::vector<std::string_view> & Line, const genometools::TChromosomes & Chromosomes);
 			
 		static std::vector<std::string> getHeader() {
 			return {"Chr", "Pos", "Allele1"};
@@ -77,19 +77,19 @@ private:
 
 		// open file
 		_filename = Filename;
-		coretools::TInputFile in(Filename, SiteType::getHeader());
+		coretools::TInputFile in(Filename, coretools::FileType::Header);
+		const auto indices = in.indices(SiteType::getHeader());
 
 		// read file and add sites
-		std::vector<std::string> line;
 		std::set<uint32_t> refIDUsed;		
-		while (in.read(line)) {
+		for (;!in.empty(); in.popFront()) {
 			// get chromosome and position: throws error if chromosome does not exist
-			const genometools::TChromosome &chr = Chromosomes.getChromosome(line[0]);
+			const genometools::TChromosome &chr = Chromosomes.getChromosome(in.get(indices[0]));
 			refIDUsed.emplace(chr.refID());
-			uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
+			uint32_t pos = coretools::str::fromString<uint32_t, true>(in.get(indices[1])) - 1; //make 0-based
 
 			// add site			
-			_sites.emplace_back(chr.refID(), pos, line, Chromosomes);
+			_sites.emplace_back(chr.refID(), pos, in.front(), Chromosomes);
 		}
 
 		//sort sites

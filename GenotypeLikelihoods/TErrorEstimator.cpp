@@ -29,7 +29,6 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/VCF/TVcfWriter.h"
-#include "oldPMD/TModels.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
 #include "SequencingError/TModels.h"

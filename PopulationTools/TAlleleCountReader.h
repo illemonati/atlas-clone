@@ -11,8 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Files/TFile.h"
-
+#include "coretools/Files/TInputFile.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace PopulationTools{

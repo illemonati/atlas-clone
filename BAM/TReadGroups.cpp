@@ -12,7 +12,7 @@
 #include <memory>
 #include <utility>
 
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/stringFunctions.h"
 
@@ -376,35 +376,36 @@ void TReadGroupMap::_fromFile(const TReadGroups & ReadGroups, std::string_view f
 
 	//read read groups and their expected lengths
 	logfile().listFlush("Reading read groups to be pooled from file '", filename, "' ...");
-	coretools::TInputFile in(filename, {"readGroup", "poolWith"}, "\t", "//");
+	coretools::TInputFile in(filename, coretools::FileType::Header, "\t", "//");
 
 	std::vector< std::vector<std::string> > readGroupsToMerge;
 
 	//parse file and fill vectors
-	std::vector<std::string> vec;
 	std::string readGroup;
 	bool pooledAtLeastOneRG = false;
 
-	while(in.read(vec)){
+	for (; !in.empty(); in.popFront()) {
 		//ignore if read group does not exist
-		if(ReadGroups.readGroupExists(vec[0])){
+		const auto rgName = in.get("readGroup");
+		if(ReadGroups.readGroupExists(rgName)){
 			//get read group index
-			size_t rg = ReadGroups.getId(vec[0]);
-			size_t pool = ReadGroups.getId(vec[1]);
+			const auto poolWith = in.get("poolWith");
+			size_t rg = ReadGroups.getId(rgName);
+			size_t pool = ReadGroups.getId(poolWith);
 
 			//check if rg to pool with is pooled itself
 			if(_readGroupMap[pool] == ReadGroupMapNotInitializedIndex){
 				_markAsInUse(pool);
 			} else if(_readGroupMap[pool] != pool){
-				UERROR("Read group '", vec[1], "' can not be pooled and pooled with at the same time!");
+				UERROR("Read group '", poolWith, "' can not be pooled and pooled with at the same time!");
 			}
 
 			//check if rg can be pooled: allow self-pooling
 			if(rg != pool){
 				if(_readGroupMap[rg] == rg){
-					UERROR("Read group '", vec[0], "' can not be pooled and pool with at the same time!");
+					UERROR("Read group '", rgName, "' can not be pooled and pool with at the same time!");
 				} else if(_readGroupMap[rg] != ReadGroupMapNotInitializedIndex){
-					UERROR("Read group '", vec[0], "' is pooled multiple times in file '", filename, "'!");
+					UERROR("Read group '", rgName, "' is pooled multiple times in file '", filename, "'!");
 				}
 
 				//pool!
