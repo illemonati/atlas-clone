@@ -40,6 +40,7 @@ void TAlleleCountReader::close(){
 
 // read next line, if there is no next line -> close file
 void TAlleleCountReader::popFront(){
+	if (_file.empty()) return;
 
     //set chr and position
     _alleleCountVec.chr = _file.get(0);

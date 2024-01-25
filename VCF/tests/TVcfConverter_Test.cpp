@@ -150,6 +150,7 @@ TEST_F(TVCFConverterTest, beagle) {
 			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[linearIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
+		beagle.popFront();
 	}
 }
 
@@ -191,6 +192,7 @@ TEST_F(TVCFConverterTest, beagle_withSamples) {
 			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
+		beagle.popFront();
 	}
 }
 
@@ -219,6 +221,7 @@ TEST_F(TVCFConverterTest, geno) {
 			EXPECT_EQ(fromString<uint8_t>(std::string(1, genotypes[i])),
 			          2 - (uint8_t)observedGenotype); // genotype defined based on reference allele
 		}
+		geno.popFront();
 	}
 }
 
@@ -248,6 +251,7 @@ TEST_F(TVCFConverterTest, geno_withSamples) {
 			// genotype defined based on reference allele
 			EXPECT_EQ(fromString<uint8_t>(std::string(1, genotypes[i])), 2 - (uint8_t)observedGenotype);
 		}
+		geno.popFront();
 	}
 }
 
@@ -274,6 +278,7 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno) {
 
 			EXPECT_EQ(fromString<uint8_t>(lfmm.get(l)), (uint8_t)observedGenotype);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -301,6 +306,7 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno_withSamples) {
 
 			EXPECT_EQ(fromString<uint8_t>(lfmm.get(l)), (uint8_t)observedGenotype);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -327,6 +333,7 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno) {
 
 			EXPECT_NEAR(fromString<double>(lfmm.get(l)), posteriorGenotype, 0.00001);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -354,6 +361,7 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 
 			EXPECT_NEAR(fromString<double>(lfmm.get(l)), posteriorGenotype, 0.00001);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -387,6 +395,7 @@ TEST_F(TVCFConverterTest, sambada) {
 				}
 			}
 		}
+		sambada.popFront();
 	}
 }
 
@@ -421,6 +430,7 @@ TEST_F(TVCFConverterTest, sambada_withSamples) {
 				}
 			}
 		}
+		sambada.popFront();
 	}
 }
 
@@ -441,5 +451,6 @@ TEST_F(TVCFConverterTest, vcfToPosFile) {
 		EXPECT_EQ(pos.get(1), toString(l + 1));
 		EXPECT_EQ(pos.get(2), "A");
 		EXPECT_EQ(pos.get(3), "C");
+		pos.popFront();
 	}
 }

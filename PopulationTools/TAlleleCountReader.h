@@ -56,7 +56,7 @@ public:
     void close();
 
     // getters    
-    bool empty(){ return !_file.isOpen(); }
+    bool empty(){ return _file.empty(); }
     bool hasAlleles(){ return _hasAlleles; }
     size_t numPopulations(){ return _populationNames.size(); }
     const std::vector<std::string>& populationNames(){

@@ -120,7 +120,6 @@ TEST_F(TVCFDiagnosticsTest, vcfToInvariantBed_allAreVariant_het) {
 	// read bed
 
 	// check if sites are as expected: should be empty, all are variant!
-	std::vector<std::string> line;
 	size_t c = 0;
 	for (TInputFile bed("test.bed.gz", FileType::NoHeader); !bed.empty(); bed.popFront()) { ++c; }
 	EXPECT_EQ(c, 0);
