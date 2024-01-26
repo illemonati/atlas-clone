@@ -22,7 +22,6 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "coretools/Files/TFile.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/GenotypeTypes.h"
 #include "THaplotypeSimulator.h"

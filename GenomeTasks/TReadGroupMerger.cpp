@@ -18,6 +18,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "coretools/Files/TInputFile.h"
 
 #include "TBamFile.h"
 #include "TOutputBamFile.h"
@@ -33,7 +34,6 @@ TReadGroupMerger::TReadGroupMerger() {
 	//read read groups to be merged
 	std::string filename = parameters().get<std::string>("readGroups");
 	logfile().startIndent("Reading read groups to be merged from file '" + filename + "':");
-	coretools::TInputFile file(filename.c_str(), coretools::TFile_Filetype::variable);
 
 
 	//create map oldId -> new Id. Fill with identity.
@@ -43,35 +43,32 @@ TReadGroupMerger::TReadGroupMerger() {
 	}
 
 	//parse file and construct new read groups in new header object
-	std::vector<std::string> vec;
 	std::set<std::string> readGroupsMerged;
-	while(file.read(vec)){
-		if(!vec.empty()){
-			if(vec.size() < 2) UERROR("Wrong number of entries on line ",  file.curLine(), " in file '", filename, "'!");
+	for (coretools::TInputFile file(filename.c_str(), coretools::FileType::NoHeader); !file.empty(); file.popFront()) {
+		if (file.numCols() < 2) UERROR("Wrong number of entries on line ", file.curLine(), " in file '", filename, "'!");
 
-			//create new read group
-			uint16_t newId = readGroups.add(vec[0]).id;
-			logfile().startIndent("The following read groups will be merged into '" + vec[0] + "':");
+		// create new read group
+		uint16_t newId = readGroups.add(file.get(0)).id;
+		logfile().startIndent("The following read groups will be merged into '", file.get(0), "':");
 
-			for(size_t i=1; i<vec.size(); ++i){
-				//check for duplicates
-				if(!readGroupsMerged.emplace(vec[i]).second){
-					UERROR("Read group '", vec[i], "' is listed multiple times in file '", filename, "'!");
-				}
-
-				uint16_t oldId = readGroups.getId(vec[i]);
-
-				//set not to write to header
-				readGroups.removeFromHeader(oldId);
-
-				//update map
-				readGroupMap[oldId] = newId;
-
-				//report
-				logfile().list(vec[i]);
+		for (size_t i = 1; i < file.numCols(); ++i) {
+			// check for duplicates
+			if (!readGroupsMerged.emplace(file.get(i)).second) {
+				UERROR("Read group '", file.get(i), "' is listed multiple times in file '", filename, "'!");
 			}
-			logfile().endIndent();
+
+			uint16_t oldId = readGroups.getId(file.get(i));
+
+			// set not to write to header
+			readGroups.removeFromHeader(oldId);
+
+			// update map
+			readGroupMap[oldId] = newId;
+
+			// report
+			logfile().list(file.get(i));
 		}
+		logfile().endIndent();
 	}
 
 	//report unaffected read groups

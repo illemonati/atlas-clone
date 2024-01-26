@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TInputFile.h"
 #include "coretools/Files/gzstream.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -120,31 +120,29 @@ TEST_F(TVCFConverterTest, beagle) {
 	converter.run();
 
 	// read beagle
-	TInputFile beagle("test.beagle.gz", TFile_Filetype::header);
-	EXPECT_EQ(beagle.headerAt(0), "marker");
-	EXPECT_EQ(beagle.headerAt(1), "allele1");
-	EXPECT_EQ(beagle.headerAt(2), "allele2");
+	TInputFile beagle("test.beagle.gz", FileType::Header);
+	EXPECT_EQ(beagle.header().at(0), "marker");
+	EXPECT_EQ(beagle.header().at(1), "allele1");
+	EXPECT_EQ(beagle.header().at(2), "allele2");
 	for (size_t i = 0; i < numIndiv; ++i) {
-		EXPECT_EQ(beagle.headerAt(3 + i * 3), sampleNames[i]);
-		EXPECT_EQ(beagle.headerAt(3 + i * 3 + 1), sampleNames[i]);
-		EXPECT_EQ(beagle.headerAt(3 + i * 3 + 2), sampleNames[i]);
+		EXPECT_EQ(beagle.header().at(3 + i * 3), sampleNames[i]);
+		EXPECT_EQ(beagle.header().at(3 + i * 3 + 1), sampleNames[i]);
+		EXPECT_EQ(beagle.header().at(3 + i * 3 + 2), sampleNames[i]);
 	}
 
 	// check if genotype likelihoods are as expected
-	std::vector<std::string> line;
 	size_t linearIndex = 0;
 	for (size_t l = 0; l < numLoci; ++l) {
-		beagle.read(line);
-		EXPECT_EQ(line[0], "junk1_" + toString(l + 1));
-		EXPECT_EQ(line[1], "A");
-		EXPECT_EQ(line[2], "C");
+		EXPECT_EQ(beagle.get(0), "junk1_" + toString(l + 1));
+		EXPECT_EQ(beagle.get(1), "A");
+		EXPECT_EQ(beagle.get(2), "C");
 		for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) {
 			const double sum = static_cast<Probability>(PhredIntProbability(phred_g1[linearIndex])).get() +
 			                   (Probability)PhredIntProbability(phred_g2[linearIndex]) +
 			                   (Probability)PhredIntProbability(phred_g3[linearIndex]);
-			const double gtl1 = fromString<Probability>(line[3 + i * 3]);
-			const double gtl2 = fromString<Probability>(line[3 + i * 3 + 1]);
-			const double gtl3 = fromString<Probability>(line[3 + i * 3 + 2]);
+			const double gtl1 = fromString<Probability>(beagle.get(3 + i * 3));
+			const double gtl2 = fromString<Probability>(beagle.get(3 + i * 3 + 1));
+			const double gtl3 = fromString<Probability>(beagle.get(3 + i * 3 + 2));
 
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
 			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[linearIndex]) / sum, 0.00001);
@@ -152,6 +150,7 @@ TEST_F(TVCFConverterTest, beagle) {
 			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[linearIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
+		beagle.popFront();
 	}
 }
 
@@ -164,37 +163,36 @@ TEST_F(TVCFConverterTest, beagle_withSamples) {
 	converter.run();
 
 	// read beagle
-	TInputFile beagle("test.beagle.gz", TFile_Filetype::header);
-	EXPECT_EQ(beagle.headerAt(0), "marker");
-	EXPECT_EQ(beagle.headerAt(1), "allele1");
-	EXPECT_EQ(beagle.headerAt(2), "allele2");
+	TInputFile beagle("test.beagle.gz", FileType::Header);
+	EXPECT_EQ(beagle.header().at(0), "marker");
+	EXPECT_EQ(beagle.header().at(1), "allele1");
+	EXPECT_EQ(beagle.header().at(2), "allele2");
 	for (size_t i = 0; i < samplesToKeep.size(); ++i) {
-		EXPECT_EQ(beagle.headerAt(3 + i * 3), samplesToKeep[i]);
-		EXPECT_EQ(beagle.headerAt(3 + i * 3 + 1), samplesToKeep[i]);
-		EXPECT_EQ(beagle.headerAt(3 + i * 3 + 2), samplesToKeep[i]);
+		EXPECT_EQ(beagle.header().at(3 + i * 3), samplesToKeep[i]);
+		EXPECT_EQ(beagle.header().at(3 + i * 3 + 1), samplesToKeep[i]);
+		EXPECT_EQ(beagle.header().at(3 + i * 3 + 2), samplesToKeep[i]);
 	}
 
 	// check if genotype likelihoods are as expected
-	std::vector<std::string> line;
 	for (size_t l = 0; l < numLoci; ++l) {
-		beagle.read(line);
-		EXPECT_EQ(line[0], "junk1_" + toString(l + 1));
-		EXPECT_EQ(line[1], "A");
-		EXPECT_EQ(line[2], "C");
+		EXPECT_EQ(beagle.get(0), "junk1_" + toString(l + 1));
+		EXPECT_EQ(beagle.get(1), "A");
+		EXPECT_EQ(beagle.get(2), "C");
 		for (size_t i = 0; i < samplesToKeep.size(); ++i) {
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
 			const double sum     = ((Probability)PhredIntProbability(phred_g1[relevantIndex])).get() +
 			                   (Probability)PhredIntProbability(phred_g2[relevantIndex]) +
 			                   (Probability)PhredIntProbability(phred_g3[relevantIndex]);
-			const double gtl1 = fromString<Probability>(line[3 + i * 3]);
-			const double gtl2 = fromString<Probability>(line[3 + i * 3 + 1]);
-			const double gtl3 = fromString<Probability>(line[3 + i * 3 + 2]);
+			const double gtl1 = fromString<Probability>(beagle.get(3 + i * 3));
+			const double gtl2 = fromString<Probability>(beagle.get(3 + i * 3 + 1));
+			const double gtl3 = fromString<Probability>(beagle.get(3 + i * 3 + 2));
 			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl2, (Probability)PhredIntProbability(phred_g2[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
+		beagle.popFront();
 	}
 }
 
@@ -206,13 +204,11 @@ TEST_F(TVCFConverterTest, geno) {
 	converter.run();
 
 	// read geno
-	TInputFile geno("test.geno", TFile_Filetype::fixed);
+	TInputFile geno("test.geno", FileType::NoHeader);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t l = 0; l < numLoci; ++l) {
-		geno.read(line);
-		std::vector<char> genotypes(line[0].begin(), line[0].end());
+		std::vector<char> genotypes(geno.get(0).begin(), geno.get(0).end());
 		for (size_t i = 0; i < numIndiv; ++i) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
@@ -225,6 +221,7 @@ TEST_F(TVCFConverterTest, geno) {
 			EXPECT_EQ(fromString<uint8_t>(std::string(1, genotypes[i])),
 			          2 - (uint8_t)observedGenotype); // genotype defined based on reference allele
 		}
+		geno.popFront();
 	}
 }
 
@@ -237,13 +234,11 @@ TEST_F(TVCFConverterTest, geno_withSamples) {
 	converter.run();
 
 	// read geno
-	TInputFile geno("test.geno", TFile_Filetype::fixed);
+	TInputFile geno("test.geno", FileType::NoHeader);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t l = 0; l < numLoci; ++l) {
-		geno.read(line);
-		std::vector<char> genotypes(line[0].begin(), line[0].end());
+		std::vector<char> genotypes(geno.get(0).begin(), geno.get(0).end());
 		for (size_t i = 0; i < samplesToKeep.size(); ++i) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
@@ -256,6 +251,7 @@ TEST_F(TVCFConverterTest, geno_withSamples) {
 			// genotype defined based on reference allele
 			EXPECT_EQ(fromString<uint8_t>(std::string(1, genotypes[i])), 2 - (uint8_t)observedGenotype);
 		}
+		geno.popFront();
 	}
 }
 
@@ -267,12 +263,10 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno) {
 	converter.run();
 
 	// read lfmm
-	TInputFile lfmm("test.lfmm", TFile_Filetype::fixed);
+	TInputFile lfmm("test.lfmm", FileType::NoHeader);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t i = 0; i < numIndiv; ++i) {
-		lfmm.read(line);
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
@@ -282,8 +276,9 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
-			EXPECT_EQ(fromString<uint8_t>(line[l]), (uint8_t)observedGenotype);
+			EXPECT_EQ(fromString<uint8_t>(lfmm.get(l)), (uint8_t)observedGenotype);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -296,12 +291,10 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno_withSamples) {
 	converter.run();
 
 	// read lfmm
-	TInputFile lfmm("test.lfmm", TFile_Filetype::fixed);
+	TInputFile lfmm("test.lfmm", FileType::NoHeader);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t i = 0; i < samplesToKeep.size(); ++i) {
-		lfmm.read(line);
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
@@ -311,8 +304,9 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno_withSamples) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
-			EXPECT_EQ(fromString<uint8_t>(line[l]), (uint8_t)observedGenotype);
+			EXPECT_EQ(fromString<uint8_t>(lfmm.get(l)), (uint8_t)observedGenotype);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -324,12 +318,10 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno) {
 	converter.run();
 
 	// read lfmm
-	TInputFile lfmm("test.lfmm", TFile_Filetype::fixed);
+	TInputFile lfmm("test.lfmm", FileType::NoHeader);
 
 	// check if genotype likelihoods are as expected
-	std::vector<std::string> line;
 	for (size_t i = 0; i < numIndiv; ++i) {
-		lfmm.read(line);
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
@@ -339,8 +331,9 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
-			EXPECT_NEAR(fromString<double>(line[l]), posteriorGenotype, 0.00001);
+			EXPECT_NEAR(fromString<double>(lfmm.get(l)), posteriorGenotype, 0.00001);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -353,12 +346,10 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 	converter.run();
 
 	// read lfmm
-	TInputFile lfmm("test.lfmm", TFile_Filetype::fixed);
+	TInputFile lfmm("test.lfmm", FileType::NoHeader);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t i = 0; i < samplesToKeep.size(); ++i) {
-		lfmm.read(line);
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
@@ -368,8 +359,9 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
-			EXPECT_NEAR(fromString<double>(line[l]), posteriorGenotype, 0.00001);
+			EXPECT_NEAR(fromString<double>(lfmm.get(l)), posteriorGenotype, 0.00001);
 		}
+		lfmm.popFront();
 	}
 }
 
@@ -381,13 +373,11 @@ TEST_F(TVCFConverterTest, sambada) {
 	converter.run();
 
 	// read lfmm
-	TInputFile sambada("test.sambada", TFile_Filetype::header);
+	TInputFile sambada("test.sambada", FileType::Header);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t i = 0; i < numIndiv; ++i) {
-		sambada.read(line);
-		EXPECT_EQ(line[0], sampleNames[i]);
+		EXPECT_EQ(sambada.get(0), sampleNames[i]);
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
@@ -399,12 +389,13 @@ TEST_F(TVCFConverterTest, sambada) {
 
 			for (size_t g = 0; g < 3; ++g) {
 				if (g == (uint8_t)observedGenotype) {
-					EXPECT_EQ(fromString<size_t>(line[3 * l + g + 1]), 1);
+					EXPECT_EQ(fromString<size_t>(sambada.get(3 * l + g + 1)), 1);
 				} else {
-					EXPECT_EQ(fromString<size_t>(line[3 * l + g + 1]), 0);
+					EXPECT_EQ(fromString<size_t>(sambada.get(3 * l + g + 1)), 0);
 				}
 			}
 		}
+		sambada.popFront();
 	}
 }
 
@@ -417,13 +408,11 @@ TEST_F(TVCFConverterTest, sambada_withSamples) {
 	converter.run();
 
 	// read sambada
-	TInputFile sambada("test.sambada", TFile_Filetype::header);
+	TInputFile sambada("test.sambada", FileType::Header);
 
 	// check if genotypes are as expected
-	std::vector<std::string> line;
 	for (size_t i = 0; i < samplesToKeep.size(); ++i) {
-		sambada.read(line);
-		EXPECT_EQ(line[0], samplesToKeep[i]);
+		EXPECT_EQ(sambada.get(0), samplesToKeep[i]);
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
@@ -435,12 +424,13 @@ TEST_F(TVCFConverterTest, sambada_withSamples) {
 
 			for (size_t g = 0; g < 3; ++g) {
 				if (g == (uint8_t)observedGenotype) {
-					EXPECT_EQ(fromString<uint8_t>(line[3 * l + g + 1]), 1);
+					EXPECT_EQ(fromString<uint8_t>(sambada.get(3 * l + g + 1)), 1);
 				} else {
-					EXPECT_EQ(fromString<uint8_t>(line[3 * l + g + 1]), 0);
+					EXPECT_EQ(fromString<uint8_t>(sambada.get(3 * l + g + 1)), 0);
 				}
 			}
 		}
+		sambada.popFront();
 	}
 }
 
@@ -453,15 +443,14 @@ TEST_F(TVCFConverterTest, vcfToPosFile) {
 	converter.run();
 
 	// read pos file
-	TInputFile pos("test.pos", TFile_Filetype::fixed);
+	TInputFile pos("test.pos", FileType::NoHeader);
 
 	// check if positions are as expected
-	std::vector<std::string> line;
 	for (size_t l = 0; l < numLoci; ++l) {
-		pos.read(line);
-		EXPECT_EQ(line[0], "junk1");
-		EXPECT_EQ(line[1], toString(l + 1));
-		EXPECT_EQ(line[2], "A");
-		EXPECT_EQ(line[3], "C");
+		EXPECT_EQ(pos.get(0), "junk1");
+		EXPECT_EQ(pos.get(1), toString(l + 1));
+		EXPECT_EQ(pos.get(2), "A");
+		EXPECT_EQ(pos.get(3), "C");
+		pos.popFront();
 	}
 }

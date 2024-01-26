@@ -14,7 +14,6 @@
 #include <stddef.h>
 
 #include "TBamFile.h"
-#include "coretools/Files/TFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TLog.h"

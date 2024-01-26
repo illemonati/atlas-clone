@@ -24,7 +24,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TInputFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TLog.h"
@@ -246,15 +246,13 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		_printSummary();
 	} else {
 		//do we have to ignore read groups present in file?
-		std::vector<std::string> vec;
 		std::set<size_t> readGroupsToIgnore;
 		if(parameters().exists("ignoreReadGroups")){
 			std::string ignoredReadGroupsFile = parameters().get<std::string>("ignoreReadGroups");
 			logfile().listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
-			coretools::TInputFile in(ignoredReadGroupsFile, false);
-			while(in.read(vec)){
-				if(readGroups.readGroupExists(vec[0])){
-					readGroupsToIgnore.insert(readGroups.getId(vec[0]));
+			for (coretools::TInputFile in(ignoredReadGroupsFile, coretools::FileType::NoHeader); !in.empty(); in.popFront()) {
+				if(readGroups.readGroupExists(in.get(0))){
+					readGroupsToIgnore.insert(readGroups.getId(in.get(0)));
 				}
 			}
 			logfile().done();
@@ -263,56 +261,58 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//read file with read group settings
 		std::string readGroupSettingsFile = parameters().get<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
-		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "seqCycles"});
 
 		//read settings file
 		size_t numNotInUse = 0;
-		while(in.read(vec)){
+		for (coretools::TInputFile in(readGroupSettingsFile, coretools::FileType::Header); !in.empty(); in.popFront()) {
 			//ignore "allReadGroups" from BAMD output
-			if (vec[0] != "allReadGroups"){
-				//get read group ID
-				//read groups not in use will get a warning and be ignored
-				size_t rgId = readGroups.getId(vec[0]);
+			const auto rgName = in.get("readGroup");
+			if (in.get("readGroup") != "allReadGroups"){
+				const auto seqType   = in.get("seqType");
+				const auto seqCycles = in.get("seqCycles");
+				// get read group ID
+				// read groups not in use will get a warning and be ignored
+				size_t rgId = readGroups.getId(rgName);
 				if(!readGroups.readGroupInUse(rgId)){
 					++numNotInUse;
 				} else {
 					//parse max cycles
 					size_t maxCycles = 0;
-					if(vec[2] != "NA" && vec[2] != "-"){
-						if(!stringContainsOnlyNumbers(vec[2])){
+					if(seqCycles != "NA" && seqCycles != "-"){
+						if(!stringContainsOnlyNumbers(seqCycles)){
 							UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": max cycles should be a number!");
 						}
-						maxCycles = fromString<int>(vec[2]);
+						maxCycles = fromString<int>(seqCycles);
 					}
 
 					//check for duplicate entries
 					if(_settings.find(rgId) != _settings.end()){
-						UERROR("Duplicate entry in file '", in.name(), "' for read group '", vec[0], "'!");
+						UERROR("Duplicate entry in file '", in.name(), "' for read group '", rgName, "'!");
 					}
 
 					//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
-					if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == "unchanged"){
+					if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || seqType == "unchanged"){
 						_settings.emplace(rgId, ReadGroupType::unchanged, 0);
-					} else if(vec[1] == "single"){
+					} else if(seqType == "single"){
 						if(maxCycles < 1){
 							UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": max cycles must be > 0 for read groups of type 'single'!");
 						}
 
 						//add to settings and create truncated read group
-						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, ReadGroupType::single, maxCycles);
+						_settings.emplace(rgId, readGroups.addAlternativeRG(toString(rgName , "_truncated"), rgName).id, ReadGroupType::single, maxCycles);
 
-					} else if(vec[1] == "mixed"){
+					} else if(seqType == "mixed"){
 						if(maxCycles < 1){
 							UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": max cycles must be > 0 for read groups of type 'mixed'!");
 						}
 
 						//add to settings and create truncated read group
-						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, ReadGroupType::mixed, maxCycles);
+						_settings.emplace(rgId, readGroups.addAlternativeRG(toString(rgName , "_truncated"), rgName).id, ReadGroupType::mixed, maxCycles);
 
-					} else if(vec[1] == "paired"){
+					} else if(seqType == "paired"){
 						_settings.emplace(rgId, ReadGroupType::paired, 0);
 					} else {
-						UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": Unknown read group type '", vec[1], "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.");
+						UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": Unknown read group type '", seqType, "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.");
 					}
 				}
 			}
@@ -329,7 +329,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		logfile().done();
 		_printSummary();
 		if(numNotInUse > 0){
-			logfile().warning(std::to_string(numNotInUse) + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!");
+			logfile().warning(numNotInUse, " read group(s) are present in file '", readGroupSettingsFile, "' but are marked as not in use!");
 		}
 	}
 };

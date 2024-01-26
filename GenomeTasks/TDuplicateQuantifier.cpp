@@ -15,7 +15,6 @@
 #include "TBamFile.h"
 #include "TBamFilters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "coretools/Files/TFile.h"
 #include "coretools/Main/TLog.h"
 #include "TReadGroups.h"
 

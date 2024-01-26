@@ -13,7 +13,7 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "coretools/Files/gzstream.h"
@@ -92,15 +92,13 @@ TEST_F(TVCFDiagnosticsTest, vcfToInvariantBed_allAreInvariant) {
 	diagnostics.vcfToInvariantBed();
 
 	// read bed
-	TInputFile bed("test.bed.gz", 3);
 
 	// check if sites are as expected
-	std::vector<std::string> line;
 	size_t c = 0;
-	while (bed.read(line)){
-		EXPECT_EQ(line[0], "junk_1");
-		EXPECT_EQ(line[1], "0");
-		EXPECT_EQ(line[2], toString(numLoci - 1));
+	for (TInputFile bed("test.bed.gz", FileType::NoHeader); !bed.empty(); bed.popFront()) {
+		EXPECT_EQ(bed.get(0), "junk_1");
+		EXPECT_EQ(bed.get(1), "0");
+		EXPECT_EQ(bed.get(2), toString(numLoci - 1));
 		++c;
 	}
 	EXPECT_EQ(c, 1);
@@ -120,14 +118,10 @@ TEST_F(TVCFDiagnosticsTest, vcfToInvariantBed_allAreVariant_het) {
 	diagnostics.vcfToInvariantBed();
 
 	// read bed
-	TInputFile bed("test.bed.gz", 3);
 
 	// check if sites are as expected: should be empty, all are variant!
-	std::vector<std::string> line;
 	size_t c = 0;
-	while (bed.read(line)){
-		++c;
-	}
+	for (TInputFile bed("test.bed.gz", FileType::NoHeader); !bed.empty(); bed.popFront()) { ++c; }
 	EXPECT_EQ(c, 0);
 }
 
@@ -146,7 +140,7 @@ TEST_F(TVCFDiagnosticsTest, vcfToInvariantBed_allAreVariant_oneSample) {
 	diagnostics.vcfToInvariantBed();
 
 	// read bed
-	TInputFile bed("test.bed.gz", 3);
+	TInputFile bed("test.bed.gz", FileType::NoHeader);
 
 	// check if sites are as expected
 	std::vector<std::string> line;

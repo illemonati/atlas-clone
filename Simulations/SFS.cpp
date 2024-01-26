@@ -17,7 +17,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/algorithms.h"
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TInputFile.h"
 #include "genometools/GenotypeTypes.h"
 
 
@@ -29,10 +29,11 @@ using genometools::Base;
 //--------------------------------
 
 SFS::SFS(const std::string &filename) {
-	coretools::TInputFile in(filename.c_str(), coretools::TFile_Filetype::variable);
+	coretools::TInputFile in(filename.c_str(), coretools::FileType::NoHeader);
+
+	for (size_t i = 0; i < in.numCols(); ++i) _numChrPerPop.push_back(in.get<size_t>(i));
 
 	//read dimensions
-	in.read(_numChrPerPop, true);
 	_numChr = std::accumulate(_numChrPerPop.begin(), _numChrPerPop.end(), 0);
 
 	//add one to each dimension as what is given is #haplotypes = #entries - 1
@@ -42,8 +43,9 @@ SFS::SFS(const std::string &filename) {
 	}
 
 	//read values
+	in.popFront();
 	std::vector<double> vec;
-	in.read(vec, true);
+	for (size_t i = 0; i < in.numCols(); ++i) vec.push_back(in.get<double>(i));
 
 	// now store as fraction
 	coretools::fillFromNormalized(_sfs, vec);

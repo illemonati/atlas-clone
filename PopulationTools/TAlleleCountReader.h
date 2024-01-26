@@ -11,8 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Files/TFile.h"
-
+#include "coretools/Files/TInputFile.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace PopulationTools{
@@ -46,31 +45,36 @@ private:
     alleleCountVector _alleleCountVec;
     bool _hasAlleles = false;
     int _firstPopulationColumn;
+	bool _lineParsed = false;
+
+	void _parse();
     
 public:
     using value_type      = alleleCountVector;
 	using const_reference = const alleleCountVector&;
 
     TAlleleCountReader() = default;
-    TAlleleCountReader(std::string_view filename);
+    TAlleleCountReader(std::string_view filename) {open(filename);}
     void open(std::string_view filename);       
-    void close();
 
     // getters    
-    bool empty(){ return !_file.isOpen(); }
     bool hasAlleles(){ return _hasAlleles; }
     size_t numPopulations(){ return _populationNames.size(); }
-    const std::vector<std::string>& populationNames(){
-        return _populationNames;
-    };
-    const_reference front(){
-        return _alleleCountVec;    
-    }
+	const std::vector<std::string> &populationNames() { return _populationNames; }
 
-    //read next
-    void popFront();
+	bool empty(){ return _file.empty(); }
 
-    //iterators
+	const_reference front() {
+		_parse();
+		return _alleleCountVec;
+	}
+
+	void popFront() {
+		_file.popFront();
+		_lineParsed = false;
+	}
+
+	//iterators
     using iterator = coretools::TLazyIterator<TAlleleCountReader>;
     iterator begin(){ return iterator{this}; }
     iterator end(){ return iterator{}; }

@@ -6,7 +6,6 @@
  */
 
 #include "TReadGroupInfo.h"
-#include "coretools/Files/TFile.h"
 #include "coretools/Files/TStdWriter.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"

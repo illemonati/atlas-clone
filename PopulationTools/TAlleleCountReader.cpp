@@ -2,18 +2,11 @@
 
 namespace PopulationTools{
 
-TAlleleCountReader::TAlleleCountReader(std::string_view filename){
-    open(filename); 
-}
-
 void TAlleleCountReader::open(std::string_view filename){   
     if(_file.isOpen()){
         DEVERROR("Allele count file is already open!");
     }
-    //open file
-    _file.open(filename, coretools::TFile_Filetype::header);
-
-    // parse header	
+    _file.open(filename, coretools::FileType::Header);
     const auto header = _file.header();
 
     if(header[0] != "chr" || header[1] != "pos"){
@@ -30,36 +23,26 @@ void TAlleleCountReader::open(std::string_view filename){
 
     _populationNames.assign(header.begin() + _firstPopulationColumn, header.end());
     _alleleCountVec._alleleCounts.resize(numPopulations());
-
-    popFront();
 }
 
-void TAlleleCountReader::close(){
-    _file.close();
-}
+void TAlleleCountReader::_parse(){
+	if (_lineParsed) return;
 
-// read next line, if there is no next line -> close file
-void TAlleleCountReader::popFront(){
-    static std::vector<std::string> lineVec;
-	if(!_file.read(lineVec)){
-        _file.close();    
-    };
-
-    //set chr and position
-    _alleleCountVec.chr = lineVec[0];
-    coretools::str::fromString(lineVec[1], _alleleCountVec.pos);    
+    _alleleCountVec.chr = _file.get(0);
+    _file.fill(1, _alleleCountVec.pos);    
     if(_hasAlleles){
-        _alleleCountVec.majorAllele = genometools::char2base(lineVec[2][0]);
-        _alleleCountVec.minorAllele = genometools::char2base(lineVec[3][0]);
+        _alleleCountVec.majorAllele = genometools::char2base(_file.get(2)[0]);
+        _alleleCountVec.minorAllele = genometools::char2base(_file.get(3)[0]);
     }
 
     //extract counts
     for(size_t p = 0; p < _populationNames.size(); ++p){    
-        coretools::str::TSplitter sp (lineVec[p + _firstPopulationColumn], '/');
+        coretools::str::TSplitter sp (_file.get(p + _firstPopulationColumn), '/');
         coretools::str::fromString(sp.front(), _alleleCountVec[p].minor);
         sp.popFront();
         coretools::str::fromString(sp.front(), _alleleCountVec[p].total);        
     }    
+	_lineParsed = true;
 }
 
 }; //end namespace
