@@ -480,9 +480,6 @@ void runTransform() {
 		alleleCountFile->endl();		
 	}
 
-	// close file
-	file.close();
-
 	// report final status
 	logfile().endIndent();
 };
