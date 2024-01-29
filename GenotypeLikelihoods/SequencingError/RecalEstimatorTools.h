@@ -45,7 +45,7 @@ private:
 
 public:
 	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)
-	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){}
+	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->size()){}
 
 	void add(const TSite & site);
 
