@@ -1,6 +1,6 @@
 
-#ifndef GENOMETASKS_TFROMTO_H_
-#define GENOMETASKS_TFROMTO_H_
+#ifndef GENOMETASKS_TCONTEXTERRORS_H_
+#define GENOMETASKS_TCONTEXTERRORS_H_
 
 #include <string>
 
@@ -10,14 +10,15 @@
 
 namespace GenomeTasks{
 
-class TFromTo final : public TBamWindowTraverser<WindowType::SingleBam> {
+class TContextErrors final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	coretools::TOutputFile _out;
+	size_t _depth = 10;
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
 public:
-	TFromTo();
+	TContextErrors();
 	void run();
 };
 
