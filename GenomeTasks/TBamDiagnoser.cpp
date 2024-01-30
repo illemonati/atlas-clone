@@ -129,50 +129,66 @@ size_t countsLargerZeroForChromosome(const std::vector<coretools::TCountDistribu
 
 void TBamDiagnoser::_handleAlignment() {
 	// get read group
-	const size_t readGroup = _genome.bamFile().curReadGroupID();
+	const auto &bamFile    = _genome.bamFile();
+	const size_t readGroup = bamFile.curReadGroupID();
 	if (readGroup == BAM::TReadGroups::noReadGroupId) return;
 
-	const size_t chromosome = _genome.bamFile().refID();
+	const size_t chromosome = bamFile.refID();
 
 	// increments for each read that passed filters
-	_passedQC.add(readGroup, _genome.bamFile().curChromosome().refID());
+	_passedQC.add(readGroup, bamFile.curChromosome().refID());
 
 	// add to counters
-	const auto &curPosition = _genome.bamFile().curPosition();
-	if (curPosition.refID() == _oldPositions[readGroup].refID()) {
-		_readDist[readGroup].add(chromosome, _genome.bamFile().curPosition() - _oldPositions[readGroup]);
+	const auto &curPosition = bamFile.curPosition();
+	if (curPosition.refID() == _old[readGroup].position.refID()) {
+		_readDist[readGroup].add(chromosome, bamFile.curPosition() - _old[readGroup].position);
+		if (_identifyDuplicates && (curPosition.position() == _old[readGroup].position.position()) && (bamFile.curFragmentLength() == _old[readGroup].length)) {
+			_duplicateFile.writeln(bamFile.curChromosome().name(), curPosition.position(), bamFile.curName(),
+								 bamFile.curFragmentLength(), bamFile.curIsReverseStrand(), _old[readGroup].name, _old[readGroup].length, _old[readGroup].isReversed);
+		}
 	}
-	_oldPositions[readGroup] = curPosition;
+	_old[readGroup].position = curPosition;
+	if (_identifyDuplicates) {
+		_old[readGroup].name       = bamFile.curName();
+		_old[readGroup].length     = bamFile.curFragmentLength();
+		_old[readGroup].isReversed = bamFile.curIsReverseStrand();
+	}
 
 	if (curPosition.refID() == _oldPosition.refID()) {
-		_allReadDist.add(chromosome, _genome.bamFile().curPosition() - _oldPosition);
+		_allReadDist.add(chromosome, bamFile.curPosition() - _oldPosition);
 	}
 	_oldPosition = curPosition;
 
-	_readLength[readGroup].add(chromosome, _genome.bamFile().curCIGAR().lengthRead());
-	_usableLength[readGroup].add(chromosome, _genome.bamFile().curCIGAR().lengthAligned());
-	_softClippedLength[readGroup].add(chromosome, _genome.bamFile().curCIGAR().lengthSoftClipped());
-	_mappingQuality[readGroup].add(chromosome, _genome.bamFile().curMappingQuality());
+	_readLength[readGroup].add(chromosome, bamFile.curCIGAR().lengthRead());
+	_usableLength[readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
+	_softClippedLength[readGroup].add(chromosome, bamFile.curCIGAR().lengthSoftClipped());
+	_mappingQuality[readGroup].add(chromosome, bamFile.curMappingQuality());
 
 	// fragment length: only for proper pairs and only once
-	if (_genome.bamFile().curIsProperPair() && !_genome.bamFile().curIsReverseStrand())
-		_fragmentLength[readGroup].add(chromosome, _genome.bamFile().curFragmentLength());
+	if (bamFile.curIsProperPair() && !bamFile.curIsReverseStrand())
+		_fragmentLength[readGroup].add(chromosome, bamFile.curFragmentLength());
+}
+
+TBamDiagnoser::TBamDiagnoser() : _identifyDuplicates(parameters().exists("identifyDuplicates")) {
+	_genome.bamFile().readGroups().fillVectorWithNames(_readGroupNames);
 }
 
 void TBamDiagnoser::run() {
 	// calculate length of genome
-	double totLengthOfGenome = _genome.bamFile().chromosomes().referenceLength();
+	if (_identifyDuplicates)
+		_duplicateFile.open(_genome.outputName() + "_potentialDuplicates.txt.gz",
+							{"Chr", "Pos", "Read1", "Length1", "isReversed1", "Read2", "Length2", "isReversed2"});
 
 	// initialize counters
-	const size_t numRG    = _genome.bamFile().readGroups().size();
-	const size_t numChrom = _genome.bamFile().chromosomes().size();
+	const auto totLengthOfGenome = _genome.bamFile().chromosomes().referenceLength();
+	const size_t numRG           = _genome.bamFile().readGroups().size();
+	const size_t numChrom        = _genome.bamFile().chromosomes().size();
 
 	// resize distributions
 	_passedQC.resize(numRG);
 	_passedQC.resizeDistributions(numChrom);
 
-	constexpr size_t BIG = -1;
-	_oldPositions.resize(numRG, {BIG, BIG});
+	_old.resize(numRG);
 	_readLength.resize(numRG);
 	_readDist.resize(numRG);
 	_usableLength.resize(numRG);
@@ -206,7 +222,7 @@ void TBamDiagnoser::run() {
 			"Will not print reference lengths of chromosomes to file. (use 'printReferenceLength' to do so).");
 	}
 	logfile().list("Approximate sequencing depth was estimated at ",
-				   (double)impl::sumOverAllReadGroups(_usableLength) / (double)totLengthOfGenome, ".");
+				   (double)impl::sumOverAllReadGroups(_usableLength) / totLengthOfGenome, ".");
 
 	// writing output files
 	logfile().startIndent("Writing output files:");

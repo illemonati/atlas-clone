@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TBamTraverser.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Math/counters.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
@@ -19,11 +20,21 @@ namespace GenomeTasks{
 
 class TBamDiagnoser final : public TBamReadTraverser<ReadType::Filtered> {
 private:
+	struct TOld {
+		std::string name = "";
+		size_t length    = 0;
+		bool isReversed  = false;
+
+		static constexpr size_t BIG = -1;
+		genometools::TGenomePosition position{BIG, BIG};
+	};
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 	bool _chromStats = false;
-	std::vector<genometools::TGenomePosition> _oldPositions;
+	bool _identifyDuplicates = false;
+	std::vector<TOld> _old;
 	genometools::TGenomePosition _oldPosition;
+	coretools::TOutputFile _duplicateFile;
 
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
@@ -39,10 +50,7 @@ private:
     void _handleAlignment() override;
 
 public:
-	TBamDiagnoser() {
-		_genome.bamFile().readGroups().fillVectorWithNames(_readGroupNames);
-	}
-
+	TBamDiagnoser();
 	void run();
 };
 
