@@ -2,6 +2,7 @@
  * atlas.cpp
  */
 
+#include "TContextErrors.h"
 #include "TEstimateGenotypeDistribution.h"
 #include "TFromTo.h"
 #include "coretools/Main/TMain.h"
@@ -103,6 +104,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
 	main.createDebugTask<GenomeTasks::TFromTo>("fromTo", "FromTo");
+	main.createDebugTask<GenomeTasks::TContextErrors>("contextErrors", "contextErrors");
 };
 
 void addTests(coretools::TMain & main){
