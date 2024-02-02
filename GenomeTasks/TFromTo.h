@@ -10,9 +10,6 @@
 
 namespace GenomeTasks{
 
-//----------------------------------------
-// TDepthWriter
-//----------------------------------------
 class TFromTo final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	coretools::TOutputFile _out;
