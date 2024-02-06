@@ -11,49 +11,11 @@
 #include <string>
 #include <vector>
 
+#include "TReadGroup.h"
+
 namespace BAM{
 
-//---------------------------------------------------------------
-//TReadGroup
-//---------------------------------------------------------------
-struct TReadGroup {
-public:
-	size_t id; //internal ID
-	std::string name_ID;
-	std::string barcodeSequence_BC;
-	std::string sequencingCenter_CN;
-	std::string description_DS;
-	std::string productionDate_DT;
-	std::string flowOrder_FO;
-	std::string keySequence_KS;
-	std::string library_LB;
-	std::string program_PG;
-	std::string predictedInsertSize_PI;
-	std::string sequencingTechnology_PL;
-	std::string platformModel_PM;
-	std::string platformUnit_PU;
-	std::string sample_SM;
-
-    //flags
-    bool inUse; 						//read groups not in use are ignored when reading
-    bool writeToHeader;                 //is false if read group is not in use or replaced by new one
-
-    TReadGroup();
-    TReadGroup(size_t ID, std::string_view Name);
-
-    std::string compileSamHeader() const;
-
-    bool operator<(const TReadGroup & right) const;
-    bool operator<(std::string_view right) const;
-    bool operator==(std::string_view name) const;
-};
-
-bool operator<(std::string_view left, const TReadGroup & right);
-
-//---------------------------------------------------------------
-//TReadGroups
-//---------------------------------------------------------------
-class TReadGroups{
+class TReadGroups {
 private:
 	const TReadGroup _noReadGroup;
 	std::vector<TReadGroup> _readGroups;
@@ -116,37 +78,6 @@ public:
 	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 	std::string compileSamHeader() const;
-};
-
-//--------------------------------------------------------------------------------------
-//TReadGroupMap
-//Maps bam file read group index to internal index, which may differ in case of pooling
-//--------------------------------------------------------------------------------------
-class TReadGroupMap{
-private:
-	static constexpr size_t ReadGroupMapNotInitializedIndex = -1; //largest possible values
-	std::vector<size_t> _readGroupMap; //maps read group index to pooled index
-	std::vector< std::vector<size_t> > _reverseReadGroupMap; //IDs of all Rgs pooled with that index. Includes itself.
-	std::vector<size_t> _readGroupsInUse;
-
-	void _resize(const TReadGroups & ReadGroups);
-	void _markAsInUse(size_t index);
-	void _noPooling(const TReadGroups & ReadGroups);
-	void _poolAll(const TReadGroups & ReadGroups);
-	void _fromFile(const TReadGroups & ReadGroups, std::string_view filename);
-
-public:
-	TReadGroupMap(const TReadGroups & ReadGroups, std::string_view Type = "");
-
-	size_t size() const { return _readGroupMap.size(); };
-	size_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };
-
-	size_t operator[](size_t rg) const { return _readGroupMap[rg]; };
-	size_t pooledIndex(size_t rg) const { return _readGroupMap[rg]; };
-	bool inUse(size_t rg) const { return _readGroupMap[rg] == rg; };
-
-	const std::vector<size_t>& readGroupsInUse() const { return _readGroupsInUse; };
-	const std::vector<size_t>& readGroupsPooledWith(size_t rg) const { return _reverseReadGroupMap[rg]; };
 };
 
 }; //end namespace

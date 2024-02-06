@@ -44,6 +44,7 @@ public:
 	uint16_t distFrom5Prime = -1; // zero based!
 	uint16_t distFrom3Prime = -1; // zero based!
 	uint16_t readGroupID    = -1;
+	uint16_t bamID          = -1;
 
 	// set and get flags
 	bool isReverseStrand() const noexcept { return flags.get<0>(); }

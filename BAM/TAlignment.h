@@ -47,7 +47,8 @@ private:
 	TCigar _cigar;
 	TGenomePosition _mateGenomicPosition;
 	int32_t _insertSize_TLEN = 0;
-	uint16_t _readGroupID    = 0;
+	size_t _readGroupID      = 0;
+	size_t _bamID            = 0;
 	uint16_t _fragmentLength = 0;
 
 	size_t _refSize         = 0;
@@ -89,7 +90,7 @@ public:
 	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
 			  uint16_t MappingQuality, const TCigar &Cigar, uint32_t MateRefID, uint32_t MatePosition,
 			  const int32_t &InsertSize_TLEN, const std::string &Sequence, const std::string &Qualities,
-			  uint16_t ReadGroupId);
+			  size_t BamID, size_t ReadGroupId);
 	void parse();
 	void parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels);
 

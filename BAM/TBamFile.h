@@ -14,23 +14,22 @@
 #include "TBamFilters.h"
 #include "api/BamAlignment.h"
 #include "api/BamReader.h"
-#include "api/BamWriter.h"
 #include "api/SamHeader.h"
 
-#include "coretools/Math/TNumericRange.h"
 #include "coretools/Math/counters.h"
 #include "coretools/TTimer.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
-#include "TAlignment.h"
-#include "TAlignmentList.h"
 #include "TBamFilter.h"
 #include "TCigar.h"
 #include "TReadGroups.h"
 #include "TSamHeader.h"
 
+namespace BamTools {class BamWriter;}
+
 namespace BAM{
+class TAlignment;
 
 //-----------------------------------------------------
 //TBamFile
@@ -43,6 +42,7 @@ private:
 
 	//BAM file
 	std::string _filename;
+	size_t _ID;
 	BamTools::BamReader _bamReader;
 	BamTools::SamHeader _bamHeader;
 	size_t _fileSize = 0;
@@ -92,7 +92,7 @@ private:
 
 
 public:
-	TBamFile(std::string_view Filename);
+	TBamFile(std::string_view Filename, size_t ID);
 
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const noexcept { return _chromosomes; };

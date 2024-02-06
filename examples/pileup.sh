@@ -17,5 +17,5 @@ $atlas --task pileup --bam ATLAS_simulations_ind1.bam --window window.txt  --pri
 	   --fixedSeed 0 --out singleBam --logFile singleBam.out
 
 bams=$(ls *.bam)
-$atlas --task pileup --fields depth --bam "$bams"  \
+$atlas --task pileup --fields "depth,bases,sampleBases" --bam "$bams"  \
 	   --fixedSeed 0 --out multiBam --logFile multiBam.out

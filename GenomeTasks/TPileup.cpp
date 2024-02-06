@@ -10,12 +10,15 @@
 #include <algorithm>
 #include <vector>
 
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+
+#include "genometools/GenotypeTypes.h"
+
 #include "TGenotypeData.h"
 #include "TSite.h"
 #include "TWindow.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "genometools/GenotypeTypes.h"
 
 namespace GenomeTasks {
 
@@ -59,6 +62,7 @@ TPileup::TPileup() {
 
 		_printSettings.set<Print::Depth>(impl::parseField(fields, "depth", "Sequencing depth"));
 		_printSettings.set<Print::Bases>(impl::parseField(fields, "bases", "Pileup bases"));
+		_printSettings.set<Print::SampleBases>(impl::parseField(fields, "sampleBases", "Sample bases per bam-file"));
 		_printSettings.set<Print::Qualities>(impl::parseField(fields, "qualities", "Pileup qualities"));
 		_printSettings.set<Print::Alleles>(impl::parseField(fields, "alleles", "Allele counts"));
 		_printSettings.set<Print::Mates>(impl::parseField(fields, "mates", "Mate information"));
@@ -88,6 +92,14 @@ TPileup::TPileup() {
 			if (_windows.parser().reference()) { header.push_back("refDepth"); }
 		}
 		if (_printSettings.get<Print::Bases>()) { header.push_back("bases"); }
+		if (_printSettings.get<Print::SampleBases>()) {
+			header.push_back("sampledBases");
+			header.push_back("numSampledA");
+			header.push_back("numSampledC");
+			header.push_back("numSampledG");
+			header.push_back("numSampledT");
+			header.push_back("totSampled");
+		}
 		if (_printSettings.get<Print::Qualities>()) { header.push_back("qualities"); }
 		if (_printSettings.get<Print::Alleles>()) {
 			header.push_back("numA");
@@ -199,6 +211,22 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 				if (_windows.parser().reference()) { _out.write(site.refDepth()); }
 			}
 			if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
+			if (_printSettings.get<Print::SampleBases>()) {
+				const auto sBases = site.sampleBases();
+				if (sBases.empty()) {
+					_out.write("-", 0,0,0,0,0);
+				} else {
+					coretools::TStrongArray<size_t, Base> counts{};
+					size_t tot = 0;
+					for (auto b: sBases) {
+						_out.writeNoDelim(b);
+						++counts[b];
+						++tot;
+					}
+					_out.writeDelim();
+					_out.write(counts, tot);
+				}
+			}
 			if (_printSettings.get<Print::Qualities>()) { _out.write(site.getQualities()); }
 			if (_printSettings.get<Print::Alleles>()) {
 				const auto alleleCounts = site.countAlleles();

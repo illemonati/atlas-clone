@@ -37,8 +37,9 @@ void TAlignment::clear() {
 	_cigar.clear();
 	_mateGenomicPosition.clear();
 	_insertSize_TLEN = 0;
-	_readGroupID    = 0;
-	_fragmentLength = 0;
+	_readGroupID     = 0;
+	_bamID           = 0;
+	_fragmentLength  = 0;
 
 	_lastAlignedPos = 0;
 
@@ -66,7 +67,7 @@ void TAlignment::clear() {
 void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
 					  uint16_t MappingQuality, const TCigar &Cigar, uint32_t MateRefID, uint32_t MatePosition,
 					  const int32_t &InsertSize_TLEN, const std::string &Sequence, const std::string &Qualities,
-					  uint16_t ReadGroupId) {
+					  size_t BamID, size_t ReadGroupId) {
 
 	// empty alignment
 	_lastAlignedPos = 0;
@@ -84,6 +85,7 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 	_insertSize_TLEN = InsertSize_TLEN;
 	_sequence        = Sequence;
 	_qualities       = Qualities;
+	_bamID           = BamID;
 	_readGroupID     = ReadGroupId;
 	_empty           = false;
 
@@ -117,6 +119,7 @@ void TAlignment::_parseBasesQualities() {
 		// set mapping quality and whether read is first or second
 		TSequencedBase b{};
 		b.readGroupID    = _readGroupID;
+		b.bamID          = _bamID;
 		b.mappingQuality = _mappingQuality;
 		b.fragmentLength = _fragmentLength;
 		b.setSecondMate(_flags.isSecondMate());

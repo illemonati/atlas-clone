@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 
@@ -58,6 +59,20 @@ std::string TSite::getBases() const {
 	if (empty()) return "-";
 	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""),
 			       [](auto tot, auto b) { return tot + genometools::base2char(b.base); });
+}
+
+std::vector<genometools::Base> TSite::sampleBases() const {
+	std::vector<std::vector<genometools::Base>> b_bam;
+	for (auto data: _bases) {
+		if (data.bamID >= b_bam.size()) b_bam.resize(data.bamID + 1);
+		b_bam[data.bamID].push_back(data.base);
+	}
+	std::vector<genometools::Base> ret;
+	for (const auto& s: b_bam) {
+		if (s.empty()) continue;
+		ret.push_back(s[coretools::instances::randomGenerator().sample(s.size())]);
+	}
+	return ret;
 }
 
 std::string TSite::getQualities() const {

@@ -8,6 +8,7 @@
 
 #include <vector>
 
+#include "TReadGroupMap.h"
 #include "genometools/GenotypeTypes.h"
 
 #include "TGenotypeData.h"

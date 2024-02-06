@@ -50,6 +50,7 @@ public:
 	size_t depth() const noexcept { return _bases.size(); };
 	size_t refDepth() const;
 	std::string getBases() const;
+	std::vector<genometools::Base> sampleBases() const;
 	std::string getQualities() const;
 
 	TBaseCounts countAlleles() const;

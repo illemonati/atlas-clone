@@ -22,7 +22,7 @@ private:
 
 public:
 	TGenome(const BAM::TBamFilters& Filters = {false});
-	TGenome(std::string_view Name, const BAM::TBamFilters& Filters, size_t i = -1);
+	TGenome(std::string_view Name, const BAM::TBamFilters& Filters, size_t i = 0);
 
 	~TGenome();
 	TGenome(TGenome&&) = default;

@@ -10,10 +10,10 @@
 
 #include <vector>
 
+#include "TReadGroupMap.h"
 #include "coretools/Containers/TStrongArray.h"
 
 #include "SequencingError/TCovariate.h"
-#include "TReadGroups.h"
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods { class TSite; }

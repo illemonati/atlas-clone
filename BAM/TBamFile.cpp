@@ -6,31 +6,10 @@
  */
 
 #include "TBamFile.h"
-
-#include <math.h>
-#include <stdlib.h>
-#include <algorithm>
-#include <exception>
-#include <filesystem>
-#include <string>
-
-#include "api/BamIndex.h"
-#include "api/SamProgram.h"
-#include "api/SamProgramChain.h"
-#include "api/SamReadGroup.h"
-#include "api/SamReadGroupDictionary.h"
-#include "api/SamSequence.h"
-#include "api/SamSequenceDictionary.h"
-
-#include "coretools/Main/TLog.h"
-#include "coretools/Math/TNumericRange.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/globalConstants.h"
-#include "coretools/Types/strongTypes.h"
-
-#include "TSamFlags.h"
-#include "TBamFilters.h"
+#include "TAlignment.h"
 #include "TOutputBamFile.h"
+#include "api/BamWriter.h"
+#include "coretools/Main/TParameters.h"
 
 namespace BAM{
 using coretools::instances::parameters;
@@ -135,8 +114,7 @@ void TBamFile::_fillReadGroups(){
 //--------------------------------------------------------
 // Functions for reading
 //--------------------------------------------------------
-TBamFile::TBamFile(std::string_view Filename){
-	_filename = Filename;
+TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), _ID(ID){
 
 	//open BAM file
 	logfile().list("Opening BAM file '", _filename, "'.");
@@ -384,6 +362,7 @@ void TBamFile::fill(TAlignment & alignment) const{
 				   _curBamAlignment.InsertSize,
 				   _curBamAlignment.QueryBases,
 				   _curBamAlignment.Qualities,
+				   _ID,
 				   _curReadGroupID);
 };
 
