@@ -3,27 +3,7 @@
 //
 
 #include "TVcfConverter.h"
-
-#include <algorithm>
-#include <cstdint>
-#include <fstream>
-#include <iterator>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <string_view>
-#include <cmath>
-
-#include <fmt/os.h>
-
-#include "coretools/Files/TOutputFile.h"
 #include "coretools/Files/gzstream.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/Types/probability.h"
-#include "genometools/BED/TBed.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/VCF/TPopulationLikelihoodLocus.h"
 
 namespace VCF {
 

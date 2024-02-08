@@ -7,19 +7,9 @@
 
 #include "TThetaEstimatorData.h"
 
-#include "TBamFilter.h"
-#include "coretools/Containers/TView.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "genometools/GenotypeTypes.h"
-#include "coretools/Files/TOutputFile.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "TSite.h"
-#include <algorithm>
-#include <math.h>
-#include <ostream>
-#include <stdio.h>
+#include "coretools/Files/TOutputFile.h"
+
 
 namespace GenotypeLikelihoods {
 

@@ -7,24 +7,6 @@
 
 #include "SequencingError/TModels.h"
 
-#include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <ostream>
-#include <stdexcept>
-
-#include "TAlignment.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Main/TLog.h"
-#include "TReadGroupInfo.h"
-#include "TReadGroups.h"
-#include "TSequencedBase.h"
-#include "SequencingError/TModel.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/Strings/splitters.h"
-#include "coretools/Types/probability.h"
-
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 

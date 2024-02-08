@@ -8,8 +8,6 @@
 #ifndef BAM_TREADGROUPINFO_H_
 #define BAM_TREADGROUPINFO_H_
 
-// TODO: turn into read group info also used by TGenome
-
 #include <vector>
 
 #include "coretools/Strings/fromString.h"
@@ -17,7 +15,6 @@
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Files/TOutputFile.h"
 #include "coretools/Strings/toString.h"
 
 #include "TReadGroups.h"

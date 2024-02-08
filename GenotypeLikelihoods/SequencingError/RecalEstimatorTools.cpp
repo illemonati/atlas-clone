@@ -6,18 +6,8 @@
  */
 
 #include "RecalEstimatorTools.h"
-
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-#include "SequencingError/TCovariate.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Files/TOutputFile.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Main/TLog.h"
-#include "TSequencedBase.h"
 #include "TSite.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace GenotypeLikelihoods::RecalEstimatorTools {
 

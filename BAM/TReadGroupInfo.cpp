@@ -6,15 +6,13 @@
  */
 
 #include "TReadGroupInfo.h"
+
 #include "coretools/Files/TStdWriter.h"
-#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Types/commonWeakTypes.h"
-#include "coretools/enum.h"
-#include <vector>
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;

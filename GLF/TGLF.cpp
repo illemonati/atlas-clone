@@ -6,18 +6,9 @@
  */
 
 #include "TGLF.h"
-#include <algorithm>
-#include <cstdint>
-#include <iostream>
-#include <utility>
 #include "coretools/Main/TParameters.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "TGenotypeData.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/strongTypes.h"
-#include "coretools/Types/weakTypes.h"
+
 
 namespace GLF {
 using namespace GenotypeLikelihoods;

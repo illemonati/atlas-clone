@@ -8,11 +8,12 @@
 #ifndef TBEDREADER_H_
 #define TBEDREADER_H_
 
-#include "coretools/Counters/TCountDistribution.h"
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
+
+#include "coretools/Counters/TCountDistribution.h"
 
 namespace genometools { class TChromosomes; }
 
@@ -68,8 +69,8 @@ public:
 	std::vector<size_t>& getPositionInWindow(uint32_t & windowStart);
 	size_t size() const;
 	size_t getNumChromosomes() const;
-	bool containsChromosome(std::string chrName) const;
-	TBedReaderChromosome* findChromosome(std::string chrName);
+	bool containsChromosome(const std::string& chrName) const;
+	TBedReaderChromosome* findChromosome(const std::string& chrName);
 	void listInitializedChromosomes(std::vector<std::string> &initializedChromosomes);
 };
 

@@ -6,16 +6,10 @@
  */
 
 #include "TVcfCompare.h"
-
-#include <stddef.h>
-#include <sys/time.h>
-#include <algorithm>
-#include <exception>
-#include <memory>
-
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+
 
 namespace VCF{
 

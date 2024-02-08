@@ -7,21 +7,10 @@
 
 
 #include "THardyWeinbergTest.h"
-
-#include <math.h>
-#include <algorithm>
-#include <exception>
-#include <iostream>
-#include <memory>
-#include <tuple>
-#include <utility>
-
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/TTimer.h"
-#include "genometools/VCF/TVcfParser.h"
 
 namespace PopulationTools{
 

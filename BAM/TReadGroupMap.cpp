@@ -1,8 +1,8 @@
 #include "TReadGroupMap.h"
+
 #include "coretools/Files/TInputFile.h"
-#include "coretools/Main/TError.h"
-#include <filesystem>
 #include "coretools/Main/TLog.h"
+
 
 namespace BAM{
 

@@ -5,18 +5,11 @@
  *      Author: linkv
  */
 
-#include <TBedReaderWindows.h>
-#include <stddef.h>
-#include <algorithm>
-#include <cstdint>
-#include <fstream>
-#include <iostream>
-#include <utility>
+#include "coretools/Files/gzstream.h"
 #include "coretools/Strings/fillContainer.h"
 #include "coretools/Strings/fromString.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Files/gzstream.h"
+#include <TBedReaderWindows.h>
 
 namespace BAM{
 
@@ -182,11 +175,11 @@ size_t TBedReaderWindows::getNumChromosomes() const{
 	return chromosomes.size();
 };
 
-bool TBedReaderWindows::containsChromosome(std::string chrName) const{
+bool TBedReaderWindows::containsChromosome(const std::string& chrName) const{
 	return chromosomes.count(chrName);
 }
 
-TBedReaderChromosome* TBedReaderWindows::findChromosome(std::string chrName) {
+TBedReaderChromosome* TBedReaderWindows::findChromosome(const std::string& chrName) {
 	return &(chromosomes.find(chrName)->second);
 }
 

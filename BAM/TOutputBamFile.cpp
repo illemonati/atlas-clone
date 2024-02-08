@@ -1,6 +1,8 @@
 #include "TOutputBamFile.h"
+
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TNumericRange.h"
+
 namespace BAM {
 using coretools::instances::logfile;
 using coretools::instances::parameters;

@@ -8,7 +8,6 @@
 #ifndef TDISTANCEESTIMATOR_H_
 #define TDISTANCEESTIMATOR_H_
 
-#include <memory>
 #include <array>
 #include <string>
 #include <vector>

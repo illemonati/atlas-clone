@@ -7,30 +7,13 @@
 
 #include "TAlleleCountEstimator.h"
 
-#include <algorithm>
-#include <exception>
-#include <iostream>
-#include <math.h>
-#include <memory>
-#include <stddef.h>
-#include <sys/time.h>
-#include <utility>
-
-#include "TSafFile.h"
-#include "coretools/Strings/toString.h"
-#include "genometools/GenotypeTypes.h"
 #include "TAlleleCountFileFormat.h"
+#include "TAlleleCountReader.h"
+#include "TSafFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "genometools/VCF/TPopulation.h"
-#include "genometools/VCF/TPopulationLikelihoodLocus.h"
-#include "genometools/VCF/TPopulationLikelihoods.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Files/gzstream.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/weakTypes.h"
-#include "TAlleleCountReader.h"
 
 namespace PopulationTools {
 

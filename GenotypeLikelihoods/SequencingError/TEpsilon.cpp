@@ -6,16 +6,6 @@
  */
 
 #include "TEpsilon.h"
-#include "SequencingError/TCovariate.h"
-#include "SequencingError/TFunction.h"
-#include "SequencingError/TFunctions.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/Strings/splitters.h"
-#include "coretools/Strings/toString.h"
-#include <algorithm>
-#include <iterator>
-#include <memory>
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

@@ -6,19 +6,9 @@
  */
 
 #include "TVcfDiagnostics.h"
-
-#include <algorithm>
-#include <cstdint>
-#include <cstdlib>
-#include <exception>
-#include <filesystem>
-#include <map>
-#include <math.h>
-
-#include "coretools/Main/TLog.h"
-#include "genometools/GenotypeTypes.h"
-#include "coretools/Files/gzstream.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Files/gzstream.h"
+
 
 namespace VCF {
 

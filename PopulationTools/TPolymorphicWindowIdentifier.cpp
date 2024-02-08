@@ -6,22 +6,11 @@
  */
 
 #include "TPolymorphicWindowIdentifier.h"
-
-#include <stdint.h>
-#include <algorithm>
-#include <exception>
-#include <ostream>
-#include <vector>
-
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Types/strongTypes.h"
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulation.h"
-#include "genometools/VCF/TPopulationLikelihoodLocus.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace PopulationTools{

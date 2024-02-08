@@ -4,16 +4,7 @@
 
 #include "TF2Estimator.h"
 
-#include <algorithm>
-#include <cstdint>
-#include <exception>
-#include <ostream>
-
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/TTimer.h"
-#include "genometools/VCF/TVcfParser.h"
 
 namespace PopulationTools {
 using coretools::TOutputFile;

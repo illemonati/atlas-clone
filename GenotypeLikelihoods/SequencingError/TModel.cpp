@@ -6,39 +6,13 @@
  */
 
 #include "SequencingError/TModel.h"
-
-#include <algorithm>
-#include <array>
-#include <math.h>
-#include <memory>
-#include <ostream>
-#include <stdlib.h>
-#include <tuple>
-#include <type_traits>
-#include <utility>
-
-#include "RecalEstimatorTools.h"
-#include "SequencingError/TCovariate.h"
 #include "TAlignment.h"
-#include "TGenotypeData.h"
-#include "TSequencedBase.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/Strings/toString.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/weakTypes.h"
-#include "coretools/enum.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 using coretools::Probability;
 using coretools::instances::randomGenerator;
 using genometools::Base;
-using namespace std::literals;
-using namespace coretools::str;
 
 //*********************************************************
 // TModelNoRecal

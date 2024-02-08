@@ -8,21 +8,13 @@
 #ifndef GLF_TGLFMULTIREADER_H_
 #define GLF_TGLFMULTIREADER_H_
 
-#include <array>
 #include <string>
 #include <vector>
 
-#include "coretools/Containers/TBitSet.h"
-#include "coretools/Files/TOutputFile.h"
-#include "coretools/Types/probability.h"
+#include "TGLF.h"
 
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TFastaReader.h"
-
-#include "TGLF.h"
-#include "genometools/TFastaReader.h"
-#include "genometools/VCF/TVcfWriter.h"
 
 using TGenotypeLikelihoodsOneAllelicCombinationVector = std::vector<genometools::TGenotypeLikelihoodsOneAllelicCombination>;
 using TGenotypeLikelihoodsAllCombinationsVector                      = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;

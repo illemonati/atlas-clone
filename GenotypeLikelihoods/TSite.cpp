@@ -7,15 +7,6 @@
 
 #include "TSite.h"
 
-#include <algorithm>
-#include <numeric>
-#include <utility>
-
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-
 namespace GenotypeLikelihoods {
 
 //-------------------------------------------------------

@@ -7,19 +7,6 @@
 
 #include "TSiteSubset.h"
 
-#include <algorithm>
-#include <cstdint>
-#include <fstream>
-#include <iterator>
-#include <map>
-
-#include "coretools/Containers/TView.h"
-#include "coretools/Files/TOutputFile.h"
-#include "coretools/Main/TLog.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/TFastaReader.h"
-
 namespace GenotypeLikelihoods::SiteSubset {
 
 //-----------------------------------------------

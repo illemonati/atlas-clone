@@ -6,25 +6,9 @@
  */
 
 #include "TWindow.h"
-
-#include <algorithm>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-
-#include "coretools/Main/TError.h"
-#include "genometools/GenomePositions/TGenomeWindow.h"
-#include "genometools/GenotypeTypes.h"
 #include "genometools/BED/TBed.h"
-#include "coretools/Files/TOutputFile.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Math/TNumericRange.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "TSequencedBase.h"
-#include "TSiteSubset.h"
-#include "coretools/Types/probability.h"
 #include "genometools/TFastaReader.h"
+#include "coretools/Math/TNumericRange.h"
 
 namespace GenotypeLikelihoods{
 

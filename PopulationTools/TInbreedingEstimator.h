@@ -8,14 +8,13 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Types/TStringHash.h"
 #include "coretools/Types/probability.h"
 
 #include "genometools/PhredProbabilityTypes.h"
-#include "genometools/THardyWeinbergGenotypeProbabilities.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
-#include "coretools/Types/TStringHash.h"
 #include "stattools/Deterministics/TLinkFunctions.h"
 #include "stattools/ParametersObservations/TObservation.h"
 #include "stattools/ParametersObservations/TParameter.h"
@@ -25,6 +24,9 @@
 
 namespace stattools {
 class TObservationBase;
+}
+namespace genometools {
+	class THardyWeinbergGenotypeProbabilities;
 }
 
 namespace PopulationTools {

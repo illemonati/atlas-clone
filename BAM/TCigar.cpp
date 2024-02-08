@@ -7,7 +7,6 @@
 
 #include "TCigar.h"
 
-#include <algorithm>
 #include "coretools/Main/TError.h"
 
 namespace BAM {

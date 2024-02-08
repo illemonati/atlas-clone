@@ -6,19 +6,8 @@
  */
 
 #include "TErrorModels.h"
-
-#include <math.h>
-#include <stdint.h>
-#include <exception>
-#include <string>
-
-#include "TGenotypeData.h"
-#include "TReadGroupInfo.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "TReadGroups.h"
-#include "TSequencedBase.h"
 #include "TSite.h"
+
 
 namespace GenotypeLikelihoods{
 

@@ -29,7 +29,6 @@ class TModels;
 }
 } // namespace GenotypeLikelihoods
 namespace genometools {
-class PhredIntProbability;
 class TFastaReader;
 }
 
@@ -161,7 +160,6 @@ public:
 	std::vector<TSequencedBase>::const_iterator end() const noexcept { return _bases.end(); };
 	std::vector<TSequencedBase>::const_reverse_iterator rbegin() const noexcept { return _bases.rbegin(); };
 	std::vector<TSequencedBase>::const_reverse_iterator rend() const noexcept { return _bases.rend(); };
-
 	
 	size_t size() const noexcept { return _bases.size(); }
 
@@ -170,7 +168,7 @@ public:
 		// set quality = 0 and base = N if outside quality filter
 		for (auto &b : _bases) {
 			if (!F.pass(b)) {
-				b.base                          = genometools::Base::N;
+				b.base         = genometools::Base::N;
 				b.recalQuality = 0;
 			}
 		}

@@ -18,8 +18,6 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Containers/TDualStrongArray.h"
 #include "TGenotypeData.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfWriter.h"
 
 namespace genometools { class TChromosome; }

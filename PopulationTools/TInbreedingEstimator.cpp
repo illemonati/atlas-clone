@@ -3,14 +3,8 @@
 //
 
 #include "TInbreedingEstimator.h"
-
-#include <array>
-#include <cmath>
-#include <stdexcept>
-
-#include "coretools/Math/mathFunctions.h"
-#include "stattools/DAG/TDAGBuilder.h"
 #include "stattools/MCMC/TMCMC.h"
+
 
 #ifdef _OPENMP
 #include "omp.h"

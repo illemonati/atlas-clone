@@ -10,8 +10,8 @@
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
-
 #include "TReadGroupInfo.h"
+
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
 

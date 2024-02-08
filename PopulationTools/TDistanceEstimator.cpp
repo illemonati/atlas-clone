@@ -6,26 +6,13 @@
  */
 
 #include "TDistanceEstimator.h"
-
-#include <math.h>
-#include <memory>
-#include <stddef.h>
-#include <exception>
-#include <ostream>
-
+#include "coretools/Files/gzstream.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
-#include "coretools/enum.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Files/gzstream.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools{
 
-using namespace GenotypeLikelihoods;
+using GenotypeLikelihoods::TBaseData;
 using genometools::Genotype;
 using genometools::Base;
 using coretools::Probability;

@@ -6,22 +6,8 @@
  */
 
 #include "TGenotypeDistribution.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Main/TLog.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/Strings/toString.h"
-#include "genometools/GenotypeTypes.h"
-#include "TGenotypeData.h"
-#include "TSequencedBase.h"
-#include "coretools/algorithms.h"
-#include "coretools/Types/probability.h"
-#include "genometools/VCF/TVcfWriter.h"
-#include "stattools/MLEInference/TNelderMead.h"
 
-#include <limits>
-#include <numeric>
-#include <random>
 #include <armadillo>
 
 namespace GenotypeLikelihoods {

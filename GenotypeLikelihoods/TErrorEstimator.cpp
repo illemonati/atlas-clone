@@ -4,36 +4,6 @@
  */
 #include "TErrorEstimator.h"
 
-#include <algorithm>
-#include <armadillo>
-#include <exception>
-#include <functional>
-#include <iostream>
-#include <iterator>
-#include <math.h>
-#include <memory>
-#include <numeric>
-#include <stdexcept>
-
-#include "PMD/TModels.h"
-#include "TReadGroupInfo.h"
-#include "TReadGroups.h"
-#include "TSite.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Math/TSumLog.h"
-#include "coretools/Strings/toString.h"
-#include "genometools/GenotypeTypes.h"
-#include "TGenotypeData.h"
-#include "TGenotypeDistribution.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "genometools/VCF/TVcfWriter.h"
-#include "TSequencedBase.h"
-#include "SequencingError/TModel.h"
-#include "SequencingError/TModels.h"
-#include "coretools/algorithms.h"
-#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 

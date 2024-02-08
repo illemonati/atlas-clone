@@ -16,7 +16,6 @@
 #include "api/BamReader.h"
 #include "api/SamHeader.h"
 
-#include "coretools/Strings/stringConversions.h"
 #include "coretools/TTimer.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
@@ -84,12 +83,6 @@ private:
 	bool _readNextAlignmentFromFile();
  	void _applyFilters();
 	void _writeFilteringStats(std::string_view outputName) const;
-	void _setLimits();
-
-
-	std::string _millionReadsRead() const { return coretools::str::toStringWithPrecision((double) _numAlignmentRead / 1000000.0, 1); };
-	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
-
 
 public:
 	TBamFile(std::string_view Filename, size_t ID);
@@ -123,7 +116,7 @@ public:
 	void writeCurAlignment(TOutputBamFile & out);
 
 	//getters for cur alignment
-	const std::string curName() const{ return _curBamAlignment.Name; };
+	const std::string& curName() const{ return _curBamAlignment.Name; };
 	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; };
 	size_t refID() const{ return _curChromosome->refID(); };
 	const genometools::TChromosome& curChromosome() const{ return *_curChromosome; };

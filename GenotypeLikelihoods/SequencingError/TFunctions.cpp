@@ -1,17 +1,6 @@
 #include "TFunctions.h"
-
-#include "SequencingError/TCovariate.h"
-#include "TFunction.h"
-#include "TReadGroupInfo.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Strings/fromString.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/stringProperties.h"
-#include "coretools/enum.h"
-#include <memory>
-#include <type_traits>
 
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;

@@ -1,8 +1,7 @@
 #include "TBamFilters.h"
+
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Math/TNumericRange.h"
-#include "coretools/enum.h"
 
 namespace BAM {
 

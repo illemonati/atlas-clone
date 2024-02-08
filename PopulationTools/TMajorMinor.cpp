@@ -6,40 +6,19 @@
  */
 
 #include "TMajorMinor.h"
-
-#include <algorithm>
-#include <array>
-#include <exception>
-#include <iterator>
-#include <memory>
-#include <numeric>
-#include <set>
-#include <stddef.h>
-#include <stdint.h>
-#include <string>
-#include <tuple>
-#include <vector>
-
 #include "TGlfMultiReader.h"
 #include "TBgzWriter.h"
-#include "coretools/Containers/TDualArray.h"
+
 #include "coretools/Containers/TDualStrongArray.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Containers/TView.h"
-#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Main/TTask.h"
 #include "coretools/Math/TSumLog.h"
-#include "coretools/TTimer.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/strongTypes.h"
-#include "coretools/Types/weakTypes.h"
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
+
 
 #ifdef _OPENMP
 #include "omp.h"

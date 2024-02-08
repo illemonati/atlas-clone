@@ -8,18 +8,12 @@
 
 #include "TReadGroups.h"
 
-#include <algorithm>
-#include <memory>
-#include <utility>
-
-#include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/fillContainer.h"
 
 namespace BAM{
 
 using coretools::instances::logfile;
-
 
 //---------------------------------------------------------------
 //TReadGroups

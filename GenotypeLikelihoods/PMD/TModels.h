@@ -12,9 +12,10 @@
 #include "genometools/GenotypeTypes.h"
 
 #include "TGenotypeData.h"
-#include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
 #include "TModel.h"
+
+namespace BAM::RGInfo {class TReadGroupInfo;}
 
 namespace GenotypeLikelihoods::PMD {
 

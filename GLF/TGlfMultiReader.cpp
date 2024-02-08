@@ -6,25 +6,10 @@
  */
 
 #include "TGlfMultiReader.h"
-#include <algorithm>
-#include <cstdint>
-#include <exception>
-#include <iostream>
-#include <iterator>
-#include <memory>
-#include <numeric>
-#include "coretools/Files/TGzWriter.h"
-#include "coretools/Files/TWriter.h"
-#include "coretools/Main/TError.h"
+
+#include "coretools/Main/TParameters.h"
 #include "coretools/Strings/fillContainer.h"
 #include "coretools/Strings/stringProperties.h"
-#include "genometools/GenotypeTypes.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/strongTypes.h"
-#include "coretools/Types/weakTypes.h"
 
 namespace GLF {
 using coretools::instances::logfile;

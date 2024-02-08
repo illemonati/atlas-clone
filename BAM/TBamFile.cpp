@@ -10,33 +10,16 @@
 #include "TOutputBamFile.h"
 #include "api/BamWriter.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringConversions.h"
 #include "coretools/algorithms.h"
 
 namespace BAM{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 
-void TBamFile::_setLimits(){
-	//number of reads
-	if(parameters().exists("limitReads")){
-		_maxNumReadsToRead = parameters().get<uint64_t>("limitReads");
-		logfile().list("Will limit the analysis to the first ", _maxNumReadsToRead, " reads in the BAM file.");
-	}
-
-	//limit chromosomes?
-	_chromosomes.limitAndSetPloidy();
-
-	//limit read groups
-	if(parameters().exists("readGroup")){
-		_readGroups.filterReadGroups(parameters().get<std::string>("readGroup"));
-		logfile().startIndent("Will limit analysis to the following read groups:");
-		_readGroups.printReadgroupsInUse();
-		logfile().endIndent();
-		_filters.enable(FilterType::ReadGroup, "Read group not in use");
-	} else {
-		_filters.disable(FilterType::ReadGroup);
-	}
-};
+namespace impl {
+std::string millionReadsRead(size_t N) { return coretools::str::toStringWithPrecision((double) N / 1000000, 1); };
+}
 
 void TBamFile::curFilterOut(){
 	_filters.filterOut(FilterType::External, _curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
@@ -170,7 +153,27 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 	_bamReader.Rewind();
 
 	_filters.resize(_readGroups.size(), _chromosomes.size(), _filename);
-	_setLimits();
+
+	// Set Limits:
+	//number of reads
+	if(parameters().exists("limitReads")){
+		_maxNumReadsToRead = parameters().get<uint64_t>("limitReads");
+		logfile().list("Will limit the analysis to the first ", _maxNumReadsToRead, " reads in the BAM file.");
+	}
+
+	//limit chromosomes?
+	_chromosomes.limitAndSetPloidy();
+
+	//limit read groups
+	if(parameters().exists("readGroup")){
+		_readGroups.filterReadGroups(parameters().get<std::string>("readGroup"));
+		logfile().startIndent("Will limit analysis to the following read groups:");
+		_readGroups.printReadgroupsInUse();
+		logfile().endIndent();
+		_filters.enable(FilterType::ReadGroup, "Read group not in use");
+	} else {
+		_filters.disable(FilterType::ReadGroup);
+	}
 };
 
 void TBamFile::setFilters(const TBamFilters& Filters) {
@@ -376,41 +379,6 @@ bool TBamFile::jump(const genometools::TGenomePosition Position){
 //--------------------------------------------------------
 // Functions for writing
 //--------------------------------------------------------
-void TBamFile::_openForWriting(BamTools::BamWriter & bamWriter, const std::string filename){
-	//construct new header
-	BamTools::SamHeader newHeader(_bamHeader);
-
-	//make sure read groups are OK: copy from readGroup object
-	newHeader.ReadGroups.Clear();
-	for(auto it = _readGroups.begin(); it!=_readGroups.end(); ++it){
-		if(it->writeToHeader){
-			BamTools::SamReadGroup newRg(it->name_ID);
-
-			//copy rest
-			newRg.Description = it->description_DS;
-			newRg.FlowOrder = it->flowOrder_FO;
-			newRg.KeySequence = it->keySequence_KS;
-			newRg.Library = it->library_LB;
-			newRg.PlatformUnit = it->platformUnit_PU;
-			newRg.PredictedInsertSize = it->predictedInsertSize_PI;
-			newRg.ProductionDate = it->productionDate_DT;
-			newRg.Program = it->program_PG;
-			newRg.Sample = it->sample_SM;
-			newRg.SequencingCenter = it->sequencingCenter_CN;
-			newRg.SequencingTechnology = it->sequencingTechnology_PL;
-
-			//add to header
-			newHeader.ReadGroups.Add(newRg);
-		}
-	}
-
-	//extract references
-	BamTools::RefVector references = _bamReader.GetReferenceData();
-
-	//open file for writing
-	if(!bamWriter.Open(filename, _bamHeader, references))
-		UERROR("Failed to open BAM file '", filename, "'!");
-};
 
 void TBamFile::writeCurAlignment(TOutputBamFile & out){
 	out.writeAlignment(_curBamAlignment);
@@ -512,7 +480,7 @@ void TBamFile::startProgressReporting(bool indent) const {
 
 void TBamFile::printProgress() const {
 	if (_numAlignmentRead - _lastProgressPrinted >= _progressFrequency) {
-		logfile().list("Parsed " + _millionReadsRead() + " million reads (est. " +
+		logfile().list("Parsed " + impl::millionReadsRead(_numAlignmentRead) + " million reads (est. " +
 					   coretools::str::toStringWithPrecision((100.*_bamReader.Tell())/_fileSize, 2) + "%) in " +
 					   _timer.formattedTime());
 		_lastProgressPrinted = _numAlignmentRead;
@@ -521,7 +489,7 @@ void TBamFile::printProgress() const {
 
 void TBamFile::printEndWithSummary(std::string_view outputName, bool indent) const {
 	logfile().list("Reached end of BAM file ", _filename, " in " + _timer.formattedTime() + ':');
-	logfile().conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime() + '.');
+	logfile().conclude("Parsed a total of " + impl::millionReadsRead(_numAlignmentRead) + " million reads in " + _timer.formattedTime() + '.');
 
 	if (indent) logfile().endIndent();
 
