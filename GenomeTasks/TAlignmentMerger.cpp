@@ -21,6 +21,8 @@
 #include "TBamFilters.h"
 #include "TWaitingListBamTraverser.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Strings/fillContainer.h"
+#include "coretools/Strings/stringProperties.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
@@ -32,9 +34,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "coretools/Math/counters.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 
 namespace GenomeTasks{

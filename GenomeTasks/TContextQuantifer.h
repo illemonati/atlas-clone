@@ -8,7 +8,6 @@
 #ifndef GENOMETASKS_TCONTEXTQUANTIFER_H_
 #define GENOMETASKS_TCONTEXTQUANTIFER_H_
 
-#include "coretools/Math/counters.h"
 
 #include "TBamTraverser.h"
 

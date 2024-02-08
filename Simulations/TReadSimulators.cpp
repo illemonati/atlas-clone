@@ -4,7 +4,6 @@
  */
 
 #include "TReadGroupInfo.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"

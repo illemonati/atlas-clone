@@ -10,8 +10,6 @@
 
 #include <vector>
 
-#include "coretools/Math/counters.h"
-
 #include "genometools/GenomePositions/TGenomePosition.h"
 
 #include "TBamTraverser.h"

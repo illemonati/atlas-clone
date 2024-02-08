@@ -23,7 +23,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
 
 namespace Simulations {

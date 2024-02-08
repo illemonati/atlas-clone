@@ -33,7 +33,6 @@
 #include "coretools/Math/mathConstants.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Main/progressTools.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
 
 namespace Simulations {

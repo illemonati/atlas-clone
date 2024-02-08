@@ -1,6 +1,7 @@
 #include "TBaseFilter.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/concatenateString.h"
 namespace GenomeTasks {
 
 using coretools::instances::parameters;

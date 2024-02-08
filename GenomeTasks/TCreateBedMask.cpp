@@ -14,7 +14,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "TSite.h"
 #include "TWindow.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks{
 

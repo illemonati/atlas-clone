@@ -16,7 +16,7 @@
 #include "api/BamReader.h"
 #include "api/SamHeader.h"
 
-#include "coretools/Math/counters.h"
+#include "coretools/Strings/stringConversions.h"
 #include "coretools/TTimer.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"

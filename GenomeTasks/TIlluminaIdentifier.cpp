@@ -10,7 +10,7 @@
 #include "TBamFile.h"
 #include <string>
 #include "coretools/Main/TLog.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/stringProperties.h"
 
 namespace GenomeTasks{
 

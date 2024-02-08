@@ -12,10 +12,11 @@
 #include <fstream>
 #include <iostream>
 #include <utility>
+#include "coretools/Strings/fillContainer.h"
+#include "coretools/Strings/fromString.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Files/gzstream.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM{
 

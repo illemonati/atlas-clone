@@ -9,7 +9,7 @@
 #define BAM_TBAMFILTER_H_
 
 #include <string>
-#include "coretools/Math/counters.h"
+#include "coretools/Counters/TCountDistributionVector.h"
 
 namespace BAM{
 

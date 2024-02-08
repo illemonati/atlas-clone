@@ -16,7 +16,6 @@
 
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/globalConstants.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Types/weakTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"

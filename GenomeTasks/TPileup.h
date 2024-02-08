@@ -9,7 +9,6 @@
 #define GENOMETASKS_TPILEUP_H_
 
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Math/counters.h"
 
 #include "TBamWindowTraverser.h"
 #include "TAllelicDepthCounts.h"

@@ -20,7 +20,6 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/TTimer.h"
 #include "genometools/VCF/TVcfParser.h"
 

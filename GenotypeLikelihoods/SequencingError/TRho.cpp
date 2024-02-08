@@ -1,5 +1,6 @@
 #include "TRho.h"
 #include "TGenotypeData.h"
+#include "coretools/Strings/stringManipulations.h"
 
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;

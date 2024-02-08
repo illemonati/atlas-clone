@@ -3,6 +3,7 @@
 #include "TGenotypeDistribution.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Math/TSumLog.h"
 #include <math.h>
 #include <memory>
 

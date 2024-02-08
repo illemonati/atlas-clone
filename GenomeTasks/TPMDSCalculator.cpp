@@ -16,7 +16,6 @@
 #include "TAlignment.h"
 #include "coretools/Main/TLog.h"
 #include "TSequencedBase.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks{

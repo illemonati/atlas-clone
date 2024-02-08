@@ -10,8 +10,6 @@
 
 #include <string>
 
-#include "coretools/Math/counters.h"
-
 #include "TBamFile.h"
 #include "TBamTraverser.h"
 #include "TOutputBamFile.h"

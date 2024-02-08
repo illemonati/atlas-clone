@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "TBamWindowTraverser.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
@@ -28,8 +27,6 @@
 #include "TSite.h"
 #include "TTestBamFile.h"
 #include "TWindow.h"
-#include "coretools/Math/counters.h"
-#include "coretools/Strings/stringFunctions.h"
 
 using coretools::instances::parameters;
 

@@ -13,7 +13,7 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/stringConversions.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace BAM {

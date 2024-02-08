@@ -17,7 +17,6 @@
 #include "TOutputBamFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/globalConstants.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 
 namespace BAM{

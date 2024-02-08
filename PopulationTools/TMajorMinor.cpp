@@ -32,7 +32,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Math/TSumLog.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/TTimer.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Types/strongTypes.h"

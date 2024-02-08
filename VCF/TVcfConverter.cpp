@@ -19,7 +19,6 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Files/gzstream.h"
 #include "coretools/Strings/fromString.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/GenomePositions/TGenomePosition.h"

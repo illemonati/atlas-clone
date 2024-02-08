@@ -29,7 +29,6 @@
 #include "coretools/Files/gzstream.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
 #include "TAlleleCountReader.h"
 

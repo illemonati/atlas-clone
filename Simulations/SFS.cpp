@@ -15,7 +15,6 @@
 #include <string>
 
 #include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/algorithms.h"
 #include "coretools/Files/TInputFile.h"
 #include "genometools/GenotypeTypes.h"

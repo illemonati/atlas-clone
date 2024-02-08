@@ -15,10 +15,9 @@
 #include <vector>
 
 #include "coretools/Main/TLog.h"
-#include "coretools/Math/TProbabilityDistributions.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
+#include "coretools/Distributions/TNormalDistr.h"
 #include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/RecalEstimatorTools.h"
@@ -344,7 +343,6 @@ private:
 		double phiCumul;
 
 		TProbitTmpStorage(const std::array<double, 3> &betas, uint16_t q) {
-			using namespace coretools::probdist;
 			const double z = betas[1] + betas[2] * q;
 			phiCumul       = coretools::probdist::TNormalDistr::cumulativeDensity(z, 0, 1);
 			phi            = coretools::probdist::TNormalDistr::density(z, 0, 1);

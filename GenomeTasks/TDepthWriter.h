@@ -11,7 +11,6 @@
 #include <string>
 
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Math/counters.h"
 
 #include "TBamWindowTraverser.h"
 

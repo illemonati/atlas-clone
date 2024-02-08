@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Math/TSumLog.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/GenotypeTypes.h"
 

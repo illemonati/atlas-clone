@@ -2,7 +2,6 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TNumericRange.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/enum.h"
 
 namespace BAM {

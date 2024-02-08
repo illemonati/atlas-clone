@@ -9,7 +9,6 @@
 #include "TGLF.h"
 #include "TGenotypeData.h"
 #include "TTestGLFFile.h"
-#include "coretools/Strings/stringFunctions.h"
 
 //-------------------------------------------------------------
 // TGLF_Test_ReadWrite

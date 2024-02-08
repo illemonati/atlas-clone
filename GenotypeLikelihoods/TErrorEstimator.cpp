@@ -34,7 +34,6 @@
 #include "SequencingError/TModels.h"
 #include "coretools/algorithms.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 

@@ -16,7 +16,6 @@
 #include "coretools/Containers/TView.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TFastaReader.h"

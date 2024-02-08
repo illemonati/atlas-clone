@@ -16,7 +16,6 @@
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TGenotypeData.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 #include "coretools/Types/weakTypes.h"
 

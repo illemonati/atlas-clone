@@ -18,7 +18,6 @@
 #include "genometools/TSampleLikelihoods.h"
 #include "coretools/Files/gzstream.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 
 using namespace testing;
 using namespace coretools::instances;

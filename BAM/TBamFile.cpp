@@ -10,6 +10,7 @@
 #include "TOutputBamFile.h"
 #include "api/BamWriter.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/algorithms.h"
 
 namespace BAM{
 using coretools::instances::parameters;

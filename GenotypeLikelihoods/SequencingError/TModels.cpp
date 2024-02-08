@@ -24,7 +24,6 @@
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

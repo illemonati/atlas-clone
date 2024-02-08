@@ -24,7 +24,6 @@
 #include "TSequencedBase.h"
 #include "TSiteSubset.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "genometools/TFastaReader.h"
 
 namespace GenotypeLikelihoods{

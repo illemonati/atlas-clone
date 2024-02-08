@@ -13,7 +13,6 @@
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Files/gzstream.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"

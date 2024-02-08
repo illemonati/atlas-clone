@@ -18,7 +18,6 @@
 #include "coretools/Main/TParameters.h"
 #include "TSite.h"
 #include "TWindow.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks{
 using coretools::instances::parameters;

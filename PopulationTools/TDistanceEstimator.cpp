@@ -14,13 +14,13 @@
 #include <ostream>
 
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/concatenateString.h"
 #include "coretools/enum.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Files/gzstream.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools{

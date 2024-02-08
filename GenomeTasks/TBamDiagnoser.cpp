@@ -7,7 +7,6 @@
 
 #include "TBamDiagnoser.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Math/counters.h"
 
 namespace GenomeTasks {
 

@@ -5,7 +5,6 @@
 #include "TGenome.h"
 
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
 
 namespace GenomeTasks {

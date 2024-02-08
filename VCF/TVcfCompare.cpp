@@ -16,7 +16,6 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace VCF{
 

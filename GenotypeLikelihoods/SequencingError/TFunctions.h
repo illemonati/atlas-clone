@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <vector>
+#include <armadillo>
 
 #include "coretools/Types/probability.h"
 

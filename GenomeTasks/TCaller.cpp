@@ -16,6 +16,7 @@
 #include <set>
 
 #include "coretools/Main/TError.h"
+#include "coretools/Strings/fillContainer.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"

@@ -6,7 +6,6 @@
  */
 
 #include "../TestUtilities/TAtlasTestFilter.h"
-#include "stringFunctions.h"
 #include <string>
 
 TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){

@@ -12,12 +12,12 @@
 
 #include <vector>
 
+#include "coretools/Strings/fromString.h"
 #include "nlohmann/json.hpp"
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
 
 #include "TReadGroups.h"

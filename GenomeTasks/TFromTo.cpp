@@ -2,7 +2,6 @@
 #include "TSequencedBase.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Math/TProbabilityDistributions.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenomeTasks{

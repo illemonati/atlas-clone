@@ -7,7 +7,8 @@
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/fromString.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/stringManipulations.h"
+#include "coretools/Strings/stringProperties.h"
 #include "coretools/enum.h"
 #include <memory>
 #include <type_traits>

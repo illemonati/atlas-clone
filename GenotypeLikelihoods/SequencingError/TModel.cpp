@@ -27,7 +27,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/fromString.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Types/weakTypes.h"

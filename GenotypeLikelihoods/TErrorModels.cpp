@@ -18,7 +18,6 @@
 #include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "TSite.h"
 
 namespace GenotypeLikelihoods{

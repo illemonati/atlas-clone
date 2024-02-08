@@ -14,7 +14,7 @@
 
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/fillContainer.h"
 
 namespace BAM{
 

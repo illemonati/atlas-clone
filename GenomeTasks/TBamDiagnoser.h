@@ -13,7 +13,6 @@
 
 #include "TBamTraverser.h"
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Math/counters.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace GenomeTasks{

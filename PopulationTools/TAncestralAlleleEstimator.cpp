@@ -8,7 +8,6 @@
 #include "TAncestralAlleleEstimator.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/TFastaWriter.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Main/TLog.h"
 
 namespace PopulationTools{

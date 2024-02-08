@@ -14,7 +14,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/TTimer.h"
 #include "genometools/VCF/TVcfParser.h"
-#include "coretools/Strings/stringFunctions.h"
 
 namespace PopulationTools {
 using coretools::TOutputFile;

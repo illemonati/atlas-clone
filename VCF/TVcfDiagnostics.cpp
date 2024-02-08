@@ -18,7 +18,6 @@
 #include "coretools/Main/TLog.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/gzstream.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Files/TOutputFile.h"
 
 namespace VCF {

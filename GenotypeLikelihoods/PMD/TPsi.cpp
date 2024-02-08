@@ -3,7 +3,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/stringManipulations.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 #include <cmath>

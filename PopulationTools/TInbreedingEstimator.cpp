@@ -9,7 +9,6 @@
 #include <stdexcept>
 
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "stattools/DAG/TDAGBuilder.h"
 #include "stattools/MCMC/TMCMC.h"
 

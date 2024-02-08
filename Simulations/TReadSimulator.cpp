@@ -12,7 +12,6 @@
 
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/fromString.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "genometools/PhredProbabilityTypes.h"
 
 #include "PMD/TModel.h"
