@@ -13,18 +13,23 @@
 #include <string>
 #include <vector>
 
-#include "TOutputBamFile.h"
-#include "PMD/TModel.h"
-#include "SequencingError/TModels.h"
-#include "TAlignment.h"
-#include "TCigar.h"
-#include "TReadGroupInfo.h"
-#include "TSamFlags.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Math/TCategoricalDistribution.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
+
+#include "SequencingError/TModels.h"
+#include "TAlignment.h"
+#include "TReadGroupInfo.h"
+#include "TSamFlags.h"
+
+namespace GenotypeLikelihoods::PMD {struct TModel;}
+
+namespace BAM {
+class TCigar;
+class TOutputBamFile;
+}
 
 namespace Simulations { class TSimulatorReference; }
 

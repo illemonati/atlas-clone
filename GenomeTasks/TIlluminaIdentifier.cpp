@@ -7,9 +7,6 @@
 
 
 #include "TIlluminaIdentifier.h"
-#include "TBamFile.h"
-#include <string>
-#include "coretools/Main/TLog.h"
 #include "coretools/Strings/stringProperties.h"
 
 namespace GenomeTasks{

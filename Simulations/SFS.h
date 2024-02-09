@@ -11,10 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "TSimulatorHaplotypes.h"
 #include "coretools/Main/TRandomPicker.h"
 #include "coretools/Math/TSubsamplePicker.h"
-
-#include "TSimulatorAuxiliaryTools.h"
 
 namespace Simulations {
 //--------------------------------

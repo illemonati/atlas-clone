@@ -6,19 +6,10 @@
  */
 
 #include <TReadSimulator.h>
-#include <algorithm>
-#include <cstdlib>
-#include <memory>
-
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Strings/fromString.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 #include "PMD/TModel.h"
-#include "SequencingError/TModel.h"
 #include "TOutputBamFile.h"
-#include "TSequencedBase.h"
-#include "TSimulatorAuxiliaryTools.h"
+#include "TSimulatorReference.h"
 
 namespace Simulations {
 using BAM::RGInfo::InfoType;

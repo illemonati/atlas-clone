@@ -3,12 +3,12 @@
 
 #include <vector>
 
+#include "TSiteSubset.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 
 #include "TParser.h"
-#include "TSiteSubset.h"
 #include "TWindow.h"
 
 namespace GenomeTasks {

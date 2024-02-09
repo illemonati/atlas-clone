@@ -14,7 +14,7 @@
 
 
 #include "TBamWindowTraverser.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TWindow.h"
 
 namespace GenomeTasks{

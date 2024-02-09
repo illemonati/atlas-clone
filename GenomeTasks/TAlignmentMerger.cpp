@@ -7,35 +7,12 @@
 
 #include "TAlignmentMerger.h"
 
-#include <algorithm>
-#include <math.h>
-#include <memory>
-#include <stdlib.h>
-
-#include <cstdint>
-#include <exception>
-#include <iostream>
-#include <utility>
-#include <vector>
-
-#include "TBamFilters.h"
-#include "TWaitingListBamTraverser.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Strings/fillContainer.h"
-#include "coretools/Strings/stringProperties.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "TAlignment.h"
 #include "coretools/Files/TInputFile.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "TReadGroups.h"
-#include "TSequencedBase.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/strongTypes.h"
+#include "coretools/Strings/fillContainer.h"
+#include "coretools/Strings/stringProperties.h"
+
 
 namespace GenomeTasks{
 

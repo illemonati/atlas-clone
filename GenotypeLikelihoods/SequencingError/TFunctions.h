@@ -12,15 +12,17 @@
 #include <vector>
 #include <armadillo>
 
+#include "SequencingError/TCovariate.h"
+#include "SequencingError/TIntercept.h"
 #include "coretools/Types/probability.h"
 
-#include "RecalEstimatorTools.h"
 #include "SequencingError/TFunction.h"
 #include "TDerivatives.h"
 #include "TReadGroupInfo.h"
 
 
 namespace BAM {class TSequencedBase;}
+namespace RecalEstimatorTools {class TRecalDataTable;}
 
 namespace GenotypeLikelihoods::SequencingError {
 

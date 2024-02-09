@@ -11,7 +11,7 @@
 #include "TReadGroupMap.h"
 #include "genometools/GenotypeTypes.h"
 
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TSequencedBase.h"
 #include "TModel.h"
 

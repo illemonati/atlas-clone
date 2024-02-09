@@ -6,22 +6,7 @@
  */
 
 #include "TEstimateTheta.h"
-
-#include <algorithm>
-#include <exception>
-#include <map>
-#include <memory>
-#include <stddef.h>
-
-#include "TBamFile.h"
 #include "coretools/Strings/concatenateString.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "TThetaEstimatorData.h"
-#include "coretools/TTimer.h"
 
 namespace GenomeTasks {
 

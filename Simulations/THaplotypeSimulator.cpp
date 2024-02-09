@@ -8,24 +8,18 @@
 
 #include "THaplotypeSimulator.h"
 
-#include <math.h>
-#include <algorithm>
-#include <exception>
-#include <numeric>
-#include <ostream>
-#include <utility>
+#include "SFS.h"
+#include "TSimulatorReference.h"
 
-#include "coretools/Containers/TView.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "TSimulatorAuxiliaryTools.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/weakTypes.h"
+#include "coretools/Strings/concatenateString.h"
+#include "coretools/Strings/fillContainer.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+
 
 namespace Simulations {
+
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
@@ -40,7 +34,6 @@ std::string toString(const TBaseProbabilities &probs) {
 	}
 	return s.substr(0, s.size() - 1);
 }
-} // namespace impl
 
 Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulProbs) {
 	using namespace genometools;
@@ -50,6 +43,8 @@ Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulPro
 	const auto iAdd     = index(randomGenerator().pickOne(cumulProbs));
 	return Base((iBase + iAdd) % iMax);
 }
+} // namespace impl
+
 
 THaplotypeSimulator::THaplotypeSimulator(){
     if(parameters().exists("refDiv")){
@@ -115,7 +110,7 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 
 		// decide on reference sequence
 		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
-			reference[l] = mutateBase(haplotypes(0, 0, l), _cumulRef);
+			reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
 		} else {
 			reference[l] = haplotypes(0, randomGenerator().sample(2), l);
 		}
@@ -133,7 +128,7 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 
 		// decide on ref
-		reference[l] = mutateBase(haplotypes(0, 0, l), _cumulRef);
+		reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
 	}
 }
 
@@ -308,7 +303,7 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 
 		// simulate reference
 		if (c == 0) {
-			reference[l] = mutateBase(reference[l], _cumulRef);
+			reference[l] = impl::mutateBase(reference[l], _cumulRef);
 		} else {
 			const int r   = randomGenerator().sample(4);
 			reference[l] = _genoTrans[c][g][r];
@@ -426,7 +421,7 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		//simulate size
 		if(alleleCount == 0){
 			//site was monomorphic
-			reference[l] = mutateBase(ancestral, _cumulRef);
+			reference[l] = impl::mutateBase(ancestral, _cumulRef);
 		} else {
 			// site was polymorphic
 			if (randomGenerator().getRand() < (double) alleleCount / (double) haplotypes.size())
@@ -449,7 +444,7 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 
 		// decide on reference sequence
 		if (alleleCount == 0) {
-			reference[l] = mutateBase(ancestral, _cumulRef);
+			reference[l] = impl::mutateBase(ancestral, _cumulRef);
 		} else {
 			if (randomGenerator().getRand() < (double) alleleCount / (double) haplotypes.size() / 2.0) //division by 2 as we have twice as many haplotypes as samples
 				reference[l] = derived;

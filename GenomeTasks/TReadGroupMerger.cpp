@@ -6,22 +6,10 @@
  */
 
 #include "TReadGroupMerger.h"
-
-#include <algorithm>
-#include <cstdint>
-#include <exception>
-#include <ios>
-#include <set>
-#include <stddef.h>
-#include <utility>
-
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Files/TInputFile.h"
-
-#include "TBamFile.h"
 #include "TOutputBamFile.h"
-#include "TReadGroups.h"
+#include "coretools/Files/TInputFile.h"
+#include "coretools/Main/TParameters.h"
+
 
 namespace GenomeTasks{
 using coretools::instances::logfile;

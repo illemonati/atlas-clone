@@ -7,7 +7,7 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "TGLF.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TTestGLFFile.h"
 
 //-------------------------------------------------------------

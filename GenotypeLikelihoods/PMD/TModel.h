@@ -7,7 +7,7 @@
 
 #include "PMD/TPsi.h"
 #include "TAlignment.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }

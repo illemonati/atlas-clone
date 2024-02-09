@@ -6,36 +6,9 @@
  */
 
 #include "TCaller.h"
-
-#include <math.h>
-#include <stddef.h>
-#include <algorithm>
-#include <exception>
-#include <memory>
-#include <ostream>
-#include <set>
-
-#include "coretools/Main/TError.h"
-#include "coretools/Strings/fillContainer.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "TGenotypeData.h"
-#include "TGenotypePrior.h"
-#include "coretools/Containers/TMassFunction.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "TSequencedBase.h"
-#include "TSite.h"
-#include "TSiteSubset.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Containers/TMassFunction.h"
-#include "genometools/VCF/TVCFFields.h"
-#include "TWindow.h"
+#include "GenotypeFunctions.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/weakTypes.h"
+#include "coretools/Strings/fillContainer.h"
 
 namespace GenomeTasks{
 

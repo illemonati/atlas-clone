@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "TReadGroupMap.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/PhredProbabilityTypes.h"
 

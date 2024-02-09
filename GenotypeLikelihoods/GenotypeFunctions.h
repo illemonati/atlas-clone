@@ -1,31 +1,10 @@
-/*
- * TGenotypePrior.h
- *
- *  Created on: Nov 20, 2018
- *      Author: phaentu
- */
+#ifndef GENOTYPEFUNCTIONS_H_
+#define GENOTYPEFUNCTIONS_H_
 
-#ifndef TGENOTYPEDATA_H_
-#define TGENOTYPEDATA_H_
-
-#include "coretools/Containers/TMassFunction.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Types/probability.h"
-#include "coretools/algorithms.h"
-#include "coretools/enum.h"
-
-#include "genometools/GenotypeTypes.h"
+#include "GenotypeData.h"
+#include <cstddef>
 
 namespace GenotypeLikelihoods{
-
-using TBaseProbabilities     = coretools::TStrongMassFunction<coretools::Probability, genometools::Base, 4>;
-using TBaseLikelihoods       = coretools::TStrongArray<coretools::Probability, genometools::Base, 4>;
-using TBaseData              = coretools::TStrongArray<double, genometools::Base, 4>;
-using TBaseCounts            = coretools::TStrongArray<uint32_t, genometools::Base, 5>;
-using TGenotypeLikelihoods   = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
-using TGenotypeProbabilities = coretools::TStrongMassFunction<coretools::Probability, genometools::Genotype, 10>;
-using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
-using TBaseMassFunctions     = coretools::TStrongArray<TBaseProbabilities, genometools::Base, 4>;
 
 template<template<typename...> typename Container, typename... Args>
 TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {
@@ -100,7 +79,6 @@ auto frequencies(const Container &vs) {
 	std::transform(vs.cbegin(), vs.cend(), ret.begin(), [tot](auto v){return v / tot;});
 	return ret;
 }
+}
 
-} // namespace GenotypeLikelihoods
-
-#endif /* TGENOTYPEDATA_H_ */
+#endif

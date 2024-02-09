@@ -6,18 +6,7 @@
  */
 
 #include "TPSMCInput.h"
-
-#include <math.h>
-#include <exception>
-#include <ostream>
-
-#include "TGenotypeData.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "TSite.h"
-#include "TThetaEstimator.h"
-#include "TWindow.h"
-#include "coretools/Types/probability.h"
+#include "GenotypeFunctions.h"
 
 namespace GenomeTasks{
 

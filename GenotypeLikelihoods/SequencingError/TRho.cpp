@@ -1,5 +1,5 @@
 #include "TRho.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/stringManipulations.h"
 

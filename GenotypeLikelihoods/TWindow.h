@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "TAlignment.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TSite.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"

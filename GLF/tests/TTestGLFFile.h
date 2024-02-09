@@ -12,7 +12,7 @@
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TGLF.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 
 namespace GLF {
 

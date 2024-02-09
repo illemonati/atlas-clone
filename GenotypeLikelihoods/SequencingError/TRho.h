@@ -11,7 +11,7 @@
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods::SequencingError {

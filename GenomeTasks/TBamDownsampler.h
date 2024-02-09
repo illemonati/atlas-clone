@@ -11,13 +11,13 @@
 #include <string>
 #include <vector>
 
-#include "TBamFile.h"
 #include "TGenome.h"
 #include "TOutputBamFile.h"
 #include "coretools/Types/probability.h"
 
 namespace BAM {
 class TAlignment;
+class TBamFile;
 }
 
 namespace GenomeTasks{

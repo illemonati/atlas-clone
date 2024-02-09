@@ -7,6 +7,7 @@
 
 #include "SequencingError/TModel.h"
 #include "TAlignment.h"
+#include "coretools/Main/TRandomGenerator.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

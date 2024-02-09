@@ -8,16 +8,6 @@
 
 #include "TContextQuantifer.h"
 
-#include <algorithm>
-#include <vector>
-
-#include "TBamTraverser.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "TAlignment.h"
-#include "coretools/Main/TLog.h"
-#include "TSequencedBase.h"
-
 namespace GenomeTasks{
 
 //----------------------------------------------

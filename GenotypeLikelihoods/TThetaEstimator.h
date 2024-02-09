@@ -14,7 +14,7 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/TOutputFile.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
 

@@ -1,4 +1,8 @@
 #include "TFunctions.h"
+#include "SequencingError/TEmpiric.h"
+#include "SequencingError/TNoFunction.h"
+#include "SequencingError/TPolynomial.h"
+#include "SequencingError/TProbit.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/stringProperties.h"
 

@@ -9,7 +9,7 @@
 #include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "TSite.h"

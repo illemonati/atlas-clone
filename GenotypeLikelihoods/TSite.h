@@ -16,7 +16,7 @@
 
 #include "genometools/GenotypeTypes.h"
 
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods {

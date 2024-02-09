@@ -11,7 +11,7 @@
 
 #include "coretools/Main/TError.h"
 #include "genometools/GenotypeTypes.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Types/weakTypes.h"
 

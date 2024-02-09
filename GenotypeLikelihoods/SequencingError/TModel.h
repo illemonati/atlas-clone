@@ -11,7 +11,7 @@
 #include "genometools/PhredProbabilityTypes.h"
 
 #include "TEpsilon.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TReadGroupInfo.h"
 #include "TRho.h"
 

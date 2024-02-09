@@ -13,7 +13,7 @@
 
 #include "PMD/TModels.h"
 #include "SequencingError/TModels.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TReadGroupInfo.h"
 
 namespace BAM { class TReadGroups; }

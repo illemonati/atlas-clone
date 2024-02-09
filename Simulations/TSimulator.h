@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include "TSimulatorBamFiles.h"
+#include "TSimulatorReference.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -28,6 +30,7 @@
 namespace genometools { class PhredIntProbability; }
 
 namespace Simulations {
+class TSimulatorBamFiles;
 
 // TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is
 // done now as it would allow for contaminated reads to have different characteristsics.

@@ -8,7 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"

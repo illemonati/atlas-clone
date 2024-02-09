@@ -9,6 +9,7 @@
 #include "coretools/Files/gzstream.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
+#include "coretools/algorithms.h"
 
 namespace PopulationTools{
 

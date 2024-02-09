@@ -7,18 +7,6 @@
 
 #include "TAllelicDepthCounts.h"
 
-#include <algorithm>
-#include <cstdint>
-#include <map>
-#include <ostream>
-#include <vector>
-
-#include "genometools/GenotypeTypes.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TParameters.h"
-#include "TSite.h"
-#include "TWindow.h"
-
 namespace GenomeTasks{
 using coretools::instances::parameters;
 using coretools::instances::logfile;

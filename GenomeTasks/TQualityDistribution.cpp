@@ -6,20 +6,7 @@
  */
 
 #include "TQualityDistribution.h"
-
-#include <stdint.h>
-#include <algorithm>
-#include <exception>
-#include <memory>
-
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "TAlignment.h"
-#include "TBamFile.h"
-#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "TReadGroups.h"
-#include "TSequencedBase.h"
 
 namespace GenomeTasks{
 using coretools::instances::logfile;

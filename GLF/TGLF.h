@@ -17,7 +17,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Containers/TDualStrongArray.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "genometools/VCF/TVcfWriter.h"
 
 namespace genometools { class TChromosome; }

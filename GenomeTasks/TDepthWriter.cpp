@@ -7,13 +7,6 @@
 
 #include "TDepthWriter.h"
 
-#include <ostream>
-#include <vector>
-
-#include "coretools/Main/TLog.h"
-#include "TSite.h"
-#include "TWindow.h"
-
 namespace GenomeTasks{
 using coretools::instances::logfile;
 

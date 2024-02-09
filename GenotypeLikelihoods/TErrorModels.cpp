@@ -6,8 +6,9 @@
  */
 
 #include "TErrorModels.h"
+#include "GenotypeFunctions.h"
 #include "TSite.h"
-
+#include "coretools/algorithms.h"
 
 namespace GenotypeLikelihoods{
 

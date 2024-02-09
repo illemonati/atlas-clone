@@ -8,8 +8,6 @@
 #ifndef GENOMETASKS_TPMDSCALCULATOR_H_
 #define GENOMETASKS_TPMDSCALCULATOR_H_
 
-#include <string>
-
 #include "coretools/Types/probability.h"
 #include "coretools/Math/TNumericRange.h"
 

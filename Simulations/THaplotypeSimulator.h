@@ -13,19 +13,22 @@
 #include <string>
 #include <vector>
 
+#include "TSimulatorHaplotypes.h"
+#include "TSimulatorMutationtable.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
 #include "SFS.h"
-#include "TGenotypeData.h"
-#include "TSimulatorAuxiliaryTools.h"
+#include "GenotypeData.h"
 
 
 namespace genometools { class TChromosome; }
 namespace genometools { class TChromosomes; }
 
 namespace Simulations {
+class TSimulatorHaplotypes;
 
 class THaplotypeSimulator {
 protected:

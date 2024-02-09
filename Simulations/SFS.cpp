@@ -6,19 +6,8 @@
  */
 
 #include "SFS.h"
-
-#include <math.h>
-#include <stddef.h>
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <string>
-
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/algorithms.h"
 #include "coretools/Files/TInputFile.h"
-#include "genometools/GenotypeTypes.h"
-
+#include "coretools/algorithms.h"
 
 namespace Simulations {
 using coretools::instances::randomGenerator;

@@ -5,17 +5,7 @@
  *      Author: phaentu
  */
 
-
 #include "TPMDSCalculator.h"
-
-#include <stdint.h>
-#include <exception>
-#include <vector>
-
-#include "genometools/GenotypeTypes.h"
-#include "TAlignment.h"
-#include "coretools/Main/TLog.h"
-#include "TSequencedBase.h"
 #include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks{

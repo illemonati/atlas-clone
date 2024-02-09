@@ -12,7 +12,6 @@
 #include <memory>
 
 #include "TBamWindowTraverser.h"
-#include "TGenotypeData.h"
 #include "TThetaEstimator.h"
 
 namespace GenomeTasks{

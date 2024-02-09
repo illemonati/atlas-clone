@@ -6,19 +6,10 @@
  */
 
 #include "TBamDownsampler.h"
-
-#include <algorithm>
-#include <cstdint>
-#include <exception>
-#include <map>
-#include <stddef.h>
-#include <utility>
-
-#include "TAlignment.h"
-#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/concatenateString.h"
+
 
 namespace GenomeTasks{
 

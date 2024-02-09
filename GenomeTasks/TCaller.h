@@ -16,7 +16,7 @@
 #include "genometools/VCF/TVCFFields.h"
 
 #include "TBamWindowTraverser.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TGenotypePrior.h"
 
 

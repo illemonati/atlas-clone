@@ -17,10 +17,11 @@
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"
 #include "TBamWindowTraverser.h"
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TSite.h"
 #include "genometools/VCF/TVcfWriter.h"
+#include "SequencingError/TRecalDataTables.h"
 
 namespace GenotypeLikelihoods {
 

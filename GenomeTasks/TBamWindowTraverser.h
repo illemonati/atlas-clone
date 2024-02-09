@@ -5,7 +5,6 @@
 #include "TGenome.h"
 #include "TWindow.h"
 #include "coretools/Main/TLog.h"
-#include "coretools/Strings/splitters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include <type_traits>
 

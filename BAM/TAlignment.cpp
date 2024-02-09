@@ -8,6 +8,7 @@
 
 #include "SequencingError/TModels.h"
 #include "TErrorModels.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/TFastaReader.h"
 
 namespace BAM {

@@ -12,7 +12,7 @@
 #include <vector>
 #include <zlib.h>
 
-#include "TGenotypeData.h"
+#include "GenotypeData.h"
 #include "coretools/Files/gzstream.h"
 
 namespace GenotypeLikelihoods {

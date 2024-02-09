@@ -9,15 +9,6 @@
 
 #include "TDuplicateQuantifier.h"
 
-#include <stddef.h>
-#include <algorithm>
-#include <cstdint>
-#include "TBamFile.h"
-#include "TBamFilters.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "coretools/Main/TLog.h"
-#include "TReadGroups.h"
-
 namespace GenomeTasks{
 
 //----------------------------------------------

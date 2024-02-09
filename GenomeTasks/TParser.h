@@ -2,11 +2,13 @@
 #define TPARSER_H_
 
 #include "genometools/TFastaReader.h"
-
 #include "TBaseFilter.h"
-#include "TGenome.h"
 
+
+namespace BAM {class TAlignment;}
 namespace GenomeTasks {
+
+class TGenome;
 
 class TParser {
 	bool _trimReads;
