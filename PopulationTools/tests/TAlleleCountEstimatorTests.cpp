@@ -1,20 +1,10 @@
 //
 // Created by caduffm on 8/19/21.
 //
-#include "../TAlleleCountEstimator.h"
+#include "TAlleleCountEstimator.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "gtest/gtest.h"
 
-#include <algorithm>
-#include <stddef.h>
-#include <cstdint>
-#include <memory>
-#include <vector>
-
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "genometools/TSampleLikelihoods.h"
-#include "coretools/Types/probability.h"
 
 using namespace testing;
 using namespace genometools;

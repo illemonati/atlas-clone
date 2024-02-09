@@ -3,17 +3,8 @@
 //
 #include "TErrorModels.h"
 #include "gtest/gtest.h"
-
-#include <memory>
-
 #include "TReadGroupInfo.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "GenotypeData.h"
-#include "TReadGroups.h"
-#include "TSequencedBase.h"
 #include "TSite.h"
-#include "coretools/Types/probability.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

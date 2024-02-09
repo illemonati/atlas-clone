@@ -6,11 +6,7 @@
  */
 
 #include "TAlignmentMerger.h"
-#include "TAlignment.h"
-#include "TCigar.h"
 #include "gtest/gtest.h"
-
-#include <algorithm>
 
 using namespace GenomeTasks;
 

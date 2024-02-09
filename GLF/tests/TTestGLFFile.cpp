@@ -3,17 +3,7 @@
 //
 
 #include "TTestGLFFile.h"
-
-#include <stddef.h>
-#include <algorithm>
-#include <cstdint>
-#include <stdexcept>
-
-#include "coretools/Main/TError.h"
-#include "genometools/GenotypeTypes.h"
-#include "GenotypeData.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Types/weakTypes.h"
+#include "GenotypeFunctions.h"
 
 namespace GLF {
 

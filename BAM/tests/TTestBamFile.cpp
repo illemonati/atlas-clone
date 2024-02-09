@@ -6,18 +6,8 @@
  */
 
 #include "TTestBamFile.h"
-
-#include <cmath>
-#include <cstdint>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-
-#include "TCigar.h"
 #include "TOutputBamFile.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/globalConstants.h"
-#include "coretools/Types/strongTypes.h"
 
 namespace BAM{
 

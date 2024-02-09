@@ -5,10 +5,10 @@
 #include "gtest/gtest.h"
 #include <algorithm>
 
-#include "genometools/GenotypeTypes.h"
+#include "GenotypeFunctions.h"
 #include "TGLF.h"
-#include "GenotypeData.h"
-#include "TTestGLFFile.h"
+#include "coretools/algorithms.h"
+#include "tests/TTestGLFFile.h"
 
 //-------------------------------------------------------------
 // TGLF_Test_ReadWrite

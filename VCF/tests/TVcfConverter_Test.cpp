@@ -1,22 +1,10 @@
 //
 // Created by caduffm on 10/27/21.
 //
-#include "../TVcfConverter.h"
+#include "TVcfConverter.h"
+#include "coretools/Files/gzstream.h"
 #include "gtest/gtest.h"
 
-#include <cstdint>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "coretools/Files/TInputFile.h"
-#include "coretools/Files/gzstream.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "genometools/TSampleLikelihoods.h"
 
 using namespace testing;
 using namespace coretools::instances;

@@ -9,22 +9,10 @@
 #define TESTUTILITIES_TTESTBAMFILE_H_
 
 #include "TBamFile.h"
-
-#include <memory>
-#include <stddef.h>
-#include <stdint.h>
-#include <algorithm>
-#include <iterator>
-#include <string>
-#include <vector>
-#include "TOutputBamFile.h"
+#include "TSamFlags.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "TAlignment.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "TReadGroups.h"
-#include "TSamFlags.h"
-#include "TSamHeader.h"
+
 
 namespace BAM { class TCigar; }
 namespace genometools { class TGenomePosition; }

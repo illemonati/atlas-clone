@@ -2,22 +2,10 @@
 // Created by caduffm on 6/9/22.
 //
 
-#include "../TVcfDiagnostics.h"
-#include "gtest/gtest.h"
-
-#include <cstdint>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
+#include "TVcfDiagnostics.h"
 #include "coretools/Files/TInputFile.h"
-#include "coretools/Main/TParameters.h"
-#include "genometools/TSampleLikelihoods.h"
 #include "coretools/Files/gzstream.h"
-#include "coretools/Types/probability.h"
+#include "gtest/gtest.h"
 
 using namespace testing;
 using namespace coretools::instances;

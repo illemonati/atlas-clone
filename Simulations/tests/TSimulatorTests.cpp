@@ -1,23 +1,9 @@
 //
 // Created by madleina on 06.04.22.
 //
-#include "../TSimulator.h"
-#include "gtest/gtest.h"
-
-#include <stddef.h>
-#include <istream>
-#include <stdexcept>
-#include <string>
-
+#include "TSimulator.h"
 #include "genometools/VCF/TVcfFile.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "SFS.h"
-#include "TGlfMultiReader.h"
-#include "genometools/VCF/TVcfWriter.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Containers/TStrongArray.h"
+#include "gtest/gtest.h"
 
 using namespace testing;
 using namespace genometools;

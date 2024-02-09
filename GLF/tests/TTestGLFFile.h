@@ -5,7 +5,6 @@
 #ifndef ATLAS_TTESTGLFFILE_H
 #define ATLAS_TTESTGLFFILE_H
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 

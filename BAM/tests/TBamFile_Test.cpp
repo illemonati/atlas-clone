@@ -1,32 +1,13 @@
 #include "TBamFile.h"
-#include "gtest/gtest.h"
-
-#include <stdio.h>
-#include <cstdint>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
+#include "TOutputBamFile.h"
+#include "TBamTraverser.h"
+#include "TBamWindowTraverser.h"
+#include "coretools/Main/TParameters.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "TAlignment.h"
-#include "TBamFilter.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "TCigar.h"
-#include "TBamTraverser.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "TReadGroups.h"
-#include "TSamFlags.h"
-#include "TSamHeader.h"
-#include "TSequencedBase.h"
-#include "TSite.h"
-#include "TTestBamFile.h"
-#include "TWindow.h"
+#include "tests/TTestBamFile.h"
+#include "gtest/gtest.h"
+
 
 using coretools::instances::parameters;
 
@@ -60,7 +41,7 @@ public:
 
     void read(){
         //open BAM file for reading
-        inputBam = std::make_unique<BAM::TBamFile>(_filename);
+        inputBam = std::make_unique<BAM::TBamFile>(_filename, 0);
     }
 
     void SetUp() override{
