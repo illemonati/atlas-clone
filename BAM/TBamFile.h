@@ -38,6 +38,7 @@ class TOutputBamFile; //forward declaration
 class TBamFile{
 private:
 	constexpr static size_t _step = 100;
+	constexpr static size_t _nope = -1;
 
 	//BAM file
 	std::string _filename;
@@ -54,9 +55,18 @@ private:
 
  	//counters
  	coretools::TCountDistributionVector<> _numAlignmentReadPerReadGroupPerChromosome;
-	size_t _numAlignmentRead      = 0;
-	size_t _numAlignmentsPassedQC = 0;
-	size_t _maxNumReadsToRead     = -1;
+	size_t _numAlignmentRead        = 0;
+	size_t _numAlignmentsPassedQC   = 0;
+	size_t _maxNumReadsToRead       = -1;
+	size_t _numIdentifiedDuplicates = 0;
+
+	// duplicates
+	size_t _maxDupOverlap = _nope;
+	struct TOld {
+		size_t length{0};
+		genometools::TGenomePosition position{_nope, _nope};
+	};
+	std::vector<TOld> _old;
 
 	//current alignment
  	BamTools::BamAlignment _curBamAlignment;
@@ -82,6 +92,7 @@ private:
 	void _fillReadGroups();
 	bool _readNextAlignmentFromFile();
 	bool _applyFilters();
+	bool _identifyDuplicate();
 	void _writeFilteringStats(std::string_view outputName) const;
 
 public:

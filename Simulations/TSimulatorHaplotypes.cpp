@@ -39,7 +39,7 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 	trueGenoVCF << '\n';
 }
 
-std::array<std::vector<Base>,2> TSimulatorHaplotypes::getHaplotypesOfIndividual(size_t i) {
+const std::array<std::vector<Base>,2>& TSimulatorHaplotypes::get(size_t i) {
 	if (i >= numInd)
 		UERROR("Haplotypes of individual ", i + 1, " requested, but defined for only ", numInd, " individuals!");
 	return haplotypes[i];

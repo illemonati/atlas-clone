@@ -16,7 +16,6 @@ namespace Simulations {
 
 using BAM::RGInfo::TReadGroupInfo;
 using coretools::instances::logfile;
-using coretools::instances::randomGenerator;
 using genometools::Base;
 
 void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
@@ -41,7 +40,6 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 }
 
 void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo &RGinfo) {
-	_cumulSimGroupFrequenies.resize(RGinfo.size());
 	_simGroupFrequencies.resize(RGinfo.size());
 
 	using BAM::RGInfo::InfoType;
@@ -49,7 +47,7 @@ void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo &RGin
 	std::vector<double> tmp;
 	RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
 	coretools::fillFromNormalized(_simGroupFrequencies, tmp);
-	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
+	if (_simGroupFrequencies.size() > 1) _picker.init(_simGroupFrequencies);
 }
 
 void TReadSimulators::_determineMaxFragmentLength(){
@@ -112,14 +110,19 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_determineMaxFragmentLength();
 }
 
-void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile){
-	//sample which simulator to use
-	size_t thisSimulator = _cumulSimGroupFrequenies.size() < 2 ? 0 : randomGenerator().pickOne(_cumulSimGroupFrequenies);
-	_readSimulators[thisSimulator]->simulate(Position, Haplotype, BamFile);
+TReadSimulators::TSimStat TReadSimulators::simulate(const genometools::TGenomePosition &Position, const std::vector<Base> &Haplotype,
+							   BAM::TOutputBamFile &BamFile) {
+	// sample which simulator to use
+	const auto RG   = numRG() == 1 ? 0 : _picker();
+	const auto nSim = _readSimulators[RG]->simulate(Position, Haplotype, BamFile);
+
+	return {RG, nSim};
 }
 
 std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){
-	return _readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequenies)];
+	if (numRG() == 1) return _readSimulators.front();
+
+	return _readSimulators[_picker()];
 }
 
 
