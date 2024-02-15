@@ -81,7 +81,7 @@ private:
 	void _fillChromosomes();
 	void _fillReadGroups();
 	bool _readNextAlignmentFromFile();
- 	void _applyFilters();
+	bool _applyFilters();
 	void _writeFilteringStats(std::string_view outputName) const;
 
 public:
@@ -116,27 +116,30 @@ public:
 	void writeCurAlignment(TOutputBamFile & out);
 
 	//getters for cur alignment
-	const std::string& curName() const{ return _curBamAlignment.Name; };
+	const std::string &curName() const { return _curBamAlignment.Name; };
 	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; };
-	size_t refID() const{ return _curChromosome->refID(); };
-	const genometools::TChromosome& curChromosome() const{ return *_curChromosome; };
-	const TCigar& curCIGAR() const{ return _curCigar; };
-	size_t curReadGroupID() const{ return _curReadGroupID; };
-	bool chrChanged() const{ return _chrChanged; };
-	bool curPassedQC() const{ return _QCFiltersPassed; };
+	size_t refID() const noexcept { return _curChromosome->refID(); };
+	const genometools::TChromosome &curChromosome() const noexcept { return *_curChromosome; };
+	const TCigar &curCIGAR() const noexcept { return _curCigar; };
+	constexpr size_t curReadGroupID() const noexcept { return _curReadGroupID; };
+	constexpr bool chrChanged() const noexcept { return _chrChanged; };
+	constexpr bool curPassedQC() const noexcept { return _QCFiltersPassed; };
 	size_t curFragmentLength() const;
-	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
-	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
-	bool curIsProperPair() const{ return _curBamAlignment.IsProperPair(); };
-	bool curIsReverseStrand() const{ return _curBamAlignment.IsReverseStrand(); };
-	bool curIsDuplicate() const{ return _curBamAlignment.IsDuplicate(); };
-	bool curIsMapped() const{ return _curBamAlignment.IsMapped(); };
+	uint16_t curMappingQuality() const noexcept { return _curBamAlignment.MapQuality; };
+	bool curIsPaired() const { return _curBamAlignment.IsPaired(); };
+	bool curIsProperPair() const { return _curBamAlignment.IsProperPair(); };
+	bool curIsReverseStrand() const { return _curBamAlignment.IsReverseStrand(); };
+	bool curIsDuplicate() const { return _curBamAlignment.IsDuplicate(); };
+	bool curIsMapped() const { return _curBamAlignment.IsMapped(); };
 	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); };
-	bool curIsSecondary() const{ return !_curBamAlignment.IsPrimaryAlignment(); };
-	bool curIsSupplementary() const{ return _curBamAlignment.IsSupplementary(); };
-	bool curIsLongerThanFragment() const {return _curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned()); };
-	bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
-	bool curIsSecondMate() const{ return _curBamAlignment.IsSecondMate(); };
+	bool curIsSecondary() const { return !_curBamAlignment.IsPrimaryAlignment(); };
+	bool curIsSupplementary() const { return _curBamAlignment.IsSupplementary(); };
+	bool curIsLongerThanFragment() const {
+		return _curBamAlignment.IsProperPair() &&
+			   _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned());
+	};
+	bool curIsFirstMate() const { return _curBamAlignment.IsFirstMate(); };
+	bool curIsSecondMate() const { return _curBamAlignment.IsSecondMate(); };
 	std::string curQuerySequence(const size_t start, const size_t length) const;
 
 	//modify cur alignment
