@@ -175,19 +175,24 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 	if (_contaminationRate > 1.0) UERROR("Contamination rate must be <= 0.0!");
 }
 
-void TReadSimulator::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile){
+size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vector<Base> &Haplotype,
+							  BAM::TOutputBamFile &BamFile) {
 	// Do not simulate fraction of reads that will be duplicates
-	if(_duplicationRate == 0.0){
-		_simulate(Position, Haplotype);	
+	if (_duplicationRate == 0.0) {
+		_simulate(Position, Haplotype);
 		_writeSimulatedAlignments(BamFile);
+		return 1;
 	} else if (randomGenerator().getRand() > _duplicationRate) {
 		_simulate(Position, Haplotype);
 		_writeSimulatedAlignments(BamFile);
 
 		if (randomGenerator().getRand() < _duplicationRateAmongSimulated) {
 			_writeSimulatedAlignments(BamFile);
+			return 2;
 		}
+		return 1;
 	}
+	return 0;
 }
 
 //----------------------------------

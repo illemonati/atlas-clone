@@ -8,14 +8,15 @@
 #include "TSimulator.h"
 
 #include "TSimulatorVariantInvariantBedFiles.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/progressTools.h"
 #include "genometools/TGenotypeFrequencies.h"
 
 namespace Simulations {
-using coretools::Probability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
+using coretools::str::toString;
 using genometools::Base;
 using genometools::TChromosomes;
 using genometools::TChromosome;
@@ -101,7 +102,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 	logfile().startIndent("List of ", chrLengths.size(), " chromosome(s) to simulate:");
 	for(size_t i = 0; i < chrLengths.size(); ++i){
 		//create chromosome
-		const TChromosome& chr = chs.appendChromosome("chr" + coretools::str::toString(i + 1), chrLengths[i], ploidies[i]);
+		const TChromosome& chr = chs.appendChromosome(toString("chr", i + 1), chrLengths[i], ploidies[i]);
 
 		std::string text = chr.name() + " (";
 		if (ploidies[i] == 1){
@@ -109,7 +110,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 		} else {
 			text += "diploid) ";
 		}
-		text += "of length " + coretools::str::toString(chrLengths[i]) + " and average depth " + coretools::str::toString(depths[i]) + ".";
+		text += toString("of length ", chrLengths[i], " and average depth ", depths[i], ".");
 		logfile().list(text);
 	}
 	logfile().endIndent();
@@ -264,44 +265,35 @@ void TBAMSimulator::_initializeReadSimulator(){
 	}
 };
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes,
+									  size_t avgDepth) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
-	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
-		if(_readSimulators.size() == 1){
-			_simulateReadsFromHaplotypes(Chromosome,
-										 Haplotypes.getHaplotypesOfIndividual(i),
-										 _readSimulators.front(),
-										 avgDepth,
-										 (*_bamFiles)[i],
-										 " for individual " + coretools::str::toString(i + 1));
-		} else {
-			_simulateReadsFromHaplotypes(Chromosome,
-										 Haplotypes.getHaplotypesOfIndividual(i),
-										 _readSimulators[i],
-										 avgDepth,
-										 (*_bamFiles)[i],
-										 " for individual " + coretools::str::toString(i + 1));
-		}
+	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
+		auto &readSimulator = _readSimulators.size() == 1 ? _readSimulators.front() : _readSimulators[i];
+		_simulateReadsFromHaplotypes(Chromosome, Haplotypes.get(i), readSimulator, avgDepth,
+									 (*_bamFiles)[i], toString(" for individual ", i + 1));
 	}
 	logfile().endIndent();
 }
 
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-												 std::array<std::vector<Base>, 2> haplotypes,
+												 const std::array<std::vector<Base>, 2>& haplotypes,
 												 TReadSimulators &readSimulators, size_t avgDepth,
 												 BAM::TOutputBamFile &bamFile, const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
-	const size_t numReads = thisChr.length() * avgDepth / readSimulators.averageFragmentLength();
+	const size_t numReads          = thisChr.length() * avgDepth / readSimulators.averageFragmentLength();
 	const size_t chrLengthForStart = thisChr.length() - readSimulators.maxFragmentLength() + 1;
-	const double probReadPerSite     = 1.0 / chrLengthForStart;
-	size_t numReadsSimulated       = 0;
+	const double probReadPerSite   = 1.0 / chrLengthForStart;
 
 	// initialize progress reporting
-	coretools::TProgressReporter<size_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
-	                                                              " reads" + extraProgressText);
+	coretools::TProgressReporter<size_t> reporter(
+		numReads, toString("Simulating about ", numReads, " reads", extraProgressText));
 
 	// now simulate
+	const auto nRG = readSimulators.numRG();
+	std::vector<size_t> readsPerRG(nRG);
+	std::vector<size_t> dupsPerRG(nRG);
 	for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
 
 		// draw random number to get number of reads starting at this position
@@ -309,9 +301,10 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 
 		// now simulate
 		if (numReadsHere > 0) {
-			numReadsSimulated += numReadsHere;
 			for (size_t r = 0; r < numReadsHere; ++r) {
-				readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], bamFile);
+				const auto ss = readSimulators.simulate(pos, haplotypes[randomGenerator().pickOneOfTwo()], bamFile);
+				readsPerRG[ss.RG] += ss.nSim;
+				if (ss.nSim > 1) dupsPerRG[ss.RG]  += ss.nSim - 1; // could be more than 1
 			}
 			// report progress
 			reporter.next();
@@ -319,7 +312,18 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	}
 
 	reporter.done();
-	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
+	size_t totReads = 0;
+	size_t totDups     = 0;
+	for (size_t rg = 0; rg < nRG; ++rg) {
+		logfile().conclude("Simulated ", readsPerRG[rg], " reads, including ",
+						   dupsPerRG[rg], " duplicates, in readgroup ",
+						   readSimulators.readGroups().getName(rg), ".");
+		totReads += readsPerRG[rg];
+		totDups += dupsPerRG[rg];
+	}
+	if (nRG > 1) {
+		logfile().conclude("Simulated a total of ", totReads, " reads, including ", totDups, " duplicates.");
+	}
 }
 
 //-------------------------------------------
@@ -388,7 +392,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 
 	// read simulation parameters
 	_error = parameters().get("error", 0.05);
-	logfile().list("Will use a per allele genotyping error rate of " + coretools::str::toString(_error) + ".");
+	logfile().list("Will use a per allele genotyping error rate of ", _error, ".");
 
 	const bool usePhredLikelihoods = parameters().exists("phredLik");
 	if (usePhredLikelihoods) {
@@ -400,7 +404,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	// generate sample names
 	std::vector<std::string> sampleNames(_haploSimulator->sampleSize());
 	for (size_t i = 0; i < _haploSimulator->sampleSize(); i++) {
-		sampleNames[i] = "ind_" + coretools::str::toString(i);
+		sampleNames[i] = toString("ind_", i);
 	}
 
 	// open VCF file and write header

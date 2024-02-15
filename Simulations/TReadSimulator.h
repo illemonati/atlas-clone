@@ -98,14 +98,14 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	void simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile &BamFile);
+	size_t simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile &BamFile);
 
 	//getters
-	std::string name() const { return _readGroup->name_ID; };
+	const std::string& name() const { return _readGroup->name_ID; }
 	[[nodiscard]] virtual double meanReadLength() const = 0;
 	double maxFragmentLength() {
 		return _fragmentLengthDistr.max();
-	};
+	}
 };
 
 //-------------------------------

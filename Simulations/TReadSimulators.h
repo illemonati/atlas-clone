@@ -8,6 +8,7 @@
 #ifndef SIMULATIONS_TREADSIMULATORS_H_
 #define SIMULATIONS_TREADSIMULATORS_H_
 
+#include "coretools/Main/TRandomPicker.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
 #include "PMD/TModels.h"
@@ -29,7 +30,7 @@ private:
 	// read simulator
 	std::vector<std::unique_ptr<TReadSimulator>> _readSimulators;
 	std::vector<coretools::Probability> _simGroupFrequencies;
-	std::vector<coretools::Probability> _cumulSimGroupFrequenies;
+	coretools::TRandomPicker _picker;
 
 	// function to initialize read groups
 	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
@@ -43,13 +44,19 @@ public:
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
-	void simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base>& Haplotype, BAM::TOutputBamFile &BamFile);
+	struct TSimStat {
+		size_t RG;
+		size_t nSim;
+	};
+	TSimStat simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base>& Haplotype, BAM::TOutputBamFile &BamFile);
 
 	//getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
 	[[nodiscard]] double averageFragmentLength() const { return _averageReadLength; };
 	BAM::TReadGroups& readGroups() { return _readGroups; };
+	const TReadSimulator& readSimulator(size_t RG) const noexcept {return *_readSimulators[RG];}
+	size_t numRG() const noexcept {return _readSimulators.size();}
 
 	std::vector<std::unique_ptr<TReadSimulator>>::iterator begin(){ return _readSimulators.begin(); };
 	std::vector<std::unique_ptr<TReadSimulator>>::iterator end(){ return _readSimulators.end(); };
