@@ -176,16 +176,26 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 		_filters.disable(FilterType::ReadGroup);
 	}
 
+	constexpr std::string_view sDupReset = "resetDuplicates";
+	_resetDuplicates = parameters().exists(sDupReset);
+	if (_resetDuplicates) {
+		logfile().list("Will reset existing duplicates tags. (parameter '", sDupReset, "')");
+	} else {
+		logfile().list("Will keep existing duplicates tags. (use '", sDupReset, "')");
+	}
+
 	constexpr std::string_view sDup = "markDuplicates";
 	if (parameters().exists(sDup)) {
 		if (parameters().get(sDup).empty()) {
 			_maxDupOverlap = 0;
+		} else {
+			_maxDupOverlap = parameters().get<size_t>(sDup);
 		}
-		_maxDupOverlap = parameters().get<size_t>(sDup);
 		_old.resize(_readGroups.size());
-		logfile().list("Will mark Duplicates on same readgroup where start and end do not differ more than ", _maxDupOverlap, ". (parameter '", sDup, "')");
+		logfile().list("Will identify and mark duplicates on same readgroup where start and end do not differ more than ",
+					   _maxDupOverlap, ". (parameter '", sDup, "')");
 	} else {
-		logfile().list("Will not identify Duplicates. (use '", sDup, "')");
+		logfile().list("Will not identify and mark duplicates. (use '", sDup, "')");
 		_maxDupOverlap = _nope;
 	}
 }
@@ -366,8 +376,9 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	// duplicates
-	if (_maxDupOverlap != _nope) {
-		_numIdentifiedDuplicates       = _identifyDuplicate();
+	if (_resetDuplicates) _curBamAlignment.SetIsDuplicate(false);
+	if (_maxDupOverlap != _nope && !curIsDuplicate()) {
+		_numIdentifiedDuplicates       += _identifyDuplicate();
 		_old[_curReadGroupID].position = curPosition();
 		_old[_curReadGroupID].length   = curFragmentLength();
 	}
@@ -484,6 +495,7 @@ void TBamFile::printSummary(std::string_view outputName) const {
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	logfile().list("Total number of reads read: ", _numAlignmentRead);
 	logfile().list("Reads without read group: ", _numNoReadGroup, " (", coretools::str::toPercentString(_numNoReadGroup, _numAlignmentRead, 3), "%)");
+	logfile().list("Reads identified and marked as  duplicates: ", _numIdentifiedDuplicates, " (", coretools::str::toPercentString(_numIdentifiedDuplicates, _numAlignmentRead, 3), "%)");
 	logfile().list("Reads that passed filters: ", _numAlignmentsPassedQC, " (", coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3), "%)");
 	const auto numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
 	logfile().list("Reads that were filtered out: ", numFiltered, " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3), "%)");

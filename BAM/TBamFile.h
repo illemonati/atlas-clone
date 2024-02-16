@@ -61,6 +61,7 @@ private:
 	size_t _numIdentifiedDuplicates = 0;
 
 	// duplicates
+	bool _resetDuplicates = false;
 	size_t _maxDupOverlap = _nope;
 	struct TOld {
 		size_t length{0};
