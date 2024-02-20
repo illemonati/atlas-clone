@@ -12,6 +12,7 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 using coretools::Probability;
+using coretools::P;
 using coretools::instances::randomGenerator;
 using genometools::Base;
 
@@ -24,9 +25,9 @@ genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &d
 }
 
 TBaseLikelihoods TNoRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
-	if (data == Base::N) { return TBaseLikelihoods{1.}; }
+	if (data == Base::N) { return TBaseLikelihoods{P(1.)}; }
 	const auto eps = static_cast<Probability>(data.originalQuality);
-	TBaseLikelihoods baseLikelihoods{(1. / 3) * eps};
+	TBaseLikelihoods baseLikelihoods{P(1. / 3) * eps};
 	baseLikelihoods[data.base] = eps.complement();
 	return baseLikelihoods;
 }
@@ -57,7 +58,7 @@ genometools::PhredIntProbability TWithRecal::phredInt(const BAM::TSequencedBase 
 }
 
 TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
-	if (data == Base::N) { return TBaseLikelihoods{1.}; }
+	if (data == Base::N) { return TBaseLikelihoods{P(1.)}; }
 	const auto e = _epsilon.calcErrorRate(data);
 	const auto l = data.base;
 	TBaseLikelihoods baseLikelihoods;

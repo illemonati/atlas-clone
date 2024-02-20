@@ -9,6 +9,7 @@
 #include "GenotypeFunctions.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/fillContainer.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenomeTasks{
 
@@ -17,6 +18,7 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using coretools::Probability;
+using coretools::P;
 using genometools::Base;
 using namespace coretools::str;
 
@@ -659,15 +661,16 @@ TCallerAllelePresence::TCallerAllelePresence() : TCaller(){
 };
 
 void TCallerAllelePresence::_fillPosteriors(const TGenotypeLikelihoods & genotypeLikelihoods){
-	using namespace genometools;
+	using genometools::Base;
+	using genometools::Genotype;
 	//calculate posterior probabilities
 	_posterior = posterior(genotypeLikelihoods, *_genotypePrior);
 
 	//sum for each base
-	_allelePostProb[Base::A] = _posterior[Genotype::AA] + _posterior[Genotype::AC] + _posterior[Genotype::AG] + _posterior[Genotype::AT];
-	_allelePostProb[Base::C] = _posterior[Genotype::AC] + _posterior[Genotype::CC] + _posterior[Genotype::CG] + _posterior[Genotype::CT];
-	_allelePostProb[Base::G] = _posterior[Genotype::AG] + _posterior[Genotype::CG] + _posterior[Genotype::GG] + _posterior[Genotype::GT];
-	_allelePostProb[Base::T] = _posterior[Genotype::AT] + _posterior[Genotype::CT] + _posterior[Genotype::GT] + _posterior[Genotype::TT];
+	_allelePostProb[Base::A] = P(_posterior[Genotype::AA] + _posterior[Genotype::AC] + _posterior[Genotype::AG] + _posterior[Genotype::AT]);
+	_allelePostProb[Base::C] = P(_posterior[Genotype::AC] + _posterior[Genotype::CC] + _posterior[Genotype::CG] + _posterior[Genotype::CT]);
+	_allelePostProb[Base::G] = P(_posterior[Genotype::AG] + _posterior[Genotype::CG] + _posterior[Genotype::GG] + _posterior[Genotype::GT]);
+	_allelePostProb[Base::T] = P(_posterior[Genotype::AT] + _posterior[Genotype::CT] + _posterior[Genotype::GT] + _posterior[Genotype::TT]);
 };
 
 bool TCallerAllelePresence::_callGenotype(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){

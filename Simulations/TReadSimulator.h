@@ -59,8 +59,8 @@ protected:
 	const GenotypeLikelihoods::PMD::TModel *_pmd;
 	const GenotypeLikelihoods::SequencingError::RGModels _recal;
 
-	coretools::Probability _duplicationRate               = 0.;
-	coretools::Probability _duplicationRateAmongSimulated = 0.;
+	coretools::Probability _duplicationRate{0.};
+	coretools::Probability _duplicationRateAmongSimulated{0.};
 
 	// contamination
 	double _contaminationRate = 0.;

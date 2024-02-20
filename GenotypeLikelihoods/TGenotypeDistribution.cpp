@@ -150,7 +150,8 @@ TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLik
 coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 																   Genotype genotype) const {
 	// if first == second, then 0.5*first + 0.5*first = first
-	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
+	return coretools::average(baseLikelihoods[genometools::first(genotype)],
+							  baseLikelihoods[genometools::second(genotype)]);
 }
 
 double TDiploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) {
@@ -218,7 +219,8 @@ TGenotypeLikelihoods THKY85::P_dij(const TBaseLikelihoods &baseLikelihoods) cons
 coretools::Probability THKY85::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 																   Genotype genotype) const {
 	// if first == second, then 0.5*first + 0.5*first = first
-	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
+	return coretools::average(baseLikelihoods[genometools::first(genotype)],
+							  baseLikelihoods[genometools::second(genotype)]);
 }
 
 double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {
@@ -278,7 +280,8 @@ TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods)
 coretools::Probability THKY85_mono::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 																   Genotype genotype) const {
 	// if first == second, then 0.5*first + 0.5*first = first
-	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
+	return coretools::average(baseLikelihoods[genometools::first(genotype)],
+							  baseLikelihoods[genometools::second(genotype)]);
 }
 
 double THKY85_mono::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {

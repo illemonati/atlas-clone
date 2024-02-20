@@ -13,6 +13,7 @@
 namespace PopulationTools {
 
 using namespace coretools::instances;
+using coretools::P;
 
 //------------------------------------------
 // TInbreedingEstimatorPrior
@@ -57,7 +58,7 @@ void TInbreedingEstimatorPrior::_readCommandLineArguments() {
 coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(
     const Storage &Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities &Probs) const {
 	// sum over all individuals of log sum_g P(d|g)P(g|p,F)
-	coretools::LogProbability sum = 0.0;
+	coretools::LogProbability sum{0.0};
 	for (size_t i = 0; i < _numSamples; i++) {
 		const auto linearIndex = Data.getIndex({Locus, i});
 		sum += Data[linearIndex].HWESum<coretools::LogProbability>(Probs);
@@ -171,7 +172,7 @@ void TInbreedingEstimatorPrior::_setInitialF() {
 	if (!_F->hasFixedInitialValue()) {
 		if (_FModel->hasFixedInitialValue() && _FModel->value() == 0) {
 			// user wants to start in zero-model
-			_F->set(0.0);
+			_F->set(P(0.0));
 		} else {
 			_F->set(_F->proposeNewValueRJMCMC());
 		}
@@ -189,14 +190,14 @@ void TInbreedingEstimatorPrior::_setInitialP() {
 		for (size_t l = 0; l < _numLoci; l++) {
 			if (_pModel->hasFixedInitialValue()) {
 				if (_pModel->value(l) == 0) { // user wants to start in 0-Model
-					_p->set(l, 0.0);
+					_p->set(l, P(0.0));
 				} else { // user wants to start in 1-model: prevent p = 0 and p = 1
-					auto val = std::max(_initialEstimatesP[l], inbr::TypeP::min().get());
-					val      = std::min(val, inbr::TypeP::max().get());
-					_p->set(l, val);
+					auto val = std::max(_initialEstimatesP[l], inbr::TypeP::min());
+					val      = std::min(val, inbr::TypeP::max());
+					_p->set(l, P(val));
 				}
 			} else {
-				_p->set(l, _initialEstimatesP[l]);
+				_p->set(l, P(_initialEstimatesP[l]));
 				if (_initialEstimatesP[l] == 0.0 || _initialEstimatesP[l] == 1.0) {
 					_pModel->set(l, false);
 				} else {

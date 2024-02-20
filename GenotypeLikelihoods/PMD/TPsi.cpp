@@ -12,6 +12,7 @@
 
 namespace GenotypeLikelihoods::PMD {
 using coretools::Probability;
+using coretools::P;
 using namespace coretools::str;
 
 namespace impl {
@@ -29,7 +30,7 @@ std::vector<Probability> exp(std::string_view sFunction, size_t N = 50) {
 
 std::vector<Probability> empiric(std::string_view sFunction) {
 	TSplitter spl(sFunction, ',');
-	if (spl.empty()) return {0.};
+	if (spl.empty()) return {P(0.)};
 
 	std::vector<Probability> probs;
 	for (auto s: spl) {
@@ -78,7 +79,7 @@ void TPsi::_fromString(std::string_view Psi) {
 	}
 	for (auto& t: _tables)
 		for (auto &v: t)
-			if (v.empty()) v = {0.};
+			if (v.empty()) v = {P(0.)};
 }
 
 TPsi::TPsi(std::string_view Psi) {
@@ -94,7 +95,7 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
 				auto &v        = _tables[e][t];
 				const auto key = impl::toString(t) + impl::toString(e);
 				if (!info.contains(key) || info[key].empty()) {
-					v = {0.};
+					v = {P(0.)};
 				} else {
 					if (info[key].is_string()) {
 						const auto sFunction = info[key].get<std::string_view>();
@@ -137,7 +138,7 @@ void TPsi::estimate() noexcept {
 
 		table.clear();
 		for (auto &ts : tSum) {
-			table.push_back(ts.numDenom.num / ts.numDenom.denom);
+			table.emplace_back(ts.numDenom.num / ts.numDenom.denom);
 			ts.numDenom.num   = 0.;
 			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
 		}
@@ -176,7 +177,7 @@ void TPsi::estimateInit() noexcept {
 			for (auto &ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				table.push_back(std::max(psiMin, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0, so add something small
+				table.emplace_back(std::max(psiMin, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0, so add something small
 				sums[t] += std::max(0, ts.fromTo.fromTo - ts.fromTo.toFrom);
 				ts.numDenom.num   = 0.;
 				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
@@ -185,7 +186,7 @@ void TPsi::estimateInit() noexcept {
 		// Either CT or GA
 		const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
 		_tableSums[e][worseType].clear();
-		_tables[e][worseType] = {0.};
+		_tables[e][worseType] = {P(0.)};
 	}
 }
 

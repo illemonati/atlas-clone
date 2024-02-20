@@ -69,7 +69,7 @@ void TBamDownsampler::_readVectorOfDownsamplingProbabilities(){
         double averageDepth = parameters().get<double>("averageDepth");
         for(auto& it : depths){
             if(averageDepth >= it){
-                _probs.push_back(it / averageDepth);
+                _probs.emplace_back(it / averageDepth);
             } else{
                 UERROR("Average Depth must be equal or bigger than provided lists of depths");
             }

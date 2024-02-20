@@ -170,7 +170,7 @@ void TErrorEstimator::_updatePbbar() {
 		for (const auto& site: sites) {
 			const auto &P_g_I_di = _P_g_I_dis[i++];
 			for (const auto &d_ij : site) {
-				_P_bbarEdij_I_gdijs.emplace_back(0.);
+				_P_bbarEdij_I_gdijs.emplace_back(coretools::P(0.));
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD

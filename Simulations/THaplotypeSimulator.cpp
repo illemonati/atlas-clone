@@ -25,6 +25,7 @@ using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using genometools::Base;
 using GenotypeLikelihoods::TBaseProbabilities;
+using coretools::P;
 
 namespace impl {
 std::string toString(const TBaseProbabilities &probs) {
@@ -52,7 +53,7 @@ THaplotypeSimulator::THaplotypeSimulator(){
     	_referenceDivergence = parameters().get<coretools::Probability>("refDiv");
     	logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ". (parameter 'refDiv')");
     } else {
-    	_referenceDivergence = 0.01;
+    	_referenceDivergence = P(0.01);
         logfile().list("Will simulate data with default reference divergence = ", _referenceDivergence, ". (set with 'refDiv')");
     }
 	_cumulRef[Base::A] = 1.0 - _referenceDivergence;
