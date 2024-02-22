@@ -35,13 +35,17 @@ private:
 	std::vector<genometools::TBed> _regions;
 	std::vector<std::vector<TSite>> _regionSites;
 	std::vector<std::unique_ptr<TGenotypeDistribution>> _genoDist;
+
 	// per site
 	std::vector<TGenotypeLikelihoods> _P_g_I_dis;
+
 	// per read
 	std::vector<TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
 
-	BAM::TReadGroupMap _rgMap;
+	BAM::TReadGroupMap _recalMap;
+	BAM::TReadGroupMap _pmdMap;
 	RecalEstimatorTools::TRecalDataTables _dataTables;
+
 	SequencingError::TModels _recal;
 	PMD::TModels _pmd;
 
@@ -62,12 +66,6 @@ private:
 	size_t _nRho     = -1;
 	size_t _nPsi     = -1;
 	size_t _nEpsilon = -1;
-
-	void _initializeModels();
-	void _runEM();
-
-	// functions to estimate theta_epsilon (sequencing error rates)
-	void _updatePbbar();
 
 	template<bool UpdateJF> void _calculateQ() {
 		size_t i  = 0;
@@ -159,6 +157,10 @@ private:
 		}
 		return LL.getSum();
 	}
+
+	void _identifyModels();
+	void _runEM();
+	void _updatePbbar();
 
 	void _writeModels(std::string_view Intro);
 	void _handleSite(const TSite& Site, size_t Region);

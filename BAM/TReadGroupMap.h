@@ -17,6 +17,8 @@ class TReadGroups;
 class TReadGroupMap {
 private:
 	static constexpr size_t ReadGroupMapNotInitializedIndex = -1; // largest possible values
+
+	std::string _name;
 	std::vector<size_t> _readGroupMap;                            // maps read group index to pooled index
 	std::vector<std::vector<size_t>> _reverseReadGroupMap; // IDs of all Rgs pooled with that index. Includes itself.
 	std::vector<size_t> _readGroupsInUse;
@@ -28,7 +30,7 @@ private:
 	void _fromFile(const TReadGroups &ReadGroups, std::string_view filename);
 
 public:
-	TReadGroupMap(const TReadGroups &ReadGroups, std::string_view Type = "");
+	TReadGroupMap(std::string_view Name, const TReadGroups &ReadGroups, std::string_view Type = "");
 
 	size_t size() const { return _readGroupMap.size(); };
 	size_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };

@@ -16,9 +16,13 @@ using genometools::Base;
 // TErrorEstimator
 //---------------------------------------------------------------
 TErrorEstimator::TErrorEstimator()
-	: _rgMap(_genome.bamFile().readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
-	  _onlyLL(parameters().exists("onlyLL")) {
+	: _recalMap("recal", _genome.bamFile().readGroups(), parameters().get<std::string>("poolRecal", "")),
+	  _pmdMap("PMD", _genome.bamFile().readGroups(), parameters().get<std::string>("poolPMD", "")),
+	  _dataTables(_recalMap), _onlyLL(parameters().exists("onlyLL")) {
+
 	_windows.requireReference();
+
+	// regions
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
 
@@ -71,11 +75,10 @@ TErrorEstimator::TErrorEstimator()
 
 	logfile().list("Initial recal model: ", recalModel);
 	logfile().list("Initial pmd model: ", pmdModel);
-	_recal.initialize(_rgMap.size(), recalModel);
-	_recal.pool(_rgMap);
-	_pmd.initialize(_rgMap.size(), pmdModel);
-	_pmd.pool(_rgMap);
-
+	_recal.initialize(_recalMap.size(), recalModel);
+	_recal.pool(_recalMap);
+	_pmd.initialize(_pmdMap.size(), pmdModel);
+	_pmd.pool(_pmdMap);
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
@@ -91,7 +94,6 @@ TErrorEstimator::TErrorEstimator()
 	logfile().list("Will perform at max ", _nPsi, " psi estimations. (parameter 'NPsi')");
 	logfile().list("Will perform at max ", _nEpsilon, " epsilon estimations. (parameter 'NEpsilon')");
 
-
 	_minDeltaLL                 = parameters().get("minDeltaLL", 1e-6);
 	_NewtonRaphsonNumIterations = parameters().get("NRiterations", 20);
 	_NewtonRaphsonMaxF          = parameters().get("maxF", 1e-6);
@@ -105,14 +107,11 @@ TErrorEstimator::TErrorEstimator()
 	logfile().endIndent();
 }
 
-void TErrorEstimator::_initializeModels() {
-	_dataTables.write(_genome.outputName());
+void TErrorEstimator::_identifyModels() {
 	using coretools::str::toString;
 	using BAM::Mate;
-	// count data available for recal
 
-	logfile().listFlush("Counting data available for recal ...");
-	logfile().done();
+	_dataTables.write(_genome.outputName());
 
 	logfile().startIndent("Number of sites with data:");
 	for (size_t i = 0; i < _regionSites.size(); ++i) logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
@@ -120,18 +119,20 @@ void TErrorEstimator::_initializeModels() {
 
 	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
 	logfile().conclude("Number of bases: ", _dataTables.size());
+
 	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
+
 	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
 	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
-	for (auto rg : _rgMap.readGroupsInUse()) {
+	for (auto rg : _recalMap.readGroupsInUse()) {
 		if (_dataTables[rg][Mate::first].size() == 0 && _dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
 
-		const auto& pooledWith = _rgMap.readGroupsPooledWith(rg);
+		const auto& pooledWith = _recalMap.readGroupsPooledWith(rg);
 		logfile().startIndent("Readgroup ", rg, ":");
-		if (pooledWith.size() > 1) logfile().list("Pooled with: ", _rgMap.readGroupsPooledWith(rg), ".");
+		if (pooledWith.size() > 1) logfile().list("Pooled with: ", _recalMap.readGroupsPooledWith(rg), ".");
 
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			constexpr coretools::TStrongArray<std::string_view, Mate> sMates{{"First", "Second"}};
@@ -149,7 +150,8 @@ void TErrorEstimator::_initializeModels() {
 			}
 		}
 		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
-
+	}
+	for (auto rg : _pmdMap.readGroupsInUse()) {
 		auto &pmd = _pmd.model(rg);
 		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
 
@@ -371,7 +373,7 @@ void TErrorEstimator::_runEM() {
 
 void TErrorEstimator::estimate() {
 	// initialize models
-	_initializeModels();
+	_identifyModels();
 
 	// run EM
 	_runEM();
