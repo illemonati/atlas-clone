@@ -45,17 +45,19 @@ public:
 template<genometools::Ploidy P>
 TGenotypeLikelihoods base2genotype(const TBaseLikelihoods &baseLikelihoods) {
 	using genometools::Base;
+	using coretools::average;
+	constexpr auto P0 = coretools::P(0.);
 	if constexpr (P == genometools::Ploidy::haploid) {
-		return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0., baseLikelihoods[Base::C], 0., 0.,
-									 baseLikelihoods[Base::G], 0., baseLikelihoods[Base::T]});
+		return TGenotypeLikelihoods({baseLikelihoods[Base::A], P0, P0, P0, baseLikelihoods[Base::C], P0, P0,
+									 baseLikelihoods[Base::G], P0, baseLikelihoods[Base::T]});
 	} else {
 		return TGenotypeLikelihoods(
-			{baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
-			 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
-			 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
-			 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::G]),
-			 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
-			 0.5 * (baseLikelihoods[Base::G] + baseLikelihoods[Base::T]), baseLikelihoods[Base::T]});
+			{baseLikelihoods[Base::A], average(baseLikelihoods[Base::A], baseLikelihoods[Base::C]),
+			 average(baseLikelihoods[Base::A], baseLikelihoods[Base::G]),
+			 average(baseLikelihoods[Base::A], baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
+			 average(baseLikelihoods[Base::C], baseLikelihoods[Base::G]),
+			 average(baseLikelihoods[Base::C], baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
+			 average(baseLikelihoods[Base::G], baseLikelihoods[Base::T]), baseLikelihoods[Base::T]});
 	}
 }
 
@@ -99,7 +101,7 @@ public:
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	coretools::Probability _mu = 0.5;
+	coretools::Probability _mu{0.5};
 	double _theta_r            = 0.1;
 	double _theta_g            = 0.1;
 
@@ -124,7 +126,7 @@ public:
 };
 
 class THKY85_mono final : public TGenotypeDistribution {
-	coretools::Probability _mu = 0.5;
+	coretools::Probability _mu{0.5};
 	double _theta              = 0.0001;
 
 	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _pi;

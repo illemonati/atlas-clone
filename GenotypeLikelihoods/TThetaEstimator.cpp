@@ -14,6 +14,7 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using coretools::str::toString;
+using coretools::P;
 
 //---------------------------------------------------------------
 // TThetaEstimator_base
@@ -26,11 +27,11 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 	for (Base b = Base::min; b < Base::max; ++b) {
 		// homozygous genotypes
 		Genotype hom = genotype(b, b);
-		lGeno[hom]   = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));		
+		lGeno[hom]   = P(baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta)));		
 		// heterozygous genotypes: need to multiply by 2.0 as we do not distinguish AC from CA
 		for (Base c = coretools::next(b); c < Base::max; ++c) {
 			Genotype het = genotype(b, c);
-			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
+			lGeno[het]   = P(2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta));
 		}
 	}
 	return TGenotypeProbabilities::normalize(lGeno);
@@ -772,17 +773,17 @@ bool TThetaEstimatorRatio::_updateBaseFrequencies(TThetaEstimatorData *thisData,
 	TBaseLikelihoods tmpBaseLik;
 	double tmp = thisTheta.baseFreq[thisBase].get() + randomGenerator().getNormalRandom(0.0, thisSdProposalKernel);
 	if (tmp > 1.0) {
-		tmpBaseLik[thisBase] = 2.0 - tmp;
+		tmpBaseLik[thisBase] = P(2.0 - tmp);
 	} else if (tmp < 0.0) {
-		tmpBaseLik[thisBase] = -tmp;
+		tmpBaseLik[thisBase] = P(-tmp);
 	} else {
-		tmpBaseLik[thisBase] = tmp;
+		tmpBaseLik[thisBase] = P(tmp);
 	}
 
 	// now scale all others so the sum will be 1.0
 	double scale = (double)tmpBaseLik[thisBase].complement() / (double)thisTheta.baseFreq[thisBase].complement();
 	for (Base k = Base::min; k < Base::max; ++k) {
-		if (k != thisBase) { tmpBaseLik[k] = thisTheta.baseFreq[thisBase].get() * scale; }
+		if (k != thisBase) { tmpBaseLik[k] = P(thisTheta.baseFreq[thisBase].get() * scale); }
 	}
 
 	const auto tmpBaseFreq = TBaseProbabilities::normalize(tmpBaseLik);

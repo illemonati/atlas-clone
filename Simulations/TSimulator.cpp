@@ -284,7 +284,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	// Initialize probabilities to simulate reads
 	const size_t numReads          = thisChr.length() * avgDepth / readSimulators.averageFragmentLength();
 	const size_t chrLengthForStart = thisChr.length() - readSimulators.maxFragmentLength() + 1;
-	const double probReadPerSite   = 1.0 / chrLengthForStart;
+	const coretools::Probability probReadPerSite{1.0 / chrLengthForStart};
 
 	// initialize progress reporting
 	coretools::TProgressReporter<size_t> reporter(
@@ -357,7 +357,7 @@ auto calculateLog10ProbFixed(const genometools::TGenotypeLikelihoodsOneAllelicCo
 
 	auto BG = getRelevantBiallelicGenotype(Major, Ref, IsDiploid);
 
-	Log10Probability LL_fixed_glfPhred = 0.0;
+	Log10Probability LL_fixed_glfPhred{0.0};
 	for (auto GenotypeLikelihood : GenotypeLikelihoods) {
 		LL_fixed_glfPhred += (Log10Probability)GenotypeLikelihood[BG];
 	}
@@ -391,7 +391,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	}
 
 	// read simulation parameters
-	_error = parameters().get("error", 0.05);
+	_error = parameters().get("error", coretools::P(0.05));
 	logfile().list("Will use a per allele genotyping error rate of ", _error, ".");
 
 	const bool usePhredLikelihoods = parameters().exists("phredLik");

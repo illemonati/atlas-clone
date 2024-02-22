@@ -91,7 +91,7 @@ public:
 
 class TVCFSimulator : public TSimulator {
 private:
-	coretools::Probability _error = 0.05;
+	coretools::Probability _error{0.05};
 	std::unique_ptr<genometools::TVcfWriter> _vcf;
 
 protected:

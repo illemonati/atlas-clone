@@ -55,16 +55,14 @@ double TErrorModels::calculateLogPMDS(const BAM::TSequencedBase & base, const ge
 };
 
 TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &site) const {
-		if (site.empty()) { return TGenotypeLikelihoods{1.}; }
-		std::vector<TBaseLikelihoods> baseLikelihoods;
-		baseLikelihoods.reserve(site.depth());
-		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-		for (const auto &d : site) {
-			baseLikelihoods.push_back(_pmd.P_dij(d, _recal.P_dij(d)));
-		}
+	if (site.empty()) { return TGenotypeLikelihoods{coretools::P(1.)}; }
+	std::vector<TBaseLikelihoods> baseLikelihoods;
+	baseLikelihoods.reserve(site.depth());
+	// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+	for (const auto &d : site) { baseLikelihoods.push_back(_pmd.P_dij(d, _recal.P_dij(d))); }
 
-		// calculate genotype likelihoods
-		return getGLH(baseLikelihoods, site.depth());
+	// calculate genotype likelihoods
+	return getGLH(baseLikelihoods, site.depth());
 };
 
 }; //end namespace

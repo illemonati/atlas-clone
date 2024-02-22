@@ -103,19 +103,20 @@ private:
 	void _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
 
-	template<genometools::Ploidy P>
+	template<genometools::Ploidy Pl>
 	double _calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist) {
 		using genometools::Genotype;
 		using genometools::Base;
+		using coretools::P;
 		coretools::TSumLogProbability LL{};
 		for (const auto &site : sites) {
 			if (site.genotype == Genotype::NN) { // unknown genotype
 				const auto ref = site.refBase;
-				TGenotypeLikelihoods P_g_I_di{1.};
+				TGenotypeLikelihoods P_g_I_di{P(1.)};
 				for (const auto &d_ij : site) {
 					const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 					const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
-					if constexpr (P == genometools::Ploidy::diploid) {
+					if constexpr (Pl == genometools::Ploidy::diploid) {
 						const auto P_dij_I_g = base2genotype<genometools::Ploidy::diploid>(P_dij_I_b);
 						double max           = 0.;
 						for (auto g = Genotype::min; g < Genotype::max; ++g) {
@@ -145,8 +146,8 @@ private:
 				LL.add(genoDist->normalize_add(P_g_I_di, ref));
 				_P_g_I_dis.push_back(P_g_I_di);
 			} else { // known genotype.
-				_P_g_I_dis.emplace_back(0.);
-				_P_g_I_dis.back()[site.genotype] = 1.; // Probability of correct genotype is 1
+				_P_g_I_dis.emplace_back(P(0.));
+				_P_g_I_dis.back()[site.genotype] = P(1.); // Probability of correct genotype is 1
 				double P_g                       = 1.;
 				for (auto &d_ij : site) {
 					const auto L_eps = _recal.P_dij(d_ij);

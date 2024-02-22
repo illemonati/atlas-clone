@@ -6,13 +6,14 @@
 namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::P;
 using GenotypeLikelihoods::TGenotypeLikelihoods;
 
 double TEstimateGenotypeDistribution::_LL() {
 	coretools::TSumLogProbability LL{};
 	for (auto &site : _sites) {
 		const auto ref = site.refBase;
-		TGenotypeLikelihoods P_g_I_di(1.);
+		TGenotypeLikelihoods P_g_I_di(P(1.));
 		size_t counter = 0;
 		for (auto &d_ij : site) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);

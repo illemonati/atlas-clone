@@ -17,6 +17,7 @@ using BAM::RGInfo::TReadGroupInfoEntry;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using coretools::probdist::TCategoricalDistribution;
+using coretools::P;
 using genometools::Base;
 using genometools::PhredIntProbability;
 using genometools::TGenomePosition;
@@ -67,7 +68,7 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 		coretools::str::fromString(RGInfo.getString(InfoType::duplicationRate), _duplicationRate, "duplication rate is not within [0,1]!");
 		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
 		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
-		_duplicationRateAmongSimulated = _duplicationRate / (_duplicationRate.complement());
+		_duplicationRateAmongSimulated = P(_duplicationRate / (_duplicationRate.complement()));
 	}
 }
 

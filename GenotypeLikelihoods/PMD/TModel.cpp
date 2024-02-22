@@ -1,6 +1,7 @@
 #include "TModel.h"
 #include "TSequencedBase.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {
@@ -8,6 +9,8 @@ namespace GenotypeLikelihoods::PMD {
 using genometools::Base;
 using genometools::Genotype;
 using BAM::TSequencedBase;
+using coretools::P;
+using coretools::Probability;
 
 TBaseProbabilities TNoPMD::P_bbar(Base b, const TSequencedBase &,
 								  const TBaseLikelihoods &) const noexcept {
@@ -20,7 +23,7 @@ TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedBase &,
 								  const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const Base a = first(g);
 	const Base b = second(g);
-	TBaseLikelihoods Psum{0};
+	TBaseLikelihoods Psum{P(0.)};
 	Psum[a] = P_dij_bbar[a];
 	Psum[b] = P_dij_bbar[b];
 	return TBaseProbabilities::normalize(Psum);
@@ -58,25 +61,25 @@ TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedBase &data,
 }
 
 namespace impl {
-double bbProbs(Base b, TBaseBaseProbabilities &probs, double pCT, double pGA,
+double bbProbs(Base b, TBaseBaseProbabilities &probs, Probability pCT, Probability pGA,
 			   const TBaseLikelihoods &P_dij_bbar) {
 	double sum = 0.;
 	switch (b) {
 	case Base::A: {
-			sum += probs[Base::A][Base::A] = P_dij_bbar[Base::A];
-			break;
+		sum += probs[Base::A][Base::A] = P_dij_bbar[Base::A];
+		break;
 	}
 	case Base::C: {
-			sum += probs[Base::C][Base::C] = (1. - pCT) * P_dij_bbar[Base::C];
-			sum += probs[Base::C][Base::T] = pCT * P_dij_bbar[Base::T];
+		sum += probs[Base::C][Base::C] = pCT.complement() * P_dij_bbar[Base::C];
+		sum += probs[Base::C][Base::T] = pCT * P_dij_bbar[Base::T];
 	} break;
 	case Base::G: {
-			sum += probs[Base::G][Base::G] = (1. - pGA) * P_dij_bbar[Base::G];
-			sum += probs[Base::G][Base::A] = pGA * P_dij_bbar[Base::A];
+		sum += probs[Base::G][Base::G] = pGA.complement() * P_dij_bbar[Base::G];
+		sum += probs[Base::G][Base::A] = pGA * P_dij_bbar[Base::A];
 	} break;
 	default: {
-			sum += probs[Base::T][Base::T] = P_dij_bbar[Base::T];
-			break;
+		sum += probs[Base::T][Base::T] = P_dij_bbar[Base::T];
+		break;
 	}
 	}
 	return sum;
@@ -127,10 +130,10 @@ TBaseLikelihoods TWithPMD::P_dij(const TSequencedBase &data, const TBaseLikeliho
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
 
-	TBaseLikelihoods P(P_dij_bbar);
-	P[Base::C] = (1.0 - pCT) * P_dij_bbar[Base::C] + pCT * P_dij_bbar[Base::T];
-	P[Base::G] = (1.0 - pGA) * P_dij_bbar[Base::G] + pGA * P_dij_bbar[Base::A];
-	return P;
+	TBaseLikelihoods Ps(P_dij_bbar);
+	Ps[Base::C] = P((1.0 - pCT) * P_dij_bbar[Base::C] + pCT * P_dij_bbar[Base::T]);
+	Ps[Base::G] = P((1.0 - pGA) * P_dij_bbar[Base::G] + pGA * P_dij_bbar[Base::A]);
+	return Ps;
 }
 
 void TWithPMD::simulate(BAM::TAlignment &aln) const {

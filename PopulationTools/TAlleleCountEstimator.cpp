@@ -176,7 +176,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods *data, uint32_
 		for (size_t j = 0; j < numAlleleCounts + 1; j++) {
 			// numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error
 			// when storing as LogProbability.
-			log_alleleFrequencyLikelihoods_h.push_back(std::min(alleleFrequencyLikelihoods_h[j] - logChoose.at(j), 0.0));
+			log_alleleFrequencyLikelihoods_h.emplace_back(std::min(alleleFrequencyLikelihoods_h[j] - logChoose.at(j), 0.0));
 		}
 	}
 };
@@ -267,7 +267,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods *data, uin
 		for (size_t j = 0; j < numAlleleCounts + 1; j++) {
 			// numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error
 			// when storing as LogProbability.
-			log_alleleFrequencyLikelihoods_h.push_back(std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose.at(j), 0.0));
+			log_alleleFrequencyLikelihoods_h.emplace_back(std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose.at(j), 0.0));
 		}
 	}
 };

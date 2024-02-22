@@ -36,6 +36,7 @@ using genometools::Base;
 using genometools::Genotype;
 using coretools::index;
 using coretools::Probability;
+using coretools::P;
 using coretools::TConstView;
 using coretools::Log10Probability;
 using coretools::TStrongArray;
@@ -79,7 +80,7 @@ class TSkotte {
 	enum class HaploDiplo : size_t { min, first = min, second, homoFirst, het, homoSecond, max };
 
 	static HaploDiplo _haploIndex(Probability pFirst, Probability pSecond) {
-		return HaploDiplo(pSecond.isHigher(pFirst));
+		return HaploDiplo(pSecond > pFirst);
 	}
 
 	static HaploDiplo _diploIndex(Probability pHomoFirst, Probability pHet, Probability pHomoSecond) {
@@ -130,13 +131,13 @@ class TSkotte {
 			}
 		}
 
-		constexpr Probability fMin = 0.000001;
-		TStrongArray<Probability, HaploDiplo> freqs{0};
+		constexpr Probability fMin{0.000001};
+		TStrongArray<Probability, HaploDiplo> freqs{P(0.)};
 		const auto nHaplo     = counts[HaploDiplo::first] + counts[HaploDiplo::second];
 		const double nHaplo_1 = 1. / nHaplo;
 		if constexpr (hasHaploid) {
-			freqs[HaploDiplo::first]  = std::max<Probability>(double(counts[HaploDiplo::first]) * nHaplo_1, fMin);
-			freqs[HaploDiplo::second] = std::max<Probability>(double(counts[HaploDiplo::second]) * nHaplo_1, fMin);
+			freqs[HaploDiplo::first]  = std::max<Probability>(P(counts[HaploDiplo::first] * nHaplo_1), fMin);
+			freqs[HaploDiplo::second] = std::max<Probability>(P(counts[HaploDiplo::second] * nHaplo_1), fMin);
 			const auto sum            = freqs[HaploDiplo::first] + freqs[HaploDiplo::second];
 			freqs[HaploDiplo::first].scale(sum);
 			freqs[HaploDiplo::second].scale(sum);
@@ -144,9 +145,9 @@ class TSkotte {
 		const auto nDiplo     = counts[HaploDiplo::homoFirst] + counts[HaploDiplo::het] + counts[HaploDiplo::homoSecond];
 		const double nDiplo_1 = 1. / nDiplo;
 		if constexpr (hasDiploid) {
-			freqs[HaploDiplo::homoFirst]  = std::max<Probability>(double(counts[HaploDiplo::homoFirst]) * nDiplo_1, fMin);
-			freqs[HaploDiplo::het]        = std::max<Probability>(double(counts[HaploDiplo::het]) * nDiplo_1, fMin);
-			freqs[HaploDiplo::homoSecond] = std::max<Probability>(double(counts[HaploDiplo::homoSecond]) * nDiplo_1, fMin);
+			freqs[HaploDiplo::homoFirst]  = std::max<Probability>(P(counts[HaploDiplo::homoFirst] * nDiplo_1), fMin);
+			freqs[HaploDiplo::het]        = std::max<Probability>(P(counts[HaploDiplo::het] * nDiplo_1), fMin);
+			freqs[HaploDiplo::homoSecond] = std::max<Probability>(P(counts[HaploDiplo::homoSecond] * nDiplo_1), fMin);
 			const auto sum = freqs[HaploDiplo::homoFirst] + freqs[HaploDiplo::het] + freqs[HaploDiplo::homoSecond];
 			freqs[HaploDiplo::homoFirst].scale(sum);
 			freqs[HaploDiplo::het].scale(sum);
@@ -158,9 +159,9 @@ class TSkotte {
 		// iterate
 		constexpr size_t maxIter = 1000;
 
-		Probability aF = (nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
-						  nHaplo * (double)freqs[HaploDiplo::second]) *
-						 nHaplo2nDiplo_1;
+		Probability aF  = P((nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
+							nHaplo * (double)freqs[HaploDiplo::second]) *
+							nHaplo2nDiplo_1);
 		Probability MAF = (aF < 0.5 ? aF : aF.complement());
 
 		if (MAF < minMAF/2) {
@@ -199,8 +200,8 @@ class TSkotte {
 				// check if we stop
 				maxF_i = std::max(fabs(hplF0 - freqs[HaploDiplo::first]), fabs(hplF1 - freqs[HaploDiplo::second]));
 
-				freqs[HaploDiplo::first] = hplF0;
-				freqs[HaploDiplo::second]= hplF1;
+				freqs[HaploDiplo::first] = P(hplF0);
+				freqs[HaploDiplo::second]= P(hplF1);
 			}
 			if constexpr (hasDiploid) {
 				dplF0 *= nDiplo_1;
@@ -218,14 +219,14 @@ class TSkotte {
 									 fabs(dplF2 - freqs[HaploDiplo::homoSecond])});
 				}
 
-				freqs[HaploDiplo::homoFirst]  = dplF0;
-				freqs[HaploDiplo::het]        = dplF1;
-				freqs[HaploDiplo::homoSecond] = dplF2;
+				freqs[HaploDiplo::homoFirst]  = P(dplF0);
+				freqs[HaploDiplo::het]        = P(dplF1);
+				freqs[HaploDiplo::homoSecond] = P(dplF2);
 			}
 
-			aF = (nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
-				  nHaplo * (double)freqs[HaploDiplo::second]) *
-				 nHaplo2nDiplo_1;
+			aF = P((nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
+					nHaplo * (double)freqs[HaploDiplo::second]) *
+				   nHaplo2nDiplo_1);
 
 			MAF = aF < 0.5 ? aF : aF.complement();
 
@@ -263,8 +264,8 @@ class TSkotte {
 					  g[homoSecond] * freqs[HaploDiplo::homoSecond]);
 			}
 		}
-		constexpr double l10_1       = 0.43429448190325176;
-		const Log10Probability bestL = L.getSum()*l10_1;
+		constexpr double l10_1 = 0.43429448190325176;
+		const Log10Probability bestL{L.getSum() * l10_1};
 
 		return std::make_tuple(MAF, bestL, major, minor);
 	}
@@ -328,7 +329,7 @@ public:
 		if (MAF < minMAF) return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), major, minor};
 
 		const auto refHom         = genometools::genotype(major, major);
-		Log10Probability LL_fixed = 0.0;
+		Log10Probability LL_fixed{0.0};
 		for (size_t i = 0; i < data.size(); ++i) {
 			if (data[i].hasData()) {
 				if (data[i].isHaploid())
@@ -386,7 +387,7 @@ struct TMLE {
 
 		// calculate variant quality
 		const auto refHom                  = genometools::genotype(_major, _major);
-		Log10Probability LL_fixed_glfPhred = 0.0;
+		Log10Probability LL_fixed_glfPhred{0.0};
 		for (size_t i = 0; i < data.size(); ++i) {
 			if (data[i].hasData()) {
 				if (data[i].isHaploid())
@@ -452,7 +453,7 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 	glfReader.minSamplesWithData(minSamplesWithData);
 
-	coretools::Probability minMAF = parameters().get("minMAF", 0.0);
+	coretools::Probability minMAF = parameters().get("minMAF", P(0.0));
 	if (minMAF > 0.0) {
 		logfile().list("Will filter on a minor allele frequency of ", minMAF, ". (parameter 'minMAF')");
 	} else {
