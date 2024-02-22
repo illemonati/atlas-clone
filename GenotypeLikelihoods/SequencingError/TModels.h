@@ -33,13 +33,12 @@ private:
 	std::vector<TWithRecal> _withRecal;
 	TNoRecal _noRecal;
 	std::vector<RGModels> _pModels;
-	void _initializeNoRecal(size_t NReadGroups);
+	void _pool(const BAM::TReadGroupMap& rgMap);
 
 public:
-	void initialize(size_t NReadGroups, std::string_view RecalString = "", std::string_view RhoString = "");
+	void initialize(size_t NReadGroups, std::string_view RecalString, const BAM::TReadGroupMap& rgMap);
 	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
 
-	void pool(const BAM::TReadGroupMap& rgMap);
 	void reset(size_t rgID, BAM::Mate mate) noexcept { _pModels[rgID][mate] = &_noRecal; }
 
 	// access models

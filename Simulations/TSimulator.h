@@ -103,7 +103,8 @@ public:
 
 struct TSimulationRunner {
 	void run() {
-		using namespace coretools::instances;
+		using coretools::instances::parameters;
+		using coretools::instances::logfile;
 		// initialize simulator
 		auto method = parameters().get<std::string>("type", "one");
 

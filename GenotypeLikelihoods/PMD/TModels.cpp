@@ -2,18 +2,14 @@
 #include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods::PMD {
-void TModels::initialize(size_t NReadGroups, std::string_view PMDString) {
-	if (PMDString.empty() || PMDString == "-" || PMDString == "default") {
-		for (size_t i = 0; i < NReadGroups; ++i) { _pModels.push_back(&_noPMD); }
-	} else {
-		_withPMD.reserve(NReadGroups);
-		for (size_t i = 0; i < NReadGroups; ++i) {
-			_withPMD.emplace_back(PMDString);
-			_pModels.push_back(&_withPMD.back());
-		}
+void TModels::initialize(size_t NReadGroups, std::string_view PMDString, const BAM::TReadGroupMap &rgMap) {
+	_withPMD.reserve(NReadGroups);
+	for (size_t i = 0; i < NReadGroups; ++i) {
+		_withPMD.emplace_back(PMDString);
+		_pModels.push_back(&_withPMD.back());
 	}
+	_pool(rgMap);
 }
-
 
 void TModels::initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo) {
 	using BAM::RGInfo::InfoType;
@@ -47,7 +43,7 @@ void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
 	}
 }
 
-void TModels::pool(const BAM::TReadGroupMap& rgMap) {
+void TModels::_pool(const BAM::TReadGroupMap& rgMap) {
 	if (!hasPMD()) UERROR("No point pooling models that do not recalibrate!");
 	for (size_t rg = 0; rg < _pModels.size(); ++rg) {
 		const auto pIndex = rgMap.pooledIndex(rg);

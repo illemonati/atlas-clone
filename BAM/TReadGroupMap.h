@@ -33,11 +33,7 @@ public:
 	TReadGroupMap(std::string_view Name, const TReadGroups &ReadGroups, std::string_view Type = "");
 
 	size_t size() const { return _readGroupMap.size(); };
-	size_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };
-
-	size_t operator[](size_t rg) const { return _readGroupMap[rg]; };
 	size_t pooledIndex(size_t rg) const { return _readGroupMap[rg]; };
-	bool inUse(size_t rg) const { return _readGroupMap[rg] == rg; };
 
 	const std::vector<size_t> &readGroupsInUse() const { return _readGroupsInUse; };
 	const std::vector<size_t> &readGroupsPooledWith(size_t rg) const { return _reverseReadGroupMap[rg]; };

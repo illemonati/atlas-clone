@@ -443,22 +443,9 @@ void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLC
 	_sequenceAndQualitiesChanged = true;
 };
 
-void TAlignment::setIsProperPair(const bool &ok) { _flags.setIsProperPair(ok); };
+void TAlignment::setIsProperPair(bool ok) { _flags.setIsProperPair(ok); };
 
-/*
-void TAlignment::updateOptionalSamField(std::string tag, float value){
-	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "f", value);
-	else bamAlignment.EditTag(tag, "f", value);
-	changed = true;
-};
-
-void TAlignment::updateOptionalSamField(std::string tag, std::string value){
-	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "Z", value);
-	else bamAlignment.EditTag(tag, "Z", value);
-};
-*/
-
-void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKeep) {
+void TAlignment::downsampleAlignment(coretools::Probability fractionToKeep) {
 	for (auto &b : _bases) {
 		double r = coretools::instances::randomGenerator().getRand();
 		if (r > fractionToKeep) {

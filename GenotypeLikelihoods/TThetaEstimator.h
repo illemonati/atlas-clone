@@ -139,7 +139,7 @@ public:
 	void add(const TWindow &window, const TErrorModels &glCalculator);
 	long sizeWithData() { return _data->sizeWithData(); };
 	bool estimateTheta();
-	void setTheta(const double Theta);
+	void setTheta(double Theta);
 	void setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities &BaseFreq);
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix = "");
 	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out);

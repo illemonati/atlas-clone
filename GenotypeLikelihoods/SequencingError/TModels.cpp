@@ -30,7 +30,7 @@ std::pair<std::string_view, std::string_view> epsRho(std::string_view s) {
 
 } // namespace impl
 
-void TModels::pool(const BAM::TReadGroupMap& rgMap) {
+void TModels::_pool(const BAM::TReadGroupMap& rgMap) {
 	if (!recalibrates()) UERROR("No point pooling models that do not recalibrate!");
 	for (size_t rg = 0; rg < _pModels.size(); ++rg) {
 		const auto pIndex = rgMap.pooledIndex(rg);
@@ -41,27 +41,15 @@ void TModels::pool(const BAM::TReadGroupMap& rgMap) {
 	}
 }
 
-void TModels::_initializeNoRecal(size_t NReadGroups) {
-	_pModels.clear();
-	_withRecal.clear();
-
-	for(size_t i = 0; i < NReadGroups; ++i){
-		_pModels.push_back(RGModels({&_noRecal, &_noRecal}));
+void TModels::initialize(size_t NReadGroups, std::string_view RecalString, const BAM::TReadGroupMap &rgMap) {
+	_withRecal.reserve(NReadGroups * 2); // 2 mates per readgroup
+	_pModels.reserve(NReadGroups);
+	for (size_t i = 0; i < NReadGroups; ++i) {
+		auto &first  = _withRecal.emplace_back(RecalString);
+		auto &second = _withRecal.emplace_back(RecalString);
+		_pModels.push_back(RGModels({&first, &second}));
 	}
-}
-
-void TModels::initialize(size_t NReadGroups, std::string_view RecalString, std::string_view RhoString) {
-	if (RecalString.empty() || RecalString == "-" || RecalString == "default") {
-		_initializeNoRecal(NReadGroups);
-	} else {
-		_withRecal.reserve(NReadGroups * 2); // 2 mates per readgroup
-		_pModels.reserve(NReadGroups);
-		for (size_t i = 0; i < NReadGroups; ++i) {
-			auto &first  = _withRecal.emplace_back(RecalString, RhoString);
-			auto &second = _withRecal.emplace_back(RecalString, RhoString);
-			_pModels.push_back(RGModels({&first, &second}));
-		}
-	}
+	_pool(rgMap);
 }
 
 void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {

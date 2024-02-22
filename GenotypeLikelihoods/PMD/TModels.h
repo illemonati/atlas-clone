@@ -24,12 +24,12 @@ private:
 	std::vector<TWithPMD> _withPMD;
 	TNoPMD _noPMD;
 	std::vector<TModel*> _pModels;
+	void _pool(const BAM::TReadGroupMap& rgMap);
 
 public:
-	void initialize(size_t NReadGroups, std::string_view PMDString = "");
+	void initialize(size_t NReadGroups, std::string_view PMDString, const BAM::TReadGroupMap& rgMap);
 	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
 
-	void pool(const BAM::TReadGroupMap& rgMap);
 	void reset(size_t rgID) noexcept {
 		_pModels[rgID] = &_noPMD;
 	}

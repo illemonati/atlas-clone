@@ -178,8 +178,8 @@ public:
 	void removeSoftClippedBases(size_t maxNumberOfSoftClippedBases);
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
-	void setIsProperPair(const bool &ok);
-	void downsampleAlignment(const coretools::Probability &fraction);
+	void setIsProperPair(bool ok);
+	void downsampleAlignment(coretools::Probability fraction);
 	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
 };
 

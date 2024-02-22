@@ -75,10 +75,8 @@ TErrorEstimator::TErrorEstimator()
 
 	logfile().list("Initial recal model: ", recalModel);
 	logfile().list("Initial pmd model: ", pmdModel);
-	_recal.initialize(_recalMap.size(), recalModel);
-	_recal.pool(_recalMap);
-	_pmd.initialize(_pmdMap.size(), pmdModel);
-	_pmd.pool(_pmdMap);
+	_recal.initialize(_recalMap.size(), recalModel, _recalMap);
+	_pmd.initialize(_pmdMap.size(), pmdModel, _pmdMap);
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");

@@ -493,7 +493,7 @@ bool TThetaEstimator::estimateTheta() {
 	return true;
 }
 
-void TThetaEstimator::setTheta(const double Theta) { _theta.set(Theta); };
+void TThetaEstimator::setTheta(double Theta) { _theta.set(Theta); };
 
 void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities &BaseFreq) {
 	_theta.baseFreq = BaseFreq;

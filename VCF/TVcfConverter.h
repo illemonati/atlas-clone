@@ -343,7 +343,8 @@ public:
 
 struct TVCFConverter {
 	void run() {
-		using namespace coretools::instances;
+		using coretools::instances::parameters;
+		using coretools::instances::logfile;
 		std::string format = parameters().get<std::string>("format");
 
 		if (format == "beagle") {

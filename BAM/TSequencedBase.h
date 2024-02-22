@@ -52,9 +52,9 @@ public:
 	Mate mate() const noexcept {return static_cast<Mate>(flags.get<1>());}
 	bool isAligned() const noexcept { return flags.get<2>(); }
 
-	void setReverseStrand(const bool status) noexcept  { flags.set<0>(status); }
-	void setSecondMate(const bool status) noexcept  { flags.set<1>(status); }
-	void setAligned(const bool status) noexcept  { flags.set<2>(status); }
+	void setReverseStrand(bool status) noexcept  { flags.set<0>(status); }
+	void setSecondMate(bool status) noexcept  { flags.set<1>(status); }
+	void setAligned(bool status) noexcept  { flags.set<2>(status); }
 
 	bool operator==(genometools::Base b) const noexcept { return base == b; }
 	bool operator!=(genometools::Base b) const noexcept { return base != b; }

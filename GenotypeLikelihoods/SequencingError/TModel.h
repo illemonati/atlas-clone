@@ -69,7 +69,7 @@ private:
 	TRho _rho;
 	TEpsilon _epsilon;
 public:
-	TWithRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
+	TWithRecal(std::string_view EpsilonDef, std::string_view RhoDef = "")
 		: _rho(RhoDef), _epsilon(EpsilonDef) {}
 	TWithRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 

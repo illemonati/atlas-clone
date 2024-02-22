@@ -91,14 +91,14 @@ public:
 	void closeOutput();
 	void writeAlignment(const BAM::TAlignment & alignment);
 	// write dummy alignments where sequence and qualities are shuffled all the time
-	virtual void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag = false);
-	void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, const bool & complicatedSamFlag = false);
-	void writeDummyAlignment(const genometools::TGenomePosition & position, size_t length, const bool & complicatedSamFlag = false);
-	void writeDummyAlignment(const genometools::TGenomePosition & position, const bool & complicatedSamFlag = false);
-	virtual void writeDummyAlignments(size_t numAlignments, const bool & complicatedSamFlag = false);
+	virtual void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, bool isReverseStrand, bool complicatedSamFlag = false);
+	void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, bool complicatedSamFlag = false);
+	void writeDummyAlignment(const genometools::TGenomePosition & position, size_t length, bool complicatedSamFlag = false);
+	void writeDummyAlignment(const genometools::TGenomePosition & position, bool complicatedSamFlag = false);
+	virtual void writeDummyAlignments(size_t numAlignments, bool complicatedSamFlag = false);
 
     // write dummy alignments where sequence and qualities are same within one alignment
-    void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, const bool & isReverseStrand);
+    void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, bool isReverseStrand);
     void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar);
     void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition & position, size_t length);
     void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition & position);
@@ -127,8 +127,8 @@ public:
     TTestBamFilePairedEnd(const std::vector<size_t> ChrLength, size_t NumReadGroups);
     TTestBamFilePairedEnd(const std::string & Filename, const std::vector<size_t> ChrLength, size_t NumReadGroups);
 
-    void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag = false) override;
-    void writeDummyAlignments(size_t numAlignments, const bool & complicatedSamFlag) override;
+    void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, bool isReverseStrand, bool complicatedSamFlag = false) override;
+    void writeDummyAlignments(size_t numAlignments, bool complicatedSamFlag) override;
 };
 
 }; //end namespace
