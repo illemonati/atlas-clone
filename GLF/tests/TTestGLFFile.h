@@ -35,8 +35,8 @@ protected:
     long _dummyPos; long _dummyDist; long _dummyMaxDist;
     size_t _dummyDepth; size_t _dummyMaxDepth;
     uint8_t _dummy_RMS_mappingQual; size_t _dummyMax_RMS_mappingQual;
-    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoods{1.};
-    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoodsHaploid{1.};
+    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoods{coretools::P(1.)};
+    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoodsHaploid{coretools::P(1.)};
 
     void _iteratePosition();
     void _iterateDepth();

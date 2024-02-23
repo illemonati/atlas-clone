@@ -6,6 +6,7 @@
 #include "GenotypeFunctions.h"
 
 namespace GLF {
+using coretools::P;
 
 void TTestGLFFile::_initialize(const std::vector<size_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy) {
     if (ChrLength.size() != ChrPloidy.size())
@@ -24,7 +25,7 @@ void TTestGLFFile::_initialize(const std::vector<size_t>& ChrLength, const std::
 
     // initialize all entries of _writtenGenotypeLikelihoodsWithMissingSites with missing
     for (size_t pos = 0; pos < _chromosomes.referenceLength(); pos++){
-	    _writtenGenotypeLikelihoodsWithMissingSites.emplace_back(1.);
+	    _writtenGenotypeLikelihoodsWithMissingSites.emplace_back(P(1.));
     }
 };
 
@@ -70,8 +71,8 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(size_t curDepth) {
     std::vector<genometools::Base> possibleBases = {Base::A, Base::C, Base::G, Base::T};
     uint8_t indexPossibleBases = 0;
 
-    coretools::Probability error = 0.01;
-    coretools::Probability maxError = 0.25;
+	coretools::Probability error{0.01};
+    const coretools::Probability maxError{0.25};
 
     // simulate a site with different base and errors
     std::vector<GenotypeLikelihoods::TBaseLikelihoods> bases;
@@ -83,9 +84,9 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(size_t curDepth) {
 
         // iterate, such that next base gets different values
         indexPossibleBases = (indexPossibleBases + 3) % possibleBases.size();
-        error = error + 0.02;
+        error = P(error + 0.02);
         if (error > maxError)
-            error = 0.01;
+            error = P(0.01);
     }
 
     // fill genotype likelihood

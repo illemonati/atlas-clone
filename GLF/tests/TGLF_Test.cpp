@@ -70,7 +70,7 @@ public:
 		std::vector<GenotypeLikelihoods::TBaseLikelihoods> bases;
 		bases.reserve(10);
 		Base base                    = Base::C;
-		coretools::Probability error = 0.001;
+		coretools::Probability error{0.001};
 		for (size_t d = 0; d < 10; d++) {
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);

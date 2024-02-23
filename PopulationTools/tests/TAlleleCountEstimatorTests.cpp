@@ -9,6 +9,7 @@
 using namespace testing;
 using namespace genometools;
 using namespace PopulationTools;
+using coretools::logP;
 
 class TSiteAlleleFrequencyLikelihoods_Test : public Test {
 public:
@@ -74,9 +75,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid) {
 	// check against results from R
 	// 1) log allele frequency likelihoods
 	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {
-		-3.11211114923584,  -1.66754787999198, -0.686247040081626, -0.619649775043733, 0,
-		-0.874674287024046, -1.36107447309946, -2.27572980058999,  -2.83296540780635,  -3.92855654614028,
-		-5.41469624222989};
+		logP(-3.11211114923584), logP(-1.66754787999198), logP(-0.686247040081626), logP(-0.619649775043733), logP(0),
+		logP(-0.874674287024046),      logP(-1.36107447309946), logP(-2.27572980058999),  logP(-2.83296540780635),  logP(-3.92855654614028),
+		logP(-5.41469624222989)};
 	EXPECT_EQ(estimatedLogAlleleFrequencyLikelihoods.size(), estimatedLogAlleleFrequencyLikelihoods_fromR.size());
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i].scale(max),
@@ -102,17 +103,17 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedRef) {
 
 	// check against results from R
 	// 1) log allele frequency likelihoods
-	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {0,
-																						   -2.30258509299405,
-																						   -3.91202300542815,
-																						   -5.52146091786225,
-																						   -6.82551718074516,
-																						   -8.10224933935353,
-																						   -9.12810227373921,
-																						   -10.1266311038503,
-																						   -10.8197782844103,
-																						   -11.5129254649702,
-	                                                                                       -11.5129254649702};
+	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {logP(0),
+		logP(-2.30258509299405),
+		logP(-3.91202300542815),
+		logP(-5.52146091786225),
+		logP(-6.82551718074516),
+		logP(-8.10224933935353),
+		logP(-9.12810227373921),
+		logP(-10.1266311038503),
+		logP(-10.8197782844103),
+		logP(-11.5129254649702),
+		logP(-11.5129254649702)};
 	EXPECT_EQ(estimatedLogAlleleFrequencyLikelihoods.size(), estimatedLogAlleleFrequencyLikelihoods_fromR.size());
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i], estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
@@ -137,17 +138,17 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedAlt) {
 
 	// check against results from R
 	// 1) log allele frequency likelihoods
-	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {-11.5129254649702,
-																						   -11.5129254649702,
-																						   -10.8197782844103,
-																						   -10.1266311038503,
-																						   -9.12810227373921,
-																						   -8.10224933935353,
-																						   -6.82551718074516,
-																						   -5.52146091786225,
-																						   -3.91202300542815,
-																						   -2.30258509299405,
-	                                                                                       0};
+	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {logP(-11.5129254649702),
+																						   logP(-11.5129254649702),
+																						   logP(-10.8197782844103),
+																						   logP(-10.1266311038503),
+																						   logP(-9.12810227373921),
+																						   logP(-8.10224933935353),
+																						   logP(-6.82551718074516),
+																						   logP(-5.52146091786225),
+																						   logP(-3.91202300542815),
+																						   logP(-2.30258509299405),
+																						   logP(0)};
 	EXPECT_EQ(estimatedLogAlleleFrequencyLikelihoods.size(), estimatedLogAlleleFrequencyLikelihoods_fromR.size());
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i], estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
@@ -178,7 +179,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid) {
 	// check against results from R
 	// 1) log allele frequency likelihoods
 	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {
-		-2.36113697994366, -0.95995400633002, 0, -1.24268938477478, -2.86531806099098, -4.66372207293771};
+		logP(-2.36113697994366), logP(-0.95995400633002), logP(0), logP(-1.24268938477478), logP(-2.86531806099098), logP(-4.66372207293771)};
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(lkh[i].scale(max), estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
@@ -203,7 +204,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_refFixed) {
 	// check against results from R
 	// 1) log allele frequency likelihoods
 	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {
-		0, -2.30258509299405, -4.60517018598809, -6.90775527898214, -9.21034037197618, -11.5129254649702};
+		logP(0), logP(-2.30258509299405), logP(-4.60517018598809), logP(-6.90775527898214), logP(-9.21034037197618), logP(-11.5129254649702)};
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i], estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
@@ -228,7 +229,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_altFixed) {
 	// check against results from R
 	// 1) log allele frequency likelihoods
 	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {
-		-11.5129254649702, -9.21034037197618, -6.90775527898214, -4.60517018598809, -2.30258509299405, 0};
+		logP(-11.5129254649702), logP(-9.21034037197618), logP(-6.90775527898214), logP(-4.60517018598809), logP(-2.30258509299405), logP(0)};
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i], estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
@@ -259,8 +260,8 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid) {
 	// check against results from R
 	// 1) log allele frequency likelihoods
 	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {
-		-3.48187285612952,  -2.08624716758074, -1.17671963502976, -0.826181680011293, 0,
-		-0.826181680011293, -1.17671963502976, -2.08624716758074, -3.48187285612952};
+		logP(-3.48187285612952),  logP(-2.08624716758074), logP(-1.17671963502976), logP(-0.826181680011293), logP(0),
+		logP(-0.826181680011293), logP(-1.17671963502976), logP(-2.08624716758074), logP(-3.48187285612952)};
 	for (size_t i = 0; i < lkh.size(); i++) {
 		EXPECT_FLOAT_EQ(lkh[i].scale(max), estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
@@ -285,15 +286,15 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid_RefFixed) {
 
 	// check against results from R
 	// 1) log allele frequency likelihoods
-	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {0,
-																						   -2.30258509299405,
-																						   -3.93004151093082,
-																						   -5.5486119069282,
-																						   -6.88236604497732,
-																						   -8.18072095479502,
-																						   -9.27678547138433,
-																						   -10.3342704686286,
-	                                                                                       -11.5129254649702};
+	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {logP(0),
+		logP(-2.30258509299405),
+		logP(-3.93004151093082),
+		logP(-5.5486119069282),
+		logP(-6.88236604497732),
+		logP(-8.18072095479502),
+		logP(-9.27678547138433),
+		logP(-10.3342704686286),
+		logP(-11.5129254649702)};
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i], estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
@@ -319,9 +320,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid_AltFixed) {
 	// check against results from R
 	// 1) log allele frequency likelihoods
 	std::vector<coretools::LogProbability> estimatedLogAlleleFrequencyLikelihoods_fromR = {
-	    -11.5129254649702, -10.3342704686286, -9.27678547138433,
-	    -8.18072095479502, -6.88236604497732, -5.5486119069282,
-	    -3.93004151093082, -2.30258509299405, 0};
+	    logP(-11.5129254649702), logP(-10.3342704686286), logP(-9.27678547138433),
+	    logP(-8.18072095479502), logP(-6.88236604497732), logP(-5.5486119069282),
+	    logP(-3.93004151093082), logP(-2.30258509299405), logP(0)};
 	for (size_t i = 0; i < estimatedLogAlleleFrequencyLikelihoods_fromR.size(); i++) {
 		EXPECT_FLOAT_EQ(estimatedLogAlleleFrequencyLikelihoods[i], estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
