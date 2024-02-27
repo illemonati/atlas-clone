@@ -55,8 +55,9 @@ private:
 	bool _printAll          = false;
 	bool _genomeWide        = false;
 
-	bool _onlyBootstraps    = false;
-	size_t _numBootstraps = 0;
+	bool _onlyBootstraps   = false;
+	size_t _numBootstraps  = 0;
+	size_t _totMaskedSites = 0;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _startChromosome(const genometools::TChromosome&) override {}

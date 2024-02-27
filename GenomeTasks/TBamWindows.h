@@ -23,7 +23,6 @@ class TBamWindows {
 
 	bool _doMasking;
 	genometools::TBed _mask;
-	size_t _totMasked=0;
 
 	bool _applyDepthFilter;
 	bool _filterCpG;
@@ -64,7 +63,6 @@ public:
 	size_t downsampleDepth() const noexcept {return _downsampleDepth;}
 	size_t uptoDepth() const noexcept {return _upToDepth;}
 	size_t windowSize() const noexcept {return _windowSize;}
-	size_t totMaskedSites() const noexcept {return _totMasked;}
 	bool considerRegions() const noexcept {return _considerRegions;}
 	template<bool Poly>
 	auto& subset() {

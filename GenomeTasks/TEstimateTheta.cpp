@@ -166,6 +166,7 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// estimate on full data
 	bool pass = false;
+	_totMaskedSites += window.numMaskedSites();
 	if (_printFullData) {
 		logfile().startIndent("Using full data:");
 
@@ -242,15 +243,15 @@ void TEstimateTheta::run() {
 			//std::string filename = _genome.outputName() + "_thetaGenomeWide.txt.gz";
 			//_thetaOut.open(&_thetaEstimator, filename);
 			if (_windows.considerRegions()) {
-				_thetaOut.write("regions", "-", "-", _windows.totMaskedSites());
+				_thetaOut.write("regions", "-", "-", _totMaskedSites);
 			} else {
-				_thetaOut.write("genome-wide", "-", "-", _windows.totMaskedSites());
+				_thetaOut.write("genome-wide", "-", "-", _totMaskedSites);
 			}
 			logfile().endIndent();
 		}
 
 		// bootstrap
-		if (_numBootstraps > 0) { _bootstrapThetaEstimation(_windows.totMaskedSites()); }
+		if (_numBootstraps > 0) { _bootstrapThetaEstimation(_totMaskedSites); }
 	}
 };
 
