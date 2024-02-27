@@ -168,13 +168,14 @@ void TThetaEstimatorData::addToHeader(std::vector<std::string> &header, const st
 	header.push_back(prefix + "frac2x+");
 };
 
-void TThetaEstimatorData::writeSite(coretools::TOutputFile &out) {
+void TThetaEstimatorData::writeSite(coretools::TOutputFile &out, size_t NumMaskedSites) {
+	const auto realSize = _numSites - NumMaskedSites;
 	if (_isBootstrapped()) {
-		out.write("NA", _numSites, _numSitesData, "NA", double(_numSites - _numSitesData)/_numSites, "NA");
+		out.write("NA", realSize, _numSitesData, "NA", double(realSize - _numSitesData)/realSize, "NA");
 		// out << "NA"; //TODO: check if this NA is needed.
 	} else {
-		out.write(_cumulativeDepth/_numSites, _numSites, _numSitesData, _numSites2x,
-				  double(_numSites - _numSitesData)/_numSites, double(_numSites2x)/_numSites);
+		out.write(_cumulativeDepth/realSize, realSize, _numSitesData, _numSites2x,
+				  double(realSize - _numSitesData)/realSize, double(_numSites2x)/realSize);
 	}
 };
 

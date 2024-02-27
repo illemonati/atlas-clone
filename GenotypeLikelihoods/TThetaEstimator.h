@@ -143,7 +143,7 @@ public:
 	void setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities &BaseFreq);
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix = "");
 	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out);
-	void writeResultsToFile(coretools::TOutputFile &out);
+	void writeResultsToFile(coretools::TOutputFile &out, size_t NumMaskedSites);
 	void calcLikelihoodSurface(coretools::TOutputFile &out, size_t steps);
 	void bootstrapTheta();
 };
@@ -207,8 +207,8 @@ protected:
 		_out.writeHeader(header);
 	};
 
-	void _writeEstimates() {
-		for (TThetaEstimator *est : _thetaEstimators) { est->writeResultsToFile(_out); }
+	void _writeEstimates(size_t NumMaskedSites) {
+		for (TThetaEstimator *est : _thetaEstimators) { est->writeResultsToFile(_out, NumMaskedSites); }
 		_out.endln();
 	};
 
@@ -246,12 +246,12 @@ public:
 
 	void write(const TWindow &window) {
 		_out.write(window.chrName(), window.from().position() + 1, window.to().position());
-		_writeEstimates();
+		_writeEstimates(window.numMaskedSites());
 	};
 
-	void write(const std::string &chr, const std::string &start, const std::string &end) {
+	void write(const std::string &chr, const std::string &start, const std::string &end, size_t TotMaskedSites) {
 		_out << chr << start << end;
-		_writeEstimates();
+		_writeEstimates(TotMaskedSites);
 	};
 };
 

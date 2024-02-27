@@ -207,7 +207,7 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	}
 };
 
-void TEstimateTheta::_bootstrapThetaEstimation() {
+void TEstimateTheta::_bootstrapThetaEstimation(size_t TotMaskedSites) {
 	logfile().startIndent("Generating " + toString(_numBootstraps) + " bootstrap estimates of theta:");
 
 	// measure runtime
@@ -219,8 +219,8 @@ void TEstimateTheta::_bootstrapThetaEstimation() {
 
 		// run bootstrap
 		_thetaEstimator.bootstrapTheta();
-			for (auto& e: estimators) e.bootstrapTheta();
-		_thetaOut.write("Bootstrap_" + toString(s + 1), "-", "-");
+		for (auto &e : estimators) e.bootstrapTheta();
+		_thetaOut.write("Bootstrap_" + toString(s + 1), "-", "-", TotMaskedSites);
 
 		logfile().endIndent();
 	}
@@ -242,15 +242,15 @@ void TEstimateTheta::run() {
 			//std::string filename = _genome.outputName() + "_thetaGenomeWide.txt.gz";
 			//_thetaOut.open(&_thetaEstimator, filename);
 			if (_windows.considerRegions()) {
-				_thetaOut.write("regions", "-", "-");
+				_thetaOut.write("regions", "-", "-", _windows.totMaskedSites());
 			} else {
-				_thetaOut.write("genome-wide", "-", "-");
+				_thetaOut.write("genome-wide", "-", "-", _windows.totMaskedSites());
 			}
 			logfile().endIndent();
 		}
 
 		// bootstrap
-		if (_numBootstraps > 0) { _bootstrapThetaEstimation(); }
+		if (_numBootstraps > 0) { _bootstrapThetaEstimation(_windows.totMaskedSites()); }
 	}
 };
 

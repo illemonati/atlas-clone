@@ -541,9 +541,9 @@ void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &o
 	}
 };
 
-void TThetaEstimator::writeResultsToFile(coretools::TOutputFile &out) {
+void TThetaEstimator::writeResultsToFile(coretools::TOutputFile &out, size_t NumMaskedSites) {
 	// number of sites
-	_data->writeSite(out);
+	_data->writeSite(out, NumMaskedSites);
 
 	// estimated params
 	writeEstimateFrequenciesAndTheta(out);

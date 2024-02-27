@@ -94,7 +94,7 @@ public:
 	size_t sizeWithData() { return _numSitesData; };
 
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix);
-	void writeSite(coretools::TOutputFile &out);
+	void writeSite(coretools::TOutputFile &out, size_t NumMaskedSites);
 	TBaseProbabilities baseFrequencies();
 
 	double fisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype);

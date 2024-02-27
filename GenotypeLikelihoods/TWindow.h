@@ -180,6 +180,7 @@ public:
 
 	size_t numReadsInWindow() const noexcept { return _numReadsInWindow; };
 	double depth() const noexcept;
+	size_t numMaskedSites() const noexcept {return _numMaskedSites;}
 	void dataSummary() const noexcept;
 	bool filter(double maxFracMissing, double maxRefN);
 	bool passedFilters() const noexcept { return _passedFilters; };

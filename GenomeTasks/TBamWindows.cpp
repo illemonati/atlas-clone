@@ -231,6 +231,7 @@ void TBamWindows::filter(GenotypeLikelihoods::TWindow &window) {
 			const auto N = window.applyMask(_mask, _considerRegions);
 			logfile().list("Masking ", N, " sites outside regions.");
 		}
+		_totMasked += window.numMaskedSites();
 
 		// filter sites
 		if (_applyDepthFilter) { window.applyDepthFilter(_depthFilter); }

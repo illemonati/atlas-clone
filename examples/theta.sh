@@ -25,7 +25,7 @@ $atlas --task theta --bam ATLAS_simulations.bam --prob 1,0.5 \
 
 # theta genomewide
 $atlas --task theta --genomeWide --bootstraps 3  --window 4567 \
-	   --bam ATLAS_simulations.bam --extraVerbose \
+	   --bam ATLAS_simulations.bam --extraVerbose  --regions bed.bed \
 	   --fixedSeed 0 --out genomewide --logFile genomewide.out
 
 # theta genomewide with downsample

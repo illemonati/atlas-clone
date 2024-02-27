@@ -64,7 +64,7 @@ private:
 
 	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 
-	void _bootstrapThetaEstimation();
+	void _bootstrapThetaEstimation(size_t TotMaskedSites);
 public:
 	TEstimateTheta();
 	void run();
