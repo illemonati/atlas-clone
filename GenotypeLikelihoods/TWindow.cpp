@@ -35,13 +35,13 @@ void TWindow::_calcDepth() const {
 			}
 		}
 
-		const auto realSize = size() - _numMaskedSites;
-		_depth /= realSize;
-		_fractionRefIsN /= realSize;
+		const auto N = numSites();
+		_depth /= N;
+		_fractionRefIsN /= N;
 
 		_numSitesWithData        = size() - noData;
-		_fractionSitesNoData     = (double)(noData - _numMaskedSites) / realSize;
-		_fractionDepthAtLeastTwo = (double)plentyData / realSize;
+		_fractionMissing         = (double)(noData - _numMaskedSites) / N;
+		_fractionDepthAtLeastTwo = (double)plentyData / N;
 	}
 }
 
@@ -182,7 +182,7 @@ void TWindow::dataSummary() const noexcept{
 	logfile().conclude("Read data from ",  _numReadsInWindow, " reads.");
 	logfile().conclude("Sequencing depth is ", _depth, ".");
 	logfile().conclude(_fractionDepthAtLeastTwo * 100, "% of all sites are covered at least twice.");
-	logfile().conclude(_fractionSitesNoData * 100, "% of all sites have no data.");
+	logfile().conclude(_fractionMissing * 100, "% of all sites have no data.");
 	if (_referenceBaseAdded) logfile().conclude(_fractionRefIsN * 100, "% of all sites have Ref = N.");
 };
 
@@ -193,7 +193,7 @@ bool TWindow::filter(double maxFracMissing, double maxRefN){
 	_calcDepth();
 
 	//filter window
-	if(_fractionSitesNoData > maxFracMissing){
+	if(_fractionMissing > maxFracMissing){
 		logfile().conclude("Level of missing data > threshold of ", maxFracMissing, " -> skipping this window.");
 		_passedFilters = false;
 	} else if(maxRefN < 1.0 && _referenceBaseAdded){

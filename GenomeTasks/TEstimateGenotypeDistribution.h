@@ -23,8 +23,8 @@ private:
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
 
-	double _runEM();
-	double _LL();
+	double _runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites);
+	double _LL(const std::vector<GenotypeLikelihoods::TSite>& Sites);
 
 public:
 	TEstimateGenotypeDistribution();

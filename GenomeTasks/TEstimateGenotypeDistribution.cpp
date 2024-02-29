@@ -1,6 +1,10 @@
 #include "TEstimateGenotypeDistribution.h"
 
+#include "TGenotypeDistribution.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSumLog.h"
+#include "genometools/GenotypeTypes.h"
 
 
 namespace GenomeTasks {
@@ -8,37 +12,60 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::P;
 using GenotypeLikelihoods::TGenotypeLikelihoods;
+using genometools::Base;
+using genometools::Genotype;
 
-double TEstimateGenotypeDistribution::_LL() {
+double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites) {
 	coretools::TSumLogProbability LL{};
-	for (auto &site : _sites) {
+	for (const auto &site : Sites) {
 		const auto ref = site.refBase;
+		if (site.empty() || ref == genometools::Base::N) continue;
 		TGenotypeLikelihoods P_g_I_di(P(1.));
-		size_t counter = 0;
 		for (auto &d_ij : site) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
 			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
-			const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
-			P_g_I_di *= P_dij_I_g;
-			if (++counter > 10) {
-				LL.add(coretools::normalize(P_g_I_di));
-				counter = 0;
+
+			if (_genoDist->isInvariant()) {
+				double max = 0.;
+				for (auto b = Base::min; b < Base::max; ++b) {
+					const auto g = genometools::genotype(b, b);
+					P_g_I_di[g] *= P_dij_I_b[b];
+					max = std::max<double>(max, P_g_I_di[g]);
+				}
+				if (max < 1e-2) {
+					LL.add(max);
+					for (auto b = Base::min; b < Base::max; ++b) {
+						const auto g = genometools::genotype(b, b);
+						P_g_I_di[g].scale(max);
+					}
+				}
+			} else {
+				const auto P_dij_I_g = GenotypeLikelihoods::base2genotype<genometools::Ploidy::diploid>(P_dij_I_b);
+				double max           = 0.;
+				for (auto g = Genotype::min; g < Genotype::max; ++g) {
+					P_g_I_di[g] *= P_dij_I_g[g];
+					max = std::max<double>(max, P_g_I_di[g]);
+				}
+				if (max < 1e-2) {
+					LL.add(max);
+					for (auto &p : P_g_I_di) p.scale(max);
+				}
 			}
 		}
 		LL.add(_genoDist->normalize_add(P_g_I_di, ref));
 	}
-	if (!std::isfinite(LL.getSum())) UERROR("LL = ", LL.getSum(), ", you may need to pool your readgroups!");
+	if (!std::isfinite(LL.getSum())) UERROR("LL = ", LL.getSum(), "!");
 	return LL.getSum();
 }
 
-double TEstimateGenotypeDistribution::_runEM() {
+double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
 	using coretools::str::toString;
 	// run EM
 	logfile().startIndent("Initial values:");
 	_genoDist->log();
 
 	// calculate initial LL
-	double oldLL   = _LL();
+	double oldLL   = _LL(Sites);
 	double deltaLL = abs(oldLL);
 	logfile().list("log Likelihood = ", oldLL);
 	logfile().endIndent();
@@ -50,7 +77,7 @@ double TEstimateGenotypeDistribution::_runEM() {
 		logfile().number("EM Iteration:");
 		_genoDist->estimate();
 
-		const double LL = _LL();
+		const double LL = _LL(Sites);
 		deltaLL         = LL - oldLL;
 
 		_genoDist->log();
@@ -76,17 +103,10 @@ double TEstimateGenotypeDistribution::_runEM() {
 }
 
 void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
-	_sites.clear();
-	size_t nReads = 0;
-	for (const auto &s : window) {
-		if (s.empty() || s.refBase == genometools::Base::N) continue;
-		_sites.emplace_back(s);
-		nReads += s.depth();
-	}
+	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(),
+			   window.numSites(), window.numSitesWithData(), window.fracMissing());
 
-	_out.write(window.chrName(), window.from().position(), window.to().position(), double(nReads)/_sites.size(),
-			   window.size(), _sites.size(), double(window.size() - _sites.size())/window.size());
-	const auto LL = _runEM();
+	const auto LL = _runEM(window.sites());
 	_genoDist->write(_out);
 	_out.writeln(LL);
 }
@@ -100,13 +120,15 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 	_windows.requireReference();
 	_numEMIterations = parameters().get<int>("iterations", 200);
 	_minDeltaLL      = parameters().get<double>("minDeltaLL", 1e-6);
-	if (parameters().exists("HKY85")) {
+	const size_t ploidy = parameters().get("ploidy", 2);
+	if (ploidy == 2) {
 		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>();
-		logfile().list("Using HKY85 Genotype Distribution. (parameter 'HKY85')");
+	} else if (ploidy == 1){
+		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85_mono>();
 	} else {
-		_genoDist = std::make_unique<GenotypeLikelihoods::TDiploidDistribution>();
-		logfile().list("Estimating 10 Genotypes. (use 'HKY85' for HKY85 model)");
+		UERROR("Cannot estimate a HK85 model with a ploidy of ", ploidy, "!");
 	}
+	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
 
 	std::vector<std::string> header{"Chr", "Start", "End", "depth", "numSites", "numSitesData", "fracMissing"};
 	_genoDist->addHeader(header);

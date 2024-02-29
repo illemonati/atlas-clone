@@ -46,7 +46,7 @@ private:
 	std::string _chrName;
 
 	mutable double _depth                   = 0;
-	mutable double _fractionSitesNoData     = 0.;
+	mutable double _fractionMissing         = 0.;
 	mutable double _fractionDepthAtLeastTwo = 0.;
 	mutable double _fractionRefIsN          = 0.;
 	mutable size_t _numSitesWithData        = 0;
@@ -180,12 +180,25 @@ public:
 
 	size_t numReadsInWindow() const noexcept { return _numReadsInWindow; };
 	double depth() const noexcept;
-	size_t numMaskedSites() const noexcept {return _numMaskedSites;}
+	size_t numMaskedSites() const noexcept {
+		_calcDepth();
+		return _numMaskedSites;
+	}
+	size_t numSites() const noexcept {return size() - numMaskedSites();}
+	size_t numSitesWithData() const noexcept {
+		_calcDepth();
+		return _numSitesWithData;
+	}
+	double fracMissing() const noexcept {
+		_calcDepth();
+		return _fractionMissing;
+	}
 	void dataSummary() const noexcept;
 	bool filter(double maxFracMissing, double maxRefN);
 	bool passedFilters() const noexcept { return _passedFilters; };
 
 	// loop over sites
+	const std::vector<TSite>& sites() const noexcept {return _sites;}
 	iterator begin() noexcept { return _sites.begin(); };
 	const_iterator begin() const noexcept { return _sites.begin(); };
 	const_iterator cbegin() const noexcept { return _sites.cbegin(); };
