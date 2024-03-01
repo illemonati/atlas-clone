@@ -18,8 +18,8 @@ using coretools::instances::randomGenerator;
 
 void TWindow::_calcDepth() const {
 	if(_depth == 0.0){
-		long noData     = 0;
-		long plentyData = 0;
+		size_t noData     = 0;
+		size_t plentyData = 0;
 		_fractionRefIsN = 0;
 
 		for(auto& s : _sites){
@@ -35,7 +35,7 @@ void TWindow::_calcDepth() const {
 			}
 		}
 
-		const auto N = numSites();
+		const auto N = _sites.size() - _numMaskedSites; // cannot use numSites() as this would be circular!
 		_depth /= N;
 		_fractionRefIsN /= N;
 
