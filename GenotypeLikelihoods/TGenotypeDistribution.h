@@ -40,6 +40,7 @@ public:
 	virtual bool isInvariant() const noexcept                                                          = 0;
 	virtual void addHeader(std::vector<std::string> &Header) const                                     = 0;
 	virtual void write(coretools::TOutputFile &Out) const                                              = 0;
+	virtual void reset()                                                                               = 0;
 };
 
 template<genometools::Ploidy P>
@@ -77,6 +78,7 @@ public:
 	bool isInvariant() const noexcept override {return true;}
 	virtual void addHeader(std::vector<std::string> &Header) const override;
 	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void reset() override;
 };
 
 class TDiploidDistribution final : public TGenotypeDistribution {
@@ -98,12 +100,17 @@ public:
 	bool isInvariant() const noexcept override {return false;}
 	virtual void addHeader(std::vector<std::string> &Header) const override;
 	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void reset() override;
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	coretools::Probability _mu{0.5};
-	double _theta_r            = 0.1;
-	double _theta_g            = 0.1;
+	constexpr static coretools::Probability _mu_init{0.5};
+	constexpr static double _theta_r_init = 0.1;
+	constexpr static double _theta_g_init = 0.1;
+
+	coretools::Probability _mu = _mu_init;
+	double _theta_r            = _theta_r_init;
+	double _theta_g            = _theta_g_init;
 
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
 	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
@@ -123,11 +130,15 @@ public:
 	bool isInvariant() const noexcept override {return false;}
 	virtual void addHeader(std::vector<std::string> &Header) const override;
 	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void reset() override;
 };
 
 class THKY85_mono final : public TGenotypeDistribution {
-	coretools::Probability _mu{0.5};
-	double _theta              = 0.0001;
+	constexpr static coretools::Probability _mu_init{0.5};
+	constexpr static double _theta_init = 0.0001;
+
+	coretools::Probability _mu = _mu_init;
+	double _theta              = _theta_init;
 
 	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _pi;
 	coretools::TStrongArray<TBaseData, genometools::Base> _likelihoodSum{};
@@ -147,6 +158,7 @@ public:
 	bool isInvariant() const noexcept override {return true;}
 	virtual void addHeader(std::vector<std::string> &Header) const override;
 	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void reset() override;
 };
 
 }; // namespace GenotypeLikelihoods

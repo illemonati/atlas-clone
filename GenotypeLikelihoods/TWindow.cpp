@@ -101,6 +101,7 @@ void TWindow::_fillSites(std::vector<TSite> &sites, size_t readUpToDepth) {
 
 int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const Probability & downsamplingProb) const {
 	sites.resize(size());
+	for (size_t i = 0; i < size(); ++i) sites[i].refBase = _sites[i].refBase;
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;
@@ -134,7 +135,6 @@ void TWindow::_clear(){
 }
 
 void TWindow::move(const genometools::TGenomeWindow & Window) {
-	assert(Window.refID() == refID());
 	genometools::TGenomeWindow::move(Window);
 	_clear();
 }

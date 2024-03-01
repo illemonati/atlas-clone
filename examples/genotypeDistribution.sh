@@ -10,13 +10,16 @@ for i in {1..13000}; do
 	echo "chr2 ${i}5 $((i+1))0" >> haplo.bed
 done
 
+probs="0.5"
+
 name=windows
-$atlas --task genotypeDistribution --window 15345 \
+$atlas --task genotypeDistribution --window 15345 --prob $probs \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
 	   --fixedSeed 0 --out $name --logFile $name.out
 
 name=diplo
 $atlas --task genotypeDistribution --window 15345 --regions diplo.bed --ploidy 2 \
+	   --prob "1.0,$probs" \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --genomeWide \
 	   --fixedSeed 0 --out $name --logFile $name.out
 

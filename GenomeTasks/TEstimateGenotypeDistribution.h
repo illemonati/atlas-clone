@@ -14,7 +14,8 @@ namespace GenomeTasks {
 class TEstimateGenotypeDistribution final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
-	std::vector<GenotypeLikelihoods::TSite> _sites;
+	std::vector<std::vector<GenotypeLikelihoods::TSite>> _sites_P;
+	std::vector<coretools::Probability> _probs;
 	size_t _numEMIterations;
 	double _minDeltaLL;
 	bool _genomeWide       = false;

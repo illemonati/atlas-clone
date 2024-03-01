@@ -5,9 +5,9 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSumLog.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include <iterator>
-
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
@@ -63,6 +63,8 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
 	using coretools::str::toString;
 	// run EM
+	_genoDist->reset();
+	logfile().startIndent("Estimating ", _genoDist->typeString(), ":");
 	logfile().startIndent("Initial values:");
 	_genoDist->log();
 
@@ -101,21 +103,51 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 
 	// finalize
 	logfile().endNumbering();
+	_genoDist->write(_out);
+	logfile().endIndent();
 	return oldLL;
 }
 
 void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	if (_genomeWide) {
 		_totMaskedSites += window.numMaskedSites();
-		_sites.reserve(_sites.size() + window.size());
-		std::copy(window.begin(), window.end(), std::back_inserter(_sites));
+
+		// full P
+		auto &site   = _sites_P.front();
+		site.reserve(site.size() + window.size());
+		std::copy(window.begin(), window.end(), std::back_inserter(site));
+
+		// downsample
+		for (size_t i = 1; i < _sites_P.size(); ++i) {
+			const auto p = _probs[i - 1];
+			auto &site   = _sites_P[i];
+			logfile().list("Downsampling reads to probability ", p, ".");
+			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+			_windows.filter(downsampled);
+			site.reserve(site.size() + downsampled.size());
+			std::copy(downsampled.begin(), downsampled.end(), std::back_inserter(site));
+		}
 	} else {
+		// full P
 		_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(),
 		           window.numSites(), window.numSitesWithData(), window.fracMissing());
 
+		logfile().list("Using full data.");
 		const auto LL = _runEM(window.sites());
-		_genoDist->write(_out);
-		_out.writeln(LL);
+		_out.write(LL);
+
+		// downsample
+		for (const auto p: _probs) {
+			logfile().list("Downsampling reads to probability ", p, ".");
+			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+			_windows.filter(downsampled);
+
+			_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(), downsampled.fracMissing());
+			const auto LL = _runEM(downsampled.sites());
+			_out.write(LL);
+		}
+
+		_out.endln();
 	}
 }
 
@@ -123,52 +155,81 @@ void TEstimateGenotypeDistribution::run() {
 	_traverseBAMWindows();
 	if (_genomeWide) {
 		if (_windows.considerRegions()) {
-			_out.write("regions");
+			_out.write("regions", "-", "-");
 		} else {
-			_out.write("genome-wide");
+			_out.write("genome-wide", "-", "-");
 		}
+		for (const auto& sites : _sites_P) {
+			const auto NSites = sites.size() - _totMaskedSites;
+			size_t NData      = 0;
+			size_t NMissing   = 0;
 
-		const auto NSites = _sites.size() - _totMaskedSites;
-		size_t NData = 0;
-		size_t NMissing = 0;
-		for (const auto& s: _sites) {
-			NData += s.depth();
-			if (s.empty()) ++NMissing;
+			for (const auto &s : sites) {
+				NData += s.depth();
+				if (s.empty()) ++NMissing;
+			}
+			_out.write(double(NData) / NSites, NSites, sites.size() - NMissing, double(NMissing - _totMaskedSites) / NSites);
+
+			const auto LL = _runEM(sites);
+			_out.write(LL);
 		}
-
-		_out.write("-", "-", NData / NSites, NSites, _sites.size() - NMissing, double(NMissing - _totMaskedSites) / NSites);
-
-		const auto LL = _runEM(_sites);
-		_genoDist->write(_out);
-		_out.writeln(LL);
+		_out.endln();
 	}
 }
 
-
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
+	using coretools::str::toString;
 	_windows.requireReference();
-	_numEMIterations = parameters().get<int>("iterations", 200);
-	_minDeltaLL      = parameters().get<double>("minDeltaLL", 1e-6);
-	const size_t ploidy = parameters().get("ploidy", 2);
+
+	_numEMIterations  = parameters().get<int>("iterations", 200);
+	_minDeltaLL       = parameters().get<double>("minDeltaLL", 1e-6);
+	const auto ploidy = parameters().get("ploidy", 2);
+
 	if (ploidy == 2) {
 		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>();
-	} else if (ploidy == 1){
+	} else if (ploidy == 1) {
 		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85_mono>();
 	} else {
 		UERROR("Cannot estimate a HK85 model with a ploidy of ", ploidy, "!");
-	}
+	} 
 	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
 
+	// Downsample?
+	if (parameters().exists("prob")) {
+		parameters().fill("prob", _probs);
+		if (_probs.front() == 1.) {
+			// we will do the full probability anyway
+			_probs.erase(_probs.begin());
+		}
+		logfile().list("Will do downsampling experiment using all data, and downsampling with probabilities ", _probs, ". (parameter 'prob')");
+	} else {
+		logfile().list("Will not do downsampling. (use parameter 'prob')");
+	}
+
+	// genomewide?
 	_genomeWide = parameters().exists("genomeWide");
 	if (_genomeWide) {
 		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
+		_sites_P.resize(_probs.size() + 1); // full P and downsample
 	} else {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
 	}
 
-	std::vector<std::string> header{"Chr", "Start", "End", "depth", "numSites", "numSitesData", "fracMissing"};
-	_genoDist->addHeader(header);
-	header.push_back("LL");
+	// Output file
+	std::vector<std::string> header{"Chr", "Start", "End"};
+	const auto sp = _probs.empty() ? "": "_p1.0";
+	header.insert(header.end(), {toString("depth", sp), toString("numSites", sp), toString("numSitesData", sp), toString("fracMissing", sp)});
+	_genoDist->addHeader(header); //, sp);
+	header.push_back(toString("LL", sp));
+
+	for (const auto p : _probs) {
+		const auto sp = toString("_p", p);
+		header.insert(header.end(), {toString("depth", sp), toString("numSites", sp), toString("numSitesData", sp),
+									 toString("fracMissing", sp)});
+		_genoDist->addHeader(header); //, sp);
+		header.push_back(toString("LL", sp));
+	}
+
 	_out.open(_genome.outputName() + ".txt.gz");
 	_out.writeHeader(header);
 }

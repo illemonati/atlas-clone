@@ -6,6 +6,7 @@
  */
 
 #include "TGenotypeDistribution.h"
+#include "GenotypeData.h"
 #include "coretools/Math/mathFunctions.h"
 
 #include <armadillo>
@@ -143,6 +144,11 @@ void THaploidDistribution::write(coretools::TOutputFile &Out) const {
 	
 }
 
+void THaploidDistribution::reset() {
+	_piSum.fill(0.);
+	_pi = TBaseProbabilities::normalize(_piSum);
+}
+
 TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);
 }
@@ -182,6 +188,11 @@ void TDiploidDistribution::estimate() {
 	}
 
 	_piSum.fill(0.);
+}
+
+void TDiploidDistribution::reset() {
+	_piSum.fill(0.);
+	_pi = _pi_init;
 }
 
 void TDiploidDistribution::log() const {
@@ -273,6 +284,14 @@ void THKY85::write(coretools::TOutputFile &Out) const {
 	Out.write(_mu, _theta_r, _theta_g, impl::het(_mu, _theta_g));
 }
 
+void THKY85::reset() {
+	_likelihoodSum.fill({});
+	_mu      = _mu_init;
+	_theta_r = _theta_r_init;
+	_theta_g = _theta_g_init;
+	_pi      = impl::piTable(_mu, _theta_r, _theta_g);
+}
+
 TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return base2genotype<genometools::Ploidy::haploid>(baseLikelihoods);
 }
@@ -327,11 +346,17 @@ void THKY85_mono::log() const {
 void THKY85_mono::addHeader(std::vector<std::string> &Header) const {
 	Header.push_back("mu");
 	Header.push_back("theta");
-	Header.push_back("het");
 }
 
 void THKY85_mono::write(coretools::TOutputFile &Out) const {
-	Out.write(_mu, _theta, impl::het(_mu, _theta));
+	Out.write(_mu, _theta);
+}
+
+void THKY85_mono::reset() {
+	_likelihoodSum.fill({});
+	_mu    = _mu_init;
+	_theta = _theta_init;
+	_pi    = impl::piTable(_mu, _theta);
 }
 
 }; // namespace GenotypeLikelihoods
