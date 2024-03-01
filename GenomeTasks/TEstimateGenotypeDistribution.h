@@ -17,6 +17,8 @@ private:
 	std::vector<GenotypeLikelihoods::TSite> _sites;
 	size_t _numEMIterations;
 	double _minDeltaLL;
+	bool _genomeWide       = false;
+	size_t _totMaskedSites = 0;
 	coretools::TOutputFile _out;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;

@@ -2,9 +2,11 @@
 
 #include "TGenotypeDistribution.h"
 #include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSumLog.h"
 #include "genometools/GenotypeTypes.h"
+#include <iterator>
 
 
 namespace GenomeTasks {
@@ -103,16 +105,43 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 }
 
 void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
-	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(),
-			   window.numSites(), window.numSitesWithData(), window.fracMissing());
+	if (_genomeWide) {
+		_totMaskedSites += window.numMaskedSites();
+		_sites.reserve(_sites.size() + window.size());
+		std::copy(window.begin(), window.end(), std::back_inserter(_sites));
+	} else {
+		_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(),
+		           window.numSites(), window.numSitesWithData(), window.fracMissing());
 
-	const auto LL = _runEM(window.sites());
-	_genoDist->write(_out);
-	_out.writeln(LL);
+		const auto LL = _runEM(window.sites());
+		_genoDist->write(_out);
+		_out.writeln(LL);
+	}
 }
 
 void TEstimateGenotypeDistribution::run() {
 	_traverseBAMWindows();
+	if (_genomeWide) {
+		if (_windows.considerRegions()) {
+			_out.write("regions");
+		} else {
+			_out.write("genome-wide");
+		}
+
+		const auto NSites = _sites.size() - _totMaskedSites;
+		size_t NData = 0;
+		size_t NMissing = 0;
+		for (const auto& s: _sites) {
+			NData += s.depth();
+			if (s.empty()) ++NMissing;
+		}
+
+		_out.write("-", "-", NData / NSites, NSites, _sites.size() - NMissing, double(NMissing - _totMaskedSites) / NSites);
+
+		const auto LL = _runEM(_sites);
+		_genoDist->write(_out);
+		_out.writeln(LL);
+	}
 }
 
 
@@ -129,6 +158,13 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 		UERROR("Cannot estimate a HK85 model with a ploidy of ", ploidy, "!");
 	}
 	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
+
+	_genomeWide = parameters().exists("genomeWide");
+	if (_genomeWide) {
+		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
+	} else {
+		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
+	}
 
 	std::vector<std::string> header{"Chr", "Start", "End", "depth", "numSites", "numSitesData", "fracMissing"};
 	_genoDist->addHeader(header);

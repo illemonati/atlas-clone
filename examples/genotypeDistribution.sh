@@ -17,10 +17,10 @@ $atlas --task genotypeDistribution --window 15345 \
 
 name=diplo
 $atlas --task genotypeDistribution --window 15345 --regions diplo.bed --ploidy 2 \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --genomeWide \
 	   --fixedSeed 0 --out $name --logFile $name.out
 
 name=haplo
 $atlas --task genotypeDistribution --window 15345 --regions haplo.bed --ploidy 1 \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --genomeWide \
 	   --fixedSeed 0 --out $name --logFile $name.out

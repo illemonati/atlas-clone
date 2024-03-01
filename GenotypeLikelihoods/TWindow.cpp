@@ -39,7 +39,7 @@ void TWindow::_calcDepth() const {
 		_depth /= N;
 		_fractionRefIsN /= N;
 
-		_numSitesWithData        = size() - noData;
+		_numSitesWithData        = _sites.size() - noData;
 		_fractionMissing         = (double)(noData - _numMaskedSites) / N;
 		_fractionDepthAtLeastTwo = (double)plentyData / N;
 	}
