@@ -57,7 +57,7 @@ TPileup::TPileup() {
 		// parse output fields
 		logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
 		const auto tmp = parameters().get<std::vector<std::string>>(
-		    "fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
+		    "fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods", "hml"});
 		std::set<std::string> fields(tmp.begin(), tmp.end());
 
 		_printSettings.set<Print::Depth>(impl::parseField(fields, "depth", "Sequencing depth"));
@@ -68,6 +68,7 @@ TPileup::TPileup() {
 		_printSettings.set<Print::Mates>(impl::parseField(fields, "mates", "Mate information"));
 		_printSettings.set<Print::Strand>(impl::parseField(fields, "strands", "Strand information"));
 		_printSettings.set<Print::Likelihoods>(impl::parseField(fields, "likelihoods", "Genotype likelihoods"));
+		_printSettings.set<Print::HML>(impl::parseField(fields, "hml", "Heterozygot is most likely"));
 		logfile().endIndent();
 
 		// check if unknown fields were given
@@ -123,6 +124,10 @@ TPileup::TPileup() {
 		if (_printSettings.get<Print::Likelihoods>()) {
 			using GT = genometools::Genotype;
 			for (auto g = GT::min; g < GT::max; ++g) header.push_back("P(D|" + genometools::toString(g) + ")");
+			header.push_back("mostLikelyGenotype");
+		}
+		if (_printSettings.get<Print::HML>()) {
+			header.push_back("hetMostLikely");
 		}
 
 		_out.writeHeader(header);
@@ -244,9 +249,15 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 				const auto strandCounts = site.countFwdRev();
 				_out.write(strandCounts);
 			}
-			if (_printSettings.get<Print::Likelihoods>()) {
+			if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
 				const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
-				_out.write(genoLik);
+				auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
+				if (_printSettings.get<Print::Likelihoods>()) {
+					_out.write(genoLik, genometools::toString(g));
+				}
+				if (_printSettings.get<Print::HML>()) {
+					_out.write(genometools::isHeterozygous(g));
+				}
 			}
 			_out.endln();
 		}

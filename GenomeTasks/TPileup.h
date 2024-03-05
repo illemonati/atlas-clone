@@ -29,7 +29,7 @@ private:
 	coretools::TCountDistributionVector<> _qualDist;
 	coretools::TCountDistributionVector<> _contextDist;
 
-	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, max};
+	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
 	coretools::TStrongBitSet<Print> _printSettings;
 
 	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, max};
