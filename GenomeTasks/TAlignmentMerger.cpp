@@ -668,7 +668,6 @@ void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &Mate) {
 
 	// add alignment to container
 	_waitingList.back().status = AlignmentStatus::ready;
-	std::stable_sort(_waitingList.begin(), _waitingList.end());
 }
 
 void TAlignmentSplitMerger::_handleSingle(){

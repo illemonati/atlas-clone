@@ -34,6 +34,7 @@ void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 void TWaitingListBamTraverser::_writeAll() {
 	// write everything and mark reads with missing mates as improper.
 	// reads still in storage are no-proper pairs: write or add to black list
+	std::stable_sort(_waitingList.begin(), _waitingList.end());
 	for (auto &s : _waitingList) { _writeOrFilter(s); }
 	_waitingList.clear();
 
@@ -42,6 +43,7 @@ void TWaitingListBamTraverser::_writeAll() {
 }
 
 void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &position) {
+	std::stable_sort(_waitingList.begin(), _waitingList.end());
 	// writes all that are ready or too far away
 	auto it = _waitingList.begin();
 
@@ -158,99 +160,94 @@ TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 
 void TWaitingListBamTraverser::traverseBAM() {
 	// open writer
-	_genome.bamFile().setExternalFilterReason("Orphan");
+	auto& bamFile = _genome.bamFile();
+	bamFile.setExternalFilterReason("Orphan");
 
 	// now parse BAM file
-	_genome.bamFile().startProgressReporting();
-	while (_genome.bamFile().readNextAlignment()) {
+	bamFile.startProgressReporting();
+	while (bamFile.readNextAlignment()) {
+		bamFile.printProgress();
 		// if on new chromosome, empty storage
-		if (_genome.bamFile().chrChanged()) {
+		if (bamFile.chrChanged()) {
 			// write all ready currently in storage
 			_writeAll();
 		}
 
 		// check if first alignment in storage is too far away from current alignment
 		// if yes, first alignment in storage is considered an orphan
-		_writeUpTo(_genome.bamFile().curPosition());
+		_writeUpTo(bamFile.curPosition());
 
 		// check if read passed filters
-		if (_genome.bamFile().curPassedQC()) {
-			const genometools::TGenomeWindow alnWin(_genome.bamFile().curPosition(),
-													_genome.bamFile().curCIGAR().lengthRead());
-			// if single end, unchanged and storage is empty: write directly
-			if (_alignmentCanBeWrittenUnchanged()) {
-				if (_doMasking && _mask.overlaps(alnWin)) continue;
-				if (_considerRegions && !_mask.overlaps(alnWin)) continue;
+		if (!bamFile.curPassedQC()) {
+			// need to store in blacklist if it was paired
+			if (bamFile.curIsProperPair()) { _blacklist.add(bamFile.curName()); }
+			continue;
+		}
+		const genometools::TGenomeWindow alnWin(bamFile.curPosition(),
+												bamFile.curCIGAR().lengthRead());
+		if (_alignmentCanBeWrittenUnchanged()) {
+			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) continue;
 
-				_genome.bamFile().writeCurAlignment(_outBam);
+			bamFile.writeCurAlignment(_outBam);
+			continue;
+		}
+		// parse alignment
+		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::orphan);
+		auto &alignment = _waitingList.back().alignment;
+
+		if (_removeSoftClippedBases) {
+			// parse and then remove softclipped reads
+			alignment.parse();
+			alignment.removeSoftClippedBases(_maxNumberOfSoftClippedBases);
+		}
+
+		// if read is paired, check for mate
+		if (alignment.isPaired()) {
+			// if mate is in blacklist: add as improper pair for writing
+			if (_blacklist.isInBlacklist(alignment.name())) {
+				// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
+				// alignment->setIsProperPair(false);
+				_blacklist.remove(alignment.name());
 			} else {
-				// parse alignment
-				_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::orphan);
-				auto& alignment = _waitingList.back().alignment;
-
-				if (_removeSoftClippedBases) {
-					// parse and then remove softclipped reads
-					alignment.parse();
-					alignment.removeSoftClippedBases(_maxNumberOfSoftClippedBases);
-				}
-
-				// if read is paired, check for mate
-				if (alignment.isPaired()) {
-					// if mate is in blacklist: add as improper pair for writing
-					if (_blacklist.isInBlacklist(alignment.name())) {
-						// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
-						// alignment->setIsProperPair(false);
-						_blacklist.remove(alignment.name());
-					} else {
-						// check if mate is in storage.
-						auto mate = std::find_if(
-							_waitingList.begin(), _waitingList.end() - 1,
-							[alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
-						if (mate == _waitingList.end() - 1) {
-							// waiting for 2nd mate
-							if (!alignment.isProperPair()) {
-								_blacklist.add(alignment.name()); // add to blacklist and ready to write
-							}
-						} else {
-							// both mates available
-							if (alignment.readGroupId() != mate->alignment.readGroupId()) {
-								UERROR("Mates '", alignment.name(), "' are in different read groups!");
-							}
-							const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
-							if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
-							    (_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
-								_waitingList.back().status = AlignmentStatus::filterOut;
-								mate->status               = AlignmentStatus::filterOut;
-							} else {
-								_handleMates(*mate);
-							}
-						}
+				// check if mate is in storage.
+				auto mate = std::find_if(_waitingList.begin(), _waitingList.end() - 1, [alignment](const auto &wa) {
+					return wa.alignment.name() == alignment.name();
+				});
+				if (mate == _waitingList.end() - 1) {
+					// waiting for 2nd mate
+					if (!alignment.isProperPair()) {
+						_blacklist.add(alignment.name()); // add to blacklist and ready to write
 					}
 				} else {
-					// read is single end
-					if ((_doMasking && _mask.overlaps(alnWin)) ||
-						(_considerRegions && !_mask.overlaps(alnWin))) {
+					// both mates available
+					if (alignment.readGroupId() != mate->alignment.readGroupId()) {
+						UERROR("Mates '", alignment.name(), "' are in different read groups!");
+					}
+					const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
+					if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
+						(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
 						_waitingList.back().status = AlignmentStatus::filterOut;
+						mate->status               = AlignmentStatus::filterOut;
 					} else {
-						_handleSingle();
+						_handleMates(*mate);
 					}
 				}
 			}
 		} else {
-			// Did not pass QC: filter out
-			// need to store in blacklist if it was paired
-			if (_genome.bamFile().curIsProperPair()) { _blacklist.add(_genome.bamFile().curName()); }
+			// read is single end
+			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
+				_waitingList.back().status = AlignmentStatus::filterOut;
+			} else {
+				_handleSingle();
+			}
 		}
-
-		// report
-		_genome.bamFile().printProgress();
 	}
 
 	// write reads still in storage
 	_writeAll();
 
 	// done parsing bam file: report
-	_genome.bamFile().printSummary(_genome.outputName());
+	bamFile.printSummary(_genome.outputName());
 }
 
 } // namespace GenomeTasks
