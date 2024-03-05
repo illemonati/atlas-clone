@@ -17,7 +17,10 @@ using GenotypeLikelihoods::TGenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
 
+
+
 double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites) {
+	const auto isInvariant = _genoDist->isInvariant();
 	coretools::TSumLogProbability LL{};
 	for (const auto &site : Sites) {
 		const auto ref = site.refBase;
@@ -27,7 +30,7 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
 			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 
-			if (_genoDist->isInvariant()) {
+			if (isInvariant) {
 				double max = 0.;
 				for (auto b = Base::min; b < Base::max; ++b) {
 					const auto g = genometools::genotype(b, b);
@@ -110,22 +113,39 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 
 void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	if (_genomeWide) {
+		_totSites       += window.size();
 		_totMaskedSites += window.numMaskedSites();
 
 		// full P
-		auto &site   = _sites_P.front();
-		site.reserve(site.size() + window.size());
-		std::copy(window.begin(), window.end(), std::back_inserter(site));
+		auto &sites = _sites_P.front();
+		auto &stat  = _stats.front();
+		for (const auto &site : window) {
+			stat.NData += site.depth();
+			if (site.empty() || site.refBase == Base::N) {
+				++stat.NMissing;
+			} else {
+				sites.push_back(site);
+			}
+		}
 
 		// downsample
 		for (size_t i = 1; i < _sites_P.size(); ++i) {
 			const auto p = _probs[i - 1];
-			auto &site   = _sites_P[i];
+			auto &sites  = _sites_P[i];
+			auto &stat   = _stats[i];
+
 			logfile().list("Downsampling reads to probability ", p, ".");
 			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
 			_windows.filter(downsampled);
-			site.reserve(site.size() + downsampled.size());
-			std::copy(downsampled.begin(), downsampled.end(), std::back_inserter(site));
+
+			for (const auto &site : downsampled) {
+				stat.NData += site.depth();
+				if (site.empty() || site.refBase == Base::N) {
+					++stat.NMissing;
+				} else {
+					sites.push_back(site);
+				}
+			}
 		}
 	} else {
 		// full P
@@ -159,16 +179,11 @@ void TEstimateGenotypeDistribution::run() {
 		} else {
 			_out.write("genome-wide", "-", "-");
 		}
-		for (const auto& sites : _sites_P) {
-			const auto NSites = sites.size() - _totMaskedSites;
-			size_t NData      = 0;
-			size_t NMissing   = 0;
-
-			for (const auto &s : sites) {
-				NData += s.depth();
-				if (s.empty()) ++NMissing;
-			}
-			_out.write(double(NData) / NSites, NSites, sites.size() - NMissing, double(NMissing - _totMaskedSites) / NSites);
+		const auto NSites = _totSites - _totMaskedSites;
+		for (size_t i = 0; i < _sites_P.size(); ++i) {
+			const auto& sites = _sites_P[i];
+			const auto& stat  = _stats[i];
+			_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing, double(stat.NMissing - _totMaskedSites) / NSites);
 
 			const auto LL = _runEM(sites);
 			_out.write(LL);
@@ -211,6 +226,7 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 	if (_genomeWide) {
 		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
 		_sites_P.resize(_probs.size() + 1); // full P and downsample
+		_stats.resize(_probs.size() + 1);
 	} else {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
 	}
