@@ -110,16 +110,33 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 	logfile().endIndent();
 	return oldLL;
 }
+void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
+	_totSites += window.size();
+	_totMaskedSites += window.numMaskedSites();
 
-void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
-	if (_genomeWide) {
-		_totSites       += window.size();
-		_totMaskedSites += window.numMaskedSites();
+	// full P
+	auto &sites = _sites_P.front();
+	auto &stat  = _stats.front();
+	for (const auto &site : window) {
+		stat.NData += site.depth();
+		if (site.empty() || site.refBase == Base::N) {
+			++stat.NMissing;
+		} else {
+			sites.push_back(site);
+		}
+	}
 
-		// full P
-		auto &sites = _sites_P.front();
-		auto &stat  = _stats.front();
-		for (const auto &site : window) {
+	// downsample
+	for (size_t i = 1; i < _sites_P.size(); ++i) {
+		const auto p = _probs[i - 1];
+		auto &sites  = _sites_P[i];
+		auto &stat   = _stats[i];
+
+		logfile().list("Downsampling reads to probability ", p, ".");
+		GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+		_windows.filter(downsampled);
+
+		for (const auto &site : downsampled) {
 			stat.NData += site.depth();
 			if (site.empty() || site.refBase == Base::N) {
 				++stat.NMissing;
@@ -127,47 +144,38 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 				sites.push_back(site);
 			}
 		}
+	}
+}
 
-		// downsample
-		for (size_t i = 1; i < _sites_P.size(); ++i) {
-			const auto p = _probs[i - 1];
-			auto &sites  = _sites_P[i];
-			auto &stat   = _stats[i];
+void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
+	// full P
+	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
+			   window.numSitesWithData(), window.fracMissing());
 
-			logfile().list("Downsampling reads to probability ", p, ".");
-			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
-			_windows.filter(downsampled);
+	logfile().list("Using full data.");
+	const auto LL = _runEM(window.sites());
+	_out.write(LL);
 
-			for (const auto &site : downsampled) {
-				stat.NData += site.depth();
-				if (site.empty() || site.refBase == Base::N) {
-					++stat.NMissing;
-				} else {
-					sites.push_back(site);
-				}
-			}
-		}
-	} else {
-		// full P
-		_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(),
-		           window.numSites(), window.numSitesWithData(), window.fracMissing());
+	// downsample
+	for (const auto p : _probs) {
+		logfile().list("Downsampling reads to probability ", p, ".");
+		GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+		_windows.filter(downsampled);
 
-		logfile().list("Using full data.");
-		const auto LL = _runEM(window.sites());
+		_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
+				   downsampled.fracMissing());
+		const auto LL = _runEM(downsampled.sites());
 		_out.write(LL);
+	}
 
-		// downsample
-		for (const auto p: _probs) {
-			logfile().list("Downsampling reads to probability ", p, ".");
-			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
-			_windows.filter(downsampled);
+	_out.endln();
+}
 
-			_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(), downsampled.fracMissing());
-			const auto LL = _runEM(downsampled.sites());
-			_out.write(LL);
-		}
-
-		_out.endln();
+void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
+	if (_genomeWide) {
+		_handleGenomeWide(window);
+	} else {
+		_handlePerWindow(window);
 	}
 }
 

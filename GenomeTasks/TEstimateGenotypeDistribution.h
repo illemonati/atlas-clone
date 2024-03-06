@@ -31,6 +31,9 @@ private:
 	size_t _totSites       = 0;
 	coretools::TOutputFile _out;
 
+	void _handleGenomeWide(GenotypeLikelihoods::TWindow& window);
+	void _handlePerWindow(GenotypeLikelihoods::TWindow& window);
+
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
