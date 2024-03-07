@@ -38,8 +38,8 @@ public:
 	virtual std::string_view typeString() const noexcept                                               = 0;
 	virtual void log() const                                                                           = 0;
 	virtual bool isInvariant() const noexcept                                                          = 0;
-	virtual void addHeader(std::vector<std::string> &Header) const                                     = 0;
-	virtual void write(coretools::TOutputFile &Out) const                                              = 0;
+	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const            = 0;
+	virtual std::vector<double> pis() const                                                            = 0;
 	virtual void reset()                                                                               = 0;
 };
 
@@ -76,8 +76,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return true;}
-	virtual void addHeader(std::vector<std::string> &Header) const override;
-	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
+	std::vector<double> pis() const override;
 	virtual void reset() override;
 };
 
@@ -98,8 +98,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return false;}
-	virtual void addHeader(std::vector<std::string> &Header) const override;
-	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
+	std::vector<double> pis() const override;
 	virtual void reset() override;
 };
 
@@ -128,8 +128,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return false;}
-	virtual void addHeader(std::vector<std::string> &Header) const override;
-	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
+	std::vector<double> pis() const override;
 	virtual void reset() override;
 };
 
@@ -156,8 +156,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return true;}
-	virtual void addHeader(std::vector<std::string> &Header) const override;
-	virtual void write(coretools::TOutputFile &Out) const override;
+	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
+	std::vector<double> pis() const override;
 	virtual void reset() override;
 };
 

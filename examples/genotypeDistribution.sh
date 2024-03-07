@@ -24,6 +24,7 @@ $atlas --task genotypeDistribution --prob "1.0,$probs"  --minDeltaLL 0.1 \
 	   --recal $recal --pmd $pmd --window 65432 \
 	   --fixedSeed 0 --out $name --logFile $name.out
 
+probs="0.5,0.2,0.1"
 name=diploRaw
 $atlas --task genotypeDistribution --genomeWide 3 --prob "$probs" --minDeltaLL 0.1 \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \

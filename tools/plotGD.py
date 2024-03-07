@@ -37,7 +37,7 @@ if __name__ == "__main__":
             if "mu" in key: imus.append(j)
             if "theta_g" in key: ithetas_g.append(j)
             if "theta_r" in key: ithetas_r.append(j)
-            if key.startswith("het"): ihets.append(j)
+            if key.endswith("het"): ihets.append(j)
         f.close()
 
         # get average and std
@@ -107,6 +107,7 @@ if __name__ == "__main__":
         ymi[0] = min(ymi[0], 10**(round(log10(min(mthetas_g))) - 1))
         yma[0] = max(yma[0], 10**(round(log10(max(mthetas_g))) + 1))
         plt.ylim(ymi[0], yma[0])
+        plt.tick_params('x', labelbottom=False)
 
         plt.subplot(412, sharex=ax1)
         plt.errorbar(mdepths, mthetas_r, xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6, label=label)
@@ -116,6 +117,7 @@ if __name__ == "__main__":
         ymi[1] = min(ymi[1], 10**(round(log10(min(mthetas_r))) - 1))
         yma[1] = max(yma[1], 10**(round(log10(max(mthetas_r))) + 1))
         plt.ylim(ymi[1], yma[1])
+        plt.tick_params('x', labelbottom=False)
 
         plt.subplot(413, sharex=ax1)
         plt.errorbar(mdepths, mmus, xerr=sdepths, yerr=smus, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6, label=label)
@@ -125,6 +127,7 @@ if __name__ == "__main__":
         ymi[2] = min(ymi[2], 10**(round(log10(min(mmus))) - 1))
         yma[2] = max(yma[2], 10**(round(log10(max(mmus))) + 1))
         plt.ylim(ymi[2], yma[2])
+        plt.tick_params('x', labelbottom=False)
 
         plt.subplot(414, sharex=ax1)
         plt.errorbar(mdepths, mhets, xerr=sdepths, yerr=shets, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6, label=label)
@@ -136,10 +139,11 @@ if __name__ == "__main__":
         plt.ylim(ymi[3], yma[3])
 
         # All
-        plt.xlabel(r"Depth")
-        plt.xlim(max(mdepths)*1.5, min(mdepths)/1.5)
-        plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
-        plt.legend()
+        if i == nFiles - 1:
+            plt.xlabel(r"Depth")
+            plt.xlim(max(mdepths)*1.5, min(mdepths)/1.5)
+            plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
+            plt.legend()
 
     plt.show()
     #plt.savefig(args.files[0].split('_')[0] + ".png")
