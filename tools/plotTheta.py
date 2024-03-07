@@ -20,6 +20,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # get header and cols
     nFiles = len(args.files)
+    ymi    = 10.
+    yma    = 0.
     for i, file in enumerate(args.files):
         label = file.split("_theta.txt.gz")[0]
         f      = gzip.open(file)
@@ -81,23 +83,22 @@ if __name__ == "__main__":
         print("depth:", mdepths)
         print("theta:", mthetas)
 
-        filesPerPlots = nFiles/args.nPlots
-        iPlot = int(i/filesPerPlots) + 1
-        plt.subplot(args.nPlots, 1, iPlot)
-
         plt.errorbar(mdepths, mthetas, xerr=sdepths, yerr=sthetas, fmt=fmts[i], markersize=mks[i],linewidth=2, capsize=6, label=label)
         plt.hlines(mthetas[0], 0, 1.5*max(mdepths), plt.gca().lines[-1].get_color(), "dashed")
         print(plt.gca().lines[-1].get_color())
-        if iPlot < int((i+1)/filesPerPlots) + 1:
-            plt.xscale("log")
-            plt.yscale("log")
-            plt.ylabel(r"$\theta$")
-            if iPlot == args.nPlots:
-                plt.xlabel(r"Depth")
-            plt.xlim(max(mdepths)*1.5, min(mdepths)/1.5)
-            plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
-            plt.legend()
-            plt.ylim(args.yMin, args.yMax)
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.ylabel(r"$\theta$")
+        plt.xlabel(r"Depth")
+        plt.xlim(max(mdepths)*1.5, min(mdepths)/1.5)
+        plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
+        plt.legend()
+        mthetas = r_[mthetas]
+        mth_nz = mthetas[nonzero(mthetas)]
+        ymi = min(ymi, 10**(round(log10(min(mth_nz))) - 1))
+        yma = max(ymi, 10**(round(log10(max(mth_nz))) + 1))
+        print(ymi, yma)
+        plt.ylim(ymi, yma)
 
     plt.show()
     #plt.savefig(args.files[0].split('_')[0] + ".png")
