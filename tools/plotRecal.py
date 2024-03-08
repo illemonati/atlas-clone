@@ -26,7 +26,7 @@ if __name__ == "__main__":
     for i, fn in enumerate(fns):
         eta = fn(xs)
         ax1 = plt.subplot(311)
-        plt.plot(xs, eta, label=r"$f_" + str(i+1) + r"}$ = " + args.models[i])
+        plt.plot(xs, eta, label=r"$f_{" + str(i+1) + r"}$ = " + args.models[i])
         plt.tick_params('x', labelbottom=False)
         plt.ylabel(r"logit(Error)")
         plt.legend()
