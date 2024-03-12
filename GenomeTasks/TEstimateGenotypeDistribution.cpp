@@ -71,7 +71,7 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 
 	// calculate initial LL
 	double oldLL   = _LL(Sites);
-	double deltaLL = abs(oldLL);
+	double deltaLL = std::abs(oldLL);
 	logfile().list("log Likelihood = ", oldLL);
 	logfile().endIndent();
 

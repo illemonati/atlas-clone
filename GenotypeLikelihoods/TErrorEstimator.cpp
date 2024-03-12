@@ -308,7 +308,7 @@ void TErrorEstimator::_runEM() {
 
 	// calculate initial LL
 	double oldLL   = _calculateLL_updatePg();
-	double deltaLL = abs(oldLL);
+	double deltaLL = std::abs(oldLL);
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
 	// running iterations
