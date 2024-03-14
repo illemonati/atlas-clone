@@ -526,6 +526,9 @@ void TBamFile::startProgressReporting(bool indent) const {
 }
 
 void TBamFile::printProgress() const {
+	if (_chrChanged) {
+		logfile().list("Parsing Chromomsome ", _curChromosome->name(), ".");
+	}
 	if (_numAlignmentRead - _lastProgressPrinted >= _progressFrequency) {
 		logfile().list("Parsed " + impl::millionReadsRead(_numAlignmentRead) + " million reads (est. " +
 					   coretools::str::toStringWithPrecision((100.*_bamReader.Tell())/_fileSize, 2) + "%) in " +
