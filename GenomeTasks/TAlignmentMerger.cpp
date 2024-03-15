@@ -595,6 +595,7 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 
 TAlignmentSplitMerger::TAlignmentSplitMerger() : TWaitingListBamTraverser("_splitMerged.bam") {
 	//parse read group settings
+	_needsSort = true;
 	_rgSettings.initialize(_genome.bamFile().readGroupsMutable());
 
 	//allow for reads to exceed max cycle length?

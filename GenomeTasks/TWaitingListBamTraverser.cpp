@@ -1,7 +1,6 @@
 #include "TWaitingListBamTraverser.h"
 
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 
 namespace GenomeTasks {
@@ -43,7 +42,7 @@ void TWaitingListBamTraverser::_writeAll() {
 }
 
 void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &position) {
-	std::stable_sort(_waitingList.begin(), _waitingList.end());
+	if (_needsSort) std::stable_sort(_waitingList.begin(), _waitingList.end());
 	// writes all that are ready or too far away
 	auto it = _waitingList.begin();
 
@@ -183,14 +182,25 @@ void TWaitingListBamTraverser::traverseBAM() {
 			if (bamFile.curIsProperPair()) { _blacklist.add(bamFile.curName()); }
 			continue;
 		}
+
 		const genometools::TGenomeWindow alnWin(bamFile.curPosition(),
 												bamFile.curCIGAR().lengthRead());
 		if (_alignmentCanBeWrittenUnchanged()) {
-			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) continue;
-
-			bamFile.writeCurAlignment(_outBam);
+			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
+				// ignore
+			} else {
+				bamFile.writeCurAlignment(_outBam);
+			}
 			continue;
 		}
+
+		if(_blacklist.isInBlacklist(bamFile.curName())) {
+			// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
+			// alignment->setIsProperPair(false);
+			_blacklist.remove(bamFile.curName());
+			continue;
+		}
+
 		// parse alignment
 		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::orphan);
 		auto &alignment = _waitingList.back().alignment;
@@ -204,33 +214,26 @@ void TWaitingListBamTraverser::traverseBAM() {
 		// if read is paired, check for mate
 		if (alignment.isPaired()) {
 			// if mate is in blacklist: add as improper pair for writing
-			if (_blacklist.isInBlacklist(alignment.name())) {
-				// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
-				// alignment->setIsProperPair(false);
-				_blacklist.remove(alignment.name());
+			// check if mate is in storage.
+			auto mate = std::find_if(_waitingList.begin(), _waitingList.end() - 1,
+									 [alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
+			if (mate == _waitingList.end() - 1) {
+				// waiting for 2nd mate
+				if (!alignment.isProperPair()) {
+					_blacklist.add(alignment.name()); // add to blacklist and ready to write
+				}
 			} else {
-				// check if mate is in storage.
-				auto mate = std::find_if(_waitingList.begin(), _waitingList.end() - 1, [alignment](const auto &wa) {
-					return wa.alignment.name() == alignment.name();
-				});
-				if (mate == _waitingList.end() - 1) {
-					// waiting for 2nd mate
-					if (!alignment.isProperPair()) {
-						_blacklist.add(alignment.name()); // add to blacklist and ready to write
-					}
+				// both mates available
+				if (alignment.readGroupId() != mate->alignment.readGroupId()) {
+					UERROR("Mates '", alignment.name(), "' are in different read groups!");
+				}
+				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
+				if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
+					(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
+					_waitingList.back().status = AlignmentStatus::filterOut;
+					mate->status               = AlignmentStatus::filterOut;
 				} else {
-					// both mates available
-					if (alignment.readGroupId() != mate->alignment.readGroupId()) {
-						UERROR("Mates '", alignment.name(), "' are in different read groups!");
-					}
-					const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
-					if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
-						(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
-						_waitingList.back().status = AlignmentStatus::filterOut;
-						mate->status               = AlignmentStatus::filterOut;
-					} else {
-						_handleMates(*mate);
-					}
+					_handleMates(*mate);
 				}
 			}
 		} else {
