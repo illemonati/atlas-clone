@@ -34,7 +34,7 @@ private:
 protected:
 	TGenome _genome;
 	TParser _parser;
-	bool _needsSort = false;
+	bool _needsSort = true;
 
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
 	container _waitingList;

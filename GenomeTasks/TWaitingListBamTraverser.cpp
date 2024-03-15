@@ -175,6 +175,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 		// check if first alignment in storage is too far away from current alignment
 		// if yes, first alignment in storage is considered an orphan
 		_writeUpTo(bamFile.curPosition());
+		_needsSort = false;
 
 		// check if read passed filters
 		if (!bamFile.curPassedQC()) {
@@ -204,6 +205,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 		// parse alignment
 		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::orphan);
 		auto &alignment = _waitingList.back().alignment;
+		const auto nWaiting = _waitingList.size();
+		if (nWaiting > 1 && alignment < _waitingList[_waitingList.size() - 2].alignment) _needsSort = true;
 
 		if (_removeSoftClippedBases) {
 			// parse and then remove softclipped reads
@@ -233,6 +236,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 					_waitingList.back().status = AlignmentStatus::filterOut;
 					mate->status               = AlignmentStatus::filterOut;
 				} else {
+					//_needsSort |= _handleMates(*mate);
 					_handleMates(*mate);
 				}
 			}

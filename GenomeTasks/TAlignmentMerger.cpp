@@ -595,7 +595,6 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 
 TAlignmentSplitMerger::TAlignmentSplitMerger() : TWaitingListBamTraverser("_splitMerged.bam") {
 	//parse read group settings
-	_needsSort = true;
 	_rgSettings.initialize(_genome.bamFile().readGroupsMutable());
 
 	//allow for reads to exceed max cycle length?
@@ -646,13 +645,15 @@ void TAlignmentSplitMerger::_initializeMerger() {
 };
 
 void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &Mate) {
-	auto &alignment = _waitingList.back().alignment;
-	const auto type = _rgSettings.getType(alignment.readGroupId());
+	_waitingList.back().status = AlignmentStatus::ready;
+	auto &alignment            = _waitingList.back().alignment;
+	const auto type            = _rgSettings.getType(alignment.readGroupId());
 
 	if (type == ReadGroupType::single) {
 		UERROR("Paired reads found in single-end read group '",
 			   _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
-	} else if (!alignment.isProperPair()) {
+	}
+	if (!alignment.isProperPair()) {
 		// not a proper pair: mark mate as as improper too
 		Mate.alignment.setIsProperPair(false);
 		Mate.status = AlignmentStatus::ready;
@@ -666,9 +667,6 @@ void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &Mate) {
 		_merger->merge(alignment, Mate.alignment);
 		Mate.status = AlignmentStatus::ready;
 	}
-
-	// add alignment to container
-	_waitingList.back().status = AlignmentStatus::ready;
 }
 
 void TAlignmentSplitMerger::_handleSingle(){
