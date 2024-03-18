@@ -8,6 +8,13 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
+namespace impl {
+template<typename Container>
+void insert_sorted(Container &Vec, const typename Container::value_type &Item) {
+	Vec.insert(std::upper_bound(Vec.begin(), Vec.end(), Item), Item);
+}
+} // namespace impl
+
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 	if (WAlignment.status == AlignmentStatus::ready) {
 		_outBam.writeAlignment(WAlignment.alignment);
@@ -26,7 +33,6 @@ void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 void TWaitingListBamTraverser::_writeAll() {
 	// write everything and mark reads with missing mates as improper.
 	// reads still in storage are no-proper pairs: write or add to black list
-	std::stable_sort(_waitingList.begin(), _waitingList.end());
 	for (auto &s : _waitingList) {
 		if (s.status == AlignmentStatus::waiting) s.status = AlignmentStatus::orphan;
 		_writeOrFilter(s);
@@ -38,7 +44,6 @@ void TWaitingListBamTraverser::_writeAll() {
 }
 
 void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &position) {
-	if (_needsSort) std::stable_sort(_waitingList.begin(), _waitingList.end());
 	// writes all that are ready or too far away
 	auto it = _waitingList.begin();
 
@@ -54,17 +59,17 @@ void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &po
 	_waitingList.erase(_waitingList.begin(), it);
 }
 
-BAM::TAlignment TWaitingListBamTraverser::_parseIntoNewAlignment() {
-	BAM::TAlignment alignment;
-	_genome.bamFile().fill(alignment);
+TWaitingAlignment TWaitingListBamTraverser::_nextAlignment() {
+	TWaitingAlignment next;
+	_genome.bamFile().fill(next.alignment);
 	if (_recalibrate) {
 		if (_incorporatePMD) {
-			alignment.recalibrateWithPMD(_genome.errorModels());
+			next.alignment.recalibrateWithPMD(_genome.errorModels());
 		} else {
-			alignment.parse(_genome.errorModels().sequencingErrorModels());
+			next.alignment.parse(_genome.errorModels().sequencingErrorModels());
 		}
 	}
-	return alignment;
+	return next;
 }
 
 void TWaitingListBamTraverser::_setMasks(const genometools::TChromosomes& Chromosomes) {
@@ -165,13 +170,6 @@ void TWaitingListBamTraverser::traverseBAM() {
 	// now parse BAM file
 	bamFile.startProgressReporting();
 	while (bamFile.readNextAlignment()) {
-		int i = _waitingList.size() - 1;
-		while (i > 0 && _waitingList[i] < _waitingList[i - 1]) {
-			// make sure last alignment is in correct position
-			std::swap(_waitingList[i], _waitingList[i - 1]);
-			--i;
-		}
-		_needsSort = false;
 		bamFile.printProgress();
 		// if on new chromosome, empty storage
 		if (bamFile.chrChanged()) {
@@ -182,7 +180,6 @@ void TWaitingListBamTraverser::traverseBAM() {
 		// check if first alignment in storage is too far away from current alignment
 		// if yes, first alignment in storage is considered an orphan
 		_writeUpTo(bamFile.curPosition());
-		_needsSort = false;
 
 		// check if read passed filters
 		if (!bamFile.curPassedQC()) {
@@ -202,12 +199,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 			continue;
 		}
 
-		// parse alignment
-		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::waiting);
-		auto &back          = _waitingList.back();
-		auto &alignment     = back.alignment;
-		const auto nWaiting = _waitingList.size();
-		if (nWaiting > 1 && alignment < _waitingList[nWaiting - 2].alignment) _needsSort = true;
+		auto next       = _nextAlignment();
+		auto &alignment = next.alignment;
 
 		if (_removeSoftClippedBases) {
 			// parse and then remove softclipped reads
@@ -216,9 +209,9 @@ void TWaitingListBamTraverser::traverseBAM() {
 		}
 
 		if(_blacklist.isInBlacklist(alignment.name())) {
-			// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
-			// alignment->setIsProperPair(false);
 			_blacklist.remove(alignment.name());
+			next.status = AlignmentStatus::orphan;
+			impl::insert_sorted(_waitingList, next);
 			continue;
 		}
 
@@ -226,7 +219,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 		if (alignment.isPaired()) {
 			// if mate is in blacklist: add as improper pair for writing
 			// check if mate is in storage.
-			auto mate = std::find_if(_waitingList.rbegin() + 1, _waitingList.rend(),
+			auto mate = std::find_if(_waitingList.rbegin(), _waitingList.rend(),
 									 [alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
 			if (mate == _waitingList.rend()) {
 				// waiting for 2nd mate
@@ -241,20 +234,37 @@ void TWaitingListBamTraverser::traverseBAM() {
 				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
 				if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
 					(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
-					back.status  = AlignmentStatus::filterOut;
+					next.status  = AlignmentStatus::filterOut;
 					mate->status = AlignmentStatus::filterOut;
 				} else {
-					_handleMates(back, *mate);
+					const auto pMate = mate->alignment.position();
+					_handleMates(next, *mate);
+					if (mate->alignment.position() > pMate) {
+						// !! reverse iterator
+						while (mate != _waitingList.rbegin() && (mate - 1)->alignment < mate->alignment)  {
+							std::swap(*mate, *(mate - 1));
+							--mate;
+						}
+					}
+					if (mate->alignment.position() < pMate) {
+						// !! reverse iterator
+						while (mate != _waitingList.rend() - 1 && mate->alignment < (mate + 1)->alignment)  {
+							std::swap(*mate, *(mate + 1));
+							++mate;
+						}
+					}
 				}
 			}
 		} else {
 			// read is single end
 			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
-				_waitingList.back().status = AlignmentStatus::filterOut;
+				next.status = AlignmentStatus::filterOut;
 			} else {
-				_handleSingle(back);
+				_handleSingle(next);
 			}
 		}
+		impl::insert_sorted(_waitingList, next);
+		//_waitingList.push_back(next);
 	}
 
 	// write reads still in storage

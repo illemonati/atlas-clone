@@ -10,8 +10,8 @@ void TBamFilter::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 		rhs.alignment.setIsProperPair(false);
 	}
 	// mark both as ready for writing
-	rhs.status                = AlignmentStatus::ready;
-	_waitingList.back().status = AlignmentStatus::ready;
+	lhs.status = AlignmentStatus::ready;
+	rhs.status = AlignmentStatus::ready;
 }
 
 void TBamFilter::_handleSingle(TWaitingAlignment &lhs) {

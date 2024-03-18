@@ -13,18 +13,16 @@ enum class AlignmentStatus {waiting, orphan, filterOut, ready};
 
 struct TWaitingAlignment{
 	BAM::TAlignment alignment;
-	AlignmentStatus status;
-	TWaitingAlignment(BAM::TAlignment Alignment, AlignmentStatus Status) : alignment(std::move(Alignment)), status(Status) {}
+	AlignmentStatus status = AlignmentStatus::waiting;
+	TWaitingAlignment() = default;
+	TWaitingAlignment(BAM::TAlignment Alignment, AlignmentStatus Status = AlignmentStatus::waiting)
+		: alignment(std::move(Alignment)), status(Status) {}
 };
 inline bool operator<(const TWaitingAlignment& lhs, const TWaitingAlignment& rhs) {
 	return lhs.alignment < rhs.alignment;
 }
 
 class TWaitingListBamTraverser {
-public:
-	using container = std::vector<TWaitingAlignment>;
-	using iterator  = typename container::iterator;
-
 private:
 	bool _doMasking       = false;
 	bool _considerRegions = false;
@@ -34,10 +32,9 @@ private:
 protected:
 	TGenome _genome;
 	TParser _parser;
-	bool _needsSort = true;
 
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
-	container _waitingList;
+	std::vector<TWaitingAlignment> _waitingList;
 
 	BAM::TOutputBamFile _outBam;
 
@@ -51,7 +48,7 @@ protected:
 	void _writeOrFilter(TWaitingAlignment& WAlignment);
 	void _writeAll();
 	void _writeUpTo(const genometools::TGenomePosition & position);
-	BAM::TAlignment _parseIntoNewAlignment();
+	TWaitingAlignment _nextAlignment();
 
 	//pure virtual functions
 	virtual void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) = 0;
