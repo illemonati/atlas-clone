@@ -9,7 +9,7 @@
 
 namespace GenomeTasks {
 
-enum class AlignmentStatus {orphan, filterOut, ready};
+enum class AlignmentStatus {waiting, orphan, filterOut, ready};
 
 struct TWaitingAlignment{
 	BAM::TAlignment alignment;
@@ -49,7 +49,6 @@ protected:
 	size_t _maxNumberOfSoftClippedBases;
 
 	void _writeOrFilter(TWaitingAlignment& WAlignment);
-	void _writeOrphan(TWaitingAlignment& WAlignment);
 	void _writeAll();
 	void _writeUpTo(const genometools::TGenomePosition & position);
 	BAM::TAlignment _parseIntoNewAlignment();

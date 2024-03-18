@@ -8,23 +8,16 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-void TWaitingListBamTraverser::_writeOrphan(TWaitingAlignment &WAlignment) {
-	if (_keepOrphans) {
-		// set as improper pair
-		WAlignment.alignment.setIsProperPair(false);
-		// write to BAM file
-		_outBam.writeAlignment(WAlignment.alignment);
-	} else {
-		// write reason to bam log
-		_genome.bamFile().filterOut(WAlignment.alignment);
-	}
-}
-
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 	if (WAlignment.status == AlignmentStatus::ready) {
 		_outBam.writeAlignment(WAlignment.alignment);
 	} else if (WAlignment.status == AlignmentStatus::orphan) {
-		_writeOrphan(WAlignment);
+		if (_keepOrphans) {
+			WAlignment.alignment.setIsProperPair(false);
+			_outBam.writeAlignment(WAlignment.alignment);
+		} else {
+			_genome.bamFile().filterOut(WAlignment.alignment); // write reason to bam log
+		}
 	} else {
 		// filter out silently
 	}
@@ -34,7 +27,10 @@ void TWaitingListBamTraverser::_writeAll() {
 	// write everything and mark reads with missing mates as improper.
 	// reads still in storage are no-proper pairs: write or add to black list
 	std::stable_sort(_waitingList.begin(), _waitingList.end());
-	for (auto &s : _waitingList) { _writeOrFilter(s); }
+	for (auto &s : _waitingList) {
+		if (s.status == AlignmentStatus::waiting) s.status = AlignmentStatus::orphan;
+		_writeOrFilter(s);
+	}
 	_waitingList.clear();
 
 	// clear blacklist: future reads will anyways be orphans
@@ -46,10 +42,14 @@ void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &po
 	// writes all that are ready or too far away
 	auto it = _waitingList.begin();
 
-	for (; it!= _waitingList.end() && it->alignment < position; ++it) {
-		if (it->status == AlignmentStatus::ready) _outBam.writeAlignment(it->alignment);
-		else if (position - it->alignment > _maxDistanceBetweenMates) _writeOrFilter(*it);
-		else break;
+	for (; it != _waitingList.end() && it->alignment < position; ++it) {
+		if (it->status == AlignmentStatus::waiting && position - it->alignment > _maxDistanceBetweenMates) {
+			it->status = AlignmentStatus::orphan; // waited long enough
+		}
+		if (it->status != AlignmentStatus::waiting)
+			_writeOrFilter(*it);
+		else
+			break;
 	}
 	_waitingList.erase(_waitingList.begin(), it);
 }
@@ -195,15 +195,8 @@ void TWaitingListBamTraverser::traverseBAM() {
 			continue;
 		}
 
-		if(_blacklist.isInBlacklist(bamFile.curName())) {
-			// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
-			// alignment->setIsProperPair(false);
-			_blacklist.remove(bamFile.curName());
-			continue;
-		}
-
 		// parse alignment
-		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::orphan);
+		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::waiting);
 		auto &alignment = _waitingList.back().alignment;
 		const auto nWaiting = _waitingList.size();
 		if (nWaiting > 1 && alignment < _waitingList[_waitingList.size() - 2].alignment) _needsSort = true;
@@ -212,6 +205,13 @@ void TWaitingListBamTraverser::traverseBAM() {
 			// parse and then remove softclipped reads
 			alignment.parse();
 			alignment.removeSoftClippedBases(_maxNumberOfSoftClippedBases);
+		}
+
+		if(_blacklist.isInBlacklist(alignment.name())) {
+			// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
+			// alignment->setIsProperPair(false);
+			_blacklist.remove(alignment.name());
+			continue;
 		}
 
 		// if read is paired, check for mate

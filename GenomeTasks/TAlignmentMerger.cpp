@@ -740,7 +740,7 @@ void TOverlapQuantifier::run(){
 									 [alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
 			if (mate == _alignmentStorage.end()) {
 				    // add alignment to storage and wait for mate
-				_alignmentStorage.emplace_back(alignment, AlignmentStatus::orphan);
+				_alignmentStorage.emplace_back(alignment, AlignmentStatus::waiting);
 			} else {
 				    // mate found
 				    if (alignment.readGroupId() != mate->alignment.readGroupId()) {
