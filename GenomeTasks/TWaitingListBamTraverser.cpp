@@ -1,7 +1,6 @@
 #include "TWaitingListBamTraverser.h"
 
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 
 namespace GenomeTasks {
@@ -9,23 +8,23 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-void TWaitingListBamTraverser::_writeOrphan(TWaitingAlignment &WAlignment) {
-	if (_keepOrphans) {
-		// set as improper pair
-		WAlignment.alignment.setIsProperPair(false);
-		// write to BAM file
-		_outBam.writeAlignment(WAlignment.alignment);
-	} else {
-		// write reason to bam log
-		_genome.bamFile().filterOut(WAlignment.alignment);
-	}
+namespace impl {
+template<typename Container>
+void insert_sorted(Container &Vec, const typename Container::value_type &Item) {
+	Vec.insert(std::upper_bound(Vec.begin(), Vec.end(), Item), Item);
 }
+} // namespace impl
 
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 	if (WAlignment.status == AlignmentStatus::ready) {
 		_outBam.writeAlignment(WAlignment.alignment);
 	} else if (WAlignment.status == AlignmentStatus::orphan) {
-		_writeOrphan(WAlignment);
+		if (_keepOrphans) {
+			WAlignment.alignment.setIsProperPair(false);
+			_outBam.writeAlignment(WAlignment.alignment);
+		} else {
+			_genome.bamFile().filterOut(WAlignment.alignment); // write reason to bam log
+		}
 	} else {
 		// filter out silently
 	}
@@ -34,8 +33,10 @@ void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 void TWaitingListBamTraverser::_writeAll() {
 	// write everything and mark reads with missing mates as improper.
 	// reads still in storage are no-proper pairs: write or add to black list
-	std::stable_sort(_waitingList.begin(), _waitingList.end());
-	for (auto &s : _waitingList) { _writeOrFilter(s); }
+	for (auto &s : _waitingList) {
+		if (s.status == AlignmentStatus::waiting) s.status = AlignmentStatus::orphan;
+		_writeOrFilter(s);
+	}
 	_waitingList.clear();
 
 	// clear blacklist: future reads will anyways be orphans
@@ -43,29 +44,32 @@ void TWaitingListBamTraverser::_writeAll() {
 }
 
 void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &position) {
-	std::stable_sort(_waitingList.begin(), _waitingList.end());
 	// writes all that are ready or too far away
 	auto it = _waitingList.begin();
 
-	for (; it!= _waitingList.end() && it->alignment < position; ++it) {
-		if (it->status == AlignmentStatus::ready) _outBam.writeAlignment(it->alignment);
-		else if (position - it->alignment > _maxDistanceBetweenMates) _writeOrFilter(*it);
-		else break;
+	for (; it != _waitingList.end() && it->alignment < position; ++it) {
+		if (it->status == AlignmentStatus::waiting && position - it->alignment > _maxDistanceBetweenMates) {
+			it->status = AlignmentStatus::orphan; // waited long enough
+		}
+		if (it->status != AlignmentStatus::waiting)
+			_writeOrFilter(*it);
+		else
+			break;
 	}
 	_waitingList.erase(_waitingList.begin(), it);
 }
 
-BAM::TAlignment TWaitingListBamTraverser::_parseIntoNewAlignment() {
-	BAM::TAlignment alignment;
-	_genome.bamFile().fill(alignment);
+TWaitingAlignment TWaitingListBamTraverser::_nextAlignment() {
+	TWaitingAlignment next;
+	_genome.bamFile().fill(next.alignment);
 	if (_recalibrate) {
 		if (_incorporatePMD) {
-			alignment.recalibrateWithPMD(_genome.errorModels());
+			next.alignment.recalibrateWithPMD(_genome.errorModels());
 		} else {
-			alignment.parse(_genome.errorModels().sequencingErrorModels());
+			next.alignment.parse(_genome.errorModels().sequencingErrorModels());
 		}
 	}
-	return alignment;
+	return next;
 }
 
 void TWaitingListBamTraverser::_setMasks(const genometools::TChromosomes& Chromosomes) {
@@ -183,17 +187,20 @@ void TWaitingListBamTraverser::traverseBAM() {
 			if (bamFile.curIsProperPair()) { _blacklist.add(bamFile.curName()); }
 			continue;
 		}
+
 		const genometools::TGenomeWindow alnWin(bamFile.curPosition(),
 												bamFile.curCIGAR().lengthRead());
 		if (_alignmentCanBeWrittenUnchanged()) {
-			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) continue;
-
-			bamFile.writeCurAlignment(_outBam);
+			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
+				// ignore
+			} else {
+				bamFile.writeCurAlignment(_outBam);
+			}
 			continue;
 		}
-		// parse alignment
-		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::orphan);
-		auto &alignment = _waitingList.back().alignment;
+
+		auto next       = _nextAlignment();
+		auto &alignment = next.alignment;
 
 		if (_removeSoftClippedBases) {
 			// parse and then remove softclipped reads
@@ -201,46 +208,63 @@ void TWaitingListBamTraverser::traverseBAM() {
 			alignment.removeSoftClippedBases(_maxNumberOfSoftClippedBases);
 		}
 
+		if(_blacklist.isInBlacklist(alignment.name())) {
+			_blacklist.remove(alignment.name());
+			next.status = AlignmentStatus::orphan;
+			impl::insert_sorted(_waitingList, next);
+			continue;
+		}
+
 		// if read is paired, check for mate
 		if (alignment.isPaired()) {
 			// if mate is in blacklist: add as improper pair for writing
-			if (_blacklist.isInBlacklist(alignment.name())) {
-				// TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
-				// alignment->setIsProperPair(false);
-				_blacklist.remove(alignment.name());
+			// check if mate is in storage.
+			auto mate = std::find_if(_waitingList.rbegin(), _waitingList.rend(),
+									 [alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
+			if (mate == _waitingList.rend()) {
+				// waiting for 2nd mate
+				if (!alignment.isProperPair()) {
+					_blacklist.add(alignment.name()); // add to blacklist and ready to write
+				}
 			} else {
-				// check if mate is in storage.
-				auto mate = std::find_if(_waitingList.begin(), _waitingList.end() - 1, [alignment](const auto &wa) {
-					return wa.alignment.name() == alignment.name();
-				});
-				if (mate == _waitingList.end() - 1) {
-					// waiting for 2nd mate
-					if (!alignment.isProperPair()) {
-						_blacklist.add(alignment.name()); // add to blacklist and ready to write
-					}
+				// both mates available
+				if (alignment.readGroupId() != mate->alignment.readGroupId()) {
+					UERROR("Mates '", alignment.name(), "' are in different read groups!");
+				}
+				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
+				if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
+					(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
+					next.status  = AlignmentStatus::filterOut;
+					mate->status = AlignmentStatus::filterOut;
 				} else {
-					// both mates available
-					if (alignment.readGroupId() != mate->alignment.readGroupId()) {
-						UERROR("Mates '", alignment.name(), "' are in different read groups!");
+					const auto pMate = mate->alignment.position();
+					_handleMates(next, *mate);
+					if (mate->alignment.position() > pMate) {
+						// !! reverse iterator
+						while (mate != _waitingList.rbegin() && (mate - 1)->alignment < mate->alignment)  {
+							std::swap(*mate, *(mate - 1));
+							--mate;
+						}
 					}
-					const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
-					if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
-						(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
-						_waitingList.back().status = AlignmentStatus::filterOut;
-						mate->status               = AlignmentStatus::filterOut;
-					} else {
-						_handleMates(*mate);
+					if (mate->alignment.position() < pMate) {
+						// !! reverse iterator
+						while (mate != _waitingList.rend() - 1 && mate->alignment < (mate + 1)->alignment)  {
+							std::swap(*mate, *(mate + 1));
+							++mate;
+						}
 					}
 				}
 			}
 		} else {
 			// read is single end
 			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
-				_waitingList.back().status = AlignmentStatus::filterOut;
+				next.status = AlignmentStatus::filterOut;
 			} else {
-				_handleSingle();
+				_handleSingle(next);
 			}
 		}
+		impl::insert_sorted(_waitingList, next);
+		//_waitingList.push_back(next);
 	}
 
 	// write reads still in storage

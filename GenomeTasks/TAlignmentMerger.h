@@ -119,8 +119,8 @@ private:
 	bool _allowForLarger;
 
 	void _initializeMerger();
-	void _handleMates(TWaitingAlignment &Mate) override;
-	void _handleSingle() override;
+	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
+	void _handleSingle(TWaitingAlignment &lhs) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:
