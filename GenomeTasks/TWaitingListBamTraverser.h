@@ -14,7 +14,7 @@ enum class AlignmentStatus {waiting, orphan, filterOut, ready};
 struct TWaitingAlignment{
 	BAM::TAlignment alignment;
 	AlignmentStatus status;
-	TWaitingAlignment(BAM::TAlignment Alignment, AlignmentStatus Status) : alignment(Alignment), status(Status) {}
+	TWaitingAlignment(BAM::TAlignment Alignment, AlignmentStatus Status) : alignment(std::move(Alignment)), status(Status) {}
 };
 inline bool operator<(const TWaitingAlignment& lhs, const TWaitingAlignment& rhs) {
 	return lhs.alignment < rhs.alignment;
@@ -54,9 +54,9 @@ protected:
 	BAM::TAlignment _parseIntoNewAlignment();
 
 	//pure virtual functions
-	virtual void _handleMates(TWaitingAlignment &Mate) = 0;
-	virtual void _handleSingle()                       = 0;
-	virtual bool _alignmentCanBeWrittenUnchanged()     = 0;
+	virtual void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) = 0;
+	virtual void _handleSingle(TWaitingAlignment &lhs)                        = 0;
+	virtual bool _alignmentCanBeWrittenUnchanged()                            = 0;
 
 public:
 	TWaitingListBamTraverser(std::string_view OutName);

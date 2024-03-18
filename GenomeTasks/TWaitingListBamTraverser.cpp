@@ -165,6 +165,13 @@ void TWaitingListBamTraverser::traverseBAM() {
 	// now parse BAM file
 	bamFile.startProgressReporting();
 	while (bamFile.readNextAlignment()) {
+		int i = _waitingList.size() - 1;
+		while (i > 0 && _waitingList[i] < _waitingList[i - 1]) {
+			// make sure last alignment is in correct position
+			std::swap(_waitingList[i], _waitingList[i - 1]);
+			--i;
+		}
+		_needsSort = false;
 		bamFile.printProgress();
 		// if on new chromosome, empty storage
 		if (bamFile.chrChanged()) {
@@ -197,9 +204,10 @@ void TWaitingListBamTraverser::traverseBAM() {
 
 		// parse alignment
 		_waitingList.emplace_back(_parseIntoNewAlignment(), AlignmentStatus::waiting);
-		auto &alignment = _waitingList.back().alignment;
+		auto &back          = _waitingList.back();
+		auto &alignment     = back.alignment;
 		const auto nWaiting = _waitingList.size();
-		if (nWaiting > 1 && alignment < _waitingList[_waitingList.size() - 2].alignment) _needsSort = true;
+		if (nWaiting > 1 && alignment < _waitingList[nWaiting - 2].alignment) _needsSort = true;
 
 		if (_removeSoftClippedBases) {
 			// parse and then remove softclipped reads
@@ -218,9 +226,9 @@ void TWaitingListBamTraverser::traverseBAM() {
 		if (alignment.isPaired()) {
 			// if mate is in blacklist: add as improper pair for writing
 			// check if mate is in storage.
-			auto mate = std::find_if(_waitingList.begin(), _waitingList.end() - 1,
+			auto mate = std::find_if(_waitingList.rbegin() + 1, _waitingList.rend(),
 									 [alignment](const auto &wa) { return wa.alignment.name() == alignment.name(); });
-			if (mate == _waitingList.end() - 1) {
+			if (mate == _waitingList.rend()) {
 				// waiting for 2nd mate
 				if (!alignment.isProperPair()) {
 					_blacklist.add(alignment.name()); // add to blacklist and ready to write
@@ -233,11 +241,10 @@ void TWaitingListBamTraverser::traverseBAM() {
 				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
 				if ((_doMasking && (_mask.overlaps(alnWin) || _mask.overlaps(mateWin))) ||
 					(_considerRegions && !_mask.overlaps(alnWin) && !_mask.overlaps(mateWin))) {
-					_waitingList.back().status = AlignmentStatus::filterOut;
-					mate->status               = AlignmentStatus::filterOut;
+					back.status  = AlignmentStatus::filterOut;
+					mate->status = AlignmentStatus::filterOut;
 				} else {
-					//_needsSort |= _handleMates(*mate);
-					_handleMates(*mate);
+					_handleMates(back, *mate);
 				}
 			}
 		} else {
@@ -245,7 +252,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
 				_waitingList.back().status = AlignmentStatus::filterOut;
 			} else {
-				_handleSingle();
+				_handleSingle(back);
 			}
 		}
 	}

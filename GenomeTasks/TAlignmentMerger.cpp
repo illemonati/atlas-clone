@@ -644,53 +644,50 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	}
 };
 
-void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &Mate) {
-	_waitingList.back().status = AlignmentStatus::ready;
-	auto &alignment            = _waitingList.back().alignment;
-	const auto type            = _rgSettings.getType(alignment.readGroupId());
+void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
+	lhs.status      = AlignmentStatus::ready;
+	const auto type = _rgSettings.getType(lhs.alignment.readGroupId());
 
 	if (type == ReadGroupType::single) {
 		UERROR("Paired reads found in single-end read group '",
-			   _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
+		       _genome.bamFile().readGroups().getName(lhs.alignment.readGroupId()), "'! Is this a 'mixed' read group?");
 	}
-	if (!alignment.isProperPair()) {
+	if (!lhs.alignment.isProperPair()) {
 		// not a proper pair: mark mate as as improper too
-		Mate.alignment.setIsProperPair(false);
-		Mate.status = AlignmentStatus::ready;
+		rhs.alignment.setIsProperPair(false);
+		rhs.status      = AlignmentStatus::ready;
 	} else if (type == ReadGroupType::paired || type == ReadGroupType::mixed) {
 		// attempt merging: make sure alignments are parsed
 		// Note: if we recalibrate, they were already parsed
-		if (!alignment.isParsed()) { alignment.parse(); }
+		if (!lhs.alignment.isParsed()) { lhs.alignment.parse(); }
+		if (!rhs.alignment.isParsed()) { rhs.alignment.parse(); }
 
-		if (!Mate.alignment.isParsed()) { Mate.alignment.parse(); }
-
-		_merger->merge(alignment, Mate.alignment);
-		Mate.status = AlignmentStatus::ready;
+		_merger->merge(lhs.alignment, rhs.alignment);
+		rhs.status      = AlignmentStatus::ready;
 	}
 }
 
-void TAlignmentSplitMerger::_handleSingle(){
-	auto &alignment      = _waitingList.back().alignment;
-	const auto &settings = _rgSettings.getSettings(alignment.readGroupId());
+void TAlignmentSplitMerger::_handleSingle(TWaitingAlignment &lhs){
+	const auto &settings = _rgSettings.getSettings(lhs.alignment.readGroupId());
 
 	if(settings.type == ReadGroupType::unchanged){
 		//add as ready for writing
-		_waitingList.back().status = AlignmentStatus::ready;
+		lhs.status = AlignmentStatus::ready;
 	} else if(settings.type == ReadGroupType::single || settings.type == ReadGroupType::mixed){
 		//truncate
-		if(!_allowForLarger && alignment.length() > settings.maxCycles){
-			UERROR("Length of read ", alignment.name(), " is > max cycles for its read group (",settings.maxCycles, ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
-		} else if(alignment.length() >= settings.maxCycles){
+		if(!_allowForLarger && lhs.alignment.length() > settings.maxCycles){
+			UERROR("Length of read ", lhs.alignment.name(), " is > max cycles for its read group (",settings.maxCycles, ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
+		} else if(lhs.alignment.length() >= settings.maxCycles){
 			//add to truncated read group
-			alignment.setReadGroup(settings.altReadGroupId);
+			lhs.alignment.setReadGroup(settings.altReadGroupId);
 		}
 
 		//add as ready for writing
-		_waitingList.back().status = AlignmentStatus::ready;
+		lhs.status = AlignmentStatus::ready;
 
 	} else if(settings.type == ReadGroupType::paired){
 		//is orphan
-		_waitingList.back().status = AlignmentStatus::orphan;
+		lhs.status = AlignmentStatus::orphan;
 	}
 };
 
