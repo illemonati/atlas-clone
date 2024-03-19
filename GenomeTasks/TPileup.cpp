@@ -90,7 +90,10 @@ TPileup::TPileup() {
 		if (_windows.parser().reference()) { header.push_back("reference"); }
 		if (_printSettings.get<Print::Depth>()) {
 			header.push_back("depth");
-			if (_windows.parser().reference()) { header.push_back("refDepth"); }
+			if (_windows.parser().reference()) {
+				header.push_back("numRef");
+				header.push_back("numNonRef");
+			}
 		}
 		if (_printSettings.get<Print::Bases>()) { header.push_back("bases"); }
 		if (_printSettings.get<Print::SampleBases>()) {
@@ -107,10 +110,6 @@ TPileup::TPileup() {
 			header.push_back("numC");
 			header.push_back("numG");
 			header.push_back("numT");
-			if (_windows.parser().reference()) {
-				header.push_back("numRef");
-				header.push_back("numNonRef");
-			}
 			header.push_back("numAlleles");
 		}
 		if (_printSettings.get<Print::Mates>()) {
@@ -213,7 +212,9 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			if (_windows.parser().reference()) { _out.write(site.refBase); }
 			if (_printSettings.get<Print::Depth>()) {
 				_out.write(site.depth());
-				if (_windows.parser().reference()) { _out.write(site.refDepth()); }
+				if (_windows.parser().reference()) {
+					_out.write(site.refDepth(), site.depth() - site.refDepth());
+				}
 			}
 			if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
 			if (_printSettings.get<Print::SampleBases>()) {
@@ -236,9 +237,6 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			if (_printSettings.get<Print::Alleles>()) {
 				const auto alleleCounts = site.countAlleles();
 				_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
-				if (_windows.parser().reference()) {
-					_out.write(alleleCounts[site.refBase], alleleCounts.size() - alleleCounts[site.refBase]);
-				}
 				_out.write((int)coretools::numNonZero(alleleCounts));
 			}
 			if (_printSettings.get<Print::Mates>()) {

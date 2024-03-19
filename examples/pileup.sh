@@ -12,7 +12,8 @@ echo "chr3	0	4567" >> window.txt
 echo "chr3	4567	9134" >> window.txt
 echo "chr3	9134	12345" >> window.txt
 
-$atlas --task pileup --bam ATLAS_simulations_ind1.bam --window window.txt  --printAll \
+$atlas --task pileup --bam ATLAS_simulations_ind1.bam --fasta ATLAS_simulations.fasta \
+	--window window.txt  --printAll \
 	   --histograms depth,allelicDepth,contexts,qualities --readUpToDepth 97 \
 	   --fixedSeed 0 --out singleBam --logFile singleBam.out
 
