@@ -645,25 +645,30 @@ void TAlignmentSplitMerger::_initializeMerger() {
 };
 
 void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
-	lhs.status      = AlignmentStatus::ready;
 	const auto type = _rgSettings.getType(lhs.alignment.readGroupId());
 
 	if (type == ReadGroupType::single) {
 		UERROR("Paired reads found in single-end read group '",
 		       _genome.bamFile().readGroups().getName(lhs.alignment.readGroupId()), "'! Is this a 'mixed' read group?");
 	}
-	if (!lhs.alignment.isProperPair()) {
-		// not a proper pair: mark mate as as improper too
-		rhs.alignment.setIsProperPair(false);
-		rhs.status      = AlignmentStatus::ready;
+	if (type == ReadGroupType::unchanged) {
+		lhs.status = AlignmentStatus::ready;
+		rhs.status = AlignmentStatus::ready;
 	} else if (type == ReadGroupType::paired || type == ReadGroupType::mixed) {
-		// attempt merging: make sure alignments are parsed
-		// Note: if we recalibrate, they were already parsed
-		if (!lhs.alignment.isParsed()) { lhs.alignment.parse(); }
-		if (!rhs.alignment.isParsed()) { rhs.alignment.parse(); }
+		if (!lhs.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
+			rhs.alignment.setIsProperPair(false);
+			lhs.status = AlignmentStatus::orphan;
+			rhs.status = AlignmentStatus::orphan;
+		} else {
+			// attempt merging: make sure alignments are parsed
+			// Note: if we recalibrate, they were already parsed
+			if (!lhs.alignment.isParsed()) { lhs.alignment.parse(); }
+			if (!rhs.alignment.isParsed()) { rhs.alignment.parse(); }
 
-		_merger->merge(lhs.alignment, rhs.alignment);
-		rhs.status      = AlignmentStatus::ready;
+			_merger->merge(lhs.alignment, rhs.alignment);
+			lhs.status = AlignmentStatus::ready;
+			rhs.status = AlignmentStatus::ready;
+		}
 	}
 }
 

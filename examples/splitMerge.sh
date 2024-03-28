@@ -11,25 +11,22 @@ echo "SimReadGroup5 paired 100" >> rgs_paired.txt
 echo "SimReadGroup7 paired 100" >> rgs_paired.txt
 echo "SimReadGroup9 paired 100" >> rgs_paired.txt
 
-$atlas --task splitMerge  --mergingMethod middle \
-	   --bam paired.bam --readGroupSettings rgs_paired.txt\
-	   --fixedSeed 0 --out middleMerge --logFile middleMerge.out
 
-$atlas --task splitMerge  --mergingMethod firstMate \
-	   --bam paired.bam --readGroupSettings rgs_paired.txt \
-	   --out firstMerge --logFile firstMerge.out
+for name in "middle" "firstMate" "secondMate" "highestQuality" "randomRead"; do
+	$atlas --task splitMerge  --mergingMethod $name \
+		   --bam paired.bam --readGroupSettings rgs_paired.txt\
+		   --fixedSeed 0 --out $name --logFile $name.out
 
-$atlas --task splitMerge  --mergingMethod secondMate \
-	   --bam paired.bam --readGroupSettings rgs_paired.txt \
-	   --out secondMerge --logFile secondMerge.out
+	$atlas --task splitMerge  --mergingMethod $name \
+		   --bam ${name}_splitMerged.bam --readGroupSettings rgs_paired.txt\
+		   --fixedSeed 0 --out ${name}_2nd --logFile ${name}_2nd.out
 
-$atlas --task splitMerge --mergingMethod highestQuality \
-	   --bam paired.bam --readGroupSettings rgs_paired.txt \
-	   --fixedSeed 0 --out qualityMerge --logFile qualityMerge.out
-
-$atlas --task splitMerge  --mergingMethod randomRead \
-	   --bam paired.bam --readGroupSettings rgs_paired.txt \
-	   --fixedSeed 0 --out randomMerge --logFile randomMerge.out
+	if ! diff -q <(samtools view ${name}_splitMerged.bam) <(samtools view ${name}_2nd_splitMerged.bam) > /dev/null; then
+		samtools view ${name}_splitMerged.bam > ${name}_splitMerged.sam
+		samtools view ${name}_2nd_splitMerged.bam > ${name}_2nd_splitMerged.sam
+		>&2 echo "${name}_splitMerged.bam and  ${name}_2nd_splitMerged.bam differ"
+	fi
+done
 
 # single end
 . $(dirname $0)/simulate --numReadGroups 10 --seqType single --out single --logFile single.out
