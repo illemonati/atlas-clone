@@ -105,8 +105,8 @@ public:
 
 class THKY85 final : public TGenotypeDistribution {
 	constexpr static coretools::Probability _mu_init{0.5};
-	constexpr static double _theta_r_init = 0.1;
-	constexpr static double _theta_g_init = 0.1;
+	constexpr static double _theta_r_init = 1e-2;
+	constexpr static double _theta_g_init = 1e-4;
 
 	coretools::Probability _mu = _mu_init;
 	double _theta_r            = _theta_r_init;

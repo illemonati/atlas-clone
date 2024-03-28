@@ -138,9 +138,10 @@ void TBamDiagnoser::_handleAlignment() {
 	_passedQC.add(readGroup, bamFile.curChromosome().refID());
 
 	// add to counters
+	constexpr size_t maxReadDist = 10000;
 	const auto &curPosition = bamFile.curPosition();
 	if (curPosition.refID() == _old[readGroup].position.refID()) {
-		_readDist[readGroup].add(chromosome, bamFile.curPosition() - _old[readGroup].position);
+		_readDist[readGroup].add(chromosome, std::min(maxReadDist, bamFile.curPosition() - _old[readGroup].position));
 		if (_identifyDuplicates && (curPosition.position() == _old[readGroup].position.position()) && (bamFile.curFragmentLength() == _old[readGroup].length)) {
 			_duplicateFile.writeln(bamFile.curChromosome().name(), curPosition.position(), bamFile.curName(),
 								 bamFile.curFragmentLength(), bamFile.curIsReverseStrand(), _old[readGroup].name, _old[readGroup].length, _old[readGroup].isReversed);
@@ -154,7 +155,7 @@ void TBamDiagnoser::_handleAlignment() {
 	}
 
 	if (curPosition.refID() == _oldPosition.refID()) {
-		_allReadDist.add(chromosome, bamFile.curPosition() - _oldPosition);
+		_allReadDist.add(chromosome, std::min(maxReadDist, bamFile.curPosition() - _oldPosition));
 	}
 	_oldPosition = curPosition;
 

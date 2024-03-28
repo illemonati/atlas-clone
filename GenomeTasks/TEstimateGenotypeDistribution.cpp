@@ -183,6 +183,7 @@ void TEstimateGenotypeDistribution::run() {
 		const auto NSites = _totSites - _totMaskedSites;
 		//full
 
+		logfile().list("Using full data.");
 		const auto LL  = _runEM(_sites_full);
 		const auto pis = _genoDist->pis();
 
@@ -198,6 +199,7 @@ void TEstimateGenotypeDistribution::run() {
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
+				logfile().list("Using downsampled reads at probability ", _probs[i], ".");
 				const auto &sites = _sites_P[r][i];
 				const auto &stat  = _stats_P[r][i];
 
