@@ -49,6 +49,9 @@
 #include "TVcfConverter.h"
 #include "TVcfDiagnostics.h"
 
+//Other
+#include "TBED2Fastq.h"
+
 //simulations
 #include "TSimulator.h"
 
@@ -99,6 +102,9 @@ void addTaks(coretools::TMain & main) {
 
 	//simulations
 	main.createRegularTask<Simulations::TSimulationRunner>("simulate", "Generating simulations");
+
+	// Other
+	main.createRegularTask<Other::TBED2FastqWriter>("BED2Fastq", "Writing fastq file around sites listed in BED file");
 
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
