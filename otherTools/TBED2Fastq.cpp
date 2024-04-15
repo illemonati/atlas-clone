@@ -30,8 +30,10 @@ void TBED2Fastq::run(){
     using coretools::instances::logfile;
     logfile().startIndent("Parsing through BED file:");
 
-    for(auto& pos: _bed){
-        logfile().list(pos.from());
+    for(auto& window: _bed){
+        for(auto pos = window.from(); pos < window.to(); ++pos){
+            logfile().list(pos);
+        }
     }
 }
 

@@ -50,7 +50,7 @@
 #include "TVcfDiagnostics.h"
 
 //Other
-#include "TBED2Fastq.h"
+#include "OtherTools/TBED2Fastq.h"
 
 //simulations
 #include "TSimulator.h"

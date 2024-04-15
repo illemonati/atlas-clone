@@ -72,7 +72,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   GLF
   PopulationTools
   Simulations
-  VCF)
+  VCF
+  OtherTools)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools hts)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
@@ -90,7 +91,8 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
   GLF/tests/*.h GLF/tests/*.cpp
   PopulationTools/tests/*.h PopulationTools/tests/*.cpp
   Simulations/tests/*.h Simulations/tests/*.cpp
-  VCF/tests/*.h VCF/tests/*.cpp)
+  VCF/tests/*.h VCF/tests/*.cpp
+  OtherTools/*.h OtherTools/*.cpp)
 
 target_sources("${PROJECT_NAME}_unitTests" PRIVATE ${CORE_SOURCES} ${TEST_SOURCES})
 
