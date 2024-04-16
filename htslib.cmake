@@ -22,7 +22,7 @@ ExternalProject_Add(htslib
   CONFIGURE_HANDLED_BY_BUILD true
   PREFIX             ${INSTALL_DIR}
   SOURCE_DIR         ${HTSLIB_DIR}
-  CONFIGURE_COMMAND  ${AUTORECONF} -i ${HTSLIB_DIR} COMMAND ${HTSLIB_DIR}/configure --prefix=${INSTALL_DIR}
+  CONFIGURE_COMMAND  ${AUTORECONF} -i ${HTSLIB_DIR} COMMAND ${HTSLIB_DIR}/configure --prefix=${INSTALL_DIR} --disable-lzma
   BUILD_COMMAND      ${MAKE}
   INSTALL_COMMAND    ${MAKE} install
   BUILD_BYPRODUCTS ${LIB}
