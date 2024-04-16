@@ -29,10 +29,6 @@ TSitePolymorphic::TSitePolymorphic(uint32_t refID, uint32_t position, const std:
 	}
 }
 
-void TSitePolymorphic::write(coretools::TOutputFile &out, const genometools::TChromosomes &Chromosomes) const {
-	out.writeln(asFormattedString(Chromosomes, "\t"), _ref, _alt);
-}
-
 TSiteMonomorphic::TSiteMonomorphic(uint32_t refID, uint32_t position, const std::vector<std::string_view> &Line,
                                    const genometools::TChromosomes &Chromosomes)
     : TGenomePosition(refID, position) {
@@ -41,10 +37,6 @@ TSiteMonomorphic::TSiteMonomorphic(uint32_t refID, uint32_t position, const std:
 	if (_ref == genometools::Base::N) {
 		UERROR("Unknown allele1 '", Line[2], "' on ", asFormattedString(Chromosomes), "!");
 	}
-}
-
-void TSiteMonomorphic::write(coretools::TOutputFile &out, const genometools::TChromosomes &Chromosomes) const {
-	out.writeln(asFormattedString(Chromosomes, "\t"), _ref);
 }
 
 } // namespace SiteSubset
