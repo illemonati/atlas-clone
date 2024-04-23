@@ -24,6 +24,8 @@ if __name__ == "__main__":
 
     ymi = [10., 10., 10., 10.]
     yma = [0., 0., 0., 0.]
+    xmi = 1000.
+    xma = 0.
 
     hky85 = False #at least one file is hky85
     if not args.one:
@@ -58,8 +60,12 @@ if __name__ == "__main__":
             data = array([data])
 
         depths = []
+        if args.relative:
+            depth0 = data[0, idepths[0]]
+        else:
+            depth0 = 1.
         for j in idepths:
-            depths.append(data[:, j])
+            depths.append(data[:, j]/depth0)
 
         hky85_i = len(imus) > 0
 
@@ -132,6 +138,9 @@ if __name__ == "__main__":
             print("depth:", mdepths)
             print("theta_f:", mthetas_g)
 
+        xmi = min(min(mdepths), xmi)
+        xma = max(max(mdepths), xma)
+
         if hky85: ax1 = plt.subplot(311)
         else:     ax1 = plt.subplot(111)
         l = plt.errorbar(mdepths, mthetas_g, color=col[i], xerr=sdepths, yerr=sthetas_g, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6, label=label)
@@ -160,32 +169,47 @@ if __name__ == "__main__":
             plt.subplot(312, sharex=ax1)
             plt.errorbar(mdepths, mthetas_r, color=col[i], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
             plt.tick_params('x', labelbottom=False)
-            plt.xscale("log")
-            plt.yscale("log")
-            plt.ylabel(r"$\theta_r$")
 
-            mas = mthetas_r + sthetas_r
-            mis = mthetas_r - sthetas_r
-            yma[1] = max(yma[1], max(mas[nonzero(mas)])*1.1)
-            ymi[1] = min(ymi[1], min(mis[nonzero(mis)])/1.1)
-            plt.ylim(ymi[1], yma[1])
+            if args.relative:
+                plt.yscale("linear")
+                plt.ylim(0, 1.5)
+                plt.ylabel(r"$\theta_r/\theta_{r0}$")
+            else:
+                plt.yscale("log")
+                plt.ylabel(r"$\theta_r$")
+
+                mas = mthetas_r + sthetas_r
+                mis = mthetas_r - sthetas_r
+                yma[1] = max(yma[1], max(mas[nonzero(mas)])*1.1)
+                ymi[1] = min(ymi[1], min(mis[nonzero(mis)])/1.1)
+                plt.ylim(ymi[1], yma[1])
 
             plt.subplot(313, sharex=ax1)
             plt.errorbar(mdepths, mmus, color=col[i], xerr=sdepths, yerr=smus, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
-            plt.xscale("log")
-            plt.yscale("log")
-            plt.ylabel(r"$\mu$")
 
-            mas = mmus + smus
-            mis = mmus - smus
-            yma[2] = max(yma[2], max(mas[nonzero(mas)])*1.1)
-            ymi[2] = min(ymi[2], min(mis[nonzero(mis)])/1.1, yma[2]/5)
-            plt.ylim(ymi[2], yma[2])
+            if args.relative:
+                plt.yscale("linear")
+                plt.ylim(0, 1.5)
+                plt.ylabel(r"$\mu/\mu_0$")
+            else:
+                plt.yscale("log")
+                plt.ylabel(r"$\mu$")
+
+                mas = mmus + smus
+                mis = mmus - smus
+                yma[2] = max(yma[2], max(mas[nonzero(mas)])*1.1)
+                ymi[2] = min(ymi[2], min(mis[nonzero(mis)])/1.1, yma[2]/5)
+                plt.ylim(ymi[2], yma[2])
 
     # All
     plt.xlabel(r"Depth")
-    plt.xlim(max(mdepths)*1.1, min(mdepths)/1.1)
-    plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
+    xxs = r_[100,50,20,10,5,2,1,0.5,0.2,0.1,0.05,0.02,0.01,0.005,0.002,0.001,0.0005,0.0002,0.0001,0.00005,0.00002,0.00001]
+    if xma > 1.1:
+        plt.xticks(xxs, ["%2.2f"%(x) for x in xxs])
+    else:
+        plt.xticks(xxs, ["%.0e"%(x) for x in xxs])
+
+    plt.xlim(xma*1.1, xmi/1.1)
 
     plt.tight_layout()
     plt.show()
