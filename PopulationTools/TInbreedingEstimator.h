@@ -73,9 +73,9 @@ using SpecGamma  = stattools::ParamSpec<TypeGamma, stattools::Hash<coretools::to
 
 using BoxOnP = stattools::prior::TBetaSymmetricZeroMixtureInferred<stattools::TParameterBase, TypeP, NumDimParams,
                                                                    SpecGamma, SpecPModel, TInbreedingEstimatorPrior>;
-using SpecP =
-    stattools::ParamSpec<TypeP, stattools::Hash<coretools::toHash("p")>, BoxOnP,
-                         stattools::RJMCMC<SpecPModel, coretools::probdist::TBetaDistr>, stattools::Parallelize<stattools::MarkovOrder::different>>;
+using SpecP  = stattools::ParamSpec<TypeP, stattools::Hash<coretools::toHash("p")>, BoxOnP,
+                                    stattools::RJMCMC<SpecPModel, coretools::probdist::TBetaDistr>,
+                                    stattools::Parallelize<stattools::MarkovOrder::allIndependent>>;
 
 using BoxOnObs = TInbreedingEstimatorPrior;
 using SpecObs  = stattools::TObservation<TypeGTL, NumDimGTL, BoxOnObs>;
