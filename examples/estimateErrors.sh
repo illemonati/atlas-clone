@@ -2,7 +2,6 @@
 
 . $(dirname $0)/find_atlas
 
-recal="intercept[-1.0];quality:polynomial[0.9,0.01];position:polynomial[0.2]"
 recal="intercept[.0];quality:polynomial[0.95,0.01];position:polynomial[0.02]"
 pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.2*exp(-0.3*p)+0.01"
 
@@ -29,6 +28,3 @@ $atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
 	   --regions bed1.bed,bed2.bed --ploidy 2,1  --window 45672 \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
 	   --fixedSeed 0 --out $name --logFile $name.out
-
-
-	   #--regions bed1.bed --ploidy 2  --window 4567 \

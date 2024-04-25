@@ -246,7 +246,7 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
       _boxOnPModel(&_pi), _pModel("isPolymorph", &_boxOnPModel, {Filename + "_p"}), _boxOnLogGamma(),
       _logGamma("log_gamma", &_boxOnLogGamma, {Filename + "_p"}), _boxOnGamma(&_logGamma),
       _gamma("gamma", &_boxOnGamma, {Filename + "_p"}), _boxOnP(&_gamma, &_pModel),
-      _p("p", &_boxOnP, {Filename + "_p"}, &_pModel, {1}),
+      _p("p", &_boxOnP, {Filename + "_p"}, &_pModel),
       _boxOnObs(&_F, &_p, &_FModel, &_pModel, Likelihoods.alleleFrequencies()),
       _observation("genotypeLikelihoods", &_boxOnObs, Likelihoods.getStorage(), {}) {
 
