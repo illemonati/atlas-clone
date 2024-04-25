@@ -18,7 +18,7 @@
 #include "stattools/Deterministics/TLinkFunctions.h"
 #include "stattools/ParametersObservations/TObservation.h"
 #include "stattools/ParametersObservations/TParameter.h"
-#include "stattools/Priors/TPriorBernouilli.h"
+#include "stattools/Priors/TPriorBernoulli.h"
 #include "stattools/Priors/TPriorBeta.h"
 #include "stattools/Priors/TPriorUniform.h"
 
@@ -62,7 +62,7 @@ using SpecF  = stattools::ParamSpec<TypeF, stattools::Hash<coretools::toHash("f"
 using BoxOnPi = stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, NumDimParams>;
 using SpecPi  = stattools::ParamSpec<TypePi, stattools::Hash<coretools::toHash("pi")>, BoxOnPi>;
 
-using BoxOnPModel = stattools::prior::TBernouilliInferred<stattools::TParameterBase, TypePModel, NumDimParams, SpecPi>;
+using BoxOnPModel = stattools::prior::TBernoulliInferred<stattools::TParameterBase, TypePModel, NumDimParams, SpecPi>;
 using SpecPModel  = stattools::ParamSpec<TypePModel, stattools::Hash<coretools::toHash("pModel")>, BoxOnPModel>;
 
 using BoxOnLogGamma = stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogGamma, NumDimParams>;
