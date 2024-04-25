@@ -27,8 +27,11 @@ TErrorEstimator::TErrorEstimator()
 	parameters().fill("ploidy", ploidies, {2});
 
 	if (parameters().exists("bed")) {
+		UERROR("--bed is deprecated! use --regions instead.");
+	}
+	if (parameters().exists("regions")) {
 		std::vector<std::string> beds;
-		parameters().fill("bed", beds);
+		parameters().fill("regions", beds);
 		if (ploidies.size() == 1) ploidies.assign(beds.size(), ploidies.front());
 		if (ploidies.size() != beds.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
 
