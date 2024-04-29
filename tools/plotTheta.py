@@ -41,6 +41,7 @@ if __name__ == "__main__":
         f         = gzip.open(file)
         idepths   = []
         imus      = []
+        ihets     = []
         ithetas_g = []
         ithetas_r = []
         ithetas_f = []
@@ -49,9 +50,11 @@ if __name__ == "__main__":
             key = key.decode()
             if "depth" in key: idepths.append(j)
             if "mu" in key: imus.append(j)
+            if key.endswith("het"): ihets.append(j)
             if "theta_g" in key: ithetas_g.append(j)
             if "theta_r" in key: ithetas_r.append(j)
             if "thetaMLE" in key: ithetas_f.append(j)
+            if "expHetMLE" in key: ihets.append(j)
         f.close()
 
         # get average and std
@@ -59,15 +62,22 @@ if __name__ == "__main__":
         if len(data.shape) == 1:
             data = array([data])
 
-        depths = []
         if args.relative:
             depth0 = data[0, idepths[0]]
+            het0     = data[0, ihets[0]]
         else:
             depth0 = 1.
+            het0     = 1.
+
+        depths = []
         for j in idepths:
             depths.append(data[:, j]/depth0)
 
-        hky85_i = len(imus) > 0
+        hets = []
+        for j in ihets:
+            hets.append(data[:, j]/het0)
+
+        hky85_i = len(ithetas_f) == 0
 
         if hky85_i:
             label += "_HKY85"
@@ -83,6 +93,7 @@ if __name__ == "__main__":
             mus = []
             for j in imus:
                 mus.append(data[:, j]/mu0)
+
 
             thetas_g = []
             for j in ithetas_g:
@@ -110,6 +121,7 @@ if __name__ == "__main__":
             print("using median")
             mdepths   = r_[[nanmedian(d) for d in depths]]
             mthetas_g = r_[[nanmedian(t) for t in thetas_g]]
+            mhets     = r_[[nanmedian(h) for h in hets]]
             if hky85_i:
                 mthetas_r = r_[[nanmedian(t) for t in thetas_r]]
                 mmus      = r_[[nanmedian(t) for t in mus]]
@@ -117,12 +129,14 @@ if __name__ == "__main__":
             print("using mean")
             mdepths   = r_[[nanmean(d) for d in depths]]
             mthetas_g = r_[[nanmean(t) for t in thetas_g]]
+            mhets     = r_[[nanmean(h) for h in hets]]
             if hky85_i:
                 mthetas_r = r_[[nanmean(t) for t in thetas_r]]
                 mmus      = r_[[nanmean(t) for t in mus]]
 
         sdepths   = r_[[nanstd(d) for d in depths]]
         sthetas_g = r_[[nanstd(t) for t in thetas_g]]
+        shets     = r_[[nanstd(h) for h in hets]]
         if hky85_i:
             sthetas_r = r_[[nanstd(t) for t in thetas_r]]
             smus      = r_[[nanstd(t) for t in mus]]
@@ -142,7 +156,7 @@ if __name__ == "__main__":
         xma = max(max(mdepths), xma)
 
         if hky85: ax1 = plt.subplot(311)
-        else:     ax1 = plt.subplot(111)
+        else:     ax1 = plt.subplot(211)
         l = plt.errorbar(mdepths, mthetas_g, color=col[i], xerr=sdepths, yerr=sthetas_g, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6, label=label)
         plt.hlines(mthetas_g[0], 0, 1.5*max(mdepths), col[i], "dashed")
         plt.xscale("log")
@@ -156,19 +170,40 @@ if __name__ == "__main__":
             plt.yscale("log")
             mas    = mthetas_g + sthetas_g
             mis    = mthetas_g - sthetas_g
-            yma[0] = max(yma[0], max(mas[nonzero(mas)])*1.1)
-            ymi[0] = max(yma[0]/100,min(ymi[0], min(mis[nonzero(mis)])/1.1))
-            plt.ylim(ymi[0], yma[0])
-            if hky85: plt.ylabel(r"$\theta_{f/g}$")
+            yma[0] = 10**ceil(log10(max(yma[0], max(mas[nonzero(mas)]))))
+            ymi[0] = min(ymi[0], min(mis[nonzero(mis)]))
+            plt.ylim(min(ymi[0]/1.1, yma[0]/20), yma[0]*1.1)
+            if hky85: plt.ylabel(r"$\theta_{g}$")
             else: plt.ylabel(r"$\theta_f$")
 
         if hky85:
             plt.tick_params('x', labelbottom=False)
 
-        if hky85 and hky85_i:
+        if hky85:
             plt.subplot(312, sharex=ax1)
-            plt.errorbar(mdepths, mthetas_r, color=col[i], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
             plt.tick_params('x', labelbottom=False)
+        else: plt.subplot(212, sharex=ax1)
+
+        plt.errorbar(mdepths, mhets, color=col[i], xerr=sdepths, yerr=shets, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
+        plt.hlines(mhets[0], 0, 1.5*max(mdepths), col[i], "dashed")
+
+        if args.relative:
+            plt.yscale("linear")
+            plt.ylim(0, 1.5)
+            plt.ylabel(r"Heterozygosity/Heterozygosity$_0$")
+        else:
+            plt.yscale("log")
+            plt.ylabel(r"Heterozygosity")
+
+            mas = mhets + shets
+            mis = mhets - shets
+            yma[1] = 10**ceil(log10(max(yma[1], max(mas[nonzero(mas)]))))
+            ymi[1] = min(ymi[1], min(mis[nonzero(mis)]))
+            plt.ylim(min(ymi[1]/1.1, yma[1]/20), yma[1]*1.1)
+
+        if hky85 and hky85_i:
+            plt.subplot(313, sharex=ax1)
+            plt.errorbar(mdepths, mthetas_r, color=col[i], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
 
             if args.relative:
                 plt.yscale("linear")
@@ -180,26 +215,10 @@ if __name__ == "__main__":
 
                 mas = mthetas_r + sthetas_r
                 mis = mthetas_r - sthetas_r
-                yma[1] = max(yma[1], max(mas[nonzero(mas)])*1.1)
-                ymi[1] = min(ymi[1], min(mis[nonzero(mis)])/1.1)
-                plt.ylim(ymi[1], yma[1])
+                yma[2] = 10**ceil(log10(max(yma[2], max(mas[nonzero(mas)]))))
+                ymi[2] = min(ymi[2], min(mis[nonzero(mis)]))
+                plt.ylim(min(ymi[2]/1.1, yma[2]/20), yma[2]*1.1)
 
-            plt.subplot(313, sharex=ax1)
-            plt.errorbar(mdepths, mmus, color=col[i], xerr=sdepths, yerr=smus, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
-
-            if args.relative:
-                plt.yscale("linear")
-                plt.ylim(0, 1.5)
-                plt.ylabel(r"$\mu/\mu_0$")
-            else:
-                plt.yscale("log")
-                plt.ylabel(r"$\mu$")
-
-                mas = mmus + smus
-                mis = mmus - smus
-                yma[2] = max(yma[2], max(mas[nonzero(mas)])*1.1)
-                ymi[2] = min(ymi[2], min(mis[nonzero(mis)])/1.1, yma[2]/5)
-                plt.ylim(ymi[2], yma[2])
 
     # All
     plt.xlabel(r"Depth")
