@@ -127,12 +127,12 @@ void TErrorEstimator::_identifyModels() {
 	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
 
 	// identify models with data that can be estimated
-	logfile().startIndent("Identifying models to estimate:");
+	logfile().startIndent("Identifying sequencing error models to estimate:");
 	for (auto rg : _recalMap.readGroupsInUse()) {
+		logfile().startIndent("Readgroup ", rg, ":");
 		if (_dataTables[rg][Mate::first].size() == 0 && _dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
 
 		const auto& pooledWith = _recalMap.readGroupsPooledWith(rg);
-		logfile().startIndent("Readgroup ", rg, ":");
 		if (pooledWith.size() > 1) logfile().list("Pooled with: ", _recalMap.readGroupsPooledWith(rg), ".");
 
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
@@ -151,8 +151,12 @@ void TErrorEstimator::_identifyModels() {
 			}
 		}
 		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+		logfile().endIndent();
 	}
+	logfile().endIndent();
+	logfile().startIndent("Identifying sequencing error models to estimate:");
 	for (auto rg : _pmdMap.readGroupsInUse()) {
+		logfile().startIndent("Readgroup ", rg, ":");
 		auto &pmd = _pmd.model(rg);
 		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
 
