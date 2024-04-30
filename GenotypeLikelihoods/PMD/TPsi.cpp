@@ -8,6 +8,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
 
 namespace GenotypeLikelihoods::PMD {
@@ -152,12 +153,15 @@ void TPsi::estimateInit() noexcept {
 		coretools::TStrongArray<size_t, Type> sums{};
 		for (auto t = Type::min; t < Type::max; ++t) {
 			auto &table = _tables[e][t];
+			table.clear();
+
 			auto &tSum  = _tableSums[e][t];
+			if (tSum.empty()) continue;
 
 			// add up end to have enough data
 			for (size_t i = tSum.size() - 1; i > 0; --i) {
-				const auto &ts      = tSum[i];
-				auto& ts_m = tSum[i - 1]; // i > 0 -> always ok
+				const auto &ts = tSum[i];
+				auto& ts_m     = tSum[i - 1]; // i > 0 -> always ok
 
 				auto merge = [](auto ts) {
 					return (ts.fromTo.fromTo <= ts.fromTo.toFrom) || (ts.fromTo.fromSum + ts.fromTo.toSum < Nmin);
@@ -165,15 +169,15 @@ void TPsi::estimateInit() noexcept {
 
 				if (merge(ts) || merge(ts_m)) {
 					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
-					ts_m.fromTo.fromTo += ts.fromTo.fromTo;
-					ts_m.fromTo.toSum += ts.fromTo.toSum;
-					ts_m.fromTo.toFrom += ts.fromTo.toFrom;
+					ts_m.fromTo.fromTo  += ts.fromTo.fromTo;
+					ts_m.fromTo.toSum   += ts.fromTo.toSum;
+					ts_m.fromTo.toFrom  += ts.fromTo.toFrom;
 					tSum.pop_back();
 				} else {
 					break;
 				}
 			}
-			table.clear();
+
 			for (auto &ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;

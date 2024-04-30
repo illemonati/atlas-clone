@@ -129,11 +129,18 @@ void TErrorEstimator::_identifyModels() {
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
 	for (auto rg : _recalMap.readGroupsInUse()) {
-		logfile().startIndent("Readgroup ", rg, ":");
 		if (_dataTables[rg][Mate::first].size() == 0 && _dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
 
 		const auto& pooledWith = _recalMap.readGroupsPooledWith(rg);
-		if (pooledWith.size() > 1) logfile().list("Pooled with: ", _recalMap.readGroupsPooledWith(rg), ".");
+		std::string s = ":";
+		if (pooledWith.size() > 1) {
+			s = ", pooled with:";
+			for (const auto rgi : pooledWith) {
+				if (rgi != rg) s += toString(" ", rgi, ",");
+			}
+			s.back() = ':';
+		}
+		logfile().startIndent("Readgroup ", rg, s);
 
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			constexpr coretools::TStrongArray<std::string_view, Mate> sMates{{"First", "Second"}};
@@ -154,15 +161,26 @@ void TErrorEstimator::_identifyModels() {
 		logfile().endIndent();
 	}
 	logfile().endIndent();
-	logfile().startIndent("Identifying sequencing error models to estimate:");
+	logfile().startIndent("Identifying PMD models to estimate:");
 	for (auto rg : _pmdMap.readGroupsInUse()) {
-		logfile().startIndent("Readgroup ", rg, ":");
+		logfile().listFlush("Readgroup ", rg);
+
 		auto &pmd = _pmd.model(rg);
 		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
 
+		const auto& pooledWith = _pmdMap.readGroupsPooledWith(rg);
+		if (pooledWith.size() > 1) {
+			std::string s = ", pooled with:";
+			for (const auto rgi : pooledWith) {
+				if (rgi != rg) s += toString(" ", rgi, ",");
+			}
+			s.back() = '.';
+			logfile().write(s);
+		}
+		else logfile().write(".");
+
 		_psis.push_back(pmd.psi());
 		_psis.back()->estimateInit();
-		logfile().endIndent();
 	}
 	logfile().endIndent();
 }
