@@ -23,6 +23,8 @@
 #include "genometools/VCF/TVcfWriter.h"
 #include "SequencingError/TRecalDataTables.h"
 
+#include "coretools/devtools.h"
+
 namespace GenotypeLikelihoods {
 
 //--------------------------------------------------------------------
@@ -71,9 +73,12 @@ private:
 		size_t i  = 0;
 		size_t ij = 0;
 		for (size_t r = 0; r < _regionSites.size(); ++r) {
+			OUT(r);
 			const auto &sites      = _regionSites[r];
 			const auto isInvariant = _genoDist[r]->isInvariant();
 			for (const auto &site : sites) {
+				OUT(i);
+				OUT(site.depth());
 				const auto &P_g_I_di = _P_g_I_dis[i++];
 				for (auto &d_ij : site) {
 					const auto &P_bbar_I_gdij = _P_bbarEdij_I_gdijs[ij++];
@@ -88,7 +93,9 @@ private:
 
 	void _solveDerivative() {
 		_calculateQ<true>(); 
+		WINK();
 		for (auto& e: _epsilons) e->solveJxF();
+		WINK();
 	}
 
 	size_t _calculateQ() {

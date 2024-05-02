@@ -114,17 +114,25 @@ void TErrorEstimator::_identifyModels() {
 
 	_dataTables.write(_genome.outputName());
 
+	size_t totSites = 0;
 	logfile().startIndent("Number of sites with data:");
-	for (size_t i = 0; i < _regionSites.size(); ++i) logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
+	for (size_t i = 0; i < _regionSites.size(); ++i) {
+		totSites += _regionSites[i].size();
+		logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
+	}
 	logfile().endIndent();
 
+	logfile().conclude("Total number of sites: ", totSites);
 	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
 	logfile().conclude("Number of bases: ", _dataTables.size());
 
 	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 
+	ECHO("Reserving P_g_I_dis");
 	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
+	ECHO("Reserving _P_bbarEdij_I_gdijs");
 	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
+	ECHO("done");
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
