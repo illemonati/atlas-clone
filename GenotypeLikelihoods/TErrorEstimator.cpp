@@ -128,11 +128,8 @@ void TErrorEstimator::_identifyModels() {
 
 	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 
-	ECHO("Reserving P_g_I_dis");
 	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
-	ECHO("Reserving _P_bbarEdij_I_gdijs");
 	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
-	ECHO("done");
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");

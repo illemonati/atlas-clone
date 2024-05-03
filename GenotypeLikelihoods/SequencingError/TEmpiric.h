@@ -68,8 +68,7 @@ public:
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
-		const auto val = Covariate::extract(base);
-		assert(val < _betas.size());
+		const auto val = std::min<size_t>(Covariate::extract(base), _betas.size() - 1);
 
 		const size_t der_index = firstParameterIndex() + static_cast<size_t>(val);
 		der1.emplace_back(der_index, 1.0);
