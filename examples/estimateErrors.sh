@@ -9,8 +9,11 @@ delta=10
 k="111"
 L="100$k"
 
-. $(dirname $0)/simulate --recal $recal --pmd $pmd --baseQuality "unif()[0,93]" \
-  --chrLength $L,$L --depth 9 --ploidy 2,1 --numReadGroups 3
+. $(dirname $0)/simulate --recal $recal --pmd $pmd  \
+  --chrLength $L,$L --depth 9 --ploidy 2,1 --numReadGroups 3 \
+  --baseQuality 'categorical(12:1237270,22:845176,27:1912959,32:21069477,37:34246008,41:339557323)' \
+  --fragmentLength 'normal(40,10)[30,101]' \
+  --mappingQuality 'normal(60,10)[30,60]'
 
 echo "chr1 0 $L" > bed1.bed
 echo "chr2 0 99$k" > bed2.bed
@@ -23,7 +26,7 @@ echo "SimReadGroup3 SimReadGroup1" >> pmd.pool
 
 recalModel="intercept;quality;position:polynomial2;fragmentLength:polynomial2;mappingQuality;context"
 name="estimateErrors"
-$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
+$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel --NRho 0 \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
 	   --regions bed1.bed,bed2.bed --ploidy 2,1  --window 45672 \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \

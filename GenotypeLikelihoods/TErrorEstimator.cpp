@@ -114,10 +114,15 @@ void TErrorEstimator::_identifyModels() {
 
 	_dataTables.write(_genome.outputName());
 
+	size_t totSites = 0;
 	logfile().startIndent("Number of sites with data:");
-	for (size_t i = 0; i < _regionSites.size(); ++i) logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
+	for (size_t i = 0; i < _regionSites.size(); ++i) {
+		totSites += _regionSites[i].size();
+		logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
+	}
 	logfile().endIndent();
 
+	logfile().conclude("Total number of sites: ", totSites);
 	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
 	logfile().conclude("Number of bases: ", _dataTables.size());
 

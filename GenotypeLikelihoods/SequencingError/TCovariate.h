@@ -35,10 +35,12 @@ struct TCovariate_fragmentLength {
 	static constexpr std::string_view name = "fragmentLength";
 	static constexpr Covariates index      = Covariates::FragmentLength;
 
+	static constexpr size_t NMax = 1024;
+
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.fragmentLength; }
 
 	static size_t N(const std::vector<size_t> &fragmentLengths) noexcept {
-		return fragmentLengths.size();
+		return std::min(NMax, fragmentLengths.size());
 	}
 
 	static bool isUsed(const std::vector<size_t> &fragmentLengths, size_t i) noexcept {
@@ -65,10 +67,12 @@ struct TCovariate_position {
 	static constexpr std::string_view name = "position";
 	static constexpr Covariates index      = Covariates::Position;
 
+	static constexpr size_t NMax = 1024;
+
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5Prime; }
 
 	static size_t N(const std::vector<size_t>& positions) noexcept {
-		return positions.size();
+		return std::min(NMax, positions.size());
 	}
 
 	static bool isUsed(const std::vector<size_t>& positions, size_t i) noexcept {
