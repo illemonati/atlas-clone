@@ -1,4 +1,5 @@
 import argparse
+import sys
 import gzip
 from numpy import *
 import matplotlib
@@ -6,21 +7,27 @@ import matplotlib.pyplot as plt
 from scipy.special import logit
 from scipy.special import expit
 matplotlib.rcParams.update({'font.size': 10})
-tol_bright  = ['#4477AA', '#AA3377', '#228833', '#CCBB44', '#EE6677', '#66CCEE', '#BBBBBB']
+tol_bright  = ['#4477AA', '#AA3377', '#228833', '#CCBB44', '#EE6677', '#66CCEE', '#BBBBBB', "#000000"]
 tol_vibrant = ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311', '#009988', '#BBBBBB']
 IKRK        = ["#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"]
 basic       = ["#000000", "#FF0000", "#0000FF", "#FFA500", "#008000", "#808080", "#800080", "#008080"]
+
+col  = tol_bright
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot genotye Distribution data(s)")
     parser.add_argument("files", nargs='*', help="Data")
     parser.add_argument("--median", "-m", action="store_true")
     parser.add_argument("--relative",  "-r", action="store_true")
-    parser.add_argument("--one",  "-o", action="store_true")
+    parser.add_argument("--num",  "-n", type=int, default=1)
+    parser.add_argument("--out",  "-o", default="")
+    parser.add_argument("--het",  action="store_true")
 
-    args = parser.parse_args()
-    # get header and cols
-    nFiles = len(args.files)
+    args     = parser.parse_args()
+    nFiles   = len(args.files)
+    nSamples = int(ceil(nFiles/args.num))
+
+    if (nSamples) > len(col): sys.exit("Can only compare a maximum of %d samples!"%(len(col)))
 
     ymi = [10., 10., 10., 10.]
     yma = [0., 0., 0., 0.]
@@ -28,13 +35,12 @@ if __name__ == "__main__":
     xma = 0.
 
     hky85 = False #at least one file is hky85
-    if not args.one:
-        for file in args.files:
-            f = gzip.open(file)
-            for key in f.readline().split():
-                key = key.decode()
-                if "mu" in key: hky85 = True
-            f.close()
+    for file in args.files:
+        f = gzip.open(file)
+        for key in f.readline().split():
+            key = key.decode()
+            if "mu" in key: hky85 = True
+        f.close()
 
     for i, file in enumerate(args.files):
         label = file.split(".txt.gz")[0].split("/")[-1]
@@ -113,9 +119,9 @@ if __name__ == "__main__":
             for j in ithetas_f:
                 thetas_g.append(data[:, j]/theta0)
 
-        fmts = ["o-", "s-", "X-", "d-", "p-", "<-", "^-", ">-"]
+        fmts = ["o", "s", "X", "d", "p", "<", "^", ">"]
+        lins = ["-", ":", "--"]
         mks  = [i for i in range(nFiles, 0, -1)]
-        col  = tol_bright
 
         if args.median:
             print("using median")
@@ -155,10 +161,14 @@ if __name__ == "__main__":
         xmi = min(min(mdepths), xmi)
         xma = max(max(mdepths), xma)
 
-        if hky85: ax1 = plt.subplot(311)
-        else:     ax1 = plt.subplot(211)
-        l = plt.errorbar(mdepths, mthetas_g, color=col[i], xerr=sdepths, yerr=sthetas_g, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6, label=label)
-        plt.hlines(mthetas_g[0], 0, 1.5*max(mdepths), col[i], "dashed")
+        if hky85:
+            ax1 = plt.subplot(211)
+            plt.tick_params('x', labelbottom=False)
+        else:
+            ax1 = plt.subplot(111)
+
+        plt.errorbar(mdepths, mthetas_g, color=col[i%nSamples], xerr=sdepths, yerr=sthetas_g, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6, label=label)
+        plt.hlines(mthetas_g[0], 0, 1.5*max(mdepths), col[i%nSamples], "dashed")
         plt.xscale("log")
         plt.legend(ncols=2, borderaxespad=0.)
         if args.relative:
@@ -166,6 +176,7 @@ if __name__ == "__main__":
             plt.ylim(0, 1.5)
             if hky85: plt.ylabel(r"$\theta_{f/g}/\theta_0$")
             else: plt.ylabel(r"$\theta_f/\theta_0$")
+
         else:
             plt.yscale("log")
             mas    = mthetas_g + sthetas_g
@@ -176,48 +187,24 @@ if __name__ == "__main__":
             if hky85: plt.ylabel(r"$\theta_{g}$")
             else: plt.ylabel(r"$\theta_f$")
 
-        if hky85:
-            plt.tick_params('x', labelbottom=False)
-
-        if hky85:
-            plt.subplot(312, sharex=ax1)
-            plt.tick_params('x', labelbottom=False)
-        else: plt.subplot(212, sharex=ax1)
-
-        plt.errorbar(mdepths, mhets, color=col[i], xerr=sdepths, yerr=shets, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
-        plt.hlines(mhets[0], 0, 1.5*max(mdepths), col[i], "dashed")
-
-        if args.relative:
-            plt.yscale("linear")
-            plt.ylim(0, 1.5)
-            plt.ylabel(r"Heterozygosity/Heterozygosity$_0$")
-        else:
-            plt.yscale("log")
-            plt.ylabel(r"Heterozygosity")
-
-            mas = mhets + shets
-            mis = mhets - shets
-            yma[1] = 10**ceil(log10(max(yma[1], max(mas[nonzero(mas)]))))
-            ymi[1] = min(ymi[1], min(mis[nonzero(mis)]))
-            plt.ylim(min(ymi[1]/1.1, yma[1]/20), yma[1]*1.1)
-
         if hky85 and hky85_i:
-            plt.subplot(313, sharex=ax1)
-            plt.errorbar(mdepths, mthetas_r, color=col[i], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%len(fmts)], markersize=mks[i],linewidth=2, capsize=6)
+            plt.subplot(212, sharex=ax1)
+            plt.errorbar(mdepths, mthetas_r, color=col[i%nSamples], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
 
             if args.relative:
                 plt.yscale("linear")
                 plt.ylim(0, 1.5)
                 plt.ylabel(r"$\theta_r/\theta_{r0}$")
+
             else:
                 plt.yscale("log")
                 plt.ylabel(r"$\theta_r$")
 
                 mas = mthetas_r + sthetas_r
                 mis = mthetas_r - sthetas_r
-                yma[2] = 10**ceil(log10(max(yma[2], max(mas[nonzero(mas)]))))
-                ymi[2] = min(ymi[2], min(mis[nonzero(mis)]))
-                plt.ylim(min(ymi[2]/1.1, yma[2]/20), yma[2]*1.1)
+                yma[1] = 10**ceil(log10(max(yma[1], max(mas[nonzero(mas)]))))
+                ymi[1] = min(ymi[1], min(mis[nonzero(mis)]))
+                plt.ylim(min(ymi[1]/1.1, yma[1]/20), yma[1]*1.1)
 
 
     # All
@@ -230,6 +217,12 @@ if __name__ == "__main__":
 
     plt.xlim(xma*1.1, xmi/1.1)
 
-    plt.tight_layout()
-    plt.show()
-    #plt.savefig(args.files[0].split('_')[0] + ".png")
+
+    if args.out == "":
+        plt.tight_layout()
+        plt.show()
+    else:
+        fig = plt.gcf()
+        fig.set_size_inches(9, 9)
+        plt.tight_layout()
+        plt.savefig(args.out, dpi=300)
