@@ -18,6 +18,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
+#include "TSiteSubset.h"
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -41,8 +42,10 @@ using genometools::Genotype;
 using genometools::TGenotypeLikelihoodsAllCombinationsVector;
 
 namespace impl {
-constexpr coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination::max)>
-useAllelicCombinationsThatContain(Base base) {
+
+using alleleicCombinationsArray = coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination::max)>;
+
+constexpr alleleicCombinationsArray useAllelicCombinationsThatContain(Base base) {
 	using AC = AllelicCombination;
 	switch (base) {
 	case Base::A: return std::array{AC::AC, AC::AG, AC::AT};
@@ -57,6 +60,22 @@ template<typename Container> AllelicCombination chooseBestAllelicCombination(con
 	return randomGenerator().sampleIndexOfMaxima<Container, AllelicCombination>(acd);
 };
 
+Log10Probability LLFixedAllele(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, Base major){
+	const auto refHom = genometools::genotype(major, major);
+	Log10Probability LL_fixed{0.0};
+	for (size_t i = 0; i < data.size(); ++i) {
+		if (data[i].hasData()) {
+			if (data[i].isHaploid())
+				LL_fixed += (Log10Probability)data[i][major];
+			else
+				LL_fixed += (Log10Probability)data[i][refHom];
+		}
+	}
+	return LL_fixed;
+}	
+
+
+
 } // namespace impl
 
 struct TMMData {
@@ -66,6 +85,10 @@ struct TMMData {
 	genometools::Base major;
 	genometools::Base minor;
 };
+
+TMMData failedTMMData(){
+	return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), Base::N, Base::N};	
+}
 
 class TSkotte {
 	enum class HaploDiplo : size_t { min, first = min, second, homoFirst, het, homoSecond, max };
@@ -258,14 +281,12 @@ class TSkotte {
 		return std::make_tuple(MAF, bestL, major, minor);
 	}
 
-public:
-	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
-	                        genometools::Base ref, Probability minMAF,
-	                        genometools::PhredIntProbability minVariantQuality) {
+	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        const impl::alleleicCombinationsArray usedAllelicCombinations, genometools::Base ref,
+							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.reserve(data.size());
-
-		const auto used = impl::useAllelicCombinationsThatContain(ref);
+		
 		coretools::TStrongArray<coretools::TSumLogProbability, AllelicCombination> Ls{};
 
 		bool hasHaploid = false;
@@ -277,7 +298,7 @@ public:
 				hasHaploid = true;
 				glfs.emplace_back(TStrongArray<Probability, Base>{{(Probability)d[Base::A], (Probability)d[Base::G],
 				                                                   (Probability)d[Base::C], (Probability)d[Base::T]}});
-				for (auto ac : used) {
+				for (auto ac : usedAllelicCombinations) {
 					Ls[ac].add(0.5 * (glfs.back()[genometools::first(ac)] + glfs.back()[genometools::second(ac)]));
 				}
 			} else {
@@ -287,7 +308,7 @@ public:
 				     (Probability)d[Genotype::AT], (Probability)d[Genotype::CC], (Probability)d[Genotype::CG],
 				     (Probability)d[Genotype::CT], (Probability)d[Genotype::GG], (Probability)d[Genotype::GT],
 				     (Probability)d[Genotype::TT]}});
-				for (auto ac : used) {
+				for (auto ac : usedAllelicCombinations) {
 					Ls[ac].add(
 					    0.25 * (glfs.back()[genometools::homoFirst(ac)] + glfs.back()[genometools::homoSecond(ac)]) +
 					    0.5 * glfs.back()[genometools::het(ac)]);
@@ -296,7 +317,7 @@ public:
 		}
 
 		TStrongArray<double, AllelicCombination> LLs{std::numeric_limits<double>::lowest()};
-		for (auto ac : used) { LLs[ac] = Ls[ac].getSum(); }
+		for (auto ac : usedAllelicCombinations) { LLs[ac] = Ls[ac].getSum(); }
 		const auto bestAC = impl::chooseBestAllelicCombination(LLs);
 
 		auto [MAF, bestL, major, minor] = [&glfs, bestAC, maxF, hasHaploid, hasDiploid, minMAF]() {
@@ -314,48 +335,51 @@ public:
 				}
 			}
 		}();
-
-		if (minor == ref) { // cannot happen if base == ref
-			minor = major;
-			major = ref;
-		}
-
-		if (MAF < minMAF)
-			return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), major, minor};
-
-		const auto refHom = genometools::genotype(major, major);
-		Log10Probability LL_fixed{0.0};
-		for (size_t i = 0; i < data.size(); ++i) {
-			if (data[i].hasData()) {
-				if (data[i].isHaploid())
-					LL_fixed += (Log10Probability)data[i][major];
-				else
-					LL_fixed += (Log10Probability)data[i][refHom];
-			}
-		}
+		
+		// determine variant quality
+		Log10Probability LL_fixed = impl::LLFixedAllele(data, major);
 		const genometools::PhredIntProbability variantQuality{LL_fixed > bestL ? Log10Probability(0.0)
 		                                                                       : Log10Probability(LL_fixed - bestL)};
 
-		if (variantQuality < minVariantQuality) {
-			return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), major, minor};
+		if (MAF < minMAF || variantQuality < minVariantQuality) {
+			return failedTMMData();			
 		}
+		
+		// ensure return value uses major = ref if ref was provided
+		if (minor == ref) { // cannot happen if base == ref
+			minor = major;
+			major = ref;
+		}		
 
 		return {true, MAF, variantQuality, major, minor};
 	}
-};
+public:
+	
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(Base::N);
+		return _estimate(data, maxF, usedAllelicCombinations, Base::N, minMAF, minVariantQuality);
+	}
 
-struct TMLE {
 	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 	                        genometools::Base ref, Probability minMAF,
 	                        genometools::PhredIntProbability minVariantQuality) {
-		// calculate L10L for each allelic combination
-		const auto used = impl::useAllelicCombinationsThatContain(ref);
+		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
+		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
+	}
+};
 
+class TMLE {
+private:
+	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        const impl::alleleicCombinationsArray usedAllelicCombinations, genometools::Base ref,
+							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+		// calculate L10L for each allelic combination
 		genometools::TGenotypeFrequencies bestFreqs;
 		coretools::Log10Probability bestL = coretools::Log10Probability::lowest();
 		AllelicCombination bestAC         = AllelicCombination::min;
 
-		for (const auto ac : used) {
+		for (const auto ac : usedAllelicCombinations) {
 			auto GLs = fill(data, ac);
 			genometools::TGenotypeFrequencies freqs;
 			freqs.estimate<false>(GLs, GLs.size(), maxF);
@@ -377,29 +401,39 @@ struct TMLE {
 			minor = first(bestAC);
 		}
 
+		// determine variant quality
+		Log10Probability LL_fixed = impl::LLFixedAllele(data, major);
+		const genometools::PhredIntProbability variantQuality{LL_fixed > bestL ? Log10Probability(0.0)
+		                                                                       : Log10Probability(LL_fixed - bestL)};
+
+		if (bestFreqs.MAF() < minMAF || variantQuality < minVariantQuality) {
+			return failedTMMData();
+		}
+
+		// ensure return value uses major = ref if ref was provided
 		if (minor == ref) { // cannot happen if base == ref
 			minor = major;
 			major = ref;
 		}
+		
+		return {true, bestFreqs.MAF(), variantQuality, major, minor};
+	}
 
-		// calculate variant quality
-		const auto refHom = genometools::genotype(major, major);
-		Log10Probability LL_fixed_glfPhred{0.0};
-		for (size_t i = 0; i < data.size(); ++i) {
-			if (data[i].hasData()) {
-				if (data[i].isHaploid())
-					LL_fixed_glfPhred += (Log10Probability)data[i][major];
-				else
-					LL_fixed_glfPhred += (Log10Probability)data[i][refHom];
-			}
-		}
-		genometools::PhredIntProbability _variantQuality{
-		    LL_fixed_glfPhred > bestL ? Log10Probability(0.0) : Log10Probability(LL_fixed_glfPhred - bestL)};
+public:
 
-		if (bestFreqs.MAF() < minMAF || _variantQuality < minVariantQuality) {
-			return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), major, minor};
-		}
-		return {true, bestFreqs.MAF(), _variantQuality, major, minor};
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+		// calculate L10L for each allelic combination
+		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(Base::N);
+		return _estimate(data, maxF, usedAllelicCombinations, Base::N, minMAF, minVariantQuality);
+	}
+
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        genometools::Base ref, Probability minMAF,
+	                        genometools::PhredIntProbability minVariantQuality) {
+		// calculate L10L for each allelic combination
+		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
+		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
 };
 
@@ -409,17 +443,23 @@ template<typename Estimator> void iterate(double maxF) {
 	glfReader.openGLFs();
 	glfReader.setAllActive();
 
-	// add reference, if provided
-	if (parameters().exists("fasta")) {
-		logfile().list("Will only identify the most likely alternative allele (argument: fasta)");
+	// use known alleles or reference allele, if provided	
+	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetPolymorphic> _subsetPolymoprhic;
+	if (parameters().exists("alleles")) {
+		logfile().startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
+		const auto filename = parameters().get("alleles");
+		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, glfReader.chromosomes());
+		logfile().endIndent();
+	} else if (parameters().exists("fasta")) {
+		logfile().list("Will use reference allele and only identify the most likely alternative allele. (argument: fasta)");
 		const std::string fastaFile = parameters().get<std::string>("fasta");
 		logfile().list("Reading reference sequence from '" + fastaFile + "'");
 		glfReader.addReference(fastaFile);
+	} else {
+		logfile().list("Will identify the most likely among all 6 possible allele combnations. (provide alleles with 'alleles' or the reference with 'fasta')");
 	}
 
-	// estimation method
-	const std::string method = parameters().get<std::string>("method", "MLE");
-
+	// write phred-scaled likelihoods?
 	const bool usePhredLikelihoods = parameters().exists("phredLik");
 	if (usePhredLikelihoods) {
 		logfile().list("Will write phred-scaled likelihoods. (parameter phredLik)");
@@ -430,8 +470,9 @@ template<typename Estimator> void iterate(double maxF) {
 	// read filters
 	size_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
+	coretools::Probability minMAF{P(0.0)};
 	if (parameters().exists("printAll")) {
-		logfile().list("Will all sites and samples. (parameter printAll)");
+		logfile().list("Will write all sites and samples. (parameter printAll)");
 		minSamplesWithData = 0;
 		minVariantQuality  = 0;
 	} else {
@@ -445,17 +486,17 @@ template<typename Estimator> void iterate(double maxF) {
 		    "minVariantQual", genometools::PhredIntProbability::highest());
 		if (minVariantQuality > genometools::PhredIntProbability::highest()) {
 			logfile().list("Will only print sites with variant quality >= ", minVariantQuality,
-			               " samples have data. (parameter minVariantQual)");
+			               ". (parameter minVariantQual)");
+		}
+
+		minMAF = parameters().get("minMAF", P(0.0));
+		if (minMAF > 0.0) {
+			logfile().list("Will filter on a minor allele frequency of ", minMAF, ". (parameter 'minMAF')");
+		} else {
+			logfile().list("Will keep sites regardless of their minor allele frequency. (use 'minMAF' to filter)");
 		}
 	}
-	glfReader.minSamplesWithData(minSamplesWithData);
-
-	coretools::Probability minMAF = parameters().get("minMAF", P(0.0));
-	if (minMAF > 0.0) {
-		logfile().list("Will filter on a minor allele frequency of ", minMAF, ". (parameter 'minMAF')");
-	} else {
-		logfile().list("Will keep sites regardless of their minor allele frequency. (use 'minMAF' to filter)");
-	}
+	glfReader.minSamplesWithData(minSamplesWithData);	
 
 	// limit input
 	const size_t limitSites = parameters().get("limitSites", 0);
@@ -512,9 +553,8 @@ template<typename Estimator> void iterate(double maxF) {
 	coretools::instances::logfile().list("Not running in parallel");
 #endif
 
-	genometools::TVcfWriter vcf;
-
 	// open vcf file
+	genometools::TVcfWriter vcf;
 	if (coretools::instances::parameters().exists("bgz")) {
 		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", sampleNames,
 		                              usePhredLikelihoods);
@@ -532,7 +572,22 @@ template<typename Estimator> void iterate(double maxF) {
 	const auto hasRef = glfReader.hasRef();
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 		std::vector<TMMData> data(ids.size());
-		if (hasRef) {
+		if (_subsetPolymoprhic){			
+			/*
+			// TODO: Dan is working on this
+			// get relevant positions from subset
+			_subsetPolymoprhic->
+
+#pragma omp parallel for num_threads(maxThreads)
+			// loop over positions
+			for (size_t i = 0; i < ids.size(); ++i) {
+				
+				return failedTMMData();
+				const auto iW = ids[i];
+				data[i]       = Estimator::estimate(glfReader.data(iW), maxF, , minMAF, minVariantQuality);
+			}
+			*/
+		} else if (hasRef) {
 			const auto refs = glfReader.refView();
 #pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
@@ -542,7 +597,7 @@ template<typename Estimator> void iterate(double maxF) {
 		} else {
 #pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
-				data[i] = Estimator::estimate(glfReader.data(ids[i]), maxF, Base::N, minMAF, minVariantQuality);
+				data[i] = Estimator::estimate(glfReader.data(ids[i]), maxF, minMAF, minVariantQuality);
 			}
 		}
 

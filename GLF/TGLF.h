@@ -19,8 +19,7 @@
 #include "coretools/Containers/TDualStrongArray.h"
 #include "GenotypeData.h"
 #include "genometools/VCF/TVcfWriter.h"
-
-namespace genometools { class TChromosome; }
+#include "genometools/GenomePositions/TChromosomes.h"
 
 namespace GLF {
 using genometools::Ploidy;
@@ -63,7 +62,7 @@ class TGlfHandle {
 protected:
 	std::string _filename;
 	gzFile _gzfp         = nullptr;
-	std::string _version = "GLF2";
+	std::string _version = "GLF3";
 	uint64_t _positionInFile = 0;
 	TGlfChromosome _curChr;
 
@@ -111,12 +110,12 @@ private:
 
 public:
 	TGlfWriter() = default;
-	TGlfWriter(const std::string &Filename) {
-		open(Filename, "");
+	TGlfWriter(const std::string &Filename, const genometools::TChromosomes &Chrs) {
+		open(Filename, Chrs, "");
 	};
 
 	// open & close streams
-	void open(const std::string &Filename, const std::string &Header = "");
+	void open(const std::string &Filename, const genometools::TChromosomes &Chrs, const std::string &Header = "");
 	void newChromosome(const genometools::TChromosome &chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 		       const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
@@ -128,6 +127,7 @@ public:
 class TGlfReader : public TGlfHandle {
 private:
 	// file parsing
+	std::string _glfFileVersion;
 	bool _eof = true;
 
 	// about site
@@ -139,6 +139,7 @@ private:
 
 	// about chromosomes
 	std::map<uint32_t, TGlfChromosome> _chromosomesAlreadyParsed;
+	genometools::TChromosomes _chromosomes;
 
 	// initializing
 	void _open();
@@ -157,7 +158,7 @@ private:
 		return t;
 	};
 
-	bool _readChr();
+	bool _readChr(bool storePrevious = true);
 	bool _readRecordType();
 	void _readSNPRecord();
 	bool _jumpToEndOfChr();
@@ -170,12 +171,13 @@ public:
 
 	// get details
 	bool eof() const { return _eof; };
-	TGlfChromosome *pointerToChr(uint32_t refId);
+	const genometools::TChromosomes& chromosomes();
+	TGlfChromosome *pointerToChr(uint32_t refId);	
 	uint32_t position() const { return _position; };
 	uint16_t depth() const { return _depth; };
-	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };
+	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };	
 	TGlfChromosome *curChr() {return &_curChr;};
-
+	
 	// open file and parse header
 	void setFilename(const std::string &Filename);
 	void open(const std::string &Filename);

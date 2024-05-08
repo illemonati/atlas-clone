@@ -78,13 +78,13 @@ class TBamWindowTraverser {
 		}
 	}
 
-	static const genometools::TChromosomes& _chromosomes(const GType& Genome) {
-		return _front(Genome).bamFile().chromosomes();
-	}
-
 protected:
 	GType _genome = _initGenome();
 	TBamWindows _windows{_chromosomes(_genome)};
+
+	static const genometools::TChromosomes& _chromosomes(const GType& Genome) {
+		return _front(Genome).bamFile().chromosomes();
+	}
 
 	void _traverseBAMWindows() {
 		using coretools::instances::logfile;

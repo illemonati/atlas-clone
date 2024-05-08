@@ -55,7 +55,10 @@ void TWriteGLF::run(){
 	//open GLF file
 	const auto outputFileName = _genome.outputName() + ".glf.gz";
 	logfile().list("Will write genotype likelihoods to GLF file '" + outputFileName + "'.");
-	_writer.open(outputFileName);
+
+	
+
+	_writer.open(outputFileName, _chromosomes(this->_genome));
 
 	//traverse BAM
 	_traverseBAMWindows();

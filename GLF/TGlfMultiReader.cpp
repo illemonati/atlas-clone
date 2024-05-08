@@ -79,6 +79,8 @@ void TGlfMultiReader::_openGLFs() {
 	}
 	logfile().endIndent();
 	_setAllInactive();
+
+	//TODO: add check that they were produced with the same chromosome definitions! -> only possible as of version GLF3
 };
 
 void TGlfMultiReader::openGLFs(const std::vector<std::string> &FileNames) {
@@ -114,6 +116,10 @@ void TGlfMultiReader::openGLFs() {
 void TGlfMultiReader::addReference(const std::string &FastaFile) {
 	fastaReader.open(FastaFile);
 };
+
+const genometools::TChromosomes& TGlfMultiReader::chromosomes(){
+	return _GLFs[0].chromosomes();
+}
 
 //-------------------------------------
 // set active / inactive

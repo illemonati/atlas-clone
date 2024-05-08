@@ -66,6 +66,7 @@ public:
 	void openGLFs(const std::vector<std::string> &Filenames);
 	void openGLFs();
 	void addReference(const std::string& FastaFile);
+	const genometools::TChromosomes& chromosomes();	
 	void minSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
 
 	// set active / inactive

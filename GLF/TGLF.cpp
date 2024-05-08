@@ -64,7 +64,7 @@ void TGlfWriter::_writeHeader() {
 	}
 };
 
-void TGlfWriter::open(const std::string &Filename, const std::string &Header) {
+void TGlfWriter::open(const std::string &Filename, const genometools::TChromosomes &Chrs, const std::string &Header){
 	_filename = Filename;
 	_gzfp     = nullptr;
 	_gzfp     = gzopen(_filename.c_str(), "wb");
@@ -75,6 +75,13 @@ void TGlfWriter::open(const std::string &Filename, const std::string &Header) {
 	// write header
 	_header = Header;
 	_writeHeader();
+
+	// write chromosomes
+	const uint32_t numChrs = Chrs.size();
+	_write(&numChrs, sizeof(uint32_t));
+	for(auto c : Chrs){
+		newChromosome(c);
+	}
 };
 
 void TGlfWriter::newChromosome(const genometools::TChromosome &chromosome) {
@@ -156,16 +163,23 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 //---------------------------------
 // TGlfReader
 //---------------------------------
+const genometools::TChromosomes& TGlfReader::chromosomes(){
+	if(_glfFileVersion != _version)
+		UERROR("The requested analysis is only possible with GLF files of version ", _version, ". Please re-generate the GLF files with the current version of ATLAS.");
+
+	return _chromosomes;	
+}
+
 TGlfChromosome *TGlfReader::pointerToChr(uint32_t refId) {
 	if (_curChr.refId() == refId) { return &_curChr; }
 	
 	auto it = _chromosomesAlreadyParsed.find(refId);
 	return it == _chromosomesAlreadyParsed.end() ? nullptr : &it->second;
-};
+}
 
-bool TGlfReader::_readChr() {
+bool TGlfReader::_readChr(bool storePrevious) {
 	// store current chromosome name in list of chromosomes parsed
-	if (!_curChr.name().empty()) _chromosomesAlreadyParsed.emplace(_curChr.refId(), _curChr);
+	if (!_curChr.name().empty() && storePrevious) _chromosomesAlreadyParsed.emplace(_curChr.refId(), _curChr);
 
 	// read chromosome info
 	// name
@@ -226,39 +240,54 @@ void TGlfReader::open(const std::string &Filename) {
 	_open();
 };
 
-void TGlfReader::_open() {
+void TGlfReader::_open() {	
 	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
 	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for reading!");
 	_curChr.clear();
 	_chromosomesAlreadyParsed.clear();
+	_chromosomes.clear();
 	_positionInFile = 0;
 
 	// parse header
 	// version
 	char buffer[4];
-	_read(buffer, 4 * sizeof(char));
-	std::string fileVersion;
-	fileVersion.assign(buffer, 4);
+	_read(buffer, 4 * sizeof(char));	
+	_glfFileVersion.assign(buffer, 4);
 
-	if (fileVersion != _version)
-		UERROR("Non-supported GLF version '", fileVersion, "! Currently only version '", _version, "' is supported.");
-	_version = fileVersion;
+	if (_glfFileVersion != _version && _glfFileVersion != "GLF2")
+		UERROR("Non-supported GLF version '", _glfFileVersion, "! Are you using GLF files produced with an earlier version of ATLAS?");	
 
+	// header
 	const auto headerLen = _read<uint32_t>();
-
 	if (headerLen > 0) {
 		char header[1024];
 		if (_read(&header, headerLen) != (int) headerLen) UERROR("Cannot read file ", name(), "!");
 	}
 	_eof = false;
 
+	// read chromosomes from header
+	if(_glfFileVersion == _version){
+		// read number of chromosomes to parse
+		const auto numChrs = _read<uint32_t>();
+		if(numChrs == 0){
+			UERROR("GLF header does not contain any chromosome!");
+		}
+
+		for(int c = 0; c < numChrs; ++c){
+			_readRecordType();		
+			if (_recordType != 0)
+				UERROR("GLF header contains fewer chromosomes than indicated!");
+			_readChr(false);
+			_chromosomes.appendChromosome(_curChr.name(), _curChr.length(),_curChr.ploidy());			
+		}		
+	}
+
 	// read info of first chromosome
 	_readRecordType();
 	if (_recordType != 0)
-		UERROR("GLF file does not start with chromosome entry. The GLF format has changed with ATLAS 1.0, are you using "
-			   "GLF files produced with an earlier version?");
+		UERROR("GLF file does not start with chromosome entry. Are you using GLF files produced with an earlier version of ATLAS?");
 	_readChr();
 };
 
