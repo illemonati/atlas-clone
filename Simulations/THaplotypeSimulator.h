@@ -66,6 +66,24 @@ public:
 	[[nodiscard]] size_t sampleSize() const noexcept override {return 1;}
 };
 
+class TSimulatorHKY85 : public THaplotypeSimulator {
+private:
+	std::vector<std::array<std::array<double, 4>,4>> _P_g;
+	std::vector<std::array<std::array<double, 4>,4>> _P_r;
+
+public:
+	TSimulatorHKY85(size_t nChoromosomes);
+	static inline const std::string name = "HKY85";
+
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+					const genometools::TChromosome &chromosome) override;
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+					const genometools::TChromosome &chromosome) override;
+
+	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
+	[[nodiscard]] size_t sampleSize() const noexcept override {return 1;}
+};
+
 //---------------------------------------------------------
 // TSimulatorPairOfIndividuals
 //---------------------------------------------------------
