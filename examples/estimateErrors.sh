@@ -24,9 +24,16 @@ echo "SimReadGroup2 SimReadGroup1" >> recal.pool
 echo "readGroup poolWith" > pmd.pool
 echo "SimReadGroup3 SimReadGroup1" >> pmd.pool
 
-recalModel="intercept;quality;position:polynomial2;fragmentLength:polynomial2;mappingQuality;context"
+recalModel="intercept;quality;position:polynomial1;fragmentLength:polynomial2;mappingQuality;context"
 name="estimateErrors"
-$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel --NRho 0 \
+$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --regions bed1.bed,bed2.bed --ploidy 2,1  --window 45672 \
+	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
+	   --fixedSeed 0 --out $name --logFile $name.out
+
+name="fixedMu"
+$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel --fixedMu \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
 	   --regions bed1.bed,bed2.bed --ploidy 2,1  --window 45672 \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
