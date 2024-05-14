@@ -27,7 +27,12 @@ cd $(dirname $0)
 err=0
 cnt=0
 fail=0
-for f in *.sh; do
+shs="*.sh"
+if [[ $1 ]]; then
+	shs="$1.sh"
+fi
+   
+for f in $(eval echo $shs); do
 	fo=${f%.sh}
 	((cnt++))
 	tstep=$(date +%s)

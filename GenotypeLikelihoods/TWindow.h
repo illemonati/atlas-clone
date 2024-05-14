@@ -43,6 +43,7 @@ private:
 	// alignment stacks and sites
 	std::vector<BAM::TAlignment> _usedAlignments;
 	std::vector<TSite> _sites;
+	std::vector<bool> _masked;
 	std::string _chrName;
 
 	mutable double _depth                   = 0;
@@ -148,6 +149,7 @@ public:
 
 		//fill sites by downsampling, recalculate depth
 		_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb);
+		_masked.assign(_sites.size(), false);
 		_calcDepth();
 	};
 	
@@ -177,6 +179,7 @@ public:
 	const std::string &chrName() const noexcept { return _chrName; };
 	genometools::TGenomePosition position(size_t internalPos) const noexcept { return from() + internalPos; };
 	size_t positionOnChr(size_t internalPos) const noexcept { return from().position() + internalPos; };
+	bool isMasked(size_t internalPos) const noexcept {return _masked[internalPos];}
 
 	size_t numReadsInWindow() const noexcept { return _numReadsInWindow; };
 	double depth() const noexcept;
@@ -215,6 +218,7 @@ public:
 	template<typename SiteSubsetType>
 	void fillSitesSubset(SiteSubsetType &subset, size_t readUpToDepth){
 		_fillSitesSubset(_sites, subset, readUpToDepth);
+		_masked.assign(_sites.size(), false);
 		_numReadsInWindow = _usedAlignments.size();
 	}
 };

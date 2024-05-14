@@ -202,86 +202,77 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 
 	if (_histSettings.get<Hist::AllelicDepth>()) { logfile().list("Adding sites to allelic depth table ..."); }
 	for (size_t pos = 0; pos < window.size(); ++pos) {
+		if (window.isMasked(pos)) continue;
 		const auto &site = window[pos];
-		if (!_onlySummary) {
-			if (_printSettings.get<Print::OnlySitesWithData>() && site.empty()) continue;
-			_out.write(window.chrName(),
-			           window.positionOnChr(pos) + 1); // positions are zero-based internally
 
-			if (_windows.parser().reference()) { _out.write(site.refBase); }
-			if (_printSettings.get<Print::Depth>()) {
-				_out.write(site.depth());
-				if (_windows.parser().reference()) {
-					_out.write(site.refDepth(), site.depth() - site.refDepth());
-				}
-			}
-			if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
-			if (_printSettings.get<Print::SampleBases>()) {
-				const auto sBases = site.sampleBases();
-				if (sBases.empty()) {
-					_out.write("-", 0,0,0,0,0);
-				} else {
-					coretools::TStrongArray<size_t, Base> counts{};
-					size_t tot = 0;
-					for (auto b: sBases) {
-						_out.writeNoDelim(b);
-						++counts[b];
-						++tot;
-					}
-					_out.writeDelim();
-					_out.write(counts, tot);
-				}
-			}
-			if (_printSettings.get<Print::Qualities>()) { _out.write(site.getQualities()); }
-			if (_printSettings.get<Print::Alleles>()) {
-				const auto alleleCounts = site.countAlleles();
-				_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
-				_out.write((int)coretools::numNonZero(alleleCounts));
-			}
-			if (_printSettings.get<Print::Mates>()) {
-				const auto mateCounts = site.countMates();
-				_out.write(mateCounts);
-			}
-			if (_printSettings.get<Print::Strand>()) {
-				const auto strandCounts = site.countFwdRev();
-				_out.write(strandCounts);
-			}
-			if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
-				const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
-				auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
-				if (_printSettings.get<Print::Likelihoods>()) {
-					_out.write(genoLik, genometools::toString(g));
-				}
-				if (_printSettings.get<Print::HML>()) {
-					_out.write(genometools::isHeterozygous(g));
-				}
-			}
-			_out.endln();
-		}
 		// write histograms
 		if (_histSettings.get<Hist::Depths>()) {
 			_depthPerSite.add(site.depth());
 			_depthPerSitePerChromosome.add(site.depth());
 		}
 
-		if (_histSettings.get<Hist::Quality>()) {
-			for (auto &b : site) {
-				if (b.base != genometools::Base::N) {
-					_qualDist.add(b.readGroupID, b.recalQuality.get());
-				}
-			}
-		}
-
-		if (_histSettings.get<Hist::Contexts>()) {
-			for (auto &b : site) {
-				_contextDist.add(b.recalQuality.get(), coretools::index(b.context()));
-			}
-		}
-
 		if (_histSettings.get<Hist::AllelicDepth>()) {
 			const auto alleleCounts = site.countAlleles();
 			_counts.addSite(alleleCounts);
 		}
+
+		if (_histSettings.get<Hist::Quality>()) {
+			for (auto &b : site) {
+				if (b.base != genometools::Base::N) { _qualDist.add(b.readGroupID, b.recalQuality.get()); }
+			}
+		}
+
+		if (_histSettings.get<Hist::Contexts>()) {
+			for (auto &b : site) { _contextDist.add(b.recalQuality.get(), coretools::index(b.context())); }
+		}
+
+		if ((_printSettings.get<Print::OnlySitesWithData>() && site.empty()) || _onlySummary) continue;
+		_out.write(window.chrName(),
+		           window.positionOnChr(pos) + 1); // positions are zero-based internally
+
+		if (_windows.parser().reference()) { _out.write(site.refBase); }
+		if (_printSettings.get<Print::Depth>()) {
+			_out.write(site.depth());
+			if (_windows.parser().reference()) { _out.write(site.refDepth(), site.depth() - site.refDepth()); }
+		}
+		if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
+		if (_printSettings.get<Print::SampleBases>()) {
+			const auto sBases = site.sampleBases();
+			if (sBases.empty()) {
+				_out.write("-", 0, 0, 0, 0, 0);
+			} else {
+				coretools::TStrongArray<size_t, Base> counts{};
+				size_t tot = 0;
+				for (auto b : sBases) {
+					_out.writeNoDelim(b);
+					++counts[b];
+					++tot;
+				}
+				_out.writeDelim();
+				_out.write(counts, tot);
+			}
+		}
+		if (_printSettings.get<Print::Qualities>()) { _out.write(site.getQualities()); }
+		if (_printSettings.get<Print::Alleles>()) {
+			const auto alleleCounts = site.countAlleles();
+			_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
+			_out.write((int)coretools::numNonZero(alleleCounts));
+		}
+		if (_printSettings.get<Print::Mates>()) {
+			const auto mateCounts = site.countMates();
+			_out.write(mateCounts);
+		}
+		if (_printSettings.get<Print::Strand>()) {
+			const auto strandCounts = site.countFwdRev();
+			_out.write(strandCounts);
+		}
+		if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
+			const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
+			auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
+			if (_printSettings.get<Print::Likelihoods>()) { _out.write(genoLik, genometools::toString(g)); }
+			if (_printSettings.get<Print::HML>()) { _out.write(genometools::isHeterozygous(g)); }
+		}
+		_out.endln();
 	}
 
 	// write depth per window
