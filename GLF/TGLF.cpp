@@ -8,44 +8,98 @@
 #include "TGLF.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Files/TInputFile.h"
 
 
 namespace GLF {
 using namespace GenotypeLikelihoods;
 
-//----------------------------------------------------
-// TGlfChromosome
-//----------------------------------------------------
+//--------------------------------------------
+// TGlfIndexFile
+//--------------------------------------------
 
-namespace impl {
+void TGlfIndexFile::clear(){
+	_chrs.clear();
+	_posInFile.clear();
+}
 
-constexpr bool isHaploid(uint8_t Ploidy) {
-	if (Ploidy == 1) {
-		return true;
-	} else if (Ploidy == 2) {
-		return false;
+void TGlfIndexFile::addChromosme(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PosInFile){
+	if(Ploidy != 1 && Ploidy != 2)
+		UERROR("Currently GLFs only support ploidies 1 and 2 (not ", Ploidy, ")!");
+	_chrs.appendChromosome(Name, Length, Ploidy);
+	_posInFile.push_back(PosInFile);
+	_curChr = _posInFile.size() - 1;
+}
+
+void TGlfIndexFile::addChromosme(const genometools::TChromosome& Chr, uint64_t PosInFile){
+	if(Chr.ploidy() != 1 && Chr.ploidy() != 2)
+		UERROR("Currently GLFs only support ploidies 1 and 2 (not ", Chr.ploidy(), ")!");
+	_chrs.appendChromosome(Chr);
+	_posInFile.push_back(PosInFile);
+	_curChr = _posInFile.size() - 1;
+}
+
+void TGlfIndexFile::readChromosomes(std::string_view Filename) {
+	clear();
+	for(auto in = coretools::TInputFile(Filename, coretools::FileType::Header); in.isOpen(); in.popFront()){ 
+		_chrs.appendChromosome(in.get("Chr"), in.get<uint32_t>("Length"), in.get<uint8_t>("Ploidy"));
+		_posInFile.push_back(in.get<uint64_t>("PosInFile"));
 	}
-	UERROR("Currently GLFs only support ploidies 1 and 2 (not ", Ploidy, ")!");
-};
-} // namespace impl
+}
 
-TGlfChromosome::TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t Ploidy)
-    : _name(Name), _length(Length), _isHaploid(impl::isHaploid(Ploidy)) {};
+void TGlfIndexFile::seekChr(uint32_t RefID){
+	if(RefID < _chrs.size()){
+		_curChr = RefID;
+	} else {
+		UERROR("Chromosome with ref ID '", RefID, "' not found in GLF index!");
+	}
+}
 
+void TGlfIndexFile::setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PositionInFile) {
+	if(!_chrs.exists(Name))
+		UERROR("Chromosome '", Name, "' not found in GLF index!");
+	_curChr = _chrs.refID(Name);
 
-void TGlfChromosome::update(std::string_view Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy) {
-	_name   = Name;
-	_refId  = RefId;
-	_length = Length;
-	_isHaploid = impl::isHaploid(Ploidy);
-};
+	if(_chrs[_curChr].length() != Length)
+		UERROR("Length of chromosome '", Name, "' does not match length given in GLF index!");
 
-void TGlfChromosome::clear() {
-	_name      = "";
-	_refId     = 0;
-	_length    = 0;
-	_isHaploid = false;
-};
+	if(_chrs[_curChr].ploidy() != Ploidy)
+		UERROR("Ploidy of chromosome '", Name, "' does not match ploidy given in GLF index!");
+
+	if(_posInFile[_curChr] != PositionInFile)
+		UERROR("File index (position in file) of chromosome '", Name, "' does not match value given in GLF index!");
+}
+
+bool TGlfIndexFile::hasSameChromosomes(const TGlfIndexFile &Other) const { 
+	// checks if two TGlfIndexFiles contain the same chromosomes in terms of order, names and lengths
+	// ploidy may be different (e.g. X for males and females), as well as posInFile, which depends on the amount of data
+	if(_chrs.size() != Other._chrs.size()) return false;
+
+	auto a = _chrs.begin();
+	auto b = Other._chrs.begin();
+	while(a != _chrs.end()){
+		if(a->name() != b->name() || a->length() != b->length()) return false;
+		++a; ++b;
+	}
+	return true;
+}
+
+uint64_t TGlfIndexFile::nextChrPositionInFile() { 
+	if(_curChr + 1 == _chrs.size()){
+		// currently at last chromosome: return file size
+		
+	} else {
+		return _posInFile[_curChr + 1];
+	}
+}
+
+void TGlfIndexFile::writeChromosmes(std::string_view Filename){
+	coretools::TOutputFile out(Filename, {"Chr", "Length", "Ploidy", "PosInFile"});
+	for(auto c: _chrs){
+		out.writeln(c.name(), c.length(), c.ploidy(), _posInFile[c.refID()]);
+	}
+}
 
 //---------------------------------
 // TGlfWriter
@@ -70,36 +124,29 @@ void TGlfWriter::open(const std::string &Filename, const genometools::TChromosom
 	_gzfp     = gzopen(_filename.c_str(), "wb");
 
 	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for writing!");
-	_curChr.clear();
+	_index.clear();
 
 	// write header
 	_header = Header;
 	_writeHeader();
-
-	// write chromosomes
-	const uint32_t numChrs = Chrs.size();
-	_write(&numChrs, sizeof(uint32_t));
-	for(auto c : Chrs){
-		newChromosome(c);
-	}
 };
 
 void TGlfWriter::newChromosome(const genometools::TChromosome &chromosome) {
 	const uint8_t zero8 = 0;
 	_write(&zero8, sizeof(uint8_t));
 
-	// save cur info
-	_curChr.update(chromosome.name(), chromosome.refID(), chromosome.length(), chromosome.ploidy());
+	// add chromosome info to index file
+	_index.addChromosme(chromosome, _positionInFile);
 
 	// write new chromosome: length of label, label, refId, length of ref sequence, ploidy
-	const uint32_t labelLength = _curChr.name().size();
+	const uint32_t labelLength = chromosome.name().size();
 	_write(labelLength);
-	_write(_curChr.name().c_str(), _curChr.name().length() * sizeof(char));
-	_write(_curChr.refId());
-	_write(_curChr.length());
-	_write(_curChr.ploidy()); // TODO: I get an "uninitialized variable" error with valgrind. Why?
+	_write(chromosome.name().c_str(), chromosome.name().length() * sizeof(char));
+	_write(chromosome.refID());
+	_write(chromosome.length());
+	_write(chromosome.ploidy()); // TODO: I get an "uninitialized variable" error with valgrind. Why?
 
-	// set oldPos and curChr
+	// set oldPos
 	_oldPos = 0;
 };
 
@@ -121,7 +168,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 
 	// calculate likelihoods in GLF format
 	// Note: genotype likelihoods are given for the 10 diploid genotypes!!
-	if (_curChr.isHaploid()) {
+	if (_index.curChr().isHaploid()) {
 		using genometools::Base;
 		const double maxLik = std::max({genotypeLikelihoods[Genotype::AA], genotypeLikelihoods[Genotype::CC],
 										genotypeLikelihoods[Genotype::GG], genotypeLikelihoods[Genotype::TT]});
@@ -157,29 +204,20 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 	_write(&RMS_mappingQual, sizeof(uint8_t));
 
 	// genotype likelihoods
-	_write(glfValues.data(), _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
+	_write(glfValues.data(), _index.curChrNumLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
 };
 
 //---------------------------------
 // TGlfReader
 //---------------------------------
 const genometools::TChromosomes& TGlfReader::chromosomes(){
-	if(_glfFileVersion != _version)
-		UERROR("The requested analysis is only possible with GLF files of version ", _version, ". Please re-generate the GLF files with the current version of ATLAS.");
-
-	return _chromosomes;	
+	assert(_hasIndex);
+	return _index.chromosomes();	
 }
 
-TGlfChromosome *TGlfReader::pointerToChr(uint32_t refId) {
-	if (_curChr.refId() == refId) { return &_curChr; }
-	
-	auto it = _chromosomesAlreadyParsed.find(refId);
-	return it == _chromosomesAlreadyParsed.end() ? nullptr : &it->second;
-}
-
-bool TGlfReader::_readChr(bool storePrevious) {
-	// store current chromosome name in list of chromosomes parsed
-	if (!_curChr.name().empty() && storePrevious) _chromosomesAlreadyParsed.emplace(_curChr.refId(), _curChr);
+bool TGlfReader::_readChr() {
+	// store position in file before read chromosome info
+	auto posBeforeChr = _positionInFile - 1; // need to remove record type reading
 
 	// read chromosome info
 	// name
@@ -196,7 +234,12 @@ bool TGlfReader::_readChr(bool storePrevious) {
 	const auto length = _read<uint32_t>();
 	const auto ploidy = _read<uint8_t>();
 
-	_curChr.update(std::string_view(name, len), refId, length, ploidy);
+	// check if chromosome is in index and set cur
+	if(_hasIndex){
+		_index.setCurChromosomeToAndCheck(std::string_view(name, len), len, ploidy, posBeforeChr);
+	} else {
+		_index.addChromosme(std::string_view(name, len), len, ploidy, posBeforeChr);
+	}
 
 	// set first position = 0
 	_position = 0;
@@ -229,25 +272,23 @@ void TGlfReader::_readSNPRecord() {
 
 	// genotype likelihoods
 	_read(_genotypeLikelihoodsGLF.data(),
-	      _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
-	_genotypeLikelihoodsGLF.type = _curChr.isHaploid() ? Ploidy::haploid : Ploidy::diploid;
+	      _index.curChrNumLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
+	_genotypeLikelihoodsGLF.type = _index.curChr().isHaploid() ? Ploidy::haploid : Ploidy::diploid;
 };
 
 void TGlfReader::setFilename(const std::string &Filename) { _filename = Filename; };
 
-void TGlfReader::open(const std::string &Filename) {
+void TGlfReader::open(const std::string &Filename, bool HasIndex) {
 	setFilename(Filename);
 	_open();
 };
 
-void TGlfReader::_open() {	
+void TGlfReader::_open(bool HasIndex) {	
 	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
 	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for reading!");
-	_curChr.clear();
-	_chromosomesAlreadyParsed.clear();
-	_chromosomes.clear();
+	_index.clear();
 	_positionInFile = 0;
 
 	// parse header
@@ -256,7 +297,7 @@ void TGlfReader::_open() {
 	_read(buffer, 4 * sizeof(char));	
 	_glfFileVersion.assign(buffer, 4);
 
-	if (_glfFileVersion != _version && _glfFileVersion != "GLF2")
+	if (_glfFileVersion != _version)
 		UERROR("Non-supported GLF version '", _glfFileVersion, "! Are you using GLF files produced with an earlier version of ATLAS?");	
 
 	// header
@@ -267,21 +308,10 @@ void TGlfReader::_open() {
 	}
 	_eof = false;
 
-	// read chromosomes from header
-	if(_glfFileVersion == _version){
-		// read number of chromosomes to parse
-		const auto numChrs = _read<uint32_t>();
-		if(numChrs == 0){
-			UERROR("GLF header does not contain any chromosome!");
-		}
-
-		for(int c = 0; c < numChrs; ++c){
-			_readRecordType();		
-			if (_recordType != 0)
-				UERROR("GLF header contains fewer chromosomes than indicated!");
-			_readChr(false);
-			_chromosomes.appendChromosome(_curChr.name(), _curChr.length(),_curChr.ploidy());			
-		}		
+	// read index file
+	_hasIndex = HasIndex;
+	if(!_hasIndex){
+		_index.readChromosomes(_filename + ".idx");
 	}
 
 	// read info of first chromosome
@@ -311,6 +341,9 @@ bool TGlfReader::readNext() {
 };
 
 bool TGlfReader::_jumpToEndOfChr() {
+	
+	gzseek64(_gzfp, _index)
+
 	// read record type
 	if (!_readRecordType()) return false;
 
@@ -336,14 +369,18 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, u
 	if (_eof) return false;
 
 	// move to correct chromosome
-	while (_curChr.refId() < refId) {
-		if (!jumpToNextChr()) return false; // chromosome id doesn't exist (reached eof)
+	assert(_hasIndex);
+	_index.seekChr(refId);
+	gzseek64(_gzfp, _index.curChrPositionInFile(), SEEK_SET);
+	if(!_readRecordType() || _recordType != 0){
+		UERROR("File index (position in file) of chromosome with ref ID ", refId, " does not point to a valid position within the GLF file!");
 	}
+	_readChr();
 
 	// jump to first position in window
 	//  if there is a position 0 on the first chromosome parsed and windows starts right there
 	//  -> we will not have read anything -> do this now
-	while (_recordType == 0 || (_position < start && _curChr.refId() == refId)) {
+	while (_recordType == 0 || (_position < start && _index.curChr().refID() == refId)) {
 		if (!readNext()) return false;
 	}
 
@@ -356,9 +393,9 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, u
 	genoLikelihoods.resize(end - start, TGLFLikelihoods{});
 
 	// Assumes that windows are read in order: no jumping back!
-	if (refId < _curChr.refId()) { return false; }
+	if (refId < _index.curChr().refID()) { return false; }
 
-	while (_position < end && _curChr.refId() == refId) {
+	while (_position < end && _index.curChr().refID() == refId) {
 		// fill in genotype likelihoods of current position
 		genoLikelihoods[_position - start] = _genotypeLikelihoodsGLF;
 		// read next record
@@ -369,12 +406,12 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, u
 
 // printing
 void TGlfReader::printChr() {
-	std::cout << "CHROMOSOME: '" << _curChr.name() << "' of length " << _curChr.length() << " and ploidy "
-		  << (int)_curChr.ploidy() << "\n";
+	std::cout << "CHROMOSOME: '" << _index.curChr().name() << "' of length " << _index.curChr().length() << " and ploidy "
+		  << (int)_index.curChr().ploidy() << "\n";
 	
 	// print header
 	std::cout << "chr\tpos\tdepth\tRMS(MQ)";
-	if(_curChr.isHaploid()){
+	if(_index.curChr().isHaploid()){
 		for(auto g = genometools::Base::min; g < genometools::Base::max; ++g){
 			std::cout << "\tLL(" << genometools::toString(g) << ")";
 		}		
@@ -389,8 +426,8 @@ void TGlfReader::printChr() {
 void TGlfReader::printSite() {
 	// std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
 	//  print position as 1-based, internally it is 0-based
-	std::cout << _curChr.name() << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
-	for (size_t i = 0; i < _curChr.numLikelihoodValues(); ++i) std::cout << "\t" << _genotypeLikelihoodsGLF.data()[i];
+	std::cout << _index.curChr().name() << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
+	for (size_t i = 0; i < _index.curChrNumLikelihoodValues(); ++i) std::cout << "\t" << _genotypeLikelihoodsGLF.data()[i];
 	std::cout << "\n";
 };
 
@@ -401,11 +438,11 @@ void TGlfReader::printToEnd() { // For debugging
 	printChr();
 
 	// now parse file
-	std::string oldChr = _curChr.name();
+	std::string oldChr = _index.curChr().name();
 	while (readNext()) {
-		if (oldChr != _curChr.name()) {
+		if (oldChr != _index.curChr().name()) {
 			printChr();
-			oldChr = _curChr.name();
+			oldChr = _index.curChr().name();
 		}
 		printSite();
 	}
@@ -414,6 +451,11 @@ void TGlfReader::printToEnd() { // For debugging
 void TGLFPrinter::run() {
 	TGlfReader reader(coretools::instances::parameters().get<std::string>("glf"));
 	reader.printToEnd();
+}
+
+void TGLFIndexer::run(){
+	// open GLF for reading, do not open index
+
 }
 
 }; // namespace GLF

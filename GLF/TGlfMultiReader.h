@@ -38,7 +38,7 @@ private:
 	std::vector<TGlfReader *> _activeGLFs;
 
 	// Moving along active files
-	TGlfChromosome _curChr;
+	genometools::TChromosome _curChr;
 	uint32_t _curRefId = 0;
 	uint32_t _minDepth = 0;
 	size_t _windowStart = 0;

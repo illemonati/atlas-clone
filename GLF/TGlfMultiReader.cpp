@@ -33,23 +33,6 @@ TGlfReader * nextChr(const std::vector<TGlfReader *>& ps, bool onlyData) {
 	}
 }
 
-void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlfReader *>& ps) {
-	// check that all files share the same chromosome info
-	for (const auto p: ps) {
-		TGlfChromosome *chr = p->pointerToChr(_curChr.refId());
-		if (chr) {
-			if (chr->name() != _curChr.name())
-				UERROR("Chrosomome names differ between files '", ps[0]->name(), "' and '",
-					   p->name(), "': '", _curChr.name(), "' != '", chr->name(), + "'!");
-			if (chr->length() != _curChr.length())
-				UERROR("Chrosomome lengths differ between files '", ps[0]->name(), "' and '",
-					   p->name(), "': '", _curChr.length(), "' != '", chr->length(), "'!");
-		} else {
-			logfile().list(p->name(), " does not have contig ", _curChr.name(), ", considering all data empty.");
-		}
-	}
-};
-
 } // namespace impl
 
 //----------------------------------------------------
@@ -80,7 +63,14 @@ void TGlfMultiReader::_openGLFs() {
 	logfile().endIndent();
 	_setAllInactive();
 
-	//TODO: add check that they were produced with the same chromosome definitions! -> only possible as of version GLF3
+	//check that they contain the same chromosomes
+	if(_GLFs.size() > 1){
+		for(auto g = _GLFs.begin() + 1; g != _GLFs.end(); ++g){
+			if(!_GLFs[0].index().hasSameChromosomes(g->index())){
+				UERROR("GLF files '", _GLFs[0].name(), "' and '", g->name(), "' do not contain the same chromosomes!");
+			}
+		}
+	}
 };
 
 void TGlfMultiReader::openGLFs(const std::vector<std::string> &FileNames) {
@@ -154,10 +144,9 @@ void TGlfMultiReader::_prepareParsing() {
 
 bool TGlfMultiReader::_jumpToNextPosition() {
 	auto min      = impl::nextChr(_activeGLFs, _minSamplesWithData);
-	_curChr       = *min->curChr();
+	_curChr       = min->curChr();
 	_curRefId     = min->refId();
 	_windowStart  = _minSamplesWithData > 0 ? min->position() : 0; // 0 if not jump to position
-	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
 };
@@ -209,6 +198,8 @@ void TGlfMultiReader::setAllActive() {
 bool TGlfMultiReader::_moveToNextChromosome() {
 	// increment chromosome ref_char id
 	++_curRefId;
+	if(_curRefId > _GLFs[0].chromosomes().size()) return false; 
+	_curChr = _GLFs[0].chromosomes()[_curRefId];
 
 	// advance all active files behind
 	bool allFilesReachedEnd = true;

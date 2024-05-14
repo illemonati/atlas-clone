@@ -25,34 +25,45 @@ namespace GLF {
 using genometools::Ploidy;
 using TGLFLikelihoods = coretools::TDualStrongArray<genometools::HighPrecisionPhredIntProbability, genometools::Base, genometools::Genotype, 4, 10, Ploidy>;
 
-//----------------------------------------------------
-// TGlfChromosome
-// struct to store info on chromosome
-// TODO: derive from TChromosome??
-//----------------------------------------------------
-class TGlfChromosome {
+//--------------------------------------------
+// TGlfIndexFile
+//--------------------------------------------
+class TGlfIndexFile{
 private:
-	std::string _name = "";
-	uint32_t _refId = 0;
-	uint32_t _length = 0;
-	bool _isHaploid = false;
+	std::string _indexFilename;
+	coretools::TOutputFile _indexFileOutput;
+
+	genometools::TChromosomes _chrs;
+	std::vector<uint64_t> _posInFile;
+	size_t _curChr;	
 
 public:
-	TGlfChromosome() = default;
-	TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t Ploidy);
-
-	std::string name() const { return _name; };
-	uint32_t refId() const noexcept { return _refId; };
-	uint32_t length() const noexcept { return _length; };
-	bool isHaploid() const noexcept { return _isHaploid; };
-	uint8_t ploidy() const noexcept { return 2 - _isHaploid; };
-	size_t numLikelihoodValues() const noexcept {
-		std::array<size_t, 2> N{10, 4};
-		return N[_isHaploid];
-	};
-
-	void update(std::string_view Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy);
+	TGlfIndexFile(){};
+	~TGlfIndexFile() = default;
+	
 	void clear();
+
+	void addChromosme(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PosInFile);
+	void addChromosme(const genometools::TChromosome& Chr, uint64_t PosInFile);
+
+	void writeChromosmes(std::string_view Filename);
+	void readChromosomes(std::string_view Filename);
+
+	void seekChr(uint32_t RefID);
+	void setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PositionInFile);
+
+	// compare
+	bool hasSameChromosomes(const TGlfIndexFile& Other) const;
+
+	// getters do not check if chromosomes were initialized!
+	const genometools::TChromosomes& chromosomes(){ return _chrs; };
+	const genometools::TChromosome& curChr(){ return _chrs[_curChr]; };
+	size_t curChrNumLikelihoodValues() const noexcept {
+		std::array<size_t, 2> N{10, 4};
+		return N[_chrs[_curChr].ploidy()];
+	};	
+	uint64_t curChrPositionInFile(){ return _posInFile[_curChr]; };
+	uint64_t nextChrPositionInFile();
 };
 
 //----------------------------------------------------
@@ -62,9 +73,11 @@ class TGlfHandle {
 protected:
 	std::string _filename;
 	gzFile _gzfp         = nullptr;
-	std::string _version = "GLF3";
+	
+	std::string _version = "GLF2";
 	uint64_t _positionInFile = 0;
-	TGlfChromosome _curChr;
+
+	TGlfIndexFile _index;
 
 public:
 	TGlfHandle()                              = default;
@@ -129,6 +142,7 @@ private:
 	// file parsing
 	std::string _glfFileVersion;
 	bool _eof = true;
+	bool _hasIndex = false;
 
 	// about site
 	int _recordType = 99;
@@ -137,16 +151,13 @@ private:
 	int _RMS_mappingQual = 0;
 	TGLFLikelihoods _genotypeLikelihoodsGLF;
 
-	// about chromosomes
-	std::map<uint32_t, TGlfChromosome> _chromosomesAlreadyParsed;
-	genometools::TChromosomes _chromosomes;
-
 	// initializing
-	void _open();
+	void _open(bool HasIndex = true);
 
 	// read
 	template<typename T> int _read(T *buf, size_t len) {
 		const int _lenRead = gzread(_gzfp, buf, len);
+		_positionInFile += _lenRead;
 		return _lenRead;
 	};
 
@@ -158,7 +169,7 @@ private:
 		return t;
 	};
 
-	bool _readChr(bool storePrevious = true);
+	bool _readChr();
 	bool _readRecordType();
 	void _readSNPRecord();
 	bool _jumpToEndOfChr();
@@ -172,15 +183,16 @@ public:
 	// get details
 	bool eof() const { return _eof; };
 	const genometools::TChromosomes& chromosomes();
+	const TGlfIndexFile& index(){ return _index; };
 	TGlfChromosome *pointerToChr(uint32_t refId);	
 	uint32_t position() const { return _position; };
 	uint16_t depth() const { return _depth; };
 	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };	
-	TGlfChromosome *curChr() {return &_curChr;};
+	const genometools *curChr() {return &_curChr;};
 	
 	// open file and parse header
 	void setFilename(const std::string &Filename);
-	void open(const std::string &Filename);
+	void open(const std::string &Filename, bool HasIndex = true);
 	void rewind();
 
 	// parse file
@@ -195,6 +207,10 @@ public:
 };
 
 struct TGLFPrinter {
+	void run();
+};
+
+struct TGLFIndexer {
 	void run();
 };
 
