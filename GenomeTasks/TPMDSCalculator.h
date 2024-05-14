@@ -14,7 +14,6 @@
 #include "TBamTraverser.h"
 #include "TOutputBamFile.h"
 
-
 namespace GenomeTasks{
 
 //----------------------------------------------

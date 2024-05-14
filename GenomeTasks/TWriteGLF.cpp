@@ -9,7 +9,6 @@
 #include "TWriteGLF.h"
 
 #include <stdint.h>
-#include <vector>
 
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"

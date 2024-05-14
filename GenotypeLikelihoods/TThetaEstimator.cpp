@@ -8,6 +8,7 @@
 #include "TThetaEstimator.h"
 
 #include "TErrorModels.h"
+#include "coretools/Files/gzstream.h"
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;

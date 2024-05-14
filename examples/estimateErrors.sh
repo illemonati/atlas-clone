@@ -10,6 +10,7 @@ k="111"
 L="100$k"
 
 . $(dirname $0)/simulate --recal $recal --pmd $pmd  \
+	--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.015 \
   --chrLength $L,$L --depth 9 --ploidy 2,1 --numReadGroups 3 \
   --baseQuality 'categorical(12:1237270,22:845176,27:1912959,32:21069477,37:34246008,41:339557323)' \
   --fragmentLength 'normal(40,10)[30,101]' \

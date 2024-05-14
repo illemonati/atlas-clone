@@ -1,5 +1,6 @@
 #ifndef TSIMULATORHAPLOTYPES_H_
 #define TSIMULATORHAPLOTYPES_H_
+
 #include "coretools/Files/gzstream.h"
 #include "genometools/GenotypeTypes.h"
 #include <cstddef>

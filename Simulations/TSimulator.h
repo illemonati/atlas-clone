@@ -15,16 +15,14 @@
 
 #include "TSimulatorBamFiles.h"
 #include "TSimulatorReference.h"
-#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenotypeTypes.h"
 
-#include "TGlfMultiReader.h"
+#include "genometools/VCF/TVcfWriter.h"
 #include "THaplotypeSimulator.h"
-#include "TReadGroupInfo.h"
 #include "TReadSimulators.h"
 
 namespace genometools { class PhredIntProbability; }

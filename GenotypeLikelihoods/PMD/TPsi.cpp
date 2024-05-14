@@ -6,9 +6,7 @@
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
 #include <cmath>
-#include <cstdint>
 #include <limits>
 
 namespace GenotypeLikelihoods::PMD {

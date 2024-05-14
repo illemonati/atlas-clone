@@ -5,8 +5,6 @@
  *      Author: phaentu
  */
 
-
-
 #include "TDuplicateQuantifier.h"
 
 namespace GenomeTasks{

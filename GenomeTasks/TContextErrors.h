@@ -1,8 +1,5 @@
-
 #ifndef GENOMETASKS_TCONTEXTERRORS_H_
 #define GENOMETASKS_TCONTEXTERRORS_H_
-
-#include <string>
 
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"

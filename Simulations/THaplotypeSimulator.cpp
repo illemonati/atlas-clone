@@ -8,6 +8,8 @@
 
 #include "THaplotypeSimulator.h"
 
+#include <armadillo>
+
 #include "SFS.h"
 #include "TSimulatorReference.h"
 
@@ -16,7 +18,6 @@
 #include "coretools/Strings/concatenateString.h"
 #include "coretools/Strings/fillContainer.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-
 
 namespace Simulations {
 
@@ -103,7 +104,7 @@ TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeSimulator() {
 void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 						   const genometools::TChromosome &chromosome) {
 	// fill mutation table
-	static const TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
+	const TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
@@ -134,8 +135,8 @@ TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
 	// now theta
 	std::vector<double> thetas_g, thetas_r, mus;
 
-	parameters().fill("thetaG", thetas_g, {0.001});
-	parameters().fill("thetaR", thetas_r, {0.001});
+	parameters().fill("thetaG", thetas_g, {0.0001});
+	parameters().fill("thetaR", thetas_r, {0.01});
 	parameters().fill("mu", mus, {1./3});
 
 	if (thetas_g.size() == 1) {
@@ -143,38 +144,64 @@ TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
 	} else if (thetas_g.size() != nChoromosomes) {
 		UERROR("Number of theta_g values provided does not match number of chromosomes to simulate!");
 	}
+	logfile().list("Will simulate with the following theta_g values: ", thetas_g, ".");
 
 	if (thetas_r.size() == 1) {
 		thetas_r.resize(nChoromosomes, thetas_r.front());
 	} else if (thetas_r.size() != nChoromosomes) {
 		UERROR("Number of theta_r values provided does not match number of chromosomes to simulate!");
 	}
+	logfile().list("Will simulate with the following theta_r values: ", thetas_r, ".");
 
 	if (mus.size() == 1) {
 		mus.resize(nChoromosomes, mus.front());
 	} else if (mus.size() != nChoromosomes) {
 		UERROR("Number of mu values provided does not match number of chromosomes to simulate!");
 	}
+	logfile().list("Will simulate with the following mu values: ", mus, ".");
 
-	_P_g.reserve(nChoromosomes);
-	_P_r.reserve(nChoromosomes);
+	_pick_r.resize(nChoromosomes);
+	_pick_g.resize(nChoromosomes);
 
-	for (size_t i = 0; i < nChoromosomes; ++i) {
-
-	}
-
-	if (thetas_g.size() == 1) {
-		logfile().list("Will simulate a single individual with theta_g = ", thetas_g[0], ",  theta_r = ", thetas_r[0],
-				" and mu = ", mus[0], ".");
+	for (size_t refID = 0; refID < nChoromosomes; ++refID) {
+		const auto z                     = (1. - mus[refID]) / 2;
+		const arma::mat::fixed<4, 4> l   = {{-1., z, mus[refID], z}, {z, -1., z, mus[refID]}, {mus[refID], z, -1., z}, {z, mus[refID], z, -1.}};
+		const arma::mat::fixed<4, 4> P_g = arma::expmat(thetas_g[refID] * l);
+		const arma::mat::fixed<4, 4> P_r = arma::expmat(thetas_r[refID] * l);
+		for (auto a = Base::min; a < Base::max; ++a) {
+			using coretools::index;
+			_pick_r[refID][a].init(coretools::TConstView<double>(P_r.colptr(index(a)), 4));
+			_pick_g[refID][a].init(coretools::TConstView<double>(P_g.colptr(index(a)), 4));
+		}
 	}
 }
 
 void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 						   const genometools::TChromosome &chromosome) {
+	const auto refID = chromosome.refID();
+	for (size_t i = 0; i < chromosome.length(); ++i) {
+		const Base r = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base R = Base(_pick_r[refID][r]());
+		const Base k = Base(_pick_g[refID][R]());
+		const Base l = Base(_pick_g[refID][R]());
+
+		reference[i]        = r;
+		haplotypes(0, 0, i) = k;
+		haplotypes(0, 1, i) = l;
+	}
 }
 
 void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 						   const genometools::TChromosome &chromosome) {
+	const auto refID = chromosome.refID();
+	for (size_t i = 0; i < chromosome.length(); ++i) {
+		const Base ref = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base R   = Base(_pick_r[refID][ref]());
+
+		reference[i]        = ref;
+		haplotypes(0, 0, i) = R;
+		haplotypes(0, 1, i) = R;
+	}
 }
 
 //---------------------------------------------------------

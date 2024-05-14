@@ -5,7 +5,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/enum.h"
-#include <algorithm>
 
 namespace GenomeTasks{
 using genometools::Base;

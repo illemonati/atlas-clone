@@ -16,7 +16,6 @@
 
 #include "genometools/GenotypeTypes.h"
 
-#include "GenotypeData.h"
 #include "TSite.h"
 #include "TWindow.h"
 

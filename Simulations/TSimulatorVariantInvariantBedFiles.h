@@ -1,9 +1,9 @@
-
 #ifndef TSIMULATORVARIANTINVARIANTBEDFILES_H_
 #define TSIMULATORVARIANTINVARIANTBEDFILES_H_
 
 #include "TSimulatorHaplotypes.h"
 #include "coretools/Files/gzstream.h"
+
 namespace Simulations {
 
 class TSimulatorVariantInvariantBedFiles {

@@ -3,7 +3,6 @@
  */
 
 #include "TEstimateMutationLoad.h"
-#include "coretools/traits.h"
 #include "stattools/EM/TEM.h"
 
 using coretools::instances::logfile;

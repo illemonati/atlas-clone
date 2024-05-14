@@ -8,8 +8,6 @@
 #ifndef GENOMETASKS_TDEPTHWRITER_H_
 #define GENOMETASKS_TDEPTHWRITER_H_
 
-#include <string>
-
 #include "coretools/Files/TOutputFile.h"
 
 #include "TBamWindowTraverser.h"

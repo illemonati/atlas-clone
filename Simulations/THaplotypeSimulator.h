@@ -68,8 +68,10 @@ public:
 
 class TSimulatorHKY85 : public THaplotypeSimulator {
 private:
-	std::vector<std::array<std::array<double, 4>,4>> _P_g;
-	std::vector<std::array<std::array<double, 4>,4>> _P_r;
+	using Pickers = std::vector<coretools::TStrongArray<coretools::TRandomPicker, genometools::Base>>;
+
+	Pickers _pick_g;
+	Pickers _pick_r;
 
 public:
 	TSimulatorHKY85(size_t nChoromosomes);

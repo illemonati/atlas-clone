@@ -11,7 +11,6 @@
 #include "GenotypeData.h"
 
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
 
 #include "genometools/GenotypeTypes.h"
@@ -143,7 +142,7 @@ class THKY85fixedMu final : public TGenotypeDistribution {
 
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
 	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
-	stattools::TNelderMead<3> _nelderMead;
+	stattools::TNelderMead<2> _nelderMead;
 
 public:
 	static constexpr std::string_view name = "HKY85";
@@ -163,7 +162,7 @@ public:
 };
 
 class THKY85_mono final : public TGenotypeDistribution {
-	constexpr static coretools::Probability _mu_init{0.5};
+	constexpr static coretools::Probability _mu_init{1./3};
 	constexpr static double _theta_init = 0.0001;
 
 	coretools::Probability _mu = _mu_init;

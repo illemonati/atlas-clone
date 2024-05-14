@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "coretools/enum.h"
 #include "genometools/VCF/TVCFFields.h"
 
 #include "TBamWindowTraverser.h"
