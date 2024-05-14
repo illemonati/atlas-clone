@@ -48,7 +48,14 @@ void TGlfIndexFile::readChromosomes(std::string_view Filename) {
 	}
 }
 
-void TGlfIndexFile::seekChr(uint32_t RefID){
+void TGlfIndexFile::jumpToNextChromosome() {
+	++_curChr;
+	if(_curChr == _chrs.size()){
+		DEVERROR("Can not jump to next chromosome: already at end of GLF index!");
+	}
+}
+
+void TGlfIndexFile::seekChr(uint32_t RefID) {
 	if(RefID < _chrs.size()){
 		_curChr = RefID;
 	} else {
@@ -210,10 +217,6 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 //---------------------------------
 // TGlfReader
 //---------------------------------
-const genometools::TChromosomes& TGlfReader::chromosomes(){
-	assert(_hasIndex);
-	return _index.chromosomes();	
-}
 
 bool TGlfReader::_readChr() {
 	// store position in file before read chromosome info
@@ -321,6 +324,16 @@ void TGlfReader::_open(bool HasIndex) {
 	_readChr();
 };
 
+const genometools::TChromosomes& TGlfReader::chromosomes(){
+	assert(_hasIndex);
+	return _index.chromosomes();	
+}
+
+const genometools::TChromosome &TGlfReader::curChromosome() {
+	assert(_hasIndex);
+	return _index.curChr();
+}
+
 void TGlfReader::rewind() {
 	// go back to beginning of file
 	close();
@@ -340,28 +353,24 @@ bool TGlfReader::readNext() {
 		UERROR("Unknown record type in file '", _filename, "'!");
 };
 
-bool TGlfReader::_jumpToEndOfChr() {
-	
-	gzseek64(_gzfp, _index)
+bool TGlfReader::jumpToChr(uint32_t RefID) {
+	_index.seekChr(RefID);		
+	if(gzseek64(_gzfp, _index.curChrPositionInFile(), SEEK_SET) < 0){ return false; }
 
 	// read record type
-	if (!_readRecordType()) return false;
-
-	// tmp variables
-	while (_recordType != 0) {
-		// skipRecord();
-		_readSNPRecord();
-
-		if (!_readRecordType()) return false;
+	if (!_readRecordType()){ return false; }
+	if(_recordType != 0){
+		UERROR("File index (position in file) of chromosome '", _index.curChr().name(), "' does not point to a valid position within the GLF file!");
 	}
 
-	return true;
+	_readChr();
+	return readNext();
 };
 
 bool TGlfReader::jumpToNextChr() {
-	if (!_jumpToEndOfChr()) { return false; }
-	_readChr();
-	return readNext();
+	if(_index.curChrIsLast()) { return false; }
+	_index.jumpToNextChromosome();
+	jumpToChr(_index.curChr().refID());
 };
 
 bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, uint32_t refId, uint32_t start,

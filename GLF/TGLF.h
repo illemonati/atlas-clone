@@ -49,6 +49,7 @@ public:
 	void writeChromosmes(std::string_view Filename);
 	void readChromosomes(std::string_view Filename);
 
+	void jumpToNextChromosome();
 	void seekChr(uint32_t RefID);
 	void setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PositionInFile);
 
@@ -64,6 +65,7 @@ public:
 	};	
 	uint64_t curChrPositionInFile(){ return _posInFile[_curChr]; };
 	uint64_t nextChrPositionInFile();
+	bool curChrIsLast(){ return _curChr == _chrs.size() - 1; };
 };
 
 //----------------------------------------------------
@@ -96,16 +98,7 @@ public:
 	};
 
 	std::string name() const { return _filename; };
-
-	std::string chr() const { return _curChr.name(); };
-
-	uint32_t refId() const noexcept { return _curChr.refId(); };
-
-	uint32_t chrLength() const noexcept { return _curChr.length(); };
-
-	bool chrIsHaploid() const noexcept { return _curChr.isHaploid(); };
-
-	uint8_t chrNumLikelihoodValues() const noexcept { return _curChr.numLikelihoodValues(); };
+	//uint8_t chrNumLikelihoodValues() const noexcept { return _curChr.numLikelihoodValues(); };
 };
 
 //----------------------------------------------------
@@ -171,8 +164,7 @@ private:
 
 	bool _readChr();
 	bool _readRecordType();
-	void _readSNPRecord();
-	bool _jumpToEndOfChr();
+	void _readSNPRecord();	
 
 public:
 	TGlfReader() = default;
@@ -183,12 +175,12 @@ public:
 	// get details
 	bool eof() const { return _eof; };
 	const genometools::TChromosomes& chromosomes();
-	const TGlfIndexFile& index(){ return _index; };
-	TGlfChromosome *pointerToChr(uint32_t refId);	
+	const genometools::TChromosome& curChromosome();	
+	uint32_t refId(){ return _index.curChr().refID(); };
+	const TGlfIndexFile& index(){ return _index; };	
 	uint32_t position() const { return _position; };
 	uint16_t depth() const { return _depth; };
-	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };	
-	const genometools *curChr() {return &_curChr;};
+	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };		
 	
 	// open file and parse header
 	void setFilename(const std::string &Filename);
@@ -197,6 +189,7 @@ public:
 
 	// parse file
 	bool readNext();
+	bool jumpToChr(uint32_t RefID);
 	bool jumpToNextChr();
 	bool readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end);
 
@@ -206,6 +199,10 @@ public:
 	void printToEnd();
 };
 
+
+//--------------------------------------------
+// Tasks
+//--------------------------------------------
 struct TGLFPrinter {
 	void run();
 };

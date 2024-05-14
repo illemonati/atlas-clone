@@ -38,7 +38,7 @@ private:
 
 public:
 	TSitePolymorphic(uint32_t refID, uint32_t position,
-                   const std::vector<std::string_view> &Line,
+                   char ref, char alt,
                    const genometools::TChromosomes &Chromosomes);
 
 	constexpr genometools::Base ref() const noexcept { return _ref; };
@@ -53,8 +53,7 @@ private:
   genometools::Base _ref;
 
 public:
-  TSiteMonomorphic(uint32_t refID, uint32_t position,
-                   const std::vector<std::string_view> &Line,
+  TSiteMonomorphic(uint32_t refID, uint32_t position, char ref,
                    const genometools::TChromosomes &Chromosomes);
 
   constexpr genometools::Base ref() const noexcept { return _ref; };
@@ -79,16 +78,27 @@ private:
 
     // read file and add sites
     std::set<uint32_t> refIDUsed;
+    std::vector<size_t> idx;
+    if constexpr((std::is_same<SiteType, TSitePolymorphic>::value)){
+      idx = in.indices<std::vector<size_t>, std::vector<std::string>>({"Chr", "Pos", "Ref", "Alt"});
+    } else {
+      idx = in.indices<std::vector<size_t>, std::vector<std::string>>({"Chr", "Pos", "Ref"});
+    }
+
     for (; !in.empty(); in.popFront()) {
       // get chromosome and position: throws error if chromosome does not exist
       const genometools::TChromosome &chr =
-          Chromosomes.getChromosome(in.get("Chr"));
+          Chromosomes.getChromosome(in.get(idx[0]));
       refIDUsed.emplace(chr.refID());
-      uint32_t pos = coretools::str::fromString<uint32_t, true>(in.get("Pos")) -
+      uint32_t pos = coretools::str::fromString<uint32_t, true>(in.get(idx[1])) -
                      1; // make 0-based
 
       // add site
-      _sites.emplace_back(chr.refID(), pos, in.front(), Chromosomes);
+      if constexpr((std::is_same<SiteType, TSitePolymorphic>::value)){
+        _sites.emplace_back(chr.refID(), pos, in.get(idx[2])[0], in.get(idx[3])[0], Chromosomes);
+      } else {
+        _sites.emplace_back(chr.refID(), pos, in.get(idx[2])[0], Chromosomes);
+      }
     }
 
     // sort sites

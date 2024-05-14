@@ -53,7 +53,7 @@ public:
 	//getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
-	[[nodiscard]] double averageFragmentLength() const { return _averageReadLength; };
+	[[nodiscard]] double averageReadLength() const { return _averageReadLength; };
 	BAM::TReadGroups& readGroups() { return _readGroups; };
 	const TReadSimulator& readSimulator(size_t RG) const noexcept {return *_readSimulators[RG];}
 	size_t numRG() const noexcept {return _readSimulators.size();}

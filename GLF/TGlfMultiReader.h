@@ -19,17 +19,43 @@
 using TGenotypeLikelihoodsOneAllelicCombinationVector = std::vector<genometools::TGenotypeLikelihoodsOneAllelicCombination>;
 using TGenotypeLikelihoodsAllCombinationsVector                      = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
 
+
 namespace GLF {
+
+
+//--------------------------------------------
+// TGlfVector
+//--------------------------------------------
+class TGlfVector{
+private:		
+	std::vector<std::string> _GLFNames;
+	std::vector<TGlfReader> _GLFs;
+	bool _readersOpened = false;
+
+	int _getGLFIndexFromName(const std::string &name) const;
+
+public:
+	TGlfVector(){};
+	TGlfVector(std::string_view FileNames){ open(FileNames); };
+	~TGlfVector()=default;
+
+	void open(std::string_view FileNames);
+	void openFromParameters();
+
+	size_t size(){ return _GLFs.size(); };
+	std::vector<TGlfReader>::iterator begin(){ return _GLFs.begin(); };
+	std::vector<TGlfReader>::iterator end(){ return _GLFs.end(); };
+
+	TGlfReader& operator[](size_t i){ return _GLFs[i]; };	
+	const std::string& name(size_t i){ return _GLFNames[i]; };
+};
 
 //----------------------------------------------------
 // TGlfMultiReader
 //----------------------------------------------------
 class TGlfMultiReader {
-private:
-	size_t _numGLFs = 0;
-	std::vector<std::string> _GLFNames;
-	std::vector<TGlfReader> _GLFs;
-	bool _readersOpened = false;
+private:	
+	TGlfVector _GLFs;	
 
 	// active files
 	// Object will loop only over active files
@@ -37,9 +63,9 @@ private:
 	std::vector<bool> _GLFIsActive;
 	std::vector<TGlfReader *> _activeGLFs;
 
-	// Moving along active files
-	genometools::TChromosome _curChr;
+	// Moving along active files	
 	uint32_t _curRefId = 0;
+	const genometools::TChromosome* _curChr = nullptr;
 	uint32_t _minDepth = 0;
 	size_t _windowStart = 0;
 	size_t _windowSize  = 64;
@@ -87,12 +113,12 @@ public:
 
 	// access data
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); }
-	std::string chr() const { return _curChr.name(); }
+	std::string curChrName() const { return _curChr->name(); }
 	constexpr uint32_t position(size_t iWindow) const noexcept { return _windowStart + iWindow; }
 	bool hasRef() const noexcept {return fastaReader.isOpen();}
 	coretools::TView<genometools::Base> refView() const {
 		assert(hasRef());
-		return fastaReader.view(_curRefId, _windowStart, std::min(_windowSize, _curChr.length() - _windowStart));
+		return fastaReader.view(_curRefId, _windowStart, std::min(_windowSize, _curChr->length() - _windowStart));
 	}
 };
 

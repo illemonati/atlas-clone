@@ -74,8 +74,6 @@ Log10Probability LLFixedAllele(coretools::TConstView<genometools::TGenotypeLikel
 	return LL_fixed;
 }	
 
-
-
 } // namespace impl
 
 struct TMMData {
@@ -608,7 +606,7 @@ template<typename Estimator> void iterate(double maxF) {
 			if (!di.pass) continue;
 
 			// write to VCF
-			vcf.writeSite(glfReader.chr(), glfReader.position(iW), di.variantQuality, glfReader.data(iW), di.major,
+			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW), di.variantQuality, glfReader.data(iW), di.major,
 			              di.minor);
 		}
 

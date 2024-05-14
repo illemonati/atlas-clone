@@ -513,8 +513,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 //----------------------------------------------------
 TDistanceEstimator::TDistanceEstimator(){
 	maxNumEMIterations = 0;
-	epsilonForEM = 0.0;
-	numGLFs = 0;
+	epsilonForEM = 0.0;	
 
 	//outputname
 	outputName = coretools::instances::parameters().get<std::string>("out", "ATLAS");
@@ -522,21 +521,10 @@ TDistanceEstimator::TDistanceEstimator(){
 }
 
 void TDistanceEstimator::openGLF(){
-	using namespace coretools::instances;
-	parameters().fill("glf", GLFNames);
-	numGLFs = GLFNames.size();
-	if(numGLFs < 2)
-		UERROR("At least two GLF files have to be provided to estimate distances!");
+	_GLFs.openFromParameters();	
 
-	//open files
-	logfile().startIndent("Opening GLF files:");
-	glfs.reserve(numGLFs);
-	for (const auto& name: GLFNames) {
-		logfile().listFlush("Opening GLF '", name, "' ...");
-		glfs.emplace_back(name);
-		logfile().done();
-	}
-	logfile().endIndent();
+	if(_GLFs.size() < 2)
+		UERROR("At least two GLF files have to be provided to estimate distances!");	
 }
 
 //------------------------------------------------------------------
@@ -573,18 +561,19 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 
 	//prepare storage for distance matrix
 	std::vector<double> distMatrix;
+	auto numGLFs = _GLFs.size();
 	distMatrix.resize(numGLFs*numGLFs, 0.);
 
 	//loop over all pairs
-	for(int g1=0; g1<(numGLFs-1); ++g1){
-		for(int g2 = g1+1; g2 < numGLFs; ++g2){
-			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + GLFNames[g1], ") and ", g2+1, " (", GLFNames[g2], "):");
+	for(size_t g1=0; g1<(numGLFs-1); ++g1){
+		for(size_t g2 = g1+1; g2 < numGLFs; ++g2){
+			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + _GLFs.name(g1), ") and ", g2+1, " (", _GLFs.name(g2), "):");
 
 			//write names to file
-			out << GLFNames[g1] << "\t" << GLFNames[g2];
+			out << _GLFs.name(g1) << "\t" << _GLFs.name(g2);
 
 			//run estimation
-			estimateDistanceGenomeWide(EM_object, glfs[g1], glfs[g2], out);
+			estimateDistanceGenomeWide(EM_object, _GLFs[g1], _GLFs[g2], out);
 
 			//write to matrix
 			distMatrix[g1*numGLFs + g2] = EM_object.distance;
@@ -603,13 +592,13 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 
 	//write header to matrix file
 	distMatrixFile << "/";
-	for(int g=0; g<numGLFs; ++g)
-		distMatrixFile << "\t" << GLFNames[g];
+	for(size_t g=0; g<numGLFs; ++g)
+		distMatrixFile << "\t" << _GLFs.name(g);
 	distMatrixFile << "\n";
 
 	//write rows
-	for(int g1 = 0; g1 < numGLFs; ++g1){
-		distMatrixFile << GLFNames[g1];
+	for(size_t g1 = 0; g1 < numGLFs; ++g1){
+		distMatrixFile << _GLFs.name(g1);
 		for(int g2 = 0; g2 < numGLFs; ++g2)
 			distMatrixFile << "\t" << distMatrix[g1*numGLFs + g2];
 		distMatrixFile << "\n";
@@ -620,21 +609,13 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 };
 
 bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfReader & g2){
-	while(g1.refId() != g2.refId() || g1.chrIsHaploid() || g2.chrIsHaploid()){
+	while(g1.curChromosome().refID() != g2.curChromosome().refID() || g1.curChromosome().isHaploid() || g2.curChromosome().isHaploid()){
 		//advance the one laging behind
 		if(g1.refId() < g2.refId()){
 			if(!g1.jumpToNextChr()) return false;
 		} else {
 			if(!g2.jumpToNextChr()) return false;
 		}
-	}
-
-	//check names
-	if(g1.chr() != g2.chr()){
-		UERROR("Chromosome names differ in files ", g1.name(), "' and '", g2.name(), "': '", g1.chr(), "' != '", g2.chr() + "'!");
-	}
-	if(g1.chrLength() != g2.chrLength()){
-		UERROR("Chromosome lengths differ in files ", g1.name(), "' and '", g2.name(), "': '", g1.chrLength(), "' != '", g2.chrLength(), "'!");
 	}
 
 	return true;
@@ -710,17 +691,17 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		UERROR("Window size must be at least 100bp!");
 
 	//loop over all pairs
-	for(int g1=0; g1<(numGLFs-1); ++g1){
-		for(int g2 = g1+1; g2 < numGLFs; ++g2){
-			logfile().startIndent("Estimating distance between individuals ", g1+1, " (", GLFNames[g1], ") and ", g2+1, " (", GLFNames[g2], "):");
+	for(size_t g1=0; g1<(_GLFs.size() - 1); ++g1){
+		for(size_t g2 = g1+1; g2 < _GLFs.size(); ++g2){
+			logfile().startIndent("Estimating distance between individuals ", g1+1, " (", _GLFs.name(g1), ") and ", g2+1, " (", _GLFs.name(g2), "):");
 
 			//output file
-			std::string filename = outputName + "_" + GLFNames[g1] + "_" + GLFNames[g2] + "_distanceEstimates.txt.gz";
+			std::string filename = outputName + "_" + _GLFs.name(g1) + "_" + _GLFs.name(g2) + "_distanceEstimates.txt.gz";
 			logfile().list("Will write estimates to file '" + filename + "'.");
 
 			//rewind GLFs
-			glfs[g1].rewind();
-			glfs[g2].rewind();
+			_GLFs[g1].rewind();
+			_GLFs[g2].rewind();
 
 			//now run estimation
 			estimateDistanceInWindows(EM_object, filename, glfs[g1], glfs[g2], windowLen);
@@ -764,8 +745,8 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	while(!g1.eof() && !g2.eof()){
 		//move to new chromosome
 		curRefId = g1.refId();
-		curChr = g1.chr();
-		curChrLen = g1.chrLength();
+		curChr = g1.curChromosome().name();
+		curChrLen = g1.curChromosome().length();
 		windowStart = 0;
 		windowEnd = windowLen;
 

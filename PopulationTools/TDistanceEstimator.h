@@ -16,6 +16,7 @@
 #include "genometools/GenotypeTypes.h"
 
 #include "TGLF.h"
+#include "TGlfMultiReader.h"
 #include "GenotypeData.h"
 
 namespace gz { class ogzstream; }
@@ -179,9 +180,7 @@ private:
 	std::string outputName;
 
 	//GLF files
-	int numGLFs;
-	std::vector<std::string> GLFNames;
-	std::vector<GLF::TGlfReader> glfs;
+	GLF::TGlfVector _GLFs;
 
 	void openGLF();
 

@@ -282,7 +282,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 												 TReadSimulators &readSimulators, size_t avgDepth,
 												 BAM::TOutputBamFile &bamFile, const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
-	const size_t numReads          = thisChr.length() * avgDepth / readSimulators.averageFragmentLength();
+	const size_t numReads          = thisChr.length() * avgDepth / readSimulators.averageReadLength();
 	const size_t chrLengthForStart = thisChr.length() - readSimulators.maxFragmentLength() + 1;
 	const coretools::Probability probReadPerSite{1.0 / chrLengthForStart};
 
