@@ -704,7 +704,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 			_GLFs[g2].rewind();
 
 			//now run estimation
-			estimateDistanceInWindows(EM_object, filename, glfs[g1], glfs[g2], windowLen);
+			estimateDistanceInWindows(EM_object, filename, _GLFs[g1], _GLFs[g2], windowLen);
 
 			logfile().endIndent();
 		}
