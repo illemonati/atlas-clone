@@ -36,7 +36,7 @@ private:
 	void _openFiles();
 
 public:
-	TGlfVector(){ openFromParameters(); };	
+	TGlfVector(){};	
 	~TGlfVector()=default;
 	
 	void openFromParameters();

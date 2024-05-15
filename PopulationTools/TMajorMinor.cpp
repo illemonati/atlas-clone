@@ -468,6 +468,7 @@ public:
 template<typename Estimator> void iterate(double maxF) {
 	// open GLF files
 	GLF::TGlfMultiReader glfReader;	
+	glfReader.openGLFs();
 	glfReader.setAllActive();
 
 	// use known alleles or reference allele, if provided	

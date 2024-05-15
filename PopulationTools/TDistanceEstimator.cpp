@@ -567,10 +567,10 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	//loop over all pairs
 	for(size_t g1=0; g1<(numGLFs-1); ++g1){
 		for(size_t g2 = g1+1; g2 < numGLFs; ++g2){
-			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + _GLFs.fileName(g1), ") and ", g2+1, " (", _GLFs.fileName(g2), "):");
+			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + _GLFs.sampleName(g1), ") and ", g2+1, " (", _GLFs.sampleName(g2), "):");
 
 			//write names to file
-			out << _GLFs.fileName(g1) << "\t" << _GLFs.fileName(g2);
+			out << _GLFs.sampleName(g1) << "\t" << _GLFs.sampleName(g2);
 
 			//run estimation
 			estimateDistanceGenomeWide(EM_object, _GLFs[g1], _GLFs[g2], out);
@@ -593,12 +593,12 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	//write header to matrix file
 	distMatrixFile << "/";
 	for(size_t g=0; g<numGLFs; ++g)
-		distMatrixFile << "\t" << _GLFs.fileName(g);
+		distMatrixFile << "\t" << _GLFs.sampleName(g);
 	distMatrixFile << "\n";
 
 	//write rows
 	for(size_t g1 = 0; g1 < numGLFs; ++g1){
-		distMatrixFile << _GLFs.fileName(g1);
+		distMatrixFile << _GLFs.sampleName(g1);
 		for(size_t g2 = 0; g2 < numGLFs; ++g2)
 			distMatrixFile << "\t" << distMatrix[g1*numGLFs + g2];
 		distMatrixFile << "\n";
