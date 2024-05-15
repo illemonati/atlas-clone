@@ -32,8 +32,7 @@ namespace GenotypeLikelihoods {
 
 namespace SiteSubset {
 class TSitePolymorphic : public genometools::TGenomePosition {
-private:
-	genometools::TGenomePosition _pos;
+private:	
 	genometools::Base _ref, _alt;
 
 public:

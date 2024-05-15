@@ -567,10 +567,10 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	//loop over all pairs
 	for(size_t g1=0; g1<(numGLFs-1); ++g1){
 		for(size_t g2 = g1+1; g2 < numGLFs; ++g2){
-			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + _GLFs.name(g1), ") and ", g2+1, " (", _GLFs.name(g2), "):");
+			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + _GLFs.fileName(g1), ") and ", g2+1, " (", _GLFs.fileName(g2), "):");
 
 			//write names to file
-			out << _GLFs.name(g1) << "\t" << _GLFs.name(g2);
+			out << _GLFs.fileName(g1) << "\t" << _GLFs.fileName(g2);
 
 			//run estimation
 			estimateDistanceGenomeWide(EM_object, _GLFs[g1], _GLFs[g2], out);
@@ -593,12 +593,12 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	//write header to matrix file
 	distMatrixFile << "/";
 	for(size_t g=0; g<numGLFs; ++g)
-		distMatrixFile << "\t" << _GLFs.name(g);
+		distMatrixFile << "\t" << _GLFs.fileName(g);
 	distMatrixFile << "\n";
 
 	//write rows
 	for(size_t g1 = 0; g1 < numGLFs; ++g1){
-		distMatrixFile << _GLFs.name(g1);
+		distMatrixFile << _GLFs.fileName(g1);
 		for(size_t g2 = 0; g2 < numGLFs; ++g2)
 			distMatrixFile << "\t" << distMatrix[g1*numGLFs + g2];
 		distMatrixFile << "\n";
@@ -693,10 +693,10 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	//loop over all pairs
 	for(size_t g1=0; g1<(_GLFs.size() - 1); ++g1){
 		for(size_t g2 = g1+1; g2 < _GLFs.size(); ++g2){
-			logfile().startIndent("Estimating distance between individuals ", g1+1, " (", _GLFs.name(g1), ") and ", g2+1, " (", _GLFs.name(g2), "):");
+			logfile().startIndent("Estimating distance between individuals ", g1+1, " (", _GLFs.fileName(g1), ") and ", g2+1, " (", _GLFs.fileName(g2), "):");
 
 			//output file
-			std::string filename = outputName + "_" + _GLFs.name(g1) + "_" + _GLFs.name(g2) + "_distanceEstimates.txt.gz";
+			std::string filename = outputName + "_" + _GLFs.fileName(g1) + "_" + _GLFs.fileName(g2) + "_distanceEstimates.txt.gz";
 			logfile().list("Will write estimates to file '" + filename + "'.");
 
 			//rewind GLFs
@@ -730,12 +730,8 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	//write header to output file
 	out << "chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
 
-	//prepare variables
-	uint32_t curRefId;
-	std::string curChr;
-	long curChrLen;
-	long windowStart;
-	long windowEnd;
+	//prepare variables	
+	genometools::TGenomeWindow window;
 
 	int numSitesWithData = 100;
 
@@ -744,33 +740,30 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	logfile().startIndent("Will estimate distance in windows of size ", windowLen, ":");
 	while(!g1.eof() && !g2.eof()){
 		//move to new chromosome
-		curRefId = g1.refId();
-		curChr = g1.curChromosome().name();
-		curChrLen = g1.curChromosome().length();
-		windowStart = 0;
-		windowEnd = windowLen;
+		window.move(g1.refId(), 0, windowLen);	
+		const genometools::TChromosome& curChr = g1.curChromosome();		
 
-		logfile().startNumbering("Chromosome " + curChr + ":");
+		logfile().startNumbering("Chromosome ", curChr.name(), ":");
 
 		//parse all windows of chromosome
-		while(windowStart < curChrLen && !g1.eof() && !g2.eof()){
-			logfile().number("Window [", windowStart, ", ", windowEnd, ")");
+		while(window < curChr.to() && !g1.eof() && !g2.eof()){
+			logfile().number("Window [", window, ")");
 			logfile().addIndent();
 
 			//read data
-			isGood1 = g1.readNextWindow(genoQual1, curRefId, windowStart, windowEnd);
+			isGood1 = g1.readNextWindow(genoQual1, window);
 			if(isGood1 || g1.eof()){
-				isGood2 = g2.readNextWindow(genoQual2, curRefId, windowStart, windowEnd);
+				isGood2 = g2.readNextWindow(genoQual2, window);
 				if(isGood2 || g2.eof()){
 					//estimate distance
 					EM_object.estimatePhiWithEM(genoQual1, genoQual2);
 
 					//write to file
-					writeDistanceEstimates(out, curChr, windowStart, windowEnd, numSitesWithData, EM_object);
+					writeDistanceEstimates(out, curChr, window, numSitesWithData, EM_object);
 
 
-				} else writeDistanceEstimatesNoData(out, curChr, windowStart, windowEnd);
-			} else writeDistanceEstimatesNoData(out, curChr, windowStart, windowEnd);
+				} else writeDistanceEstimatesNoData(out, curChr, window);
+			} else writeDistanceEstimatesNoData(out, curChr, window);
 
 /*
 			//print data
@@ -788,8 +781,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 */
 
 			//move window
-			windowStart = windowEnd;
-			windowEnd = windowStart + windowLen;
+			window += windowLen;
 			logfile().endIndent();
 		}
 		logfile().endNumbering();
@@ -801,8 +793,8 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 //--------------------------------------------
 // Writing estimates
 //--------------------------------------------
-void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object){
-	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd; //internal position is zero-based
+void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object){
+	out << Chr.name() << "\t" << Window.from().position() + 1 << "\t" << Window.to().position(); //internal position is zero-based
 	writeDistanceEstimates(out, numsitesWithData, EM_object);
 };
 
@@ -822,8 +814,8 @@ void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsite
 	out << "\n";
 };
 
-void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd){
-	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd << "\t"; //internal position is zero-based
+void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window){
+	out << Chr.name() << "\t" << Window.from().position() + 1 << "\t" << Window.to().position() << "\t"; //internal position is zero-based
 	writeDistanceEstimatesNoData(out);
 };
 

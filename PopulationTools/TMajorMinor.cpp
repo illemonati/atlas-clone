@@ -18,6 +18,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 #include "TSiteSubset.h"
 
 #ifdef _OPENMP
@@ -43,6 +44,7 @@ using genometools::TGenotypeLikelihoodsAllCombinationsVector;
 
 namespace impl {
 
+/*
 using alleleicCombinationsArray = coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination::max)>;
 
 constexpr alleleicCombinationsArray useAllelicCombinationsThatContain(Base base) {
@@ -53,6 +55,20 @@ constexpr alleleicCombinationsArray useAllelicCombinationsThatContain(Base base)
 	case Base::G: return std::array{AC::AG, AC::CG, AC::GT};
 	case Base::T: return std::array{AC::AT, AC::CT, AC::GT};
 	default: return std::array{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
+	}
+};
+*/
+
+using alleleicCombinationsArray = std::vector<AllelicCombination>;
+
+alleleicCombinationsArray useAllelicCombinationsThatContain(Base base) {
+	using AC = AllelicCombination;
+	switch (base) {
+	case Base::A: return alleleicCombinationsArray{AC::AC, AC::AG, AC::AT};
+	case Base::C: return alleleicCombinationsArray{AC::AC, AC::CG, AC::CT};
+	case Base::G: return alleleicCombinationsArray{AC::AG, AC::CG, AC::GT};
+	case Base::T: return alleleicCombinationsArray{AC::AT, AC::CT, AC::GT};
+	default: return alleleicCombinationsArray{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
 	}
 };
 
@@ -77,7 +93,7 @@ Log10Probability LLFixedAllele(coretools::TConstView<genometools::TGenotypeLikel
 } // namespace impl
 
 struct TMMData {
-	bool pass;
+	bool pass{false};
 	Probability MAF;
 	genometools::PhredIntProbability variantQuality;
 	genometools::Base major;
@@ -365,6 +381,13 @@ public:
 		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
+
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        genometools::Base ref, genometools::Base alt, Probability minMAF,
+	                        genometools::PhredIntProbability minVariantQuality) {
+		impl::alleleicCombinationsArray usedAllelicCombinations{allelicCombination(ref, alt)};
+		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
+	}
 };
 
 class TMLE {
@@ -433,12 +456,18 @@ public:
 		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
+
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
+	                        genometools::Base ref, genometools::Base alt, Probability minMAF,
+	                        genometools::PhredIntProbability minVariantQuality) {
+		impl::alleleicCombinationsArray usedAllelicCombinations{allelicCombination(ref, alt)};
+		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
+	}
 };
 
 template<typename Estimator> void iterate(double maxF) {
 	// open GLF files
-	GLF::TGlfMultiReader glfReader;
-	glfReader.openGLFs();
+	GLF::TGlfMultiReader glfReader;	
 	glfReader.setAllActive();
 
 	// use known alleles or reference allele, if provided	
@@ -468,11 +497,11 @@ template<typename Estimator> void iterate(double maxF) {
 	// read filters
 	size_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
-	coretools::Probability minMAF{P(0.0)};
+	coretools::Probability minMAF{P(0.0)};	
 	if (parameters().exists("printAll")) {
 		logfile().list("Will write all sites and samples. (parameter printAll)");
 		minSamplesWithData = 0;
-		minVariantQuality  = 0;
+		minVariantQuality  = 0;		
 	} else {
 		minSamplesWithData = parameters().get<size_t>("minSamplesWithData", 1);
 		if (minSamplesWithData > 0) {
@@ -502,46 +531,7 @@ template<typename Estimator> void iterate(double maxF) {
 
 	// filename tag
 	const std::string outname = parameters().get<std::string>("out", "ATLAS_majorMinor");
-	logfile().list("Will write output files with tag '" + outname + "'. (parameter 'out')");
-
-	// get sample names. Make sure they are unique in the vcf
-	std::vector<std::string> sampleNames;
-	if (parameters().exists("sampleNames")) {
-		logfile().startIndent("Using the following sample names (parameter 'sampleNames'):");
-		parameters().fill("sampleNames", sampleNames);
-
-		if (sampleNames.size() != glfReader.numActiveSamples()) {
-			UERROR("Number of provided sample names does not match number of GLF files!");
-		}
-
-		// report
-		auto glfNames = glfReader.namesOfActiveFiles();
-		for (size_t i = 0; i < glfReader.numActiveSamples(); ++i) {
-			logfile().list(glfNames[i], " -> ", sampleNames[i]);
-		}
-		logfile().endIndent();
-	} else {
-		logfile().list(
-		    "Will deduce sample names from GLF file names. (use 'sampleNames' to provide alternative names)");
-		sampleNames = glfReader.sampleNamesOfActiveFiles();
-
-		// if there are duplicates, add suffix
-		bool foundDuplicates = false;
-		for (size_t i = 0; i < sampleNames.size(); ++i) {
-			for (size_t j = i + 1; j < sampleNames.size(); ++j) {
-				int counter = 1;
-				if (sampleNames[i] == sampleNames[j]) {
-					sampleNames[j] += "." + coretools::str::toString(counter++);
-					if (!foundDuplicates) {
-						logfile().startIndent("Duplicate samples will be rename as follows:");
-						foundDuplicates = true;
-					}
-					logfile().list(sampleNames[i], " -> ", sampleNames[j]);
-				}
-			}
-		}
-		if (foundDuplicates) { logfile().endIndent(); }
-	}
+	logfile().list("Will write output files with tag '" + outname + "'. (parameter 'out')");	
 
 #ifdef _OPENMP
 	size_t maxThreads = coretools::instances::parameters().get("maxThreads", omp_get_max_threads());
@@ -554,10 +544,10 @@ template<typename Estimator> void iterate(double maxF) {
 	// open vcf file
 	genometools::TVcfWriter vcf;
 	if (coretools::instances::parameters().exists("bgz")) {
-		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", sampleNames,
+		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", glfReader.sampleNamesOfActiveFiles(),
 		                              usePhredLikelihoods);
 	} else {
-		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
+		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNamesOfActiveFiles(), usePhredLikelihoods);
 	}
 
 	// vars
@@ -570,22 +560,23 @@ template<typename Estimator> void iterate(double maxF) {
 	const auto hasRef = glfReader.hasRef();
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 		std::vector<TMMData> data(ids.size());		
-		if (_subsetPolymoprhic){						
-			/*
-			// TODO: Dan is working on this
-			// get relevant positions from subset
-			_subsetPolymoprhic->
+		if (_subsetPolymoprhic){					
+			// 1) when working with a subset of known alleles				
+			// get relevant positions from subset			
+			auto pos = _subsetPolymoprhic->getPositionInWindow(glfReader.curWindow());
+			if(pos.size() == 0){ continue; }
 
-#pragma omp parallel for num_threads(maxThreads)
-			// loop over positions
-			for (size_t i = 0; i < ids.size(); ++i) {
-				
-				return failedTMMData();
-				const auto iW = ids[i];
-				data[i]       = Estimator::estimate(glfReader.data(iW), maxF, , minMAF, minVariantQuality);
-			}
-			*/
+#pragma omp parallel for num_threads(maxThreads)				
+			// loop over positions with known alleles
+			for(auto i: pos){	
+				size_t iW = i.position() - glfReader.curWindow().from().position();
+				auto iInIds = std::find(ids.begin(), ids.end(), iW);
+				if(iInIds != ids.end()){						
+					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, i.ref(), i.alt(), minMAF, minVariantQuality);	
+				}					
+			}						
 		} else if (hasRef) {
+			// 2) when working with ref
 			const auto refs = glfReader.refView();
 #pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
@@ -593,6 +584,7 @@ template<typename Estimator> void iterate(double maxF) {
 				data[i]       = Estimator::estimate(glfReader.data(iW), maxF, refs[iW], minMAF, minVariantQuality);
 			}
 		} else {
+			// 3) working with raw data / no external info
 #pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
 				data[i] = Estimator::estimate(glfReader.data(ids[i]), maxF, minMAF, minVariantQuality);
@@ -606,11 +598,11 @@ template<typename Estimator> void iterate(double maxF) {
 			if (!di.pass) continue;
 
 			// write to VCF
-			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW), di.variantQuality, glfReader.data(iW), di.major,
+			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.variantQuality, glfReader.data(iW), di.major,
 			              di.minor);
 		}
 
-		counter += ids.back() + 1;
+		counter += ids.size() + 1;
 
 		// report progress
 		if (counter >= nextPrint) {

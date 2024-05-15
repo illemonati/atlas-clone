@@ -245,7 +245,7 @@ bool TGlfReader::_readChr() {
 	}
 
 	// set first position = 0
-	_position = 0;
+	_position.move(_index.curChr().refID(), 0);
 
 	return true;
 };
@@ -375,39 +375,42 @@ bool TGlfReader::jumpToChr(uint32_t RefID) {
 bool TGlfReader::jumpToNextChr() {
 	if(_index.curChrIsLast()) { return false; }
 	_index.jumpToNextChromosome();
-	jumpToChr(_index.curChr().refID());
-};
-
-bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, uint32_t refId, uint32_t start,
-				uint32_t end) {
-	if (_eof) return false;
-
+	return jumpToChr(_index.curChr().refID());
+}
+bool TGlfReader::jumpToAtOrFirstAfterPosition(const genometools::TGenomePosition &Position) { 
 	// move to correct chromosome
-	if(_index.curChr().refID() != refId || _position > start){
-		jumpToChr(refId);
+	if(_position.refID() != Position.refID() || _position > Position){
+		jumpToChr(Position.refID());
 	}
 	
-	// jump to first position in window
-	//  if there is a position 0 on the first chromosome parsed and windows starts right there
+	// jump to first position at or after Position
+	//  if there is a position 0 on the first chromosome parsed and Position is right there
 	//  -> we will not have read anything -> do this now
-	while (_recordType == 0 || (_position < start && _index.curChr().refID() == refId)) {
+	while (_recordType == 0 || _position < Position) {
 		if (!readNext()) return false;
 	}
+	return true;
+};
+
+bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, genometools::TGenomeWindow Window) {
+	if (_eof) return false;
+
+	if(!jumpToAtOrFirstAfterPosition(Window.from())){ return false; }	
 
 	// have we passed window?
-	if (_position >= end) return false; // no data
+	if (_position > Window) return false; // no data
 
 	// We are at first position in window with data
 
 	// ensure size of container, fill with missing Data
-	genoLikelihoods.resize(end - start, TGLFLikelihoods{});
+	GenoLikelihoods.resize(Window.size(), TGLFLikelihoods{});
 
 	// Assumes that windows are read in order: no jumping back!
-	if (refId < _index.curChr().refID()) { return false; }
+	if (Window < _position) { return false; }
 
-	while (_position < end && _index.curChr().refID() == refId) {
+	while(Window.within(_position)){	
 		// fill in genotype likelihoods of current position
-		genoLikelihoods[_position - start] = _genotypeLikelihoodsGLF;
+		GenoLikelihoods[_position - Window.from()] = _genotypeLikelihoodsGLF;
 		// read next record
 		if (!readNext()) break;         // reached eof
 	}
@@ -436,7 +439,7 @@ void TGlfReader::printChr() {
 void TGlfReader::printSite() {
 	// std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
 	//  print position as 1-based, internally it is 0-based
-	std::cout << _index.curChr().name() << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
+	std::cout << _index.curChr().name() << "\t" << _position.position() + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
 	for (size_t i = 0; i < _index.curChrNumLikelihoodValues(); ++i) std::cout << "\t" << _genotypeLikelihoodsGLF.data()[i];
 	std::cout << "\n";
 };

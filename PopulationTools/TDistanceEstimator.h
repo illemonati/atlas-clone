@@ -194,9 +194,9 @@ private:
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGlfReader & g1, GLF::TGlfReader & g2, uint32_t windowLen);
 
-	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
-	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd);
+	void writeDistanceEstimatesNoData(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window);
 	void writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:

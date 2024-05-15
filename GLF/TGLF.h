@@ -142,7 +142,7 @@ private:
 
 	// about site
 	int _recordType = 99;
-	uint32_t _position = 0;
+	genometools::TGenomePosition _position;	
 	uint16_t _depth = 0;
 	int _RMS_mappingQual = 0;
 	TGLFLikelihoods _genotypeLikelihoodsGLF;
@@ -182,7 +182,7 @@ public:
 	size_t lastRefID();
 	uint32_t refId(){ return _index.curChr().refID(); };
 	const TGlfIndex& index(){ return _index; };	
-	uint32_t position() const { return _position; };
+	genometools::TGenomePosition position() const { return _position; };
 	uint16_t depth() const { return _depth; };
 	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };		
 	
@@ -195,7 +195,8 @@ public:
 	bool readNext();
 	bool jumpToChr(uint32_t RefID);
 	bool jumpToNextChr();
-	bool readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end);
+	bool jumpToAtOrFirstAfterPosition(const genometools::TGenomePosition& Position);
+	bool readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, genometools::TGenomeWindow Window);
 
 	// printing
 	void printChr();

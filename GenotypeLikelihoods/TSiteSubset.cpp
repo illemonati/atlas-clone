@@ -19,14 +19,14 @@ TSitePolymorphic::TSitePolymorphic(uint32_t refID, uint32_t position, char ref, 
 	_ref = genometools::char2base(ref);
 	if (_ref == genometools::Base::N) {
 		UERROR("Unknown allele1 '", ref, "' on ", asFormattedString(Chromosomes), "!");
-
-		// parse second allele
-		_alt = genometools::char2base(alt);
-		if (_alt == genometools::Base::N) {
-			UERROR("Unknown allele2 '", alt, "' on ", asFormattedString(Chromosomes), "!");
-		}
-		if (_ref == _alt) { UERROR("Site on ", asFormattedString(Chromosomes), " is invariant!"); }
 	}
+	
+	// parse second allele
+	_alt = genometools::char2base(alt);
+	if (_alt == genometools::Base::N) {
+		UERROR("Unknown allele2 '", alt, "' on ", asFormattedString(Chromosomes), "!");
+	}
+	if (_ref == _alt) { UERROR("Site on ", asFormattedString(Chromosomes), " is invariant!"); }	
 }
 
 TSiteMonomorphic::TSiteMonomorphic(uint32_t refID, uint32_t position, char ref,
