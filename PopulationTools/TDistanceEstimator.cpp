@@ -599,7 +599,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	//write rows
 	for(size_t g1 = 0; g1 < numGLFs; ++g1){
 		distMatrixFile << _GLFs.name(g1);
-		for(int g2 = 0; g2 < numGLFs; ++g2)
+		for(size_t g2 = 0; g2 < numGLFs; ++g2)
 			distMatrixFile << "\t" << distMatrix[g1*numGLFs + g2];
 		distMatrixFile << "\n";
 	}

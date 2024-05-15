@@ -85,12 +85,11 @@ void TGlfVector::openFromParameters(){
 	open(parameter);
 }
 
-int TGlfVector::_getGLFIndexFromName(const std::string &name) const {
+size_t TGlfVector::index(const std::string &name) const {
 	const auto res = std::find(_GLFNames.cbegin(), _GLFNames.cend(), name);
 	if (res == _GLFNames.cend()) UERROR("GLF with name '", name, "' not in TGlfMultiReader!");
 	return std::distance(_GLFNames.begin(), res);
-};
-
+}
 
 //----------------------------------------------------
 // TGlfMultiReader
@@ -160,7 +159,7 @@ void TGlfMultiReader::setActive(int index) {
 };
 
 void TGlfMultiReader::setActive(const std::string &name) {
-	setActive(_getGLFIndexFromName(name));
+	setActive(_GLFs.index(name));
 };
 
 void TGlfMultiReader::setActive(int index1, int index2) {
@@ -171,7 +170,7 @@ void TGlfMultiReader::setActive(int index1, int index2) {
 };
 
 void TGlfMultiReader::setActive(const std::string &name1, const std::string &name2) {
-	setActive(_getGLFIndexFromName(name1), _getGLFIndexFromName(name2));
+	setActive(_GLFs.index(name1), _GLFs.index(name2));
 };
 
 void TGlfMultiReader::setActive(const std::vector<int> &indexes) {
@@ -183,7 +182,7 @@ void TGlfMultiReader::setActive(const std::vector<int> &indexes) {
 void TGlfMultiReader::setActive(const std::vector<std::string> &names) {
 	_setAllInactive();
 	for (const auto &name : names) {
-		_setActive(_getGLFIndexFromName(name));
+		_setActive(_GLFs.index(name));
 	}
 	_prepareParsing();
 };

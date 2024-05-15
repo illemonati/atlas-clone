@@ -80,7 +80,7 @@ private:
     std::set<uint32_t> refIDUsed;
     std::vector<size_t> idx;
     if constexpr((std::is_same<SiteType, TSitePolymorphic>::value)){
-      idx = in.indices<std::vector<size_t>, std::vector<std::string>>({"Chr", "Pos", "Ref", "Alt"});
+      idx = in.indices({"Chr", "Pos", "Ref", "Alt"});
     } else {
       idx = in.indices<std::vector<size_t>, std::vector<std::string>>({"Chr", "Pos", "Ref"});
     }

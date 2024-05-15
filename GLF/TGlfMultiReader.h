@@ -48,6 +48,7 @@ public:
 
 	TGlfReader& operator[](size_t i){ return _GLFs[i]; };	
 	const std::string& name(size_t i){ return _GLFNames[i]; };
+	size_t index(const std::string& name) const;
 };
 
 //----------------------------------------------------

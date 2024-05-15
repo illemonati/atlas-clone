@@ -28,33 +28,32 @@ using TGLFLikelihoods = coretools::TDualStrongArray<genometools::HighPrecisionPh
 //--------------------------------------------
 // TGlfIndexFile
 //--------------------------------------------
-class TGlfIndexFile{
+class TGlfIndex{
 private:
-	std::string _indexFilename;
-	coretools::TOutputFile _indexFileOutput;
-
 	genometools::TChromosomes _chrs;
 	std::vector<uint64_t> _posInFile;
 	size_t _curChr;	
 
+	std::string _getIndexFileName(std::string_view FileName);
+
 public:
-	TGlfIndexFile(){};
-	~TGlfIndexFile() = default;
+	TGlfIndex(){};
+	~TGlfIndex() = default;
 	
 	void clear();
 
 	void addChromosme(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PosInFile);
 	void addChromosme(const genometools::TChromosome& Chr, uint64_t PosInFile);
 
-	void writeChromosmes(std::string_view Filename);
-	void readChromosomes(std::string_view Filename);
+	void writeChromosmes(std::string_view GLFFilename);
+	void readChromosomes(std::string_view GLFFilename);
 
 	void jumpToNextChromosome();
 	void seekChr(uint32_t RefID);
 	void setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PositionInFile);
 
 	// compare
-	bool hasSameChromosomes(const TGlfIndexFile& Other) const;
+	bool hasSameChromosomes(const TGlfIndex& Other) const;
 
 	// getters do not check if chromosomes were initialized!
 	const genometools::TChromosomes& chromosomes(){ return _chrs; };
@@ -64,7 +63,6 @@ public:
 		return N[_chrs[_curChr].ploidy()];
 	};	
 	uint64_t curChrPositionInFile(){ return _posInFile[_curChr]; };
-	uint64_t nextChrPositionInFile();
 	bool curChrIsLast(){ return _curChr == _chrs.size() - 1; };
 };
 
@@ -79,7 +77,7 @@ protected:
 	std::string _version = "GLF2";
 	uint64_t _positionInFile = 0;
 
-	TGlfIndexFile _index;
+	TGlfIndex _index;
 
 public:
 	TGlfHandle()                              = default;
@@ -109,7 +107,7 @@ private:
 	long _oldPos         = 0;
 	std::string _header;
 
-	void _writeHeader();
+	void _writeHeader(const std::string &Header);
 
 	template<typename T> void _write(T var) { _positionInFile += gzwrite(_gzfp, &var, sizeof(T)); };
 	void _write(const void *buf, size_t len) { _positionInFile += gzwrite(_gzfp, buf, len); };
@@ -119,12 +117,14 @@ public:
 	TGlfWriter(const std::string &Filename, const genometools::TChromosomes &Chrs) {
 		open(Filename, Chrs, "");
 	};
+	~TGlfWriter(){ close(); };
 
 	// open & close streams
 	void open(const std::string &Filename, const genometools::TChromosomes &Chrs, const std::string &Header = "");
 	void newChromosome(const genometools::TChromosome &chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 		       const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
+	void close();
 };
 
 //----------------------------------------------------
@@ -177,7 +177,7 @@ public:
 	const genometools::TChromosomes& chromosomes();
 	const genometools::TChromosome& curChromosome();	
 	uint32_t refId(){ return _index.curChr().refID(); };
-	const TGlfIndexFile& index(){ return _index; };	
+	const TGlfIndex& index(){ return _index; };	
 	uint32_t position() const { return _position; };
 	uint16_t depth() const { return _depth; };
 	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };		

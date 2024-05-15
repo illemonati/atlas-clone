@@ -52,7 +52,7 @@ constexpr alleleicCombinationsArray useAllelicCombinationsThatContain(Base base)
 	case Base::C: return std::array{AC::AC, AC::CG, AC::CT};
 	case Base::G: return std::array{AC::AG, AC::CG, AC::GT};
 	case Base::T: return std::array{AC::AT, AC::CT, AC::GT};
-	case Base::N: return std::array{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
+	default: return std::array{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
 	}
 };
 
