@@ -20,6 +20,7 @@
 #include "GenotypeData.h"
 #include "genometools/VCF/TVcfWriter.h"
 #include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/devtools.h"
 
 namespace GLF {
 using genometools::Ploidy;
@@ -50,7 +51,7 @@ public:
 
 	void jumpToNextChromosome();
 	void seekChr(uint32_t RefID);
-	void setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PositionInFile);
+	void setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy);
 
 	// compare
 	bool hasSameChromosomes(const TGlfIndex& Other) const;
@@ -59,11 +60,13 @@ public:
 	const genometools::TChromosomes& chromosomes(){ return _chrs; };
 	const genometools::TChromosome& curChr(){ return _chrs[_curChr]; };
 	size_t curChrNumLikelihoodValues() const noexcept {
-		std::array<size_t, 2> N{10, 4};
+		std::array<size_t, 3> N{0, 4, 10}; // for ploidy 0, 1 and 2		
 		return N[_chrs[_curChr].ploidy()];
 	};	
 	uint64_t curChrPositionInFile(){ return _posInFile[_curChr]; };
-	bool curChrIsLast(){ return _curChr == _chrs.size() - 1; };
+	size_t lastRefID(){ return _chrs.size() - 1; };
+	bool curChrIsLast(){ return _curChr == lastRefID(); };
+	
 };
 
 //----------------------------------------------------
@@ -168,14 +171,15 @@ private:
 
 public:
 	TGlfReader() = default;
-	TGlfReader(const std::string &Filename) {
-		open(Filename);
+	TGlfReader(const std::string &Filename, bool HasIndex = true) {
+		open(Filename, HasIndex);
 	};
 
 	// get details
 	bool eof() const { return _eof; };
 	const genometools::TChromosomes& chromosomes();
 	const genometools::TChromosome& curChromosome();	
+	size_t lastRefID();
 	uint32_t refId(){ return _index.curChr().refID(); };
 	const TGlfIndex& index(){ return _index; };	
 	uint32_t position() const { return _position; };
@@ -197,6 +201,7 @@ public:
 	void printChr();
 	void printSite();
 	void printToEnd();
+	void writeIndex();
 };
 
 

@@ -80,7 +80,8 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TEstimateMutationLoad>("mutationLoad", "Estimating mutation load across the genome");
 	main.createRegularTask<GenomeTasks::TEstimateGenotypeDistribution>("genotypeDistribution", "Estimating genotype Distribution");
 
-	//Population tools
+	//Population tools	
+	main.createRegularTask<GLF::TGLFIndexer>("indexGLF", "Indexing a GLF file");
 	main.createRegularTask<GLF::TGLFPrinter>("printGLF", "Printing a GLF file to screen");
 	main.createRegularTask<PopulationTools::TMajorMinor>("majorMinor", "Estimating major and minor alles", "Skotte et al. (2012) Genetic Epidemiology");
 	main.createRegularTask<PopulationTools::TDistanceEstimator>("geneticDist", "Estimating the genetic distance between individuals");

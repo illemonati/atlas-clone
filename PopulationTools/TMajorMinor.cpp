@@ -569,8 +569,8 @@ template<typename Estimator> void iterate(double maxF) {
 
 	const auto hasRef = glfReader.hasRef();
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
-		std::vector<TMMData> data(ids.size());
-		if (_subsetPolymoprhic){			
+		std::vector<TMMData> data(ids.size());		
+		if (_subsetPolymoprhic){						
 			/*
 			// TODO: Dan is working on this
 			// get relevant positions from subset

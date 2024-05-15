@@ -199,7 +199,7 @@ void TGlfMultiReader::setAllActive() {
 bool TGlfMultiReader::_moveToNextChromosome() {
 	// increment chromosome ref_char id
 	++_curRefId;
-	if(_curRefId > _GLFs[0].chromosomes().size()) return false; 	
+	if(_curRefId > _GLFs[0].lastRefID()) return false; 	
 
 	// advance all active files behind
 	bool allFilesReachedEnd = true;
@@ -226,6 +226,7 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 	_numActive.assign(N, 0);
 
 	bool allEOF=true;
+
 	for (auto reader : _activeGLFs) {
 		// find first data in window
 		while (!reader->eof() && (reader->curChromosome().refID() == _curRefId) && (reader->position() < _windowStart)) {
