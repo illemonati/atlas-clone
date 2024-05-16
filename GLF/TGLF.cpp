@@ -124,7 +124,7 @@ void TGlfWriter::open(const std::string &Filename, const genometools::TChromosom
 	_gzfp     = nullptr;
 	_gzfp     = gzopen(_filename.c_str(), "wb");
 
-	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for writing!");
+	if (_gzfp == nullptr) UERROR("Failed to open GLF file '", _filename, "' for writing!");
 	_index.clear();
 
 	// write header
@@ -211,6 +211,7 @@ void TGlfWriter::close() {
 	if(_gzfp){
 		_index.writeChromosmes(_filename);
 	}
+	TGlfHandle::close();
 };
 
 //---------------------------------
@@ -276,6 +277,7 @@ void TGlfReader::_readSNPRecord() {
 	// genotype likelihoods
 	_read(_genotypeLikelihoodsGLF.data(),
 	      _index.curChrNumLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
+
 	_genotypeLikelihoodsGLF.type = _index.curChr().isHaploid() ? Ploidy::haploid : Ploidy::diploid;
 };
 
@@ -290,7 +292,7 @@ void TGlfReader::_open(bool HasIndex) {
 	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
-	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for reading!");
+	if (_gzfp == nullptr) UERROR("Failed to open GLF file '", _filename, "' for reading!");
 	_index.clear();
 	_positionInFile = 0;
 
@@ -409,7 +411,7 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, g
 	if (Window < _position) { return false; }
 
 	while(Window.within(_position)){	
-		// fill in genotype likelihoods of current position
+		// fill in genotype likelihoods of current position		
 		GenoLikelihoods[_position - Window.from()] = _genotypeLikelihoodsGLF;
 		// read next record
 		if (!readNext()) break;         // reached eof

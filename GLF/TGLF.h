@@ -91,7 +91,7 @@ public:
 
 	virtual ~TGlfHandle() {close();}
 
-	void close() {
+	virtual void close() {
 		if (_gzfp) {
 			gzclose(_gzfp);
 			_gzfp = nullptr;
@@ -127,7 +127,7 @@ public:
 	void newChromosome(const genometools::TChromosome &chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 		       const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
-	void close();
+	void close() override;
 };
 
 //----------------------------------------------------

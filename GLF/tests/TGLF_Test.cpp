@@ -25,6 +25,7 @@ class TGLF_Test_WriteRead : public ::testing::Test {
 protected:
 	std::string _filename = "testGLF.glf.gz";
 	std::vector<size_t> chrLength;
+	std::vector<uint8_t> ploidies;
 
 public:
 	GLF::TTestGLFFile outputGLF;
@@ -38,6 +39,7 @@ public:
 	void write(int numDummySites) {
 		// settings
 		chrLength = {100, 200, 300};
+		ploidies = {2, 2, 2};
 
 		// open GLF file for writing
 		outputGLF.openOutput(_filename, chrLength);
@@ -52,6 +54,7 @@ public:
 
 		// settings
 		chrLength = {50, 100, 150, 200, 250};
+		ploidies = {2, 2, 2, 2, 2};
 
 		// open GLF file for writing
 		outputGLF.openOutput(_filename, chrLength);
@@ -104,7 +107,7 @@ public:
 	void writeWithDifferentPloidies() {
 		// write chromosomes with different ploidies
 		chrLength                     = {50, 100, 150};
-		std::vector<uint8_t> ploidies = {2, 1, 2}; // second chromosome is haploid
+		ploidies = {2, 1, 2}; // second chromosome is haploid
 
 		// open GLF file for writing
 		outputGLF.openOutput(_filename, chrLength, ploidies);
@@ -143,9 +146,12 @@ public:
 	void TearDown() override{};
 };
 
-TEST_F(TGLF_Test_WriteRead, _name) {
+TEST_F(TGLF_Test_WriteRead, name) {
 	write(300);
 	read();
+	//std::cout << "COMPARING NAME '" << "' vs '" << _filename << "'" << std::endl;
+	//std::cout << "COMPARING NAME '" << inputGLF.name() << "'" << std::endl;
+	//std::cout << "COMPARING NAME '" << inputGLF.name() << "' vs '" << _filename << "'" << std::endl;
 	EXPECT_EQ(inputGLF.name(), _filename);
 }
 
@@ -156,7 +162,7 @@ TEST_F(TGLF_Test_WriteRead, positions) {
 	int c = 0;
 	for (auto writtenPosition = outputGLF.beginPositions(); writtenPosition != outputGLF.endPositions();
 	     writtenPosition++, c++) {
-		EXPECT_EQ(writtenPosition->position(), positions[c]);
+		EXPECT_EQ(*writtenPosition, positions[c]);
 	}
 }
 
@@ -174,13 +180,13 @@ TEST_F(TGLF_Test_WriteRead, chromosomes) {
 	write(300);
 	read();
 	// check if written and read chromosomes are equal
-	for (int i = 0; i < 3; i++) {
-		const auto chr = inputGLF.chromosomes()[i];
+	for (int c = 0; c < 3; c++) {
+		const auto chr = inputGLF.chromosomes()[c];
 
-		EXPECT_EQ(chr.refID(), i);
-		EXPECT_EQ(ch.name(), "Chr" + coretools::str::toString(i + 1));
-		EXPECT_EQ(chr.length(), chrLength[i]);
-		EXPECT_EQ(chr.isHaploid(), false);
+		EXPECT_EQ(chr.refID(), c);
+		EXPECT_EQ(chr.name(), coretools::str::toString("Chr", c + 1));
+		EXPECT_EQ(chr.length(), chrLength[c]);
+		EXPECT_EQ(chr.isHaploid(), ploidies[c] == 1);
 	}
 }
 
@@ -230,7 +236,7 @@ TEST_F(TGLF_Test_WriteRead, rewind) {
 	int c = 0;
 	for (auto writtenPosition = outputGLF.beginPositions(); writtenPosition != outputGLF.endPositions();
 	     writtenPosition++, c++) {
-		EXPECT_EQ(writtenPosition->position(), positions[c]);
+		EXPECT_EQ(*writtenPosition, positions[c]);
 	}
 }
 
@@ -249,8 +255,15 @@ TEST_F(TGLF_Test_WriteRead, jumpToNextChr) {
 		EXPECT_EQ(c, inputGLF.curChromosome().refID());
 		EXPECT_EQ(chrLength[c], inputGLF.curChromosome().length());
 	}
+	EXPECT_FALSE(inputGLF.jumpToNextChr());
+}
 
-	// check all written positions
+TEST_F(TGLF_Test_WriteRead, readNext) {
+	write(300);
+	read();
+	inputGLF.rewind();
+
+	// check all written positions with read next
 	inputGLF.rewind();
 	//check first position
 	auto pos = outputGLF.beginPositions();
@@ -263,7 +276,7 @@ TEST_F(TGLF_Test_WriteRead, jumpToNextChr) {
 	}
 	
 	// This was the last position -> jumping to the next one returns false
-	EXPECT_FALSE(inputGLF.jumpToNextChr());
+	EXPECT_FALSE(inputGLF.readNext());
 }
 
 //-------------------------------------------------------------
@@ -277,7 +290,7 @@ TEST_F(TGLF_Test_WriteRead, positions_missingData) {
 	int c = 0;
 	for (auto writtenPosition = outputGLF.beginPositions(); writtenPosition != outputGLF.endPositions();
 	     writtenPosition++, c++) {
-		EXPECT_EQ(writtenPosition->position(), positions[c]);
+		EXPECT_EQ(*writtenPosition, positions[c]);
 	}
 }
 
@@ -301,7 +314,7 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_missingData) {
 		EXPECT_EQ(chr.refID(), c);
 		EXPECT_EQ(chr.name(), "Chr" + coretools::str::toString(c + 1));
 		EXPECT_EQ(chr.length(), chrLength[c]);
-		EXPECT_EQ(chr.isHaploid(), false);
+		EXPECT_EQ(chr.isHaploid(), ploidies[c] == 1);
 	}
 }
 
@@ -326,42 +339,31 @@ TEST_F(TGLF_Test_WriteRead, jumpToNextChr_missingData) {
 	writeWithMissingSites();
 	read();
 	inputGLF.rewind();
-
-// check first chromosome
+	
+	// we start on chromosome 0
 	EXPECT_EQ(0, inputGLF.curChromosome().refID());
 	EXPECT_EQ(chrLength[0], inputGLF.curChromosome().length());
 
-	// check all chromosomes
-	for(size_t c = 1; c < chrLength.size(); c++){
-		EXPECT_TRUE(inputGLF.jumpToNextChr());
-		EXPECT_EQ(c, inputGLF.curChromosome().refID());
-		EXPECT_EQ(chrLength[c], inputGLF.curChromosome().length());
-
-	}
-
-	// we start on chromosome 1
-	EXPECT_EQ(0, inputGLF.curChromosome().refID());
-	EXPECT_EQ(50, inputGLF.curChromosome().length());
-
-	// jump to first site on chromosome 2
+	// jump to first site on chromosome 1
 	inputGLF.jumpToNextChr();
-	EXPECT_EQ(10, inputGLF.position());
-	EXPECT_EQ(10, inputGLF.depth());
 	EXPECT_EQ(1, inputGLF.curChromosome().refID());
-	EXPECT_EQ(100, inputGLF.curChromosome().length());
+	EXPECT_EQ(chrLength[1], inputGLF.curChromosome().length());
+	EXPECT_EQ(10, inputGLF.position().position());
+	EXPECT_EQ(10, inputGLF.depth());	
+	
 
-	// jump to next chromosome (=3), but this is empty, so jump to chromosome 4 and reads first site on chr4 -> skip all
-	// other sites of chromosome 2
+	// jump to next chromosome (=2), but this is empty, so jump to chromosome 3 and reads first site on that -> skip all
+	// other sites of chromosome 1
 	inputGLF.jumpToNextChr();
-	EXPECT_EQ(3, inputGLF.refId());
-	EXPECT_EQ(200, inputGLF.chrLength());
-	EXPECT_EQ(199, inputGLF.position());
+	EXPECT_EQ(3, inputGLF.curChromosome().refID());
+	EXPECT_EQ(chrLength[3], inputGLF.curChromosome().length());
+	EXPECT_EQ(199, inputGLF.position().position());
 	EXPECT_EQ(10, inputGLF.depth());
 
-	// jump to chromosome 5 -> this is the last one -> returns false
+	// jump to chromosome 4 -> this is the last one and empty -> returns false
 	EXPECT_FALSE(inputGLF.jumpToNextChr());
-	EXPECT_EQ(4, inputGLF.refId());
-	EXPECT_EQ(250, inputGLF.chrLength());
+	EXPECT_EQ(4, inputGLF.curChromosome().refID());
+	EXPECT_EQ(chrLength[4], inputGLF.curChromosome().length());
 }
 
 //-------------------------------------------------------------
@@ -374,7 +376,7 @@ TEST_F(TGLF_Test_WriteRead, positions_withDifferentPloidies) {
 	// check if written and read positions are equal
 	int c = 0;
 	for (auto p = outputGLF.beginPositions(); p != outputGLF.endPositions(); p++, c++) {
-		EXPECT_EQ(p->position(), positions[c]);
+		EXPECT_EQ(*p, positions[c]);
 	}
 }
 
@@ -392,20 +394,13 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_withDifferentPloidies) {
 	writeWithDifferentPloidies();
 	read();
 	// check if written and read chromosomes are equal
-	// first chromosome
-	for (int i = 0; i < 3; i++) {
-		const auto chr = inputGLF.pointerToChr(i);
+	for(size_t c = 0; c < chrLength.size(); c++){
+		const auto& chr = inputGLF.chromosomes()[c];
 
-		EXPECT_EQ(chr->refId(), i);
-		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
-		EXPECT_EQ(chr->length(), chrLength[i]);
-		if (i == 1) { // haploid
-			EXPECT_EQ(chr->isHaploid(), true);
-			EXPECT_EQ(chr->numLikelihoodValues(), 4);
-		} else { // diploid
-			EXPECT_EQ(chr->isHaploid(), false);
-			EXPECT_EQ(chr->numLikelihoodValues(), 10);
-		}
+		EXPECT_EQ(chr.refID(), c);
+		EXPECT_EQ(chr.name(), "Chr" + coretools::str::toString(c + 1));
+		EXPECT_EQ(chr.length(), chrLength[c]);
+		EXPECT_EQ(chr.isHaploid(), ploidies[c] == 1);
 	}
 }
 
@@ -453,25 +448,22 @@ public:
 		// parse GLFs in windows
 		while (!inputGLF.eof()) {
 			// move to new chromosome
-			const auto curRefId    = inputGLF.refId();
-			const auto curChrLen   = inputGLF.chrLength();
-			size_t windowStart = 0;
-			size_t windowEnd   = windowLen;
+			const auto& curChr = inputGLF.curChromosome();			
+			genometools::TGenomeWindow window(curChr.from(), windowLen);			
 
 			// parse all windows of chromosome (unless file ends before chromosome ends)
-			while (windowStart < curChrLen && !inputGLF.eof()) {
+			while (window < curChr.to() && !inputGLF.eof()) {
 				// resize storage
 				std::vector<TGLFLikelihoods> genoLikelihoods_oneWindow;
 
 				// read data
-				const auto isGood = inputGLF.readNextWindow(genoLikelihoods_oneWindow, curRefId, windowStart, windowEnd);
+				const auto isGood = inputGLF.readNextWindow(genoLikelihoods_oneWindow, window);
 				if (isGood || inputGLF.eof()) {
 					// store if window contains data
 					genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
 				}
-				// move window
-				windowStart = windowEnd;
-				windowEnd   = windowStart + windowLen;
+				// move window				
+				window += windowLen;
 			}
 		}
 	}
@@ -608,31 +600,28 @@ TEST_F(TGLF_Test_WriteRead_Windows, oneWindow_writeAll) {
 
 	// resize storage
 	std::vector<TGLFLikelihoods> genoLikelihoods_oneWindow;
-	inputGLF.readNextWindow(genoLikelihoods_oneWindow, 1, 100, 120);
-	genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
+	inputGLF.readNextWindow(genoLikelihoods_oneWindow, genometools::TGenomeWindow(1, 50, 20));	
 
 	// check if written and read genotype likelihoods are equal
-	auto writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 200;
-	for (auto &window : genotypeLikelihoods_perWindow) {
-		for (auto genotypeLikelihood_read : window) {
-			// need to normalize the written likelihoods by maximal LL in order to compare
-			normalizeByMax_Diploid(*writtenGTL);
-			if (genotypeLikelihood_read.type == Ploidy::diploid) {
-				for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-					// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
-					// likelihood)
-					EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihood_read[g]);
-				}
-			} else {
-				for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
-					// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
-					// likelihood)
-					EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
-							  genotypeLikelihood_read[b]);
-				}
+	auto writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + chrLength[0] + 50;	
+	for (auto genotypeLikelihood_read : genoLikelihoods_oneWindow) {
+		// need to normalize the written likelihoods by maximal LL in order to compare
+		normalizeByMax_Diploid(*writtenGTL);
+		if (genotypeLikelihood_read.type == Ploidy::diploid) {			
+			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+				// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
+				// likelihood)
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihood_read[g]);
 			}
-			writtenGTL++;
+		} else {			
+			for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+				// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
+				// likelihood)
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+							genotypeLikelihood_read[b]);
+			}
 		}
+		writtenGTL++;		
 	}
 }
 
@@ -644,12 +633,12 @@ TEST_F(TGLF_Test_WriteRead_Windows, oneWindow_writeWithMissingSites) {
 
 	// resize storage
 	std::vector<TGLFLikelihoods> genoLikelihoods_oneWindow(windowLen);
-	inputGLF.readNextWindow(genoLikelihoods_oneWindow, 3, 180, 200);
+	inputGLF.readNextWindow(genoLikelihoods_oneWindow, genometools::TGenomeWindow(3, 180, 20));
 	genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
 
 	// check if written and read genotype likelihoods are equal
 	// fourth window: chromosome 4, 180-199
-	auto writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 480;
+	auto writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + chrLength[0] + chrLength[1] + chrLength[2] + 180;
 	for (int s = 0; s < 20; s++) {
 		normalizeByMax_Diploid(*writtenGTL);
 		if (genotypeLikelihoods_perWindow[0][s].type == Ploidy::diploid) {
