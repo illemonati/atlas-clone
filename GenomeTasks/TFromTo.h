@@ -1,8 +1,5 @@
-
 #ifndef GENOMETASKS_TFROMTO_H_
 #define GENOMETASKS_TFROMTO_H_
-
-#include <string>
 
 #include "coretools/Files/TOutputFile.h"
 

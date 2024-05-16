@@ -13,7 +13,6 @@
 #include "genometools/BED/TBed.h"
 
 #include "TBamWindowTraverser.h"
-#include "GenotypeData.h"
 
 namespace GenomeTasks{
 

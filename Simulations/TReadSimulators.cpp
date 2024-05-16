@@ -4,11 +4,8 @@
  */
 
 #include "TReadGroupInfo.h"
-#include "coretools/Main/TParameters.h"
 #include "coretools/Main/TLog.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "TReadSimulators.h"
-#include "coretools/Types/probability.h"
 #include "coretools/Main/globalConstants.h"
 #include "genometools/GenotypeTypes.h"
 

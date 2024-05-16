@@ -13,7 +13,6 @@
 #include <zlib.h>
 
 #include "GenotypeData.h"
-#include "coretools/Files/gzstream.h"
 
 namespace GenotypeLikelihoods {
 class TSite;

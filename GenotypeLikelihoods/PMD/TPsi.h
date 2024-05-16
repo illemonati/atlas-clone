@@ -12,7 +12,6 @@
 #include "genometools/GenotypeTypes.h"
 #include "TReadGroupInfo.h"
 
-#include "GenotypeData.h"
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods::PMD {

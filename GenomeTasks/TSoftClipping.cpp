@@ -6,8 +6,6 @@
  */
 
 #include "TSoftClipping.h"
-#include <algorithm>
-#include <ostream>
 #include <vector>
 
 #include "TAlignment.h"

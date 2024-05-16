@@ -6,7 +6,9 @@ recal="intercept[0.1];quality:polynomial[0.9,0.01];position:polynomial[0.01]"
 pmd="CT5:0.1*exp(-0.2*p)+0.001;GA3:0.1*exp(-0.2*p)+0.001"
 pmd=""
 
-. $(dirname $0)/simulate --chrLength 121234,121098 --ploidy 2,1 --depth 11,9 --recal $recal --pmd $pmd --baseQuality "categorical(12,22,27,32,37,41)"
+. $(dirname $0)/simulate --chrLength 121234,121098 --ploidy 2,1 --depth 11,9 \
+	--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.015 \
+	--recal $recal --pmd $pmd --baseQuality "categorical(12,22,27,32,37,41)" \
 
 echo "chr1 0 5" > diplo.bed
 echo "chr2 5 10" > haplo.bed

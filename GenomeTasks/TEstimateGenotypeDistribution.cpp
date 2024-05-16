@@ -7,7 +7,6 @@
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
-#include <iterator>
 
 namespace GenomeTasks {
 using coretools::instances::logfile;

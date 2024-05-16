@@ -173,7 +173,9 @@ if __name__ == "__main__":
         plt.legend(ncols=2, borderaxespad=0.)
         if args.relative:
             plt.yscale("linear")
-            plt.ylim(0, 1.5)
+            mas    = mthetas_g + sthetas_g
+            yma[0] = ceil(2*(max(yma[0], max(mas[nonzero(mas)]))))/2
+            plt.ylim(0, yma[0])
             if hky85: plt.ylabel(r"$\theta_{f/g}/\theta_0$")
             else: plt.ylabel(r"$\theta_f/\theta_0$")
 

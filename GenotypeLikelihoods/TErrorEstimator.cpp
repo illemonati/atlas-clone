@@ -22,6 +22,13 @@ TErrorEstimator::TErrorEstimator()
 
 	_windows.requireReference();
 
+
+	bool fixedMu = false;
+	if (parameters().exists("fixedMu")) {
+		logfile().list("Assuming fixed mu at 1./3");
+		fixedMu = true;
+	}
+
 	// regions
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
@@ -43,7 +50,8 @@ TErrorEstimator::TErrorEstimator()
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
 			}  else {
-				_genoDist.push_back(std::make_unique<THKY85>());
+				fixedMu ? _genoDist.push_back(std::make_unique<THKY85fixedMu>())
+						: _genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
 	} else if (parameters().exists("chr")) {
@@ -60,7 +68,8 @@ TErrorEstimator::TErrorEstimator()
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
 			}  else {
-				_genoDist.push_back(std::make_unique<THKY85>());
+				fixedMu ? _genoDist.push_back(std::make_unique<THKY85fixedMu>())
+						: _genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
 	} else {
@@ -69,7 +78,8 @@ TErrorEstimator::TErrorEstimator()
 		if (ploidies.front() == 1) {
 			_genoDist.push_back(std::make_unique<THKY85_mono>());
 		} else {
-			_genoDist.push_back(std::make_unique<THKY85>());
+			fixedMu ? _genoDist.push_back(std::make_unique<THKY85fixedMu>())
+					: _genoDist.push_back(std::make_unique<THKY85>());
 		}
 	}
 

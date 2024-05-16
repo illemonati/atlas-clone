@@ -72,6 +72,7 @@ size_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment
 
 void TWindow::fillSites(size_t readUpToDepth){
 	_fillSites(_sites, readUpToDepth);
+	_masked.assign(_sites.size(), false);
 	_numReadsInWindow = _usedAlignments.size();
 }
 void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites, size_t readUpToDepth) const {
@@ -120,6 +121,7 @@ void TWindow::_clear(){
 	for(auto& s : _sites){
 		s.clear();
 	}
+	_masked.assign(_sites.size(), false);
 
 	_usedAlignments.erase(
 		std::remove_if(_usedAlignments.begin(), _usedAlignments.end(),
@@ -163,6 +165,7 @@ void TWindow::downsampleFromOther(const TWindow & other, size_t readUpToDepth, c
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb);
+	_masked.assign(_sites.size(), false);
 
 	//calc depth
 	_calcDepth();
@@ -230,6 +233,7 @@ size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 			//mask until start of BED window
 			for(; pos < it->from() && pos < to(); ++pos){
 				_sites[pos - from()].clear();
+				_masked[pos - from()] = true;
 				++_numMaskedSites;
 			}
 			//jump to end of BED window
@@ -239,6 +243,7 @@ size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		//clear until end of window
 		for(; pos < to(); ++pos){
 			_sites[pos - from()].clear();
+			_masked[pos - from()] = true;
 			++_numMaskedSites;
 		}
 	} else {
@@ -248,6 +253,7 @@ size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 
 			for(genometools::TGenomePosition s = std::max(it->from(), from()); s < std::min(it->to(), to()); ++s){
 				_sites[s - from()].clear();
+				_masked[s - from()] = true;
 				++_numMaskedSites;
 			}
 			++it;
@@ -266,6 +272,8 @@ void TWindow::maskCpG(const genometools::TFastaReader & reference){
 	for(size_t i=0; i<size(); ++i){
 		if((ref[i] == Base::C && ref[i+1] == Base::G) || (ref[i+1] == Base::C && ref[i+2] == Base::G)){
 			_sites[i].clear();
+			_masked[i] = true;
+			++_numMaskedSites;
 		}
 	}
 };
@@ -291,6 +299,8 @@ void TWindow::applyDepthFilter(const coretools::TNumericRange<size_t> & DepthRan
 		if(!_sites[i].empty()){
 			if(DepthRange.outside(_sites[i].depth())){
 				_sites[i].clear();
+				_masked[i] = true;
+				++_numMaskedSites;
 			}
 		}
 	}

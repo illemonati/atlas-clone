@@ -7,6 +7,7 @@
 
 #include "TSimulator.h"
 
+#include "THaplotypeSimulator.h"
 #include "TSimulatorVariantInvariantBedFiles.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/progressTools.h"
@@ -31,6 +32,10 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 	if (method == TSimulatorOne::name) {
 		logfile().startIndent("Simulating a single individual (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorOne>(chs.size());
+	}
+	if (method == TSimulatorHKY85::name) {
+		logfile().startIndent("Simulating a single individual using HKY85 (parameter 'type' = '", method, "')");
+		return std::make_unique<TSimulatorHKY85>(chs.size());
 	}
 	if (method == TSimulatorPair::name) {
 		logfile().startIndent("Simulating a pair of individual (parameter 'type' = '", method, "')");

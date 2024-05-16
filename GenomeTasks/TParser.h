@@ -4,7 +4,6 @@
 #include "genometools/TFastaReader.h"
 #include "TBaseFilter.h"
 
-
 namespace BAM {class TAlignment;}
 namespace GenomeTasks {
 

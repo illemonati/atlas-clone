@@ -2,7 +2,6 @@
 #include "TGenome.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/toString.h"
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
