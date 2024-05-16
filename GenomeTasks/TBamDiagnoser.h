@@ -34,6 +34,8 @@ private:
 	std::vector<TOld> _old;
 	genometools::TGenomePosition _oldPosition;
 	coretools::TOutputFile _duplicateFile;
+	std::vector<size_t> _startCounter;
+	size_t _allStart = 1;
 
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
@@ -45,6 +47,8 @@ private:
     std::vector<coretools::TCountDistributionVector<>> _softClippedLength;
    	std::vector<coretools::TCountDistributionVector<>> _mappingQuality;
     std::vector<coretools::TCountDistributionVector<>> _fragmentLength;
+    std::vector<coretools::TCountDistributionVector<>> _readStart;
+    coretools::TCountDistributionVector<> _allReadStart;
 
     void _handleAlignment() override;
 
