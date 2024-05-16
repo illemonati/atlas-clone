@@ -147,6 +147,14 @@ void TBamDiagnoser::_handleAlignment() {
 								 bamFile.curFragmentLength(), bamFile.curIsReverseStrand(), _old[readGroup].name, _old[readGroup].length, _old[readGroup].isReversed);
 		}
 	}
+	if (curPosition == _old[readGroup].position) {
+		++_startCounter[readGroup];
+	} else {
+		_readStart[readGroup].add(chromosome, _startCounter[readGroup]);
+		_startCounter[readGroup] = 1;
+	}
+
+
 	_old[readGroup].position = curPosition;
 	if (_identifyDuplicates) {
 		_old[readGroup].name       = bamFile.curName();
@@ -156,6 +164,12 @@ void TBamDiagnoser::_handleAlignment() {
 
 	if (curPosition.refID() == _oldPosition.refID()) {
 		_allReadDist.add(chromosome, std::min(maxReadDist, bamFile.curPosition() - _oldPosition));
+	}
+	if (curPosition == _oldPosition) {
+		++_allStart;
+	} else {
+		_allReadStart.add(chromosome, _allStart);
+		_allStart = 1;
 	}
 	_oldPosition = curPosition;
 
@@ -189,12 +203,14 @@ void TBamDiagnoser::run() {
 	_passedQC.resizeDistributions(numChrom);
 
 	_old.resize(numRG);
+	_startCounter.resize(numRG, 1);
 	_readLength.resize(numRG);
 	_readDist.resize(numRG);
 	_usableLength.resize(numRG);
 	_softClippedLength.resize(numRG);
 	_mappingQuality.resize(numRG);
 	_fragmentLength.resize(numRG);
+	_readStart.resize(numRG);
 	for (size_t i = 0; i < numRG; i++) {
 		_readLength[i].resize(numChrom);
 		_readDist[i].resize(numChrom);
@@ -202,8 +218,10 @@ void TBamDiagnoser::run() {
 		_softClippedLength[i].resize(numChrom);
 		_mappingQuality[i].resize(numChrom);
 		_fragmentLength[i].resize(numChrom);
+		_readStart[i].resize(numChrom);
 	}
 	_allReadDist.resize(numChrom);
+	_allReadStart.resize(numChrom);
 
 	if (parameters().exists("perChromosome")) {
 		_chromStats = true;
@@ -214,6 +232,15 @@ void TBamDiagnoser::run() {
 
 	// now parse through bam file
 	_traverseBAMPassedQC();
+
+	// need to add positions on the chromosome without a start
+	for (const auto& chr: _genome.bamFile().chromosomes()) {
+		for (size_t i = 0; i < numRG; ++i) {
+			_readStart[i].add(chr.refID(), 0, chr.length() - _readStart[i].counts());
+		}
+		_allReadStart.add(chr.refID(), 0, chr.length() - _allReadStart.counts());
+	}
+
 	if (!parameters().exists("splitMergeInput")) {
 		logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
 	}
@@ -234,7 +261,7 @@ void TBamDiagnoser::run() {
 
 	std::vector<std::string_view> header{"readGroup"};
 	if (_chromStats) header.push_back("chromosome");
-	header.insert(header.end(), {"totalReads", "passedQC", "duplicates", "avgReadLength", "seqCycles", "avgReadDist",
+	header.insert(header.end(), {"totalReads", "passedQC", "duplicates", "avgReadLength", "seqCycles", "avgReadDist", "avgReadStart",
 								 "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength",
 								 "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
 	out.writeHeader(header);
@@ -254,7 +281,7 @@ void TBamDiagnoser::run() {
 	if (_chromStats) { out.write("allChromosomes"); }
 	out.write(_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome().counts(), _passedQC.counts(),
 			  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCombinedCounts(),
-			  impl::meanOverAllReadGroups(_readLength), impl::maxOverAllReadGroups(_readLength), _allReadDist.mean(),
+			  impl::meanOverAllReadGroups(_readLength), impl::maxOverAllReadGroups(_readLength), _allReadDist.mean(), _allReadStart.mean(),
 			  impl::countsOverAllReadGroups(_fragmentLength), impl::meanOverAllReadGroups(_fragmentLength),
 			  impl::countsLargerZeroOverAllReadGroups(_softClippedLength),
 			  impl::meanOverAllReadGroups(_softClippedLength), impl::meanOverAllReadGroups(_usableLength),
@@ -270,19 +297,18 @@ void TBamDiagnoser::run() {
 
 	// write for all read groups per chromosome
 	if (_chromStats) {
-		auto chromIt = _genome.bamFile().chromosomes().cbegin();
-		while (chromIt != _genome.bamFile().chromosomes().cend()) {
-			size_t refID = chromIt->refID();
-			out.write("allReadGroups", chromIt->name(),
+		for (const auto& chr: _genome.bamFile().chromosomes()) {
+			size_t refID = chr.refID();
+			out.write("allReadGroups", chr.name(),
 					  (_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID),
 					  _passedQC.horizontalCounts(refID),
 					  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsPerChromosome(refID),
 					  impl::meanForChromosome(_readLength, refID), impl::maxForChromosome(_readLength, refID),
-					  _allReadDist[refID].mean(), impl::countsForChromosome(_fragmentLength, refID),
+					  _allReadDist[refID].mean(), _allReadStart[refID].mean(), impl::countsForChromosome(_fragmentLength, refID),
 					  impl::meanForChromosome(_fragmentLength, refID),
 					  impl::countsLargerZeroForChromosome(_softClippedLength, refID),
 					  impl::meanForChromosome(_softClippedLength, refID), impl::meanForChromosome(_usableLength, refID),
-					  (double)impl::sumForChromosome(_usableLength, refID) / (double)chromIt->length(),
+					  (double)impl::sumForChromosome(_usableLength, refID) / (double)chr.length(),
 					  impl::meanForChromosome(_mappingQuality, refID));
 			if (numRG == single_count) {
 				out.writeln("single");
@@ -291,7 +317,6 @@ void TBamDiagnoser::run() {
 			} else {
 				out.writeln("mixed");
 			}
-			chromIt++;
 		}
 	}
 
@@ -301,7 +326,7 @@ void TBamDiagnoser::run() {
 		if (_chromStats) out.write("allChromosomes");
 		out.write((_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg].counts(), _passedQC[rg].counts(),
 				  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCounts(rg), _readLength[rg].mean(),
-				  _readLength[rg].max(), _readDist[rg].mean(), _fragmentLength[rg].counts(), _fragmentLength[rg].mean(),
+				  _readLength[rg].max(), _readDist[rg].mean(), _readStart[rg].mean(), _fragmentLength[rg].counts(), _fragmentLength[rg].mean(),
 				  _softClippedLength[rg].countsLargerZero(), _softClippedLength[rg].mean(), _usableLength[rg].mean(),
 				  (double)_usableLength[rg].sum() / (double)totLengthOfGenome, _mappingQuality[rg].mean());
 		if (_fragmentLength[rg].counts() == 0) {
@@ -311,24 +336,22 @@ void TBamDiagnoser::run() {
 		}
 		if (_chromStats) {
 			// write per read group per chromosome
-			auto chromIt = _genome.bamFile().chromosomes().cbegin();
-			while (chromIt != _genome.bamFile().chromosomes().cend()) {
-				size_t refID = chromIt->refID();
+			for (const auto& chr: _genome.bamFile().chromosomes()) {
+				size_t refID = chr.refID();
 				out.write(
-					_genome.bamFile().readGroups().getName(rg), chromIt->name(),
+					_genome.bamFile().readGroups().getName(rg), chr.name(),
 					(_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID],
 					_genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsAtReadGroupAndChromosome(rg, refID),
-					_readLength[rg][refID].mean(), _readLength[rg][refID].max(), _readDist[rg][refID].mean(),
+					_readLength[rg][refID].mean(), _readLength[rg][refID].max(), _readDist[rg][refID].mean(), _readStart[rg][refID].mean(),
 					_fragmentLength[rg][refID].counts(), _fragmentLength[rg][refID].mean(),
 					_softClippedLength[rg][refID].countsLargerZero(), _softClippedLength[rg][refID].mean(),
-					_usableLength[rg][refID].mean(), (double)_usableLength[rg][refID].sum() / (double)chromIt->length(),
+					_usableLength[rg][refID].mean(), (double)_usableLength[rg][refID].sum() / (double)chr.length(),
 					_mappingQuality[rg][refID].mean());
 				if (_fragmentLength[rg][refID].counts() == 0) {
 					out.writeln("single");
 				} else {
 					out.writeln("paired");
 				}
-				chromIt++;
 			}
 		}
 	}
@@ -370,6 +393,7 @@ void TBamDiagnoser::run() {
 	// writing distributions
 	impl::writeHistogram(_readLength, _genome.outputName(), "readLength", _readGroupNames);
 	impl::writeHistogram(_readDist, _genome.outputName(), "readDist", _readGroupNames, &_allReadDist);
+	impl::writeHistogram(_readStart, _genome.outputName(), "readStart", _readGroupNames, &_allReadStart);
 	impl::writeHistogram(_usableLength, _genome.outputName(), "alignedLength", _readGroupNames);
 	impl::writeHistogram(_softClippedLength, _genome.outputName(), "softClippedLength", _readGroupNames);
 	impl::writeHistogram(_fragmentLength, _genome.outputName(), "fragmentLength", _readGroupNames);
