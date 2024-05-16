@@ -77,11 +77,14 @@ private:
 
     // read file and add sites
     std::set<uint32_t> refIDUsed;
-    std::vector<size_t> idx;
+    std::array<size_t, 4> idx;
+    idx[0] = in.indexOfFirstMatch({"CHR", "Chr", "chr", "CHROMOSOME", "Chromosome", "chromosome"});
+    idx[1] = in.indexOfFirstMatch({"POS", "Pos", "pos", "POSITION", "Position", "position"});
+    idx[2] = in.indexOfFirstMatch({"REF", "Ref", "ref", "REFERENCE", "Reference", "reference", "Allele", "Allele1"});
+    
+
     if constexpr((std::is_same<SiteType, TSitePolymorphic>::value)){
-      idx = in.indices({"Chr", "Pos", "Ref", "Alt"});
-    } else {
-      idx = in.indices<std::vector<size_t>, std::vector<std::string>>({"Chr", "Pos", "Ref"});
+        idx[3] = in.indexOfFirstMatch({"ALT", "Alt", "alt", "ALTERNATIVE", "Alternative", "alternative", "Allele2", "DERIVED", "Derived", "derived"});
     }
 
     for (; !in.empty(); in.popFront()) {
