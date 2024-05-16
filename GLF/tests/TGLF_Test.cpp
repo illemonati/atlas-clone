@@ -31,7 +31,7 @@ public:
 	GLF::TGlfReader inputGLF;
 
 	// store stuff from input GLF to later compare with output
-	std::vector<size_t> positions;
+	std::vector<genometools::TGenomePosition> positions;
 	std::vector<size_t> depths;
 	std::vector<TGLFLikelihoods> genotypeLikelihoods;
 
@@ -175,13 +175,12 @@ TEST_F(TGLF_Test_WriteRead, chromosomes) {
 	read();
 	// check if written and read chromosomes are equal
 	for (int i = 0; i < 3; i++) {
-		const auto chr = inputGLF.pointerToChr(i);
+		const auto chr = inputGLF.chromosomes()[i];
 
-		EXPECT_EQ(chr->refId(), i);
-		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
-		EXPECT_EQ(chr->length(), chrLength[i]);
-		EXPECT_EQ(chr->isHaploid(), false);
-		EXPECT_EQ(chr->numLikelihoodValues(), 10); // diploid
+		EXPECT_EQ(chr.refID(), i);
+		EXPECT_EQ(ch.name(), "Chr" + coretools::str::toString(i + 1));
+		EXPECT_EQ(chr.length(), chrLength[i]);
+		EXPECT_EQ(chr.isHaploid(), false);
 	}
 }
 
@@ -240,33 +239,30 @@ TEST_F(TGLF_Test_WriteRead, jumpToNextChr) {
 	read();
 	inputGLF.rewind();
 
-	// we start on chromosome 1
-	EXPECT_EQ(0, inputGLF.refId());
-	EXPECT_EQ(100, inputGLF.chrLength());
+	// check first chromosome
+	EXPECT_EQ(0, inputGLF.curChromosome().refID());
+	EXPECT_EQ(chrLength[0], inputGLF.curChromosome().length());
 
-	// jump to first site on chromosome 2
-	EXPECT_TRUE(inputGLF.jumpToNextChr());
-	EXPECT_EQ(1, inputGLF.refId());
-	EXPECT_EQ(200, inputGLF.chrLength());
-	size_t whichSite = 0;
-	for (auto pos = outputGLF.beginPositions(); pos != outputGLF.endPositions(); pos++, whichSite++) {
-		if (pos->refID() == 1) break;
+	// check all chromosomes
+	for(size_t c = 1; c < chrLength.size(); c++){
+		EXPECT_TRUE(inputGLF.jumpToNextChr());
+		EXPECT_EQ(c, inputGLF.curChromosome().refID());
+		EXPECT_EQ(chrLength[c], inputGLF.curChromosome().length());
 	}
-	EXPECT_EQ(outputGLF.position(whichSite).position(), inputGLF.position());
-	EXPECT_EQ(outputGLF.depth(whichSite), inputGLF.depth());
 
-	// jump to next chromosome (=3) -> skip all other sites of chromosome 2
-	EXPECT_TRUE(inputGLF.jumpToNextChr());
-	EXPECT_EQ(2, inputGLF.refId());
-	EXPECT_EQ(300, inputGLF.chrLength());
-	whichSite = 0;
-	for (auto pos = outputGLF.beginPositions(); pos != outputGLF.endPositions(); pos++, whichSite++) {
-		if (pos->refID() == 2) break;
+	// check all written positions
+	inputGLF.rewind();
+	//check first position
+	auto pos = outputGLF.beginPositions();
+	EXPECT_EQ(*pos, inputGLF.position());
+	
+	// check all other positions
+	for (; pos != outputGLF.endPositions(); pos++) {
+		EXPECT_TRUE(inputGLF.readNext());
+		EXPECT_EQ(*pos, inputGLF.position());
 	}
-	EXPECT_EQ(outputGLF.position(whichSite).position(), inputGLF.position());
-	EXPECT_EQ(outputGLF.depth(whichSite), inputGLF.depth());
-
-	// chromosome 3 was the last one -> jumping to the next one returns false
+	
+	// This was the last position -> jumping to the next one returns false
 	EXPECT_FALSE(inputGLF.jumpToNextChr());
 }
 
@@ -299,15 +295,13 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_missingData) {
 	writeWithMissingSites();
 	read();
 	// check if written and read chromosomes are equal
-	// first chromosome
-	for (int i = 0; i < 5; i++) {
-		const auto chr = inputGLF.pointerToChr(i);
+	for(size_t c = 0; c < chrLength.size(); c++){
+		const auto& chr = inputGLF.chromosomes()[c];
 
-		EXPECT_EQ(chr->refId(), i);
-		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
-		EXPECT_EQ(chr->length(), chrLength[i]);
-		EXPECT_EQ(chr->isHaploid(), false);
-		EXPECT_EQ(chr->numLikelihoodValues(), 10); // diploid
+		EXPECT_EQ(chr.refID(), c);
+		EXPECT_EQ(chr.name(), "Chr" + coretools::str::toString(c + 1));
+		EXPECT_EQ(chr.length(), chrLength[c]);
+		EXPECT_EQ(chr.isHaploid(), false);
 	}
 }
 
@@ -331,20 +325,30 @@ TEST_F(TGLF_Test_WriteRead, genotypeLikelihoods_missingData) {
 TEST_F(TGLF_Test_WriteRead, jumpToNextChr_missingData) {
 	writeWithMissingSites();
 	read();
-	positions.clear();
-	depths.clear();
 	inputGLF.rewind();
 
+// check first chromosome
+	EXPECT_EQ(0, inputGLF.curChromosome().refID());
+	EXPECT_EQ(chrLength[0], inputGLF.curChromosome().length());
+
+	// check all chromosomes
+	for(size_t c = 1; c < chrLength.size(); c++){
+		EXPECT_TRUE(inputGLF.jumpToNextChr());
+		EXPECT_EQ(c, inputGLF.curChromosome().refID());
+		EXPECT_EQ(chrLength[c], inputGLF.curChromosome().length());
+
+	}
+
 	// we start on chromosome 1
-	EXPECT_EQ(0, inputGLF.refId());
-	EXPECT_EQ(50, inputGLF.chrLength());
+	EXPECT_EQ(0, inputGLF.curChromosome().refID());
+	EXPECT_EQ(50, inputGLF.curChromosome().length());
 
 	// jump to first site on chromosome 2
 	inputGLF.jumpToNextChr();
 	EXPECT_EQ(10, inputGLF.position());
 	EXPECT_EQ(10, inputGLF.depth());
-	EXPECT_EQ(1, inputGLF.refId());
-	EXPECT_EQ(100, inputGLF.chrLength());
+	EXPECT_EQ(1, inputGLF.curChromosome().refID());
+	EXPECT_EQ(100, inputGLF.curChromosome().length());
 
 	// jump to next chromosome (=3), but this is empty, so jump to chromosome 4 and reads first site on chr4 -> skip all
 	// other sites of chromosome 2

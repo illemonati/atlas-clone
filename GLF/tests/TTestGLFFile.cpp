@@ -41,7 +41,7 @@ void TTestGLFFile::openOutput(const std::string & Filename, std::vector<size_t>&
     _filename = Filename;
     _header = "";
 
-    _glfFile.open(_filename, _header);
+    _glfFile.open(_filename, _chromosomes, _header);
 }
 
 void TTestGLFFile::closeOutput() {
