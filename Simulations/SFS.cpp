@@ -64,7 +64,7 @@ SFS::SFS(size_t numChr, double theta) {
 	_numChr = numChr;
 	float sum = 0;
 	_sfs.push_back(0);
-	for (size_t i = 1; i < _dimensions[0] + 1; ++i) {
+	for (size_t i = 1; i < _dimensions[0]; ++i) {
 		_sfs.push_back(theta / i);
 		sum += _sfs.back();
 	}
@@ -144,7 +144,7 @@ size_t SFS::_simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, Base ance
 
 	// pick derived allele frequency
 	const auto index = _sfsPicker(randomGenerator().getRand());
-
+	
 	//is it polymorphic?
 	if(index == 0){
 		//monomorphic
