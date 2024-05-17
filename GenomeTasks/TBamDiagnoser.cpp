@@ -235,10 +235,11 @@ void TBamDiagnoser::run() {
 
 	// need to add positions on the chromosome without a start
 	for (const auto& chr: _genome.bamFile().chromosomes()) {
+		const auto rID = chr.refID();
 		for (size_t i = 0; i < numRG; ++i) {
-			_readStart[i].add(chr.refID(), 0, chr.length() - _readStart[i].counts());
+			_readStart[i].add(rID, 0, chr.length() - _readStart[i][rID].counts());
 		}
-		_allReadStart.add(chr.refID(), 0, chr.length() - _allReadStart.counts());
+		_allReadStart.add(rID, 0, chr.length() - _allReadStart[rID].counts());
 	}
 
 	if (!parameters().exists("splitMergeInput")) {
