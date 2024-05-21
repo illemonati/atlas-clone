@@ -1,0 +1,25 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+. $(dirname $0)/simulate
+
+name="GLF"
+$atlas --task GLF --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="mami"
+$atlas --task majorMinor --glf "GLF.glf.gz," --method Skotte \
+	   --fixedSeed 0 --out $name --logFile $name.out
+
+name="alleleCounts"
+$atlas --task alleleCounts --dosaf --vcf mami.vcf.gz \
+	   --fixedSeed 0 --out $name --logFile $name.out
+
+rm ATLAS_simulations.fasta.fai
+~/Git/angsd/angsd -i ATLAS_simulations.bam -dosaf 1 -anc ATLAS_simulations.fasta -GL 2
+
+~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
+~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt
+
+echo "SFS atlas: " $(~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null)
+echo "SFS angsd: " $(~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null)
