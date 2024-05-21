@@ -8,7 +8,7 @@ $atlas --task GLF --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
 name="mami"
-$atlas --task majorMinor --glf "GLF.glf.gz," --method Skotte \
+$atlas --task majorMinor --glf "GLF.glf.gz," --fasta ATLAS_simulations.fasta --method Skotte \
 	   --fixedSeed 0 --out $name --logFile $name.out
 
 name="alleleCounts"
