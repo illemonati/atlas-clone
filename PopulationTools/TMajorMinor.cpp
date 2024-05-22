@@ -561,21 +561,24 @@ template<typename Estimator> void iterate(double maxF) {
 	const auto hasRef = glfReader.hasRef();
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 		std::vector<TMMData> data(ids.size());		
+		
 		if (_subsetPolymoprhic){					
 			// 1) when working with a subset of known alleles				
 			// get relevant positions from subset			
 			auto pos = _subsetPolymoprhic->getPositionInWindow(glfReader.curWindow());
 			if(pos.size() == 0){ continue; }
 
-#pragma omp parallel for num_threads(maxThreads)				
+//#pragma omp parallel for num_threads(maxThreads)				
 			// loop over positions with known alleles
 			for(auto i: pos){	
-				size_t iW = i.position() - glfReader.curWindow().from().position();
-				auto iInIds = std::find(ids.begin(), ids.end(), iW);
-				if(iInIds != ids.end()){						
-					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, i.ref(), i.alt(), minMAF, minVariantQuality);	
-				}					
-			}						
+				size_t iW = i.position() - glfReader.curWindow().from().position();	
+				auto iInIds = std::find(ids.begin(), ids.end(), iW);				
+				if(iInIds != ids.end()){							
+					data[iInIds - ids.begin()] = Estimator::estimate(glfReader.data(iW), maxF, i.ref(), i.alt(), minMAF, minVariantQuality);	
+				}
+									
+			}	
+								
 		} else if (hasRef) {
 			// 2) when working with ref
 			const auto refs = glfReader.refView();

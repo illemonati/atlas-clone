@@ -78,7 +78,7 @@ private:
     // read file and add sites
     std::set<uint32_t> refIDUsed;
     std::array<size_t, 4> idx;
-    idx[0] = in.indexOfFirstMatch({"CHR", "Chr", "chr", "CHROMOSOME", "Chromosome", "chromosome", "#CHR"});
+    idx[0] = in.indexOfFirstMatch({"CHR", "Chr", "chr", "CHROMOSOME", "Chromosome", "chromosome", "#CHROM"});
     idx[1] = in.indexOfFirstMatch({"POS", "Pos", "pos", "POSITION", "Position", "position"});
     idx[2] = in.indexOfFirstMatch({"REF", "Ref", "ref", "REFERENCE", "Reference", "reference", "Allele", "Allele1"});
     
@@ -87,19 +87,41 @@ private:
         idx[3] = in.indexOfFirstMatch({"ALT", "Alt", "alt", "ALTERNATIVE", "Alternative", "alternative", "Allele2", "DERIVED", "Derived", "derived"});
     }
 
-    for (; !in.empty(); in.popFront()) {
-      // get chromosome and position: throws error if chromosome does not exist
-      const genometools::TChromosome &chr =
-          Chromosomes.getChromosome(in.get(idx[0]));
-      refIDUsed.emplace(chr.refID());
-      uint32_t pos = coretools::str::fromString<uint32_t, true>(in.get(idx[1])) -
-                     1; // make 0-based
+    // store all chromosomes not found in header file
+    std::vector<std::string> chromosomesNotInChromosomes;
+    std::string prevChrName = "";
+    bool chrExists = false;
 
-      // add site
-      if constexpr((std::is_same<SiteType, TSitePolymorphic>::value)){
-        _sites.emplace_back(chr.refID(), pos, in.get(idx[2])[0], in.get(idx[3])[0], Chromosomes);
-      } else {
-        _sites.emplace_back(chr.refID(), pos, in.get(idx[2])[0], Chromosomes);
+    // read all sites in subset
+    for (; !in.empty(); in.popFront()) {      
+      std::string_view chrName = in.get(idx[0]);
+      if(chrName != prevChrName){
+        prevChrName = chrName;
+        if(!Chromosomes.exists(chrName)){
+          // chromosome does not exist in BAM header: store for reporting        
+          if (std::find(chromosomesNotInChromosomes.begin(), chromosomesNotInChromosomes.end(), chrName) == chromosomesNotInChromosomes.end()){
+            chromosomesNotInChromosomes.emplace_back(chrName);
+          }
+          chrExists = false;
+        } else {
+          chrExists = true;
+        }
+      }
+
+      // if chromosome exists: add sites
+      if(chrExists){
+        const genometools::TChromosome &chr =
+            Chromosomes.getChromosome(chrName);
+        refIDUsed.emplace(chr.refID());
+        uint32_t pos = coretools::str::fromString<uint32_t, true>(in.get(idx[1])) -
+                      1; // make 0-based
+
+        // add site
+        if constexpr((std::is_same<SiteType, TSitePolymorphic>::value)){
+          _sites.emplace_back(chr.refID(), pos, in.get(idx[2])[0], in.get(idx[3])[0], Chromosomes);
+        } else {
+          _sites.emplace_back(chr.refID(), pos, in.get(idx[2])[0], Chromosomes);
+        }
       }
     }
 
@@ -118,6 +140,10 @@ private:
     coretools::instances::logfile().doneTime();
     coretools::instances::logfile().conclude("Parsed ", size(), " sites on ",
                                              refIDUsed.size(), " chromosomes.");
+
+    if(chromosomesNotInChromosomes.size() > 0){
+      coretools::instances::logfile().warning("Sites of the following chromosomes were ignored because these chromosomes were not in the BAM header / GLF index: ", coretools::str::concatenateString(chromosomesNotInChromosomes, ", "));
+    }
   };
 
 public:
