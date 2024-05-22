@@ -78,7 +78,7 @@ private:
     // read file and add sites
     std::set<uint32_t> refIDUsed;
     std::array<size_t, 4> idx;
-    idx[0] = in.indexOfFirstMatch({"CHR", "Chr", "chr", "CHROMOSOME", "Chromosome", "chromosome"});
+    idx[0] = in.indexOfFirstMatch({"CHR", "Chr", "chr", "CHROMOSOME", "Chromosome", "chromosome", "#CHR"});
     idx[1] = in.indexOfFirstMatch({"POS", "Pos", "pos", "POSITION", "Position", "position"});
     idx[2] = in.indexOfFirstMatch({"REF", "Ref", "ref", "REFERENCE", "Reference", "reference", "Allele", "Allele1"});
     
