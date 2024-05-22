@@ -78,7 +78,10 @@ void TGlfVector::openFromParameters() {
 
 	// read file if provided, else parse command line
 	const auto FileNames = parameters().get<std::string>("glf");
-	if (!stringContains(FileNames, ",") && std::filesystem::exists(FileNames)) {		
+	if(stringContains(FileNames, ",") || FileNames.substr(FileNames.size()-6, 6) == "glf.gz"){
+		logfile().list("Parsing GLF file names from comma separated list.");	
+		parameters().fill("glf", _GLFFileNames);		
+	} else {	
 		logfile().list("Reading GLF info from file '", FileNames, "'.");	
 		
 		// read file
@@ -100,9 +103,6 @@ void TGlfVector::openFromParameters() {
 		} else {
 			logfile().conclude("Read ", _GLFFileNames.size(), " file names.");
 		}
-	} else {		
-		logfile().list("Parsing GLF file names from comma separated list.");	
-		parameters().fill("glf", _GLFFileNames);		
 	}
 	
 	// read sample names unless already provided
