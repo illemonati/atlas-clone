@@ -449,9 +449,6 @@ void TGlfReader::printSite() {
 void TGlfReader::printToEnd() { // For debugging
 	std::cout << "GLF version is " << _version << "\n";	
 
-	// jump to third chromosome
-	jumpToChr(2);
-
 	// first chromosome	
 	printChr();
 
