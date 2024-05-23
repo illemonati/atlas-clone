@@ -88,7 +88,7 @@ public:
 		for (auto af : AlleleFreqs) { floats.push_back(static_cast<float>(coretools::underlying(af.scale(max)))); }
 
 		_freqWriter.write(static_cast<int>(first));
-		_freqWriter.write(static_cast<int>(AlleleFreqs.size()));
+		_freqWriter.write(static_cast<int>(floats.size()));
 		_freqWriter.write(floats);
 
 		_posWriter.write(static_cast<int>(Pos - 1)); // 0-indexed in saf-file

@@ -20,7 +20,6 @@
 #include "GenotypeData.h"
 #include "genometools/VCF/TVcfWriter.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "coretools/devtools.h"
 
 namespace GLF {
 using genometools::Ploidy;
