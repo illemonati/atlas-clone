@@ -2,12 +2,12 @@
 
 . $(dirname $0)/find_atlas
 
-#rm ./*
+rm ./*
 
-#name="simulate"
-#$atlas --task simulate --type SFS --theta 0.01 \
-#	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
-#	   --out $name --logFile $name.out 2> $name.eout
+name="simulate"
+$atlas --task simulate --type SFS --theta 0.001 \
+	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
+	   --out $name --logFile $name.out 2> $name.eout
 
 name="GLF"
 rm blist.txt
@@ -28,24 +28,23 @@ $atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
 name="alleleCounts"
-$atlas --task alleleCounts --dosaf --vcf mami.vcf.gz --maxMissing 0.01 \
+$atlas --task alleleCounts --dosaf --vcf mami.vcf.gz \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
-
-name="mamiF"
-$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
-	--filterN \
-	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
-
-name="alleleCountsF"
-$atlas --task alleleCounts --dosaf --vcf mamiF.vcf.gz --maxMissing 0.01 \
-	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
-
-
+#	   --maxMissing 0.01 \
 ~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
-~/Git/angsd/misc/realSFS print alleleCountsF_0.saf.idx > atlasF.saf.txt
+
+#name="mamiF"
+#$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
+#	--filterN \
+#	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+#name="alleleCountsF"
+#$atlas --task alleleCounts --dosaf --vcf mamiF.vcf.gz \
+#	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+#~/Git/angsd/misc/realSFS print alleleCountsF_0.saf.idx > atlasF.saf.txt
 
 rm simulate.fasta.fai
-~/Git/angsd/angsd -bam blist.txt -dosaf 1 -anc simulate.fasta -GL 2 -minInd $1
+~/Git/angsd/angsd -bam blist.txt -dosaf 1 -anc simulate.fasta -GL 2 #-minInd $1
 
 ~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt
