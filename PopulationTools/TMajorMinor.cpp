@@ -472,6 +472,7 @@ template<typename Estimator> void iterate(double maxF) {
 
 	// use known alleles or reference allele, if provided
 
+	bool filterN = false;
 	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetPolymorphic> _subsetPolymoprhic;
 	if (parameters().exists("alleles")) {
 		logfile().startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
@@ -483,6 +484,12 @@ template<typename Estimator> void iterate(double maxF) {
 		const std::string fastaFile = parameters().get<std::string>("fasta");
 		logfile().list("Reading reference sequence from '" + fastaFile + "'");
 		glfReader.addReference(fastaFile);
+		filterN = parameters().exists("filterN");
+		if (filterN) {
+			logfile().list("Will filter out sites where reference is 'N'. (argument 'filterN')");
+		} else {
+			logfile().list("Will keep sites where reference is 'N'. (use 'filterN' to filter out)");
+		}
 	} else {
 		logfile().list("Will identify the most likely among all 6 possible allele combnations. (provide alleles with 'alleles' or the reference with 'fasta')");
 	}
@@ -498,7 +505,9 @@ template<typename Estimator> void iterate(double maxF) {
 	// read filters
 
 	const auto hasRef  = glfReader.hasRef();
-	const bool filterN = hasRef ? parameters().exists("filterN") : false;
+	if (filterN) {
+		logfile().list("Will filter out sites where reference is 'N'. (argument filterN)");
+	}
 
 	size_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
@@ -560,6 +569,7 @@ template<typename Estimator> void iterate(double maxF) {
 	coretools::TTimer timer;
 	constexpr size_t dCounter = 1000000;
 	size_t counter            = 0;
+	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
@@ -606,7 +616,10 @@ template<typename Estimator> void iterate(double maxF) {
 		for (size_t i = 0; i < ids.size(); ++i) {
 			const auto iW  = ids[i];
 			const auto &di = data[i];
-			if (!di.pass) continue;
+			if (!di.pass) {
+				++counterF;
+				continue;
+			}
 
 			// write to VCF
 			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.variantQuality, glfReader.data(iW), di.major,
@@ -625,6 +638,7 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 
 	logfile().list("Reached end of glf files!");
+	logfile().list("Parsed a total of ", counter, " positions, filtered: ", counterF, " (", (100.*counterF)/counter, "%).");
 	logfile().removeIndent();
 };
 

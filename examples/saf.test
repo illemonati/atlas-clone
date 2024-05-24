@@ -2,13 +2,12 @@
 
 . $(dirname $0)/find_atlas
 
-rm ./*
+#rm ./*
 
-name="simulate"
+#name="simulate"
 #$atlas --task simulate --type SFS --theta 0.01 \
-$atlas --task simulate --type HW --F 0.1 \
-	   --sampleSize $1 --refDiv 0 --chrLength 11111 --depth $2 --ploidy 2  \
-	   --out $name --logFile $name.out 2> $name.eout
+#	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
+#	   --out $name --logFile $name.out 2> $name.eout
 
 name="GLF"
 rm blist.txt
@@ -32,7 +31,18 @@ name="alleleCounts"
 $atlas --task alleleCounts --dosaf --vcf mami.vcf.gz --maxMissing 0.01 \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
+name="mamiF"
+$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
+	--filterN \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="alleleCountsF"
+$atlas --task alleleCounts --dosaf --vcf mamiF.vcf.gz --maxMissing 0.01 \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+
 ~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
+~/Git/angsd/misc/realSFS print alleleCountsF_0.saf.idx > atlasF.saf.txt
 
 rm simulate.fasta.fai
 ~/Git/angsd/angsd -bam blist.txt -dosaf 1 -anc simulate.fasta -GL 2 -minInd $1
@@ -40,5 +50,6 @@ rm simulate.fasta.fai
 ~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt
 
-echo "SFS atlas: " $(~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null)
-echo "SFS angsd: " $(~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null)
+echo "SFS atlas useN   : " $(~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null)
+echo "SFS atlas filterN: " $(~/Git/angsd/misc/realSFS alleleCountsF_0.saf.idx 2> /dev/null)
+echo "SFS angsd        : " $(~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null)
