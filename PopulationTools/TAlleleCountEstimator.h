@@ -34,11 +34,11 @@ private:
 	const std::vector<double>& _getLogChoose(size_t counts);
 
 protected:
-    void _fillLog(TSampleLikelihoods* data, uint32_t numSamples);
-    void _fillNatural(TSampleLikelihoods* data, uint32_t numSamples);
+    void _fillLog(const TSampleLikelihoods* data, uint32_t numSamples);
+    void _fillNatural(const TSampleLikelihoods* data, uint32_t numSamples);
 
 public:
-	void fill(TSampleLikelihoods* data, uint32_t numSamples);
+	void fill(TSampleLikelihoods* data, uint32_t numSamples, bool resetMissing = false);
 	void write(gz::ogzstream & file);
 	size_t MLAlleleCount();
 	size_t Nalleles(){ return log_alleleFrequencyLikelihoods_h.size() - 1; };

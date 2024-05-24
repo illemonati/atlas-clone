@@ -1,25 +1,54 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate
+
+rm ./*
+
+name="simulate"
+$atlas --task simulate --type SFS --theta 0.001 \
+	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
+	   --out $name --logFile $name.out 2> $name.eout
 
 name="GLF"
-$atlas --task GLF --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+rm blist.txt
+samples=""
+for f in *.bam; do
+	echo $f >> blist.txt
+	name=${f%.bam}
+	$atlas --task GLF --bam $f --fasta simulate.fasta \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
+	samples="${samples}$name.glf.gz,"
+done
+
+echo $samples
+
 name="mami"
-$atlas --task majorMinor --glf "GLF.glf.gz," --fasta ATLAS_simulations.fasta --method Skotte \
-	   --fixedSeed 0 --out $name --logFile $name.out
+$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
 name="alleleCounts"
 $atlas --task alleleCounts --dosaf --vcf mami.vcf.gz \
-	   --fixedSeed 0 --out $name --logFile $name.out
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+#	   --maxMissing 0.01 \
+~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
 
-rm ATLAS_simulations.fasta.fai
-~/Git/angsd/angsd -i ATLAS_simulations.bam -dosaf 1 -anc ATLAS_simulations.fasta -GL 2
+#name="mamiF"
+#$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
+#	--filterN \
+#	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+#name="alleleCountsF"
+#$atlas --task alleleCounts --dosaf --vcf mamiF.vcf.gz \
+#	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+#~/Git/angsd/misc/realSFS print alleleCountsF_0.saf.idx > atlasF.saf.txt
+
+rm simulate.fasta.fai
+~/Git/angsd/angsd -bam blist.txt -dosaf 1 -anc simulate.fasta -GL 2 #-minInd $1
 
 ~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt
 
-echo "SFS atlas: " $(~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null)
-echo "SFS angsd: " $(~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null)
+echo "SFS atlas useN   : " $(~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null)
+echo "SFS atlas filterN: " $(~/Git/angsd/misc/realSFS alleleCountsF_0.saf.idx 2> /dev/null)
+echo "SFS angsd        : " $(~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null)

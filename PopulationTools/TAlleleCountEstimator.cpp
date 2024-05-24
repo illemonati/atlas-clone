@@ -90,7 +90,7 @@ const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(size_t
 	return log_choose[counts];
 };
 
-void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods *data, uint32_t numSamples) {
+void TSiteAlleleFrequencyLikelihoods::_fillLog(const TSampleLikelihoods * data, uint32_t numSamples) {
 	using BG = genometools::BiallelicGenotype;
 	// Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	// adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
@@ -181,7 +181,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods *data, uint32_
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods *data, uint32_t numSamples) {
+void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods * data, uint32_t numSamples) {
 	using BG = genometools::BiallelicGenotype;
 	// Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	// adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
@@ -272,10 +272,15 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods *data, uin
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods *data, uint32_t numSamples) {
+void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods *data, uint32_t numSamples, bool resetMissing) {
 	// smallest likelihood is 10^-25.5 (phred 255).
 	// A double can store up to 10^-308.
 	// Hence we can store up to (10^25.5)^12 without underflow
+	if (resetMissing) {
+		for (size_t i = 0; i < numSamples; ++i) {
+			data[i].resetMissing();
+		}
+	}
 	log_alleleFrequencyLikelihoods_h.clear();
 	if (numSamples > 12) {
 		_fillLog(data, numSamples);
@@ -415,7 +420,7 @@ void runLikelihoods() {
 		// print MLE count for each population
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
 			// calculate allele frequency likelihoods
-			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
+			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p), true);
 			safFiles[p].write(reader.chr(), reader.position(), saf[p].getLogAlleleFrequencyLikelihoods());
 		}
 	}

@@ -10,7 +10,6 @@
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Files/TInputFile.h"
-#include "coretools/devtools.h"
 
 namespace GLF {
 using namespace GenotypeLikelihoods;
@@ -119,7 +118,7 @@ void TGlfWriter::_writeHeader(const std::string &Header) {
 	}
 };
 
-void TGlfWriter::open(const std::string &Filename, const genometools::TChromosomes &Chrs, const std::string &Header){
+void TGlfWriter::open(const std::string &Filename, const genometools::TChromosomes &, const std::string &Header){
 	_filename = Filename;
 	_gzfp     = nullptr;
 	_gzfp     = gzopen(_filename.c_str(), "wb");
