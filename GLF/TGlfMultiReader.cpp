@@ -10,6 +10,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringProperties.h"
 #include "coretools/Files/TInputFile.h"
+#include "coretools/devtools.h"
 
 namespace GLF {
 using coretools::instances::logfile;
@@ -293,14 +294,21 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 	return true;
 };
 
-std::vector<size_t> TGlfMultiReader::readWindow() {
+std::vector<size_t> TGlfMultiReader::readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet) {
 	_curWindow += _dataWindow.size();
 
 	if (_curWindow.from() >= _curChr->to()) {
 		if(!_moveToNextChromosome()) return {};
 	}
 
-	const size_t N    = std::min(_windowSize, _curChr->to() - _curWindow.from());
+	if (subSet) {
+		const auto pos = subSet->getPositionInWindow(_curWindow);
+		if (pos.empty()) return (readWindow(subSet));
+
+		_curWindow.move(pos.front().pos(), _curWindow.size());
+	}
+
+	const size_t N = std::min(_windowSize, _curChr->to() - _curWindow.from());
 
 	_dataWindow.assign(N, {});
 	_numActive.assign(N, 0);
@@ -333,7 +341,7 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 	}
 
 	if (ids.empty()){		
-		return readWindow();
+		return readWindow(subSet);
 	} 
 	return ids;
 }

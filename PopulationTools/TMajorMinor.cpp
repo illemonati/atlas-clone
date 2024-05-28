@@ -14,6 +14,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
@@ -276,8 +277,9 @@ class TSkotte {
 		return std::make_tuple(MAF, bestL, major, minor);
 	}
 
+	template<size_t N>
 	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
-							TConstView<AllelicCombination> usedAllelicCombinations, genometools::Base ref,
+							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.reserve(data.size());
@@ -375,8 +377,9 @@ public:
 
 class TMLE {
 private:
+	template<size_t N>
 	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
-							TConstView<AllelicCombination> usedAllelicCombinations, genometools::Base ref,
+							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
 		genometools::TGenotypeFrequencies bestFreqs;
@@ -558,30 +561,25 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
-	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
+	for (auto ids = glfReader.readWindow(_subsetPolymoprhic.get()); !ids.empty(); ids = glfReader.readWindow(_subsetPolymoprhic.get())) {
 		std::vector<TMMData> data(glfReader.curWindow().size());
 
 		if (_subsetPolymoprhic){
 			// 1) when working with a subset of known alleles
-			// get relevant positions from subset
 			auto pos = _subsetPolymoprhic->getPositionInWindow(glfReader.curWindow());
-			if(pos.empty()) { continue; }
+			OUT(pos.size());
+			OUT(glfReader.curWindow().from().position(), glfReader.curWindow().to().position());
+			if (!pos.empty()) OUT(pos.front().position());
 
-			// loop over positions with known alleles
-			size_t iPos         = 0;
-			const auto deltaPos = glfReader.curWindow().from().position();
-			const auto startPos = pos.front().position() - deltaPos;
-			for (size_t i = startPos; i < ids.size(); ++i) {
-				const auto iW = ids[i];
-				while (iPos < pos.size() && pos[iPos].position()  - deltaPos < iW) {
-					++iPos;
-				}
-				if (iPos == pos.size()) break;
-				if (pos[iPos].position() - deltaPos == iW) {
-					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, pos[iPos].ref(), pos[iPos].alt(), minMAF, minVariantQuality);
+			size_t iId = 0;
+			for (const auto & p: pos) {
+				const auto iW = p.position() - glfReader.curWindow().from().position();
+				while (iId < ids.size() && ids[iId] < iW) ++iId;
+				if (iId == ids.size()) break;
+				if (ids[iId] == iW) {
+					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, p.ref(), p.alt(), minMAF, minVariantQuality);
 				}
 			}
-
 		} else if (hasRef) {
 			// 2) when working with ref
 			const auto refs = glfReader.refView();
@@ -616,7 +614,6 @@ template<typename Estimator> void iterate(double maxF) {
 			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.variantQuality, glfReader.data(iW), di.major,
 						  di.minor);
 		}
-
 		counter += ids.size() + 1;
 
 		// report progress

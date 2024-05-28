@@ -18,9 +18,7 @@ allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 #	--logFile $name.out --out $name \
 
 echo "chr pos ref alt" > alleles.txt
-zcat normal.vcf.gz | tail -n +10 | awk '{if (NR % 3 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
-
-#sed -i 's/ /\t/g' input_alleles.txt
+zcat normal.vcf.gz | tail -n +10 | awk '{if (NR % 111 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
 
 name="alleles"
 $atlas --task majorMinor --glf $allSamples --maxThreads 1 --alleles alleles.txt \
