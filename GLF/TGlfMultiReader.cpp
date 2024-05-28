@@ -8,7 +8,6 @@
 #include "TGlfMultiReader.h"
 
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/fillContainer.h"
 #include "coretools/Strings/stringProperties.h"
 #include "coretools/Files/TInputFile.h"
 
@@ -294,7 +293,7 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 	return true;
 };
 
-std::vector<size_t> TGlfMultiReader::readWindow() {	
+std::vector<size_t> TGlfMultiReader::readWindow() {
 	_curWindow += _dataWindow.size();
 
 	if (_curWindow.from() >= _curChr->to()) {
