@@ -10,7 +10,6 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringProperties.h"
 #include "coretools/Files/TInputFile.h"
-#include "coretools/devtools.h"
 
 namespace GLF {
 using coretools::instances::logfile;
@@ -226,6 +225,7 @@ bool TGlfMultiReader::_jumpToNextPosition() {
 	} else {
 		_curWindow.move(_curChr->from(), _windowSize);
 	}
+	_dataWindow.clear();
 
 	return true;
 };
@@ -295,7 +295,7 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 };
 
 std::vector<size_t> TGlfMultiReader::readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet) {
-	_curWindow += _dataWindow.size();
+	if (!_dataWindow.empty()) _curWindow.move(_curWindow.to(), _windowSize);
 
 	if (_curWindow.from() >= _curChr->to()) {
 		if(!_moveToNextChromosome()) return {};
@@ -305,10 +305,11 @@ std::vector<size_t> TGlfMultiReader::readWindow(GenotypeLikelihoods::TSiteSubset
 		const auto pos = subSet->getPositionInWindow(_curWindow);
 		if (pos.empty()) return (readWindow(subSet));
 
-		_curWindow.move(pos.front().pos(), _curWindow.size());
+		_curWindow.move(pos.front().pos(), pos.back().pos() + 1);
+	} else if (_curChr->to() < _curWindow.to()){
+		_curWindow.move(_curWindow.from(), _curChr->to());
 	}
-
-	const size_t N = std::min(_windowSize, _curChr->to() - _curWindow.from());
+	const size_t N = _curWindow.size();
 
 	_dataWindow.assign(N, {});
 	_numActive.assign(N, 0);
@@ -334,6 +335,7 @@ std::vector<size_t> TGlfMultiReader::readWindow(GenotypeLikelihoods::TSiteSubset
 	if (allEOF) return {};
 	std::vector<size_t> ids;
 	ids.reserve(_dataWindow.size());
+
 	for (size_t i = 0; i < _dataWindow.size(); ++i) {
 		if (_numActive[i] >= _minSamplesWithData) {
 			ids.push_back(i);

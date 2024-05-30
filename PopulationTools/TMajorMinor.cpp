@@ -14,7 +14,6 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
-#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
@@ -567,9 +566,6 @@ template<typename Estimator> void iterate(double maxF) {
 		if (_subsetPolymoprhic){
 			// 1) when working with a subset of known alleles
 			auto pos = _subsetPolymoprhic->getPositionInWindow(glfReader.curWindow());
-			OUT(pos.size());
-			OUT(glfReader.curWindow().from().position(), glfReader.curWindow().to().position());
-			if (!pos.empty()) OUT(pos.front().position());
 
 			size_t iId = 0;
 			for (const auto & p: pos) {
