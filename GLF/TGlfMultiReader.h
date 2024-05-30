@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TGLF.h"
+#include "TSiteSubset.h"
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TFastaReader.h"
@@ -70,7 +71,7 @@ private:
 	const genometools::TChromosome* _curChr = nullptr;
 	uint32_t _minDepth = 0;
 	genometools::TGenomeWindow _curWindow;
-	size_t _windowSize  = 64;
+	size_t _windowSize  = 100000;
 	std::vector<TGenotypeLikelihoodsAllCombinationsVector> _dataWindow;
 	std::vector<size_t> _numActive;
 
@@ -106,7 +107,7 @@ public:
 	void setAllActive();
 
 	// parse
-	std::vector<size_t> readWindow();
+	std::vector<size_t> readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet);
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;

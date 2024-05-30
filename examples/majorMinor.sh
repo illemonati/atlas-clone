@@ -22,17 +22,26 @@ allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
 name="majorMinor"
 $atlas --task majorMinor --glf $allSamples --method Skotte \
-	   --minMAF 0.05 --maxThreads 1 --bgz \
+	   --minMAF 0.05 --maxThreads 1 --bgz --minSamplesWithData 83 \
 	   --fixedSeed 0 --out $name --logFile $name.out
 
 name="Skotte_fasta"
-$atlas --task majorMinor --method Skotte \
+$atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
 	--glf $allSamples --fasta ATLAS_simulations.fasta \
 	--minMAF 0.05 --maxThreads 1 --bgz \
 	--fixedSeed 0 --out $name --logFile $name.out
 
 name="MLE_fasta"
-$atlas --task majorMinor --method MLE \
+$atlas --task majorMinor --method MLE --minSamplesWithData 83 \
 	--glf $allSamples --fasta ATLAS_simulations.fasta \
 	--minMAF 0.05 --maxThreads 1 --bgz \
+	--fixedSeed 0 --out $name --logFile $name.out
+
+echo "chr pos ref alt" > alleles.txt
+zcat Skotte_fasta.vcf.gz | tail -n +10 | awk '{if (NR % 3 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
+
+name="alleles"
+$atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
+	--glf $allSamples --alleles alleles.txt \
+	--minMAF 0.05 --maxThreads 1 \
 	--fixedSeed 0 --out $name --logFile $name.out
