@@ -2,6 +2,8 @@
 
 . $(dirname $0)/find_atlas
 
+N=$1
+
 rm ./*
 
 name="simulate"
@@ -25,30 +27,27 @@ echo $samples
 
 name="mami"
 $atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
+	   --filterN \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
 name="alleleCounts"
 $atlas --task alleleCounts --dosaf --vcf mami.vcf.gz \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
-#	   --maxMissing 0.01 \
 ~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
-
-#name="mamiF"
-#$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
-#	--filterN \
-#	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
-
-#name="alleleCountsF"
-#$atlas --task alleleCounts --dosaf --vcf mamiF.vcf.gz \
-#	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
-#~/Git/angsd/misc/realSFS print alleleCountsF_0.saf.idx > atlasF.saf.txt
 
 rm simulate.fasta.fai
 ~/Git/angsd/angsd -bam blist.txt -dosaf 1 -anc simulate.fasta -GL 2 #-minInd $1
 
-~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt
 
-echo "SFS atlas useN   : " $(~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null)
-echo "SFS atlas filterN: " $(~/Git/angsd/misc/realSFS alleleCountsF_0.saf.idx 2> /dev/null)
-echo "SFS angsd        : " $(~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null)
+echo "#SHAPE=<$((N*2+1))>" > atlas.real
+~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null >> atlas.real
+~/.cargo/bin/winsfs  alleleCounts_0.saf.idx 2> /dev/null > atlas.win
+echo "realSFS atlas : " $(~/.cargo/bin/winsfs view --normalise atlas.real)
+echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
+
+echo "#SHAPE=<$((N*2+1))>" > angsd.real
+~/Git/angsd/misc/realSFS angsdput.saf.idx 2> /dev/null >> angsd.real
+~/.cargo/bin/winsfs  angsdput.saf.idx 2> /dev/null > angsd.win
+echo "realSFS angsd : " $(~/.cargo/bin/winsfs view --normalise angsd.real)
+echo "winSFS angsd  : " $(~/.cargo/bin/winsfs view --normalise angsd.win)
