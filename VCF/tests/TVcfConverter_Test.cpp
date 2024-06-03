@@ -92,7 +92,7 @@ public:
 	}
 
 	void writeSampleFile() {
-		TOutputFile sampleFile("test.samples");
+		TOutputFile sampleFile("test.samples", {"samples"});
 		for (auto &it : samplesToKeep) { sampleFile.writeln(it); }
 		// add to parameters
 		parameters().add("samples", "test.samples");
