@@ -107,7 +107,7 @@ public:
 	void setAllActive();
 
 	// parse
-	std::vector<size_t> readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet);
+	std::vector<size_t> readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet=nullptr);
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;
