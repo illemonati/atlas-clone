@@ -34,15 +34,15 @@ void TSpearmanGWASPopulation::clear(){
 }
 
 void TSpearmanGWASPopulation::addSample(double Data) {
-	_data.emplace(Data);
+	_data.emplace_back(Data);
 }
 
 void TSpearmanGWASPopulation::finalizeDataReading(){
-	_ranksData = ranks(_data);
-	_meanVarData = meanVar(_data);
+	_ranksData = coretools::ranks(_data);
+	_meanVarData = coretools::meanVar(_data);
 }
 
-void TSpearmanGWASPopulation::prepareBootstraps(const size_t NumBootstraps){ {
+void TSpearmanGWASPopulation::prepareBootstraps(const size_t NumBootstraps){
 	_bootstraps.resize(NumBootstraps);
 	for(size_t i = 0; i < NumBootstraps; ++i){
 		_bootstraps[i].resize(_data.size());
@@ -50,19 +50,19 @@ void TSpearmanGWASPopulation::prepareBootstraps(const size_t NumBootstraps){ {
 	}
 }
 
-void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods *GenotypeLikelihoods){
+void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods){
 	// calculate dosage for each sample 
 	for(size_t i = 0; i < _data.size(); ++i){
 		_dosage[i] = GenotypeLikelihoods[i].meanPosteriorGenotype();
 	}
 }
 
-double TSpearmanGWASPopulation::_calcRho(const double sumPairwiseProductDataDosage){
+double TSpearmanGWASPopulation::_calcRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const {
 	double E_XY = sumPairwiseProductDataDosage / _data.size();
-	return (E_XY - _productOfMeans) / _sqrtProductOfVariances; 	
+	return (E_XY - productOfMeans) / sqrtProductOfVariances;
 }
 
-double _sumPairwiseProductBootstrap(const size_t b){
+double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b){
 	double sum = 0.0;
 	for(size_t i = 0; i < _data.size(); ++i){
 		sum += _data[ _bootstraps[b][i] ] * _dosage[i];
@@ -70,18 +70,18 @@ double _sumPairwiseProductBootstrap(const size_t b){
 	return(sum);
 }
 
-double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> & _bootstrapsRho) const {
-	_meanVarDosage = meanVar(_dosage);
-	_ranksDosage = ranks(_dosage);
+double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> & _bootstrapsRho){
+	auto meanVarDosage = coretools::meanVar(_dosage);
+	auto ranksDosage = coretools::ranks(_dosage);
 
-	_productOfMeans = _meanVarData.first * meanVarDosage.first;
-	_sqrtProductOfVariances = sqrt(_meanVarData.second * meanVarDosage.second);
+	double productOfMeans = _meanVarData.first * meanVarDosage.first;
+	double sqrtProductOfVariances = sqrt(_meanVarData.second * meanVarDosage.second);
 
 	// fill bootstraps
 	for(size_t b = 0; b < _bootstraps.size(); ++b){
-		_bootstrapsRho[b] += _calcRho(_sumPairwiseProductBootstrap(b));	
+		_bootstrapsRho[b] += _calcRho(_sumPairwiseProductBootstrap(b), productOfMeans, sqrtProductOfVariances);	
 	}
-	return _calcRho(sumPairwiseProduct(_data, _dosage));
+	return _calcRho(coretools::sumPairwiseProduct(_data, _dosage), productOfMeans, sqrtProductOfVariances);
 }
 
 
@@ -96,7 +96,7 @@ std::map<std::string, double> _readDataIntoMap(std::string_view Filename){
 	// get sample and data columns
 	size_t sampleIdx = in.indexOfFirstMatch(genometools::defaultColumnNames_sample);
 	int dataIdx = -1;
-	if(parameters().parameterExists("dataCol")){
+	if(parameters().exists("dataCol")){
 		// user provided column name
 		auto dataColName = parameters().get<std::string>("dataCol");
 		logfile().list("Reading data from column '", dataColName, "' of file '", Filename, "'. (parameter 'dataCol')");		
@@ -129,8 +129,7 @@ std::map<std::string, double> _readDataIntoMap(std::string_view Filename){
 }
 
 
-TSpearmanGWAS::TSpearmanGWAS(){
-	using coretools::instances::logfile();
+TSpearmanGWAS::TSpearmanGWAS(){	
 	//read samples
 	std::string sampleFile = parameters().get<std::string>("samples");
 	_samples.readSamples(sampleFile);	
@@ -158,10 +157,11 @@ TSpearmanGWAS::TSpearmanGWAS(){
 	for(size_t s = 0; s < _samples.numSamples(); ++s){
 		_populations[_samples.populationIndex(s)].addSample(data[_samples.sampleName(s)]);
 	}
-	
-	//get output name
-	std::string tmp = coretools::str::extractBeforeLast(_vcfFilename, ".vcf");
-	_outname = parameters().get<std::string>("out", tmp);
+
+	const auto tmp     = coretools::str::readBeforeLast(_vcfFilename, ".vcf");
+	auto tag = parameters().get("out", tmp);
+	_outname = tag + "_SpearmanGWAS.txt.gz";
+	logfile().list("Writing Spearman GWAS results to file '" + _outname + "'. (parameter 'out')");
 
 	//limit lines?
 	_limitLines = parameters().exists("limitLines");
@@ -173,40 +173,40 @@ TSpearmanGWAS::TSpearmanGWAS(){
 
 	// num bootstraps
 	_numBootstraps = parameters().get<int>("bootstraps", 1000);
-	logfile->listFlush("Preparing ", _numBootstraps, " bootstraps ...");
+	logfile().listFlush("Preparing ", _numBootstraps, " bootstraps ...");
 	for(auto p: _populations){
 		p.finalizeDataReading();
 		p.prepareBootstraps(_numBootstraps);
 	}
-	logfile->write("done! (parameter 'bootstraps')");
+	logfile().write("done! (parameter 'bootstraps')");
 };
 
 void TSpearmanGWAS::run(){
-	//open output file
-	std::string filename = _outname + "_SpearmanGWAS.txt.gz";
-	logfile().list("Writing Spearman GWAS results to file '" + filename + "'.");
-	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], "rho", "p"};
-	_populations.addToHeader(header);
-	TOutputFile out(filename, header);
+	// open VCF reader	
+	genometools::TPopulationLikelihoodReaderLocus reader(false);
+	reader.openVCF(_vcfFilename);
+	logfile().endIndent();
+
+	//open output file	
+	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], "rho", "p"};	
+	TOutputFile out(_outname, header);	
 
 	//progress
-	coretools::TTimer timer;
-	size_t lineCounter = 0;
-	size_t numFiltered = 0;
+	coretools::TTimer timer;	
 
 	// likelihood and tmp storage
-	genometools::TPopulationLikehoodLocus<TSampleLikelihoods> data(samples.numSamples());
+	genometools::TPopulationLikehoodLocus< genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability > > data(_samples.numSamples());
 	std::vector<double> bootstrappedRho(_numBootstraps);
 
 	// run through VCF file
 	logfile().startIndent("Parsing VCF file and perform Spearman GWAS:");
-	while (reader.readDataFromVCF(data, samples)) {
+	while (reader.readDataFromVCF(data, _samples)) {
 		// update dosage for each sample in populations, calculate rho and bootstrap
 		double sumRho = 0.0;
 		std::iota(bootstrappedRho.begin(), bootstrappedRho.end(), 0.0);
 	
 		for(size_t p = 0; p < _populations.size(); ++p){
-			_populations[p].updateData(data[samples.startIndex(p)]);
+			_populations[p].updateDosage(&data[_samples.startIndex(p)]);
 			sumRho += _populations[p].calcSpearmanRhoAndBootstrap(bootstrappedRho);
 		}
 		
@@ -220,9 +220,9 @@ void TSpearmanGWAS::run(){
 		double p = (double) nBelow / _numBootstraps;
 
 		// output
-		out.writeLine(data.chrom, data.pos, sumRho, p);
-		++lineCounter;
-		if(_limitLines && lineCounter >= _maxNumLines){
+		reader.writePosition(out);
+		out.write(sumRho, p);		
+		if(_limitLines && out.curLine() >= _maxNumLines){
 			break;
 		}		
 	}

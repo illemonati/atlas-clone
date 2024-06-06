@@ -16,12 +16,11 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TVcfFile.h"
-#include "genometools/TPopulationLikelihoods.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace coretools { class TOutputFile; }
 
 namespace PopulationTools{
-
 
 //------------------------------------------------
 //TSpearmanGWASPopulation
@@ -32,29 +31,26 @@ private:
 	std::vector<double> _data;
 	std::vector<double> _dosage; //mean posterior genotype
 
-	std::vector<double> _ranksData;
-	std::vector<double> _ranksDosage;
-	std::pair<double, double> _meanVarData;
-	std::pair<double, double> _meanVarDosage;
-	double _productOfMeans;
-	double _sqrtProductOfVariances;
+	std::vector<double> _ranksData;	
+	std::pair<double, double> _meanVarData;		
 
 	std::vector< std::vector<size_t> > _bootstraps;
 	std::vector<double> _bootstrapsRho;
 
-	double _calcRho();
+	double _calcRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
+	double _sumPairwiseProductBootstrap(const size_t b);
 	
 public:
 	TSpearmanGWASPopulation() = default;
 	TSpearmanGWASPopulation(size_t Size);	
-	void resize(size_t Size){ _data.reserve(Size); }
-	void clear(){ _data.clear(); }
+	void resize(size_t Size);
+	void clear();
 	void addSample(double data);
 	void finalizeDataReading();
 	void prepareBootstraps(const size_t NumBootstraps);
-
-	void updateDosage(genometools::TSampleLikelihoods *GenotypeLikelihoods);
-	double calcSpearmanRhoAndBootstrap() const;
+		
+	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
+	double calcSpearmanRhoAndBootstrap(std::vector<double> & _bootstrapsRho);
 	double bootstrappedRho(const size_t BootstrapIndex) const { return _bootstrapsRho[BootstrapIndex]; }
 };
 
