@@ -91,7 +91,7 @@ public:
 		_freqWriter.write(static_cast<int>(floats.size()));
 		_freqWriter.write(floats);
 
-		_posWriter.write(static_cast<int>(Pos - 1)); // 0-indexed in saf-file
+		_posWriter.write(static_cast<int>(Pos)); // 0-indexed in saf-file
 
 		++_nSites;
 		_sumBand += AlleleFreqs.size();

@@ -4,14 +4,12 @@
 
 N=$1
 
-: '
 rm ./*
 
 name="simulate"
 $atlas --task simulate --type SFS --theta 0.001 \
 	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
 	   --out $name --logFile $name.out 2> $name.eout > /dev/null
-'
 
 rm -f -- blist.txt
 name="GLF"
@@ -30,17 +28,10 @@ for f in *.bam; do
 	samples="${samples}$name.glf.gz,"
 done
 
-name="mami"
-$atlas --task majorMinor --glf $samples --fasta simulate.fasta --method Skotte \
-	   --filterN \
+name="atlas"
+$atlas --task saf --glf $samples --fasta simulate.fasta  \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout > /dev/null
-
-#--filterN --phredLik
-
-name="alleleCounts"
-$atlas --task alleleCounts --dosaf --vcf mami.vcf.gz \
-	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout > /dev/null
-~/Git/angsd/misc/realSFS print alleleCounts_0.saf.idx > atlas.saf.txt 2> /dev/null
+~/Git/angsd/misc/realSFS print atlas.saf.idx > atlas.saf.txt 2> /dev/null
 
 rm simulate.fasta.fai
 ~/Git/angsd/angsd -bam blist.txt -minQ 1 -dosaf 1 -anc simulate.fasta -GL 2 > /dev/null 2> /dev/null
@@ -48,8 +39,8 @@ rm simulate.fasta.fai
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt 2> /dev/null
 
 echo "#SHAPE=<$((N*2+1))>" > atlas.real
-~/Git/angsd/misc/realSFS alleleCounts_0.saf.idx 2> /dev/null >> atlas.real
-~/.cargo/bin/winsfs  alleleCounts_0.saf.idx 2> /dev/null > atlas.win
+~/Git/angsd/misc/realSFS atlas.saf.idx 2> /dev/null >> atlas.real
+~/.cargo/bin/winsfs  atlas.saf.idx 2> /dev/null > atlas.win
 echo "realSFS atlas : " $(~/.cargo/bin/winsfs view --normalise atlas.real)
 echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
 
@@ -60,5 +51,3 @@ echo "realSFS angsd : " $(~/.cargo/bin/winsfs view --normalise angsd.real)
 echo "winSFS angsd  : " $(~/.cargo/bin/winsfs view --normalise angsd.win)
 
 paste atlas.saf.txt angsd.saf.txt | awk 'function abs(x) {if (x < 0) {return -x} else {return x}} {if (abs($3-$8) > 1 || abs($4-$9) > 1 || ($10 != "-inf" && abs($5 - $10) > 1)) {print $0}}' > deltas
-
-/Git/angsd/angsd -bam blist.txt -minQ 1 -anc simulate.fasta -GL 2 -doGlf 4

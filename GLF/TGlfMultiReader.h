@@ -18,7 +18,7 @@
 #include "genometools/TFastaReader.h"
 
 using TGenotypeLikelihoodsOneAllelicCombinationVector = std::vector<genometools::TGenotypeLikelihoodsOneAllelicCombination>;
-using TGenotypeLikelihoodsAllCombinationsVector                      = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
+using TGenotypeLikelihoodsAllCombinationsVector       = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
 
 
 namespace GLF {
