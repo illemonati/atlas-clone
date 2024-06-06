@@ -6,7 +6,7 @@
 namespace PopulationTools {
 
 class TSafEstimator {
-	std::vector<coretools::LogProbability> _logProbs;
+	std::vector<double> _logProbs;
 	GLF::TGlfMultiReader _glfReader;
 
 	void _iterate(const TGenotypeLikelihoodsAllCombinationsVector& data, genometools::Base major);

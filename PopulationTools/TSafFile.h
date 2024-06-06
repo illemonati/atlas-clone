@@ -64,7 +64,8 @@ public:
 	TSafFile(TSafFile &&)                 = default;
 	TSafFile &operator=(TSafFile &&)      = default;
 
-	void write(std::string_view Chr, size_t Pos, coretools::TConstView<coretools::LogProbability> AlleleFreqs) {
+	template<typename LogContainer>
+	void write(std::string_view Chr, size_t Pos, const LogContainer& AlleleFreqs) {
 		if (_chr.empty()) { // first chromosome
 			_chr = Chr;
 		} else if (_chr != Chr) { // change of chromosome
@@ -85,7 +86,9 @@ public:
 		const size_t pMax = std::distance(AlleleFreqs.begin(), iMax);
 		const auto first  = pMax < (AlleleFreqs.size() + 1) / 2 ? 0 : _nCat - AlleleFreqs.size();
 		const auto max    = *iMax;
-		for (auto af : AlleleFreqs) { floats.push_back(static_cast<float>(coretools::underlying(af.scale(max)))); }
+		for (auto af : AlleleFreqs) {
+			floats.push_back(static_cast<float>(coretools::underlying(af) - coretools::underlying(max)));
+		}
 
 		_freqWriter.write(static_cast<int>(first));
 		_freqWriter.write(static_cast<int>(floats.size()));

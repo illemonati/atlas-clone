@@ -20,10 +20,12 @@ for f in *.bam; do
 	$atlas --task GLF --bam $f  \
 	   --fixedSeed 0 --out $name --logFile glf_$name.out 2> glf_$name.eout > /dev/null
 
-	$atlas --task theta --bam $f --genomeWide \
-	   --fixedSeed 0 --out $name --logFile theta_$name.out > /dev/null
+	if [ $N -eq 1 ]; then
+		$atlas --task theta --bam $f --genomeWide \
+		--fixedSeed 0 --out $name --logFile theta_$name.out > /dev/null
 
-	echo "het: " $(zcat ${name}_theta.txt.gz| tail -n 1 | awk '{print $18}')
+		echo "het: " $(zcat ${name}_theta.txt.gz| tail -n 1 | awk '{print $18}')
+	fi
 
 	samples="${samples}$name.glf.gz,"
 done
@@ -42,12 +44,12 @@ echo "#SHAPE=<$((N*2+1))>" > atlas.real
 ~/Git/angsd/misc/realSFS atlas.saf.idx 2> /dev/null >> atlas.real
 ~/.cargo/bin/winsfs  atlas.saf.idx 2> /dev/null > atlas.win
 echo "realSFS atlas : " $(~/.cargo/bin/winsfs view --normalise atlas.real)
-echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
+#echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
 
 echo "#SHAPE=<$((N*2+1))>" > angsd.real
 ~/Git/angsd/misc/realSFS -anc simulate.fasta angsdput.saf.idx 2> /dev/null >> angsd.real
 ~/.cargo/bin/winsfs  angsdput.saf.idx 2> /dev/null > angsd.win
 echo "realSFS angsd : " $(~/.cargo/bin/winsfs view --normalise angsd.real)
-echo "winSFS angsd  : " $(~/.cargo/bin/winsfs view --normalise angsd.win)
+#echo "winSFS angsd  : " $(~/.cargo/bin/winsfs view --normalise angsd.win)
 
 paste atlas.saf.txt angsd.saf.txt | awk 'function abs(x) {if (x < 0) {return -x} else {return x}} {if (abs($3-$8) > 1 || abs($4-$9) > 1 || ($10 != "-inf" && abs($5 - $10) > 1)) {print $0}}' > deltas

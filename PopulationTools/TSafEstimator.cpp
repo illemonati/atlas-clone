@@ -5,6 +5,7 @@
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/devtools.h"
 #include <algorithm>
+#include <cmath>
 
 namespace PopulationTools {
 
@@ -17,6 +18,22 @@ using genometools::genotype;
 using coretools::TStrongArray;
 using coretools::P;
 
+namespace impl {
+		
+double sumInLog(double logA, double logB) {
+	return logA > logB
+		? std::log(1 + std::exp(logB - logA)) + logA
+		: std::log(1 + std::exp(logA - logB)) + logB;
+}
+
+auto logChoose(size_t N) {
+	std::vector<double> res(2*N + 1);
+	for (size_t i = 0; i < 2*N; ++i) { res[i] = coretools::chooseLog(2 * N, i); }
+	return res;
+}
+}
+
+
 TSafEstimator::TSafEstimator() {
 	_glfReader.addReference(parameters().get<std::string>("fasta"));
 	_glfReader.openGLFs();
@@ -28,8 +45,9 @@ TSafEstimator::TSafEstimator() {
 	logfile().list("Will only print sites for which at least ", minSamples,
 				   " samples have data. (parameter minSamplesWithData)");
 
+	const size_t nSamples = _glfReader.numActiveSamples();
+	_logProbs.assign(2*nSamples + 1, LogProbability::lowest());
 
-	_logProbs.assign(2*_glfReader.numActiveSamples() + 1, LogProbability::lowest());
 }
 
 void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &data, Base major) {
@@ -43,30 +61,49 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		return minors;
 	}();
 	const size_t nSamples = _glfReader.numActiveSamples();
+	const static std::vector<double> logChooseInv = impl::logChoose(2*nSamples);
 
-	std::vector<double> probs(2*nSamples + 1, P(0.));
+	_logProbs.clear();
+
+	std::vector<double> probs(2*nSamples + 1, 0.);
 	const auto mama = genotype(major, major);
-	for (auto minor: minors[major]) {
-		std::vector<double> hs(2*nSamples + 1, P(0.));
+	for (auto minor : minors[major]) {
+		std::vector<double> hs(2 * nSamples + 1, P(0.));
 		const auto mami = genotype(major, minor);
 		const auto mimi = genotype(minor, minor);
 
-		const auto& front = data.front();
-		hs[0] = Probability(front[mama]);
-		hs[1] = 2*Probability(front[mami]);
-		hs[2] = Probability(front[mimi]);
+		const auto &front = data.front();
+		hs[0]             = Probability(front[mama]);
+		hs[1]             = 2 * Probability(front[mami]);
+		hs[2]             = Probability(front[mimi]);
 
-		// TODO: more than one sample here
+		for (size_t d = 1; d < data.size(); ++d) {
+			for (size_t j = 2 * (d + 1); j > 1; --j) {
+				hs[j] = Probability(data[d][mama]) * hs[j] + 2 * Probability(data[d][mami]) * hs[j - 1] +
+				        Probability(data[d][mimi]) * hs[j - 2];
+			}
+			hs[1] = Probability(data[d][mama]) * hs[1] + 2 * Probability(data[d][mami]) * hs[0];
+			hs[0] = Probability(data[d][mama]) * hs[0];
+		}
+		// for non-data
+		for (size_t d = data.size(); d < nSamples; ++d) {
+			for (size_t j = 2 * d; j > 1; --j) { hs[j] = hs[j] + 2 * hs[j - 1] + hs[j - 2]; }
+			hs[1] = hs[1] + 2 * hs[0];
+			hs[0] = hs[0];
+		}
 
-		for (size_t j = 0; j < probs.size(); ++j) {
-			probs[j] += hs[j]/coretools::choose(2*nSamples, j);
+		if (_logProbs.empty()) {
+			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]/coretools::choose(2*nSamples, j))); }
+		} else {
+			for (size_t j = 0; j < _logProbs.size(); ++j) {
+				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]/coretools::choose(2*nSamples, j)));
+			}
 		}
 	}
 
-
-	const auto max = *std::max_element(probs.begin(), probs.end());
-	for (size_t i = 0; i < probs.size(); ++i) {
-		_logProbs[i] = coretools::logP(std::log(probs[i]/max));
+	const auto max = *std::max_element(_logProbs.begin(), _logProbs.end());
+	for (auto& lP: _logProbs) {
+		lP -= max;
 	}
 }
 
