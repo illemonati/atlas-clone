@@ -3,7 +3,6 @@
 #include "TSafFile.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/devtools.h"
 #include <algorithm>
 #include <cmath>
 
@@ -21,14 +20,16 @@ using coretools::P;
 namespace impl {
 		
 double sumInLog(double logA, double logB) {
+	if (!std::isfinite(logA)) return logB;
+	if (!std::isfinite(logB)) return logA;
 	return logA > logB
 		? std::log(1 + std::exp(logB - logA)) + logA
 		: std::log(1 + std::exp(logA - logB)) + logB;
 }
 
 auto logChoose(size_t N) {
-	std::vector<double> res(2*N + 1);
-	for (size_t i = 0; i < 2*N; ++i) { res[i] = coretools::chooseLog(2 * N, i); }
+	std::vector<double> res(N + 1);
+	for (size_t i = 0; i < N; ++i) { res[i] = coretools::chooseLog(N, i); }
 	return res;
 }
 }
@@ -61,7 +62,7 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		return minors;
 	}();
 	const size_t nSamples = _glfReader.numActiveSamples();
-	const static std::vector<double> logChooseInv = impl::logChoose(2*nSamples);
+	const static std::vector<double> logChoose = impl::logChoose(2*nSamples);
 
 	_logProbs.clear();
 
@@ -93,17 +94,12 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		}
 
 		if (_logProbs.empty()) {
-			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]/coretools::choose(2*nSamples, j))); }
+			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]) - logChoose[j]); }
 		} else {
 			for (size_t j = 0; j < _logProbs.size(); ++j) {
-				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]/coretools::choose(2*nSamples, j)));
+				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) - logChoose[j]);
 			}
 		}
-	}
-
-	const auto max = *std::max_element(_logProbs.begin(), _logProbs.end());
-	for (auto& lP: _logProbs) {
-		lP -= max;
 	}
 }
 
