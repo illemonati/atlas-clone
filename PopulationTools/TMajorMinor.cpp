@@ -9,7 +9,6 @@
 #include "TBgzWriter.h"
 #include "TGlfMultiReader.h"
 
-#include "coretools/Containers/TDualStrongArray.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -18,8 +17,8 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
-#include "genometools/GenomePositions/TGenomeWindow.h"
 #include "TSiteSubset.h"
+#include <algorithm>
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -43,31 +42,14 @@ using genometools::TGenotypeLikelihoodsAllCombinationsVector;
 
 namespace impl {
 
-/*
-using alleleicCombinationsArray = coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination::max)>;
-
-constexpr alleleicCombinationsArray useAllelicCombinationsThatContain(Base base) {
+constexpr auto useAllelicCombinationsThatContain(Base base) {
+	assert(Base != Base::N);
 	using AC = AllelicCombination;
 	switch (base) {
 	case Base::A: return std::array{AC::AC, AC::AG, AC::AT};
 	case Base::C: return std::array{AC::AC, AC::CG, AC::CT};
 	case Base::G: return std::array{AC::AG, AC::CG, AC::GT};
-	case Base::T: return std::array{AC::AT, AC::CT, AC::GT};
-	default: return std::array{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
-	}
-};
-*/
-
-using alleleicCombinationsArray = std::vector<AllelicCombination>;
-
-alleleicCombinationsArray useAllelicCombinationsThatContain(Base base) {
-	using AC = AllelicCombination;
-	switch (base) {
-	case Base::A: return alleleicCombinationsArray{AC::AC, AC::AG, AC::AT};
-	case Base::C: return alleleicCombinationsArray{AC::AC, AC::CG, AC::CT};
-	case Base::G: return alleleicCombinationsArray{AC::AG, AC::CG, AC::GT};
-	case Base::T: return alleleicCombinationsArray{AC::AT, AC::CT, AC::GT};
-	default: return alleleicCombinationsArray{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
+	default: return std::array{AC::AT, AC::CT, AC::GT};
 	}
 };
 
@@ -294,8 +276,9 @@ class TSkotte {
 		return std::make_tuple(MAF, bestL, major, minor);
 	}
 
+	template<size_t N>
 	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
-							const impl::alleleicCombinationsArray usedAllelicCombinations, genometools::Base ref,
+							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.reserve(data.size());
@@ -370,13 +353,15 @@ public:
 
 	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
-		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(Base::N);
+		using AC = AllelicCombination;
+		constexpr std::array usedAllelicCombinations = {AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
 		return _estimate(data, maxF, usedAllelicCombinations, Base::N, minMAF, minVariantQuality);
 	}
 
 	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 							genometools::Base ref, Probability minMAF,
 							genometools::PhredIntProbability minVariantQuality) {
+		if (ref == Base::N) return estimate(data, maxF, minMAF, minVariantQuality);
 		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
@@ -384,15 +369,16 @@ public:
 	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 							genometools::Base ref, genometools::Base alt, Probability minMAF,
 							genometools::PhredIntProbability minVariantQuality) {
-		impl::alleleicCombinationsArray usedAllelicCombinations{allelicCombination(ref, alt)};
+		const auto usedAllelicCombinations = std::array{allelicCombination(ref, alt)};
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
 };
 
 class TMLE {
 private:
+	template<size_t N>
 	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
-							const impl::alleleicCombinationsArray usedAllelicCombinations, genometools::Base ref,
+							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
 		genometools::TGenotypeFrequencies bestFreqs;
@@ -444,7 +430,8 @@ public:
 	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
-		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(Base::N);
+		using AC = AllelicCombination;
+		constexpr std::array usedAllelicCombinations = {AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
 		return _estimate(data, maxF, usedAllelicCombinations, Base::N, minMAF, minVariantQuality);
 	}
 
@@ -452,6 +439,7 @@ public:
 							genometools::Base ref, Probability minMAF,
 							genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
+		if (ref == Base::N) return estimate(data, maxF, minMAF, minVariantQuality);
 		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
@@ -459,7 +447,7 @@ public:
 	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 							genometools::Base ref, genometools::Base alt, Probability minMAF,
 							genometools::PhredIntProbability minVariantQuality) {
-		impl::alleleicCombinationsArray usedAllelicCombinations{allelicCombination(ref, alt)};
+		const auto usedAllelicCombinations = std::array{allelicCombination(ref, alt)};
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
 };
@@ -572,26 +560,22 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
-	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
-		std::vector<TMMData> data(ids.size());
+	for (auto ids = glfReader.readWindow(_subsetPolymoprhic.get()); !ids.empty(); ids = glfReader.readWindow(_subsetPolymoprhic.get())) {
+		std::vector<TMMData> data(glfReader.curWindow().size());
 
 		if (_subsetPolymoprhic){
 			// 1) when working with a subset of known alleles
-			// get relevant positions from subset
 			auto pos = _subsetPolymoprhic->getPositionInWindow(glfReader.curWindow());
-			if(pos.size() == 0){ continue; }
 
-//#pragma omp parallel for num_threads(maxThreads)
-			// loop over positions with known alleles
-			for(auto i: pos){
-				size_t iW = i.position() - glfReader.curWindow().from().position();
-				auto iInIds = std::find(ids.begin(), ids.end(), iW);
-				if(iInIds != ids.end()){
-					data[iInIds - ids.begin()] = Estimator::estimate(glfReader.data(iW), maxF, i.ref(), i.alt(), minMAF, minVariantQuality);
+			size_t iId = 0;
+			for (const auto & p: pos) {
+				const auto iW = p.position() - glfReader.curWindow().from().position();
+				while (iId < ids.size() && ids[iId] < iW) ++iId;
+				if (iId == ids.size()) break;
+				if (ids[iId] == iW) {
+					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, p.ref(), p.alt(), minMAF, minVariantQuality);
 				}
-
 			}
-
 		} else if (hasRef) {
 			// 2) when working with ref
 			const auto refs = glfReader.refView();
@@ -599,23 +583,24 @@ template<typename Estimator> void iterate(double maxF) {
 			for (size_t i = 0; i < ids.size(); ++i) {
 				const auto iW = ids[i];
 				if (filterN && refs[iW] == Base::N) {
-					data[i].pass = false;
+					data[iW].pass = false;
 				} else {
-					data[i]       = Estimator::estimate(glfReader.data(iW), maxF, refs[iW], minMAF, minVariantQuality);
+					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, refs[iW], minMAF, minVariantQuality);
 				}
 			}
 		} else {
 			// 3) working with raw data / no external info
 #pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
-				data[i] = Estimator::estimate(glfReader.data(ids[i]), maxF, minMAF, minVariantQuality);
+				const auto iW = ids[i];
+				data[iW] = Estimator::estimate(glfReader.data(iW), maxF, minMAF, minVariantQuality);
 			}
 		}
 
 		// pass filter?
 		for (size_t i = 0; i < ids.size(); ++i) {
 			const auto iW  = ids[i];
-			const auto &di = data[i];
+			const auto &di = data[iW];
 			if (!di.pass) {
 				++counterF;
 				continue;
@@ -625,7 +610,6 @@ template<typename Estimator> void iterate(double maxF) {
 			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.variantQuality, glfReader.data(iW), di.major,
 						  di.minor);
 		}
-
 		counter += ids.size() + 1;
 
 		// report progress

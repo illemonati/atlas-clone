@@ -9,6 +9,8 @@
 
 #include "TErrorModels.h"
 #include "coretools/Files/gzstream.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;

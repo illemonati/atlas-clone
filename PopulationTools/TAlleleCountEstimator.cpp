@@ -421,7 +421,7 @@ void runLikelihoods() {
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
 			// calculate allele frequency likelihoods
 			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p), true);
-			safFiles[p].write(reader.chr(), reader.position(), saf[p].getLogAlleleFrequencyLikelihoods());
+			safFiles[p].write(reader.chr(), reader.position() - 1, saf[p].getLogAlleleFrequencyLikelihoods());
 		}
 	}
 

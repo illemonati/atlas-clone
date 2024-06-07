@@ -1,12 +1,15 @@
 #ifndef TBAMWINDOWTRAVERSER_H_
 #define TBAMWINDOWTRAVERSER_H_
 
+#include <type_traits>
+
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+
 #include "TBamWindows.h"
 #include "TGenome.h"
 #include "TWindow.h"
-#include "coretools/Main/TLog.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include <type_traits>
 
 namespace GenomeTasks {
 

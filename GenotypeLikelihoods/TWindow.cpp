@@ -9,6 +9,7 @@
 #include "genometools/BED/TBed.h"
 #include "genometools/TFastaReader.h"
 #include "coretools/Math/TNumericRange.h"
+#include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods{
 

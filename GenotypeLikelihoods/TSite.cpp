@@ -7,6 +7,8 @@
 
 #include "TSite.h"
 
+#include "coretools/Main/TRandomGenerator.h"
+
 namespace GenotypeLikelihoods {
 
 //-------------------------------------------------------

@@ -7,6 +7,7 @@
 
 #include "TEstimateTheta.h"
 #include "coretools/Strings/concatenateString.h"
+#include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks {
 

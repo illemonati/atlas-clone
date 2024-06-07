@@ -5,6 +5,7 @@
 #include "TContextErrors.h"
 #include "TEstimateGenotypeDistribution.h"
 #include "TFromTo.h"
+#include "TSafEstimator.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -88,6 +89,7 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<PopulationTools::TPolymorphicWindowIdentifier>("polymorphicWindows", "Identifying windows for which samples are polymorphic");
     main.createRegularTask<PopulationTools::TF2Estimator>("calculateF2", "Calculate F2 between different samples, and within and between populations");
 	main.createRegularTask<PopulationTools::TAncestralAlleleEstimator>("ancestralAlleles", "Writing FASTA-file with ancestral alleles");
+	main.createRegularTask<PopulationTools::TSafEstimator>("saf", "Estimating Site Allele Frequencies");
 
     //VCF
 	main.createRegularTask<VCF::TVcfDiagnostics>("VCFDiagnostics", "Diagnosing a VCF file");
