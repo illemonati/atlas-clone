@@ -17,7 +17,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
-#include "TSiteSubset.h"
+#include "TAlleles.h"
 #include <algorithm>
 
 #ifdef _OPENMP
@@ -461,11 +461,12 @@ template<typename Estimator> void iterate(double maxF) {
 	// use known alleles or reference allele, if provided
 
 	bool filterN = false;
-	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetPolymorphic> _subsetPolymoprhic;
+
+	SiteSubset::TAlleles alleles;
 	if (parameters().exists("alleles")) {
 		logfile().startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
 		const auto filename = parameters().get("alleles");
-		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, glfReader.chromosomes());
+		alleles.parse(filename, glfReader.chromosomes());
 		logfile().endIndent();
 	} else if (parameters().exists("fasta")) {
 		logfile().list("Will use reference allele and only identify the most likely alternative allele. (argument: fasta)");
@@ -560,20 +561,19 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
-	for (auto ids = glfReader.readWindow(_subsetPolymoprhic.get()); !ids.empty(); ids = glfReader.readWindow(_subsetPolymoprhic.get())) {
+	for (auto ids = glfReader.readWindow(alleles); !ids.empty(); ids = glfReader.readWindow(alleles)) {
 		std::vector<TMMData> data(glfReader.curWindow().size());
 
-		if (_subsetPolymoprhic){
+		if (alleles) {
 			// 1) when working with a subset of known alleles
-			auto pos = _subsetPolymoprhic->getPositionInWindow(glfReader.curWindow());
-
+			const auto begin = alleles.begin(glfReader.curWindow());
 			size_t iId = 0;
-			for (const auto & p: pos) {
-				const auto iW = p.position() - glfReader.curWindow().from().position();
+			for (auto it = begin; it != alleles.end() && it->position < glfReader.curWindow().to(); ++it) {
+				const auto iW = it->position.position() - glfReader.curWindow().from().position();
 				while (iId < ids.size() && ids[iId] < iW) ++iId;
 				if (iId == ids.size()) break;
 				if (ids[iId] == iW) {
-					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, p.ref(), p.alt(), minMAF, minVariantQuality);
+					data[iW] = Estimator::estimate(glfReader.data(iW), maxF, it->ref, it->alt, minMAF, minVariantQuality);
 				}
 			}
 		} else if (hasRef) {

@@ -6,6 +6,7 @@
  */
 
 #include "TGlfMultiReader.h"
+#include "TAlleles.h"
 
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringProperties.h"
@@ -294,18 +295,18 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 	return true;
 };
 
-std::vector<size_t> TGlfMultiReader::readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet) {
+std::vector<size_t> TGlfMultiReader::readWindow(const SiteSubset::TAlleles& Alleles) {
 	if (!_dataWindow.empty()) _curWindow.move(_curWindow.to(), _windowSize);
 
 	if (_curWindow.from() >= _curChr->to()) {
 		if(!_moveToNextChromosome()) return {};
 	}
 
-	if (subSet) {
-		const auto pos = subSet->getPositionInWindow(_curWindow);
-		if (pos.empty()) return (readWindow(subSet));
+	if (Alleles) {
+		auto begin = Alleles.begin(_curWindow);
+		if (begin == Alleles.end()) return readWindow(Alleles);
 
-		_curWindow.move(pos.front().pos(), pos.back().pos() + 1);
+		_curWindow.move(begin->position, _curWindow.size());
 	} else if (_curChr->to() < _curWindow.to()){
 		_curWindow.move(_curWindow.from(), _curChr->to());
 	}
@@ -343,7 +344,7 @@ std::vector<size_t> TGlfMultiReader::readWindow(GenotypeLikelihoods::TSiteSubset
 	}
 
 	if (ids.empty()){		
-		return readWindow(subSet);
+		return readWindow(Alleles);
 	} 
 	return ids;
 }

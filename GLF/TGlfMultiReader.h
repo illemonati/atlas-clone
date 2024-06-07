@@ -12,7 +12,8 @@
 #include <vector>
 
 #include "TGLF.h"
-#include "TSiteSubset.h"
+#include "TAlleles.h"
+
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TFastaReader.h"
@@ -107,7 +108,7 @@ public:
 	void setAllActive();
 
 	// parse
-	std::vector<size_t> readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet=nullptr);
+	std::vector<size_t> readWindow(const SiteSubset::TAlleles& Alleles=SiteSubset::TAlleles{});
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;
