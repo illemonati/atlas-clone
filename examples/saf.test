@@ -36,7 +36,7 @@ $atlas --task saf --glf $samples --fasta simulate.fasta  \
 ~/Git/angsd/misc/realSFS print atlas.saf.idx > atlas.saf.txt 2> /dev/null
 
 rm simulate.fasta.fai
-~/Git/angsd/angsd -bam blist.txt -minQ 1 -dosaf 1 -anc simulate.fasta -GL 2 > /dev/null 2> /dev/null
+~/Git/angsd/angsd -bam blist.txt -minQ 1 -dosaf 1 -anc simulate.fasta -GL 2 > dosaf.out 2> dosaf.eout
 
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt 2> /dev/null
 

@@ -39,14 +39,16 @@ TSafEstimator::TSafEstimator() {
 	_glfReader.addReference(parameters().get<std::string>("fasta"));
 	_glfReader.openGLFs();
 	_glfReader.setAllActive();
+	const size_t nSamples = _glfReader.numActiveSamples();
+
+	logfile().list("Will estimate Site Allele Frequency for ", nSamples, " samples.");
 
 	const auto minSamples = parameters().get<size_t>("minSamplesWithData", 1);
 	_glfReader.minSamplesWithData(minSamples);
 
-	logfile().list("Will only print sites for which at least ", minSamples,
+	logfile().list("Will print sites for which at least ", minSamples,
 				   " samples have data. (parameter minSamplesWithData)");
 
-	const size_t nSamples = _glfReader.numActiveSamples();
 	_logProbs.assign(2*nSamples + 1, LogProbability::lowest());
 
 }
@@ -110,14 +112,34 @@ void TSafEstimator::run() {
 	TSafFile safFile(oFile, nSamples);
 	logfile().list("Will write saf-file with prefix ", oFile, ".");
 
+
+	coretools::TTimer timer;
+	const auto dCounter = std::min<size_t>(10000000 / nSamples, 1000000);
+	size_t counter        = 0;
+	size_t counterF       = 0;
+	size_t nextPrint      = dCounter;
+
+	logfile().startIndent("Parsing through glf files:");
 	for (auto ids = _glfReader.readWindow(); !ids.empty(); ids = _glfReader.readWindow()) {
 		const auto refs = _glfReader.refView();
 		for (const auto iW : ids) {
-			if (refs[iW] == Base::N) continue;
+			if (refs[iW] == Base::N) {
+				++counterF;
+				continue;
+			}
 
 			_iterate(_glfReader.data(iW), refs[iW]);
 			safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs);
 		}
+
+		// report progress
+		counter  += ids.size();
+		if (counter >= nextPrint) {
+			logfile().list("Parsed ", nextPrint, " positions in ", timer.formattedTime(), ".");
+			while (nextPrint <= counter) nextPrint += dCounter;
+		}
 	}
+	logfile().list("Reached end of glf files!");
+	logfile().list("Parsed a total of ", counter, " positions, filtered: ", counterF, " (", (100.*counterF)/counter, "%).");
 }
 }
