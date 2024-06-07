@@ -18,7 +18,7 @@
 #include "genometools/TFastaReader.h"
 
 using TGenotypeLikelihoodsOneAllelicCombinationVector = std::vector<genometools::TGenotypeLikelihoodsOneAllelicCombination>;
-using TGenotypeLikelihoodsAllCombinationsVector                      = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
+using TGenotypeLikelihoodsAllCombinationsVector       = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
 
 
 namespace GLF {
@@ -107,7 +107,7 @@ public:
 	void setAllActive();
 
 	// parse
-	std::vector<size_t> readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet);
+	std::vector<size_t> readWindow(GenotypeLikelihoods::TSiteSubsetPolymorphic* subSet=nullptr);
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;
