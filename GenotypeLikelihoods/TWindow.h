@@ -11,13 +11,16 @@
 #include <string>
 #include <vector>
 
-#include "TAlignment.h"
-#include "GenotypeData.h"
-#include "TSite.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
+
+#include "GenotypeData.h"
+#include "TAlignment.h"
+#include "TSite.h"
+
 
 namespace coretools {
 template<typename T> class TNumericRange;

@@ -1,5 +1,7 @@
 #include "TBamWindows.h"
 #include "coretools/Files/TInputFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks {
 

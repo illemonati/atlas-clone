@@ -9,8 +9,10 @@
 
 #include "GenotypeFunctions.h"
 #include "TSite.h"
+
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/algorithms.h"
+#include "coretools/Main/TRandomGenerator.h"
 
 namespace GenotypeLikelihoods {
 
