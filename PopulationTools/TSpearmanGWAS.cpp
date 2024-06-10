@@ -27,10 +27,12 @@ using coretools::instances::parameters;
 void TSpearmanGWASPopulation::resize(size_t Size){
 	clear();
 	_data.reserve(Size);
+	_dosage.reserve(Size);
 }
 
 void TSpearmanGWASPopulation::clear(){
 	_data.clear();
+	_dosage.clear();
 }
 
 void TSpearmanGWASPopulation::addSample(double Data) {
@@ -39,7 +41,8 @@ void TSpearmanGWASPopulation::addSample(double Data) {
 
 void TSpearmanGWASPopulation::finalizeDataReading(){
 	_ranksData = coretools::ranks(_data);
-	_meanVarData = coretools::meanVar(_data);
+	_meanVarData = coretools::meanVar(_data);	
+	_dosage.resize(_data.size());
 }
 
 void TSpearmanGWASPopulation::prepareBootstraps(const size_t NumBootstraps){
@@ -83,7 +86,6 @@ double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> 
 	}
 	return _calcRho(coretools::sumPairwiseProduct(_data, _dosage), productOfMeans, sqrtProductOfVariances);
 }
-
 
 //------------------------------------------------
 //THardyWeinbergTest
@@ -173,8 +175,8 @@ TSpearmanGWAS::TSpearmanGWAS(){
 
 	// num bootstraps
 	_numBootstraps = parameters().get<int>("bootstraps", 1000);
-	logfile().listFlush("Preparing ", _numBootstraps, " bootstraps ...");
-	for(auto p: _populations){
+	logfile().listFlush("Preparing ", _numBootstraps, " bootstraps ... ");
+	for(auto& p: _populations){
 		p.finalizeDataReading();
 		p.prepareBootstraps(_numBootstraps);
 	}
@@ -188,7 +190,7 @@ void TSpearmanGWAS::run(){
 	logfile().endIndent();
 
 	//open output file	
-	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], "rho", "p"};	
+	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], genometools::defaultColumnNames_reference[0], genometools::defaultColumnNames_alternative[0], "rho", "p"};	
 	TOutputFile out(_outname, header);	
 
 	//progress
@@ -221,7 +223,8 @@ void TSpearmanGWAS::run(){
 
 		// output
 		reader.writePosition(out);
-		out.write(sumRho, p);		
+		out.write(sumRho, p);
+		out.endln();		
 		if(_limitLines && out.curLine() >= _maxNumLines){
 			break;
 		}		
