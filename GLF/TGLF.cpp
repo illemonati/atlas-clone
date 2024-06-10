@@ -233,7 +233,7 @@ bool TGlfReader::_readChr() {
 	char name[Nmax];
 	_read(name, len);
 
-	const auto refId  = _read<uint32_t>(); // currently not used
+	[[maybe_unused]] const auto refId  = _read<uint32_t>(); // currently not used
 	const auto length = _read<uint32_t>();
 	const auto ploidy = _read<uint8_t>();
 
