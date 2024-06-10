@@ -2,8 +2,6 @@
 
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/Strings/stringManipulations.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
 namespace SiteSubset {
@@ -51,7 +49,7 @@ void TAlleles::parse(std::string_view Filename, Morphic M) {
 			continue;
 		}
 		
-		const auto pos = in.get<size_t>(idx[1]) + 1;
+		const auto pos = in.get<size_t>(idx[1]) - 1;
 		const auto ref = genometools::char2base(in.get(idx[2]).front());
 		if (M == Morphic::Mono) {
 			_allSites.emplace_back(rID, pos, ref, Base::N);

@@ -8,8 +8,7 @@ echo *.bam | xargs -n 1 -P 10 $atlas --task GLF --fasta ATLAS_simulations.fasta 
 allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
 name="normal"
-$atlas --task majorMinor --glf $allSamples --maxThreads 1 \
-	--minMAF 0.05 --minSamplesWithData 75 --method Skotte \
+$atlas --task majorMinor --glf $allSamples --maxThreads 1 --method Skotte  \
 	--logFile $name.out --out $name \
 
 #name="ref"

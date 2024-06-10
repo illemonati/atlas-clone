@@ -6,8 +6,9 @@
  */
 
 #include "TMajorMinor.h"
-#include "TBgzWriter.h"
-#include "TGlfMultiReader.h"
+
+#include <algorithm>
+
 
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
@@ -17,8 +18,10 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
+
 #include "TAlleles.h"
-#include <algorithm>
+#include "TBgzWriter.h"
+#include "TGlfMultiReader.h"
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -561,7 +564,7 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
-	for (auto ids = glfReader.readWindow(alleles); !ids.empty(); ids = glfReader.readWindow(alleles)) {
+	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 		std::vector<TMMData> data(glfReader.curWindow().size());
 
 		if (alleles) {
