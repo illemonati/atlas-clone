@@ -46,7 +46,7 @@ using genometools::TGenotypeLikelihoodsAllCombinationsVector;
 namespace impl {
 
 constexpr auto useAllelicCombinationsThatContain(Base base) {
-	assert(Base != Base::N);
+	assert(base != Base::N);
 	using AC = AllelicCombination;
 	switch (base) {
 	case Base::A: return std::array{AC::AC, AC::AG, AC::AT};
@@ -564,7 +564,7 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
-	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
+	for (auto ids = glfReader.readWindow(alleles); !ids.empty(); ids = glfReader.readWindow(alleles)) {
 		std::vector<TMMData> data(glfReader.curWindow().size());
 
 		if (alleles) {

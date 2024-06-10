@@ -24,6 +24,8 @@ void TAlleles::parse(std::string_view Filename, coretools::TConstView<std::strin
 }
 
 void TAlleles::parse(std::string_view Filename, Morphic M) {
+	coretools::instances::logfile().listFlushTime("Reading sites to be used from '", Filename, "' ...");
+
 	_allSites.clear();
 	_sites.clear();
 	if (Filename.empty()) { return; }
@@ -65,7 +67,7 @@ void TAlleles::parse(std::string_view Filename, Morphic M) {
     std::sort(_allSites.begin(), _allSites.end());
 
 	_sites.assign(_chromosomes.size(), {end(), 0});
-	_nChrWindows = 0;
+	_nChrSites   = 0;
 	auto refID   = _allSites.front().position.refID();
 	auto data    = _allSites.data();
 	size_t n     = 1;
@@ -79,14 +81,16 @@ void TAlleles::parse(std::string_view Filename, Morphic M) {
 			data          = _allSites.data() + i;
 			n             = 1;
 			refID         = _allSites[i].position.refID();
-			++_nChrWindows;
+			++_nChrSites;
 		} else {
 			n++;
 		}
 	}
 	_sites[refID] = {data, n};
-	++_nChrWindows;
+	++_nChrSites;
 
+    coretools::instances::logfile().doneTime();
+	coretools::instances::logfile().conclude("Parsed ", size(), " sites on ", _nChrSites, " chromosomes.");
 
 	if (unknownChrom.size() > 0) {
 		logfile().warning("Sites of the following chromosomes were ignored because these chromosomes were not in the "

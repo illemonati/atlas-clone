@@ -74,7 +74,6 @@ private:
 	genometools::TGenomeWindow _curWindow;
 	size_t _windowSize  = 100000;
 	std::vector<TGenotypeLikelihoodsAllCombinationsVector> _dataWindow;
-	std::vector<size_t> _numActive;
 
 	// reference
 	genometools::TFastaReader fastaReader;
@@ -108,7 +107,8 @@ public:
 	void setAllActive();
 
 	// parse
-	std::vector<size_t> readWindow(const SiteSubset::TAlleles& Alleles=SiteSubset::TAlleles{});
+	std::vector<size_t> readWindow();
+	std::vector<size_t> readWindow(const SiteSubset::TAlleles& Alleles);
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;

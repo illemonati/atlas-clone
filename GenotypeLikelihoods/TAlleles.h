@@ -29,7 +29,7 @@ class TAlleles {
 	std::vector<TAllele> _allSites;
 	std::vector<Sites> _sites;
 
-	size_t _nChrWindows = 0;
+	size_t _nChrSites = 0;
 		
 public:
 	using iterator       = Sites::iterator;
@@ -48,7 +48,7 @@ public:
 	bool empty() const noexcept { return _allSites.empty();}
 	operator bool() const noexcept {return !empty(); }
 
-	size_t NChrWindows() const noexcept { return _nChrWindows; }
+	size_t NChrSites() const noexcept { return _nChrSites; }
 	size_t NChr() const noexcept { return _chromosomes.size(); }
 
 	size_t refID(std::string_view Name) const noexcept {
@@ -82,6 +82,7 @@ public:
 		}
 		return end();
 	}
+
 	bool overlaps(const genometools::TGenomeWindow &Window) const noexcept { return (begin(Window) != end()); }
 	bool overlaps(const genometools::TGenomePosition &Position) const noexcept { return (begin(genometools::TGenomeWindow{Position, 1}) != end()); }
 
