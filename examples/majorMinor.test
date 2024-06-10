@@ -2,27 +2,24 @@
 
 . $(dirname $0)/find_atlas
 
-#$atlas --task simulate --type HW --F 0.1 --ploidy 2 --depth 2 --chrLength 2000333 --sampleSize 200 --fracPoly 0.1 --alpha 2.0 --beta 2.0 --fixedSeed 0 --logFile simulate.out
+#$atlas --task simulate --type HW --F 0.1 --ploidy 2 --depth 2 --chrLength 20000333 --sampleSize 2 --fracPoly 0.1 --alpha 2.0 --beta 2.0 --fixedSeed 0 --logFile simulate.out
 #echo *.bam | xargs -n 1 -P 10 $atlas --task GLF --fasta ATLAS_simulations.fasta --bam $f
 
 allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
 #name="normal"
-#$atlas --task majorMinor --glf $allSamples --maxThreads 1 \
-#	--minMAF 0.05 --minSamplesWithData 75 --method Skotte \
+#$atlas --task majorMinor --glf $allSamples --maxThreads 1 --method Skotte  \
 #	--logFile $name.out --out $name \
 
 #name="ref"
-#$atlas --task majorMinor --glf $allSamples --maxThreads 1 --fasta ATLAS_simulations.fasta \
-#	--minMAF 0.05 --minSamplesWithData 75 --method Skotte \
+#$atlas --task majorMinor --glf $allSamples --maxThreads 1 --fasta ATLAS_simulations.fasta --method Skotte \
 #	--logFile $name.out --out $name \
 
 echo "chr pos ref alt" > alleles.txt
-zcat normal.vcf.gz | tail -n +10 | awk '{if (NR % 111 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
+zcat normal.vcf.gz | tail -n +10 | awk '{if (NR % 11 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
 
 name="alleles"
-$atlas --task majorMinor --glf $allSamples --maxThreads 1 --alleles alleles.txt \
-	--minMAF 0.05 --minSamplesWithData 75 --method Skotte \
+$atlas --task majorMinor --glf $allSamples --maxThreads 1 --alleles alleles.txt --method Skotte \
 	--logFile $name.out --out $name \
 
 
