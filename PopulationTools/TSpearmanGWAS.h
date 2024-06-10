@@ -5,8 +5,8 @@
  *      Author: wegmannd
  */
 
-#ifndef POPULATIONTOOLS_THARDYWEINBERGTEST_H_
-#define POPULATIONTOOLS_THARDYWEINBERGTEST_H_
+#ifndef POPULATIONTOOLS_TSPEARMANGWAS_H_
+#define POPULATIONTOOLS_TSPEARMANGWAS_H_
 
 #include <array>
 #include <map>
@@ -80,6 +80,7 @@ private:
 	void _closeVCF();
 
 	std::map<std::string, double> _readDataIntoMap(std::string_view Filename);
+
 public:
 	TSpearmanGWAS();
 	void run();

@@ -90,7 +90,7 @@ double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> 
 //------------------------------------------------
 
 // read data
-std::map<std::string, double> _readDataIntoMap(std::string_view Filename){	
+std::map<std::string, double> TSpearmanGWAS::_readDataIntoMap(std::string_view Filename){	
 	TInputFile in(Filename, coretools::FileType::Header);
 
 	// get sample and data columns
@@ -100,7 +100,7 @@ std::map<std::string, double> _readDataIntoMap(std::string_view Filename){
 		// user provided column name
 		auto dataColName = parameters().get<std::string>("dataCol");
 		logfile().list("Reading data from column '", dataColName, "' of file '", Filename, "'. (parameter 'dataCol')");		
-		dataIdx = in.indexOfFirstMatch(dataColName);
+		dataIdx = in.index(dataColName);
 	} else {
 		// use first column in file that is not sample nor population
 		for(size_t i = 0; i < in.numCols(); ++i){

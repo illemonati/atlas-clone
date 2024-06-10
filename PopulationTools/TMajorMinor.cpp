@@ -43,7 +43,7 @@ using genometools::TGenotypeLikelihoodsAllCombinationsVector;
 namespace impl {
 
 constexpr auto useAllelicCombinationsThatContain(Base base) {
-	assert(Base != Base::N);
+	assert(base != Base::N);
 	using AC = AllelicCombination;
 	switch (base) {
 	case Base::A: return std::array{AC::AC, AC::AG, AC::AT};
