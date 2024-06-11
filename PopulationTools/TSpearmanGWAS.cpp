@@ -41,7 +41,7 @@ void TSpearmanGWASPopulation::addSample(double Data) {
 
 void TSpearmanGWASPopulation::finalizeDataReading(){
 	_ranksData = coretools::ranks(_data);
-	_meanVarData = coretools::meanVar(_data);	
+	_meanVarRanksData = coretools::meanVar(_ranksData);	
 	_dosage.resize(_data.size());
 }
 
@@ -65,26 +65,26 @@ double TSpearmanGWASPopulation::_calcRho(const double sumPairwiseProductDataDosa
 	return (E_XY - productOfMeans) / sqrtProductOfVariances;
 }
 
-double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b){
+double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage){
 	double sum = 0.0;
 	for(size_t i = 0; i < _data.size(); ++i){
-		sum += _data[ _bootstraps[b][i] ] * _dosage[i];
+		sum += _ranksData[ _bootstraps[b][i] ] * ranksDosage[i];
 	}
 	return(sum);
 }
 
-double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> & _bootstrapsRho){
-	auto meanVarDosage = coretools::meanVar(_dosage);
+double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho){
 	auto ranksDosage = coretools::ranks(_dosage);
+	auto meanVarRanksDosage = coretools::meanVar(ranksDosage);
 
-	double productOfMeans = _meanVarData.first * meanVarDosage.first;
-	double sqrtProductOfVariances = sqrt(_meanVarData.second * meanVarDosage.second);
+	double productOfMeans = _meanVarRanksData.first * meanVarRanksDosage.first;
+	double sqrtProductOfVariances = sqrt(_meanVarRanksData.second * meanVarRanksDosage.second);
 
 	// fill bootstraps
 	for(size_t b = 0; b < _bootstraps.size(); ++b){
-		_bootstrapsRho[b] += _calcRho(_sumPairwiseProductBootstrap(b), productOfMeans, sqrtProductOfVariances);	
+		bootstrapsRho[b] += _calcRho(_sumPairwiseProductBootstrap(b, ranksDosage), productOfMeans, sqrtProductOfVariances);	
 	}
-	return _calcRho(coretools::sumPairwiseProduct(_data, _dosage), productOfMeans, sqrtProductOfVariances);
+	return _calcRho(coretools::sumPairwiseProduct(_ranksData, ranksDosage), productOfMeans, sqrtProductOfVariances);
 }
 
 //------------------------------------------------
@@ -205,7 +205,7 @@ void TSpearmanGWAS::run(){
 	while (reader.readDataFromVCF(data, _samples)) {
 		// update dosage for each sample in populations, calculate rho and bootstrap
 		double sumRho = 0.0;
-		std::iota(bootstrappedRho.begin(), bootstrappedRho.end(), 0.0);
+		std::fill(bootstrappedRho.begin(), bootstrappedRho.end(), 0.0);
 	
 		for(size_t p = 0; p < _populations.size(); ++p){
 			_populations[p].updateDosage(&data[_samples.startIndex(p)]);
@@ -219,7 +219,7 @@ void TSpearmanGWAS::run(){
 				++nBelow;
 			}
 		}
-		double p = (double) nBelow / _numBootstraps;
+		double p = (double) nBelow / (double) _numBootstraps;
 
 		// output
 		reader.writePosition(out);

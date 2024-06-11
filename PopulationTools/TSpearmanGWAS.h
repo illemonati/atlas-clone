@@ -32,13 +32,12 @@ private:
 	std::vector<double> _dosage; //mean posterior genotype
 
 	std::vector<double> _ranksData;	
-	std::pair<double, double> _meanVarData;		
+	std::pair<double, double> _meanVarRanksData;		
 
 	std::vector< std::vector<size_t> > _bootstraps;
-	std::vector<double> _bootstrapsRho;
 
 	double _calcRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
-	double _sumPairwiseProductBootstrap(const size_t b);
+	double _sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage);
 	
 public:
 	TSpearmanGWASPopulation() = default;
@@ -50,8 +49,7 @@ public:
 	void prepareBootstraps(const size_t NumBootstraps);
 		
 	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
-	double calcSpearmanRhoAndBootstrap(std::vector<double> & _bootstrapsRho);
-	double bootstrappedRho(const size_t BootstrapIndex) const { return _bootstrapsRho[BootstrapIndex]; }
+	double calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho);
 };
 
 
