@@ -32,8 +32,11 @@ auto logChoose(size_t N) {
 	for (size_t i = 0; i < N; ++i) { res[i] = coretools::chooseLog(N, i); }
 	return res;
 }
-}
 
+constexpr bool multiModal(double mama, double mami, double mimi) {
+  return mami < mama && mami > mimi;
+}
+} // namespace impl
 
 TSafEstimator::TSafEstimator() {
 	_glfReader.addReference(parameters().get<std::string>("fasta"));
@@ -76,21 +79,30 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		const auto mimi = genotype(minor, minor);
 
 		const auto &front = data.front();
-		hs[0]             = Probability(front[mama]);
-		hs[1]             = 2 * Probability(front[mami]);
-		hs[2]             = Probability(front[mimi]);
+		const double pMama = Probability(front[mama]);
+		const double pMami = Probability(front[mami]);
+		const double pMimi = Probability(front[mimi]);
+		hs[0]             = pMama;
+		hs[1]             = 2 * pMami;
+		hs[2]             = pMimi;
 
 		double max    = std::max({hs[0], hs[1], hs[2]});
 		double sumLog = 0.;
+		bool multiModal = impl::multiModal(pMama, pMami, pMimi);
+
 		for (size_t d = 1; d < data.size(); ++d) {
+			const double pMama = Probability(data[d][mama]);
+			const double pMami = Probability(data[d][mami]);
+			const double pMimi = Probability(data[d][mimi]);
+
 			double nextMax = 0.;
-			for (size_t j = 2 * (d + 1); j > 1; --j) {
-				hs[j] = (Probability(data[d][mama]) * hs[j] + 2 * Probability(data[d][mami]) * hs[j - 1] +
-						 Probability(data[d][mimi]) * hs[j - 2])/max;
+			size_t jMax = 2 * (d + 1);
+			for (size_t j = jMax; j > 1; --j) {
+				hs[j]   = (pMama * hs[j] + 2 * pMami * hs[j - 1] + pMimi * hs[j - 2])/max;
 				nextMax = std::max(hs[j], nextMax);
 			}
-			hs[1] = (Probability(data[d][mama]) * hs[1] + 2 * Probability(data[d][mami]) * hs[0])/max;
-			hs[0] = (Probability(data[d][mama]) * hs[0])/max;
+			hs[1] = (pMama * hs[1] + 2 * pMami * hs[0])/max;
+			hs[0] = (pMama * hs[0])/max;
 			sumLog += std::log(max);
 			max = std::max({hs[1], hs[0], nextMax});
 		}
@@ -109,6 +121,7 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 			}
 		}
 	}
+	while(!_logProbs.empty() && !std::isfinite(_logProbs.back())) _logProbs.pop_back();
 }
 
 void TSafEstimator::run() {
@@ -135,7 +148,7 @@ void TSafEstimator::run() {
 			}
 
 			_iterate(_glfReader.data(iW), refs[iW]);
-			safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs);
+			safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs, 0, _logProbs.size() - 1);
 		}
 
 		// report progress

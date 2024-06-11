@@ -42,15 +42,17 @@ rm simulate.fasta.fai
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt 2> /dev/null
 
 echo "#SHAPE=<$((N*2+1))>" > atlas.real
-~/Git/angsd/misc/realSFS atlas.saf.idx 2> /dev/null >> atlas.real
-~/.cargo/bin/winsfs  atlas.saf.idx 2> /dev/null > atlas.win
-echo "realSFS atlas : " $(~/.cargo/bin/winsfs view --normalise atlas.real)
-#echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
+time (~/Git/angsd/misc/realSFS atlas.saf.idx  2> /dev/null >> atlas.real)
+#~/.cargo/bin/winsfs  atlas.saf.idx 2> /dev/null > atlas.win
 
 echo "#SHAPE=<$((N*2+1))>" > angsd.real
-~/Git/angsd/misc/realSFS -anc simulate.fasta angsdput.saf.idx 2> /dev/null >> angsd.real
-~/.cargo/bin/winsfs  angsdput.saf.idx 2> /dev/null > angsd.win
+time (~/Git/angsd/misc/realSFS -anc simulate.fasta angsdput.saf.idx 2> /dev/null >> angsd.real)
+#~/.cargo/bin/winsfs  angsdput.saf.idx 2> /dev/null > angsd.win
+
+echo "realSFS atlas : " $(~/.cargo/bin/winsfs view --normalise atlas.real)
 echo "realSFS angsd : " $(~/.cargo/bin/winsfs view --normalise angsd.real)
+
+#echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
 #echo "winSFS angsd  : " $(~/.cargo/bin/winsfs view --normalise angsd.win)
 
 paste atlas.saf.txt angsd.saf.txt | awk 'function abs(x) {if (x < 0) {return -x} else {return x}} {if (abs($3-$8) > 1 || abs($4-$9) > 1 || ($10 != "-inf" && abs($5 - $10) > 1)) {print $0}}' > deltas
