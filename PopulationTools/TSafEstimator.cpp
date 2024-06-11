@@ -80,13 +80,19 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		hs[1]             = 2 * Probability(front[mami]);
 		hs[2]             = Probability(front[mimi]);
 
+		double max    = std::max({hs[0], hs[1], hs[2]});
+		double sumLog = 0.;
 		for (size_t d = 1; d < data.size(); ++d) {
+			double nextMax = 0.;
 			for (size_t j = 2 * (d + 1); j > 1; --j) {
-				hs[j] = Probability(data[d][mama]) * hs[j] + 2 * Probability(data[d][mami]) * hs[j - 1] +
-				        Probability(data[d][mimi]) * hs[j - 2];
+				hs[j] = (Probability(data[d][mama]) * hs[j] + 2 * Probability(data[d][mami]) * hs[j - 1] +
+						 Probability(data[d][mimi]) * hs[j - 2])/max;
+				nextMax = std::max(hs[j], nextMax);
 			}
-			hs[1] = Probability(data[d][mama]) * hs[1] + 2 * Probability(data[d][mami]) * hs[0];
-			hs[0] = Probability(data[d][mama]) * hs[0];
+			hs[1] = (Probability(data[d][mama]) * hs[1] + 2 * Probability(data[d][mami]) * hs[0])/max;
+			hs[0] = (Probability(data[d][mama]) * hs[0])/max;
+			sumLog += std::log(max);
+			max = std::max({hs[1], hs[0], nextMax});
 		}
 		// for non-data
 		for (size_t d = data.size(); d < nSamples; ++d) {
@@ -96,10 +102,10 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		}
 
 		if (_logProbs.empty()) {
-			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]) - logChoose[j]); }
+			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]) - logChoose[j] + sumLog); }
 		} else {
 			for (size_t j = 0; j < _logProbs.size(); ++j) {
-				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) - logChoose[j]);
+				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) - logChoose[j] + sumLog);
 			}
 		}
 	}

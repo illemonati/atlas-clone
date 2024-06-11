@@ -8,9 +8,7 @@
 #ifndef TSAFFILE_H_
 #define TSAFFILE_H_
 
-#include "coretools/Containers/TView.h"
 #include "coretools/Files/TStdWriter.h"
-#include "coretools/Types/probability.h"
 #include "coretools/traits.h"
 
 #include "TBgzWriter.h"

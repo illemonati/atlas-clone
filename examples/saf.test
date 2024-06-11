@@ -33,6 +33,7 @@ done
 name="atlas"
 $atlas --task saf --glf $samples --fasta simulate.fasta  \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout > /dev/null
+tail -n 2 atlas.out
 ~/Git/angsd/misc/realSFS print atlas.saf.idx > atlas.saf.txt 2> /dev/null
 
 rm simulate.fasta.fai
