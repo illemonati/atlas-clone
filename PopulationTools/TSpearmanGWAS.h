@@ -36,7 +36,7 @@ private:
 
 	std::vector< std::vector<size_t> > _bootstraps;
 
-	double _calcRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
+	double _calcAbsRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
 	double _sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage);
 	
 public:

@@ -60,15 +60,15 @@ void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods<genom
 	}
 }
 
-double TSpearmanGWASPopulation::_calcRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const {
+double TSpearmanGWASPopulation::_calcAbsRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const {
 	double E_XY = sumPairwiseProductDataDosage / _data.size();
-	return (E_XY - productOfMeans) / sqrtProductOfVariances;
+	return std::fabs( (E_XY - productOfMeans) / sqrtProductOfVariances );
 }
 
 double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage){
 	double sum = 0.0;
 	for(size_t i = 0; i < _data.size(); ++i){
-		sum += _ranksData[ _bootstraps[b][i] ] * ranksDosage[i];
+		sum += _ranksData[i] * ranksDosage[ _bootstraps[b][i] ];
 	}
 	return(sum);
 }
@@ -82,9 +82,9 @@ double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> 
 
 	// fill bootstraps
 	for(size_t b = 0; b < _bootstraps.size(); ++b){
-		bootstrapsRho[b] += _calcRho(_sumPairwiseProductBootstrap(b, ranksDosage), productOfMeans, sqrtProductOfVariances);	
+		bootstrapsRho[b] += _calcAbsRho(_sumPairwiseProductBootstrap(b, ranksDosage), productOfMeans, sqrtProductOfVariances);	
 	}
-	return _calcRho(coretools::sumPairwiseProduct(_ranksData, ranksDosage), productOfMeans, sqrtProductOfVariances);
+	return _calcAbsRho(coretools::sumPairwiseProduct(_ranksData, ranksDosage), productOfMeans, sqrtProductOfVariances);
 }
 
 //------------------------------------------------
