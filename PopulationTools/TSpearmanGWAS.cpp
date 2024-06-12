@@ -41,7 +41,11 @@ void TSpearmanGWASPopulation::addSample(double Data) {
 
 void TSpearmanGWASPopulation::finalizeDataReading(){
 	_ranksData = coretools::ranks(_data);
-	_meanVarRanksData = coretools::meanVar(_ranksData);	
+
+	// standardize
+	coretools::standardizeZeroMeanUnitVar(_ranksData);
+	
+	// prepare storage for dosage
 	_dosage.resize(_data.size());
 }
 
@@ -65,6 +69,10 @@ double TSpearmanGWASPopulation::_calcAbsRho(const double sumPairwiseProductDataD
 	return std::fabs( (E_XY - productOfMeans) / sqrtProductOfVariances );
 }
 
+double TSpearmanGWASPopulation::_regressAndCalcF(){
+
+}
+
 double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage){
 	double sum = 0.0;
 	for(size_t i = 0; i < _data.size(); ++i){
@@ -86,6 +94,18 @@ double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> 
 	}
 	return _calcAbsRho(coretools::sumPairwiseProduct(_ranksData, ranksDosage), productOfMeans, sqrtProductOfVariances);
 }
+
+double TSpearmanGWASPopulation::regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho){
+	arma::vec ranksDosage = coretools::ranks(_dosage);
+	coretools::standardizeZeroMeanUnitVar(ranksDosage);
+
+	// prepare regression
+	arma::mat XT_X_inv_X = arma::inv(_ranksData.t() * _ranksData) * _ranksData;
+	arma::mat beta = XT_X_inv_X * ranksDosage;
+	
+	std::cout << "beta:" << beta << std::endl;
+}
+
 
 //------------------------------------------------
 //THardyWeinbergTest
@@ -209,7 +229,8 @@ void TSpearmanGWAS::run(){
 	
 		for(size_t p = 0; p < _populations.size(); ++p){
 			_populations[p].updateDosage(&data[_samples.startIndex(p)]);
-			sumRho += _populations[p].calcSpearmanRhoAndBootstrap(bootstrappedRho);
+			//sumRho += _populations[p].calcSpearmanRhoAndBootstrap(bootstrappedRho);
+			sumRho += _populations[p].regressSpearmanAndBootstrap(bootstrappedRho);
 		}
 		
 		// determine p value from bootstraps

@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <armadillo>
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/VCF/TPopulation.h"
@@ -31,9 +32,7 @@ private:
 	std::vector<double> _data;
 	std::vector<double> _dosage; //mean posterior genotype
 
-	std::vector<double> _ranksData;	
-	std::pair<double, double> _meanVarRanksData;		
-
+	arma::vec _ranksData;	
 	std::vector< std::vector<size_t> > _bootstraps;
 
 	double _calcAbsRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
@@ -50,6 +49,7 @@ public:
 		
 	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
 	double calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho);
+	double regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho);
 };
 
 
