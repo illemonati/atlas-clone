@@ -6,45 +6,43 @@ N=$1
 
 rm ./*
 
+echo "Simulating"
 name="simulate"
 $atlas --task simulate --type SFS --theta 0.001 \
 	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
 	   --out $name --logFile $name.out 2> $name.eout > /dev/null
 
+echo "GLF"
+echo *.bam | xargs -P 6 -n 1 $atlas --task GLF --bam > /dev/null
+
 rm -f -- blist.txt
-name="GLF"
+
 samples=""
 for f in *.bam; do
 	echo $f >> blist.txt
 	name=${f%.bam}
-	$atlas --task GLF --bam $f  \
-	   --fixedSeed 0 --out $name --logFile glf_$name.out 2> glf_$name.eout > /dev/null
-
-	if [ $N -eq 1 ]; then
-		$atlas --task theta --bam $f --genomeWide \
-		--fixedSeed 0 --out $name --logFile theta_$name.out > /dev/null
-
-		echo "het: " $(zcat ${name}_theta.txt.gz| tail -n 1 | awk '{print $18}')
-	fi
-
 	samples="${samples}$name.glf.gz,"
 done
 
+echo "Atlas saf"
 name="atlas"
 $atlas --task saf --glf $samples --fasta simulate.fasta  \
 	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout > /dev/null
 tail -n 2 atlas.out
-~/Git/angsd/misc/realSFS print atlas.saf.idx > atlas.saf.txt 2> /dev/null
 
+echo "Angsd saf"
 rm simulate.fasta.fai
-~/Git/angsd/angsd -bam blist.txt -minQ 1 -dosaf 1 -anc simulate.fasta -GL 2 > dosaf.out 2> dosaf.eout
+time ~/Git/angsd/angsd -bam blist.txt -minQ 1 -dosaf 1 -anc simulate.fasta -GL 2 > dosaf.out 2> dosaf.eout
 
 ~/Git/angsd/misc/realSFS print angsdput.saf.idx > angsd.saf.txt 2> /dev/null
+~/Git/angsd/misc/realSFS print atlas.saf.idx > atlas.saf.txt 2> /dev/null
 
+echo "realsfs atlas"
 echo "#SHAPE=<$((N*2+1))>" > atlas.real
 time (~/Git/angsd/misc/realSFS atlas.saf.idx  2> /dev/null >> atlas.real)
 #~/.cargo/bin/winsfs  atlas.saf.idx 2> /dev/null > atlas.win
 
+echo "realsfs angsd"
 echo "#SHAPE=<$((N*2+1))>" > angsd.real
 time (~/Git/angsd/misc/realSFS -anc simulate.fasta angsdput.saf.idx 2> /dev/null >> angsd.real)
 #~/.cargo/bin/winsfs  angsdput.saf.idx 2> /dev/null > angsd.win
@@ -54,5 +52,3 @@ echo "realSFS angsd : " $(~/.cargo/bin/winsfs view --normalise angsd.real)
 
 #echo "winSFS atlas  : " $(~/.cargo/bin/winsfs view --normalise atlas.win)
 #echo "winSFS angsd  : " $(~/.cargo/bin/winsfs view --normalise angsd.win)
-
-paste atlas.saf.txt angsd.saf.txt | awk 'function abs(x) {if (x < 0) {return -x} else {return x}} {if (abs($3-$8) > 1 || abs($4-$9) > 1 || ($10 != "-inf" && abs($5 - $10) > 1)) {print $0}}' > deltas

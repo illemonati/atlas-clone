@@ -63,7 +63,7 @@ public:
 	TSafFile &operator=(TSafFile &&)      = default;
 
 	template<typename LogContainer>
-	void write(std::string_view Chr, size_t Pos, const LogContainer& AlleleFreqs, size_t lower, size_t upper) {
+	void write(std::string_view Chr, size_t Pos, const LogContainer& AlleleFreqs, size_t lower=0) {
 		if (_chr.empty()) { // first chromosome
 			_chr = Chr;
 		} else if (_chr != Chr) { // change of chromosome
@@ -80,9 +80,9 @@ public:
 		static std::vector<float> floats;
 		floats.clear();
 
-		const auto iMax   = std::max_element(AlleleFreqs.begin() + lower, AlleleFreqs.begin() + upper + 1);
+		const auto iMax   = std::max_element(AlleleFreqs.begin() + lower, AlleleFreqs.end());
 		const auto max    = *iMax;
-		for (size_t i = lower; i <= upper; ++i) {
+		for (size_t i = lower; i <AlleleFreqs.size(); ++i) {
 			floats.push_back(static_cast<float>(coretools::underlying(AlleleFreqs[i]) - coretools::underlying(max)));
 		}
 

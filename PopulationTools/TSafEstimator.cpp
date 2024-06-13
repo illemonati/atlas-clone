@@ -2,7 +2,6 @@
 #include "TGlfMultiReader.h"
 #include "TSafFile.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Math/mathFunctions.h"
 #include <algorithm>
 #include <cmath>
 
@@ -25,12 +24,6 @@ double sumInLog(double logA, double logB) {
 	return logA > logB
 		? std::log(1 + std::exp(logB - logA)) + logA
 		: std::log(1 + std::exp(logA - logB)) + logB;
-}
-
-auto logChoose(size_t N) {
-	std::vector<double> res(N + 1);
-	for (size_t i = 0; i < N; ++i) { res[i] = coretools::chooseLog(N, i); }
-	return res;
 }
 
 constexpr bool multiModal(double mama, double mami, double mimi) {
@@ -57,7 +50,7 @@ TSafEstimator::TSafEstimator() {
 }
 
 void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &data, Base major) {
-	assert(major == Base::N);
+	assert(major != Base::N);
 	constexpr TStrongArray<std::array<Base, 3>, Base> minors = []() {
 		TStrongArray<std::array<Base, 3>, Base> minors{};
 		minors[Base::A] = {Base::C, Base::G, Base::T};
@@ -67,7 +60,6 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		return minors;
 	}();
 	const size_t nSamples = _glfReader.numActiveSamples();
-	const static std::vector<double> logChoose = impl::logChoose(2*nSamples);
 
 	_logProbs.clear();
 
@@ -78,16 +70,16 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		const auto mami = genotype(major, minor);
 		const auto mimi = genotype(minor, minor);
 
-		const auto &front = data.front();
+		const auto &front  = data.front();
 		const double pMama = Probability(front[mama]);
 		const double pMami = Probability(front[mami]);
 		const double pMimi = Probability(front[mimi]);
-		hs[0]             = pMama;
-		hs[1]             = 2 * pMami;
-		hs[2]             = pMimi;
+		hs[0]              = pMama;
+		hs[1]              = pMami; // not 2*pMami, see eq (6) Han et al
+		hs[2]              = pMimi;
 
-		double max    = std::max({hs[0], hs[1], hs[2]});
-		double sumLog = 0.;
+		double max      = std::max({hs[0], hs[1], hs[2]});
+		double sumLog   = 0.;
 		bool multiModal = impl::multiModal(pMama, pMami, pMimi);
 
 		for (size_t d = 1; d < data.size(); ++d) {
@@ -96,28 +88,37 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 			const double pMimi = Probability(data[d][mimi]);
 
 			double nextMax = 0.;
-			size_t jMax = 2 * (d + 1);
-			for (size_t j = jMax; j > 1; --j) {
-				hs[j]   = (pMama * hs[j] + 2 * pMami * hs[j - 1] + pMimi * hs[j - 2])/max;
+			size_t N = 2 * (d + 1);
+			for (size_t j = N; j > 1; --j) {
+				hs[j] = ((N-j)*(N-j-1)*pMama*hs[j]
+					  + 2*j*(N-j)*pMami*hs[j - 1]
+						 + j*(j-1)*pMimi*hs[j - 2])/max;
 				nextMax = std::max(hs[j], nextMax);
 			}
-			hs[1] = (pMama * hs[1] + 2 * pMami * hs[0])/max;
-			hs[0] = (pMama * hs[0])/max;
+			hs[1] = ((N-1)*(N-2)*pMama * hs[1] + 2*(N-1) * pMami * hs[0])/max;
+			hs[0] = ((N)*(N-1)*pMama * hs[0])/max;
 			sumLog += std::log(max);
 			max = std::max({hs[1], hs[0], nextMax});
 		}
 		// for non-data
 		for (size_t d = data.size(); d < nSamples; ++d) {
-			for (size_t j = 2 * d; j > 1; --j) { hs[j] = hs[j] + 2 * hs[j - 1] + hs[j - 2]; }
-			hs[1] = hs[1] + 2 * hs[0];
-			hs[0] = hs[0];
+			size_t N = 2 * (d + 1);
+			for (size_t j = 2 * d; j > 1; --j) {
+				hs[j] = (N-j)*(N-j-1)*hs[j]
+					+ 2*j*(N-j) * hs[j - 1]
+					+ j*(j-1)*hs[j - 2];
+			}
+			hs[1] = (N-1)*(N-2)*hs[1] + 2*(N-1)*hs[0];
+			hs[0] = (N)*(N-1)*hs[0];
 		}
 
 		if (_logProbs.empty()) {
-			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]) - logChoose[j] + sumLog); }
+			for (size_t j = 0; j < hs.size(); ++j) {
+				_logProbs.push_back(std::log(hs[j]) + sumLog);
+			}
 		} else {
 			for (size_t j = 0; j < _logProbs.size(); ++j) {
-				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) - logChoose[j] + sumLog);
+				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) + sumLog);
 			}
 		}
 	}
@@ -148,7 +149,7 @@ void TSafEstimator::run() {
 			}
 
 			_iterate(_glfReader.data(iW), refs[iW]);
-			safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs, 0, _logProbs.size() - 1);
+			if (!_logProbs.empty()) safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs);
 		}
 
 		// report progress
