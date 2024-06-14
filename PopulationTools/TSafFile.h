@@ -80,10 +80,8 @@ public:
 		static std::vector<float> floats;
 		floats.clear();
 
-		const auto iMax   = std::max_element(AlleleFreqs.begin() + lower, AlleleFreqs.end());
-		const auto max    = *iMax;
 		for (size_t i = lower; i <AlleleFreqs.size(); ++i) {
-			floats.push_back(static_cast<float>(coretools::underlying(AlleleFreqs[i]) - coretools::underlying(max)));
+			floats.push_back(static_cast<float>(coretools::underlying(AlleleFreqs[i])));
 		}
 
 		_freqWriter.write(static_cast<int>(lower));

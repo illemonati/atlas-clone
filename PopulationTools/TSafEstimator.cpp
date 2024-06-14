@@ -4,6 +4,8 @@
 #include "coretools/Main/TParameters.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <locale>
 
 namespace PopulationTools {
 
@@ -27,7 +29,7 @@ double sumInLog(double logA, double logB) {
 }
 
 constexpr bool multiModal(double mama, double mami, double mimi) {
-  return mami < mama && mami > mimi;
+  return mami < mama && mami < mimi;
 }
 } // namespace impl
 
@@ -63,8 +65,16 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 
 	_logProbs.clear();
 
-	std::vector<double> probs(2*nSamples + 1, 0.);
 	const auto mama = genotype(major, major);
+
+
+	constexpr auto tol    = 1e-9;
+	constexpr auto logTol = -20.72326583694641;
+
+	size_t lower = 0;
+	size_t upper = 2;
+	double lPmax = logTol;
+
 	for (auto minor : minors[major]) {
 		std::vector<double> hs(2 * nSamples + 1, P(0.));
 		const auto mami = genotype(major, minor);
@@ -82,14 +92,37 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		double sumLog   = 0.;
 		bool multiModal = impl::multiModal(pMama, pMami, pMimi);
 
-		for (size_t d = 1; d < data.size(); ++d) {
-			const double pMama = Probability(data[d][mama]);
-			const double pMami = Probability(data[d][mami]);
-			const double pMimi = Probability(data[d][mimi]);
+		for (size_t d = 1; d < nSamples; ++d) {
+			double pMama = 1.;
+			double pMami = 1.;
+			double pMimi = 1.;
+			if (d < data.size()) {
+				pMama = Probability(data[d][mama]);
+				pMami = Probability(data[d][mami]);
+				pMimi = Probability(data[d][mimi]);
+			}
+			if (impl::multiModal(pMama, pMami, pMimi)) multiModal = true; // once true, always true
 
 			double nextMax = 0.;
 			size_t N = 2 * (d + 1);
-			for (size_t j = N; j > 1; --j) {
+
+			if (multiModal) {
+				upper = N + 1;
+			} else {
+				upper = std::min(N, upper + 2);
+				for (size_t j = upper; j > 1; --j) {
+					hs[j] = ((N-j)*(N-j-1)*pMama*hs[j]
+							 + 2*j*(N-j)*pMami*hs[j - 1]
+							 + j*(j-1)*pMimi*hs[j - 2])/max;
+					if (hs[j] < tol) {
+						hs[j] = 0;
+						--upper;
+					} else {
+						break;
+					}
+				}
+			}
+			for (size_t j = upper - 1; j > 1; --j) {
 				hs[j] = ((N-j)*(N-j-1)*pMama*hs[j]
 					  + 2*j*(N-j)*pMami*hs[j - 1]
 						 + j*(j-1)*pMimi*hs[j - 2])/max;
@@ -100,29 +133,29 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 			sumLog += std::log(max);
 			max = std::max({hs[1], hs[0], nextMax});
 		}
-		// for non-data
-		for (size_t d = data.size(); d < nSamples; ++d) {
-			size_t N = 2 * (d + 1);
-			for (size_t j = 2 * d; j > 1; --j) {
-				hs[j] = (N-j)*(N-j-1)*hs[j]
-					+ 2*j*(N-j) * hs[j - 1]
-					+ j*(j-1)*hs[j - 2];
-			}
-			hs[1] = (N-1)*(N-2)*hs[1] + 2*(N-1)*hs[0];
-			hs[0] = (N)*(N-1)*hs[0];
-		}
 
 		if (_logProbs.empty()) {
 			for (size_t j = 0; j < hs.size(); ++j) {
-				_logProbs.push_back(std::log(hs[j]) + sumLog);
+				if (hs[j] > 0) {
+					_logProbs.push_back(std::log(hs[j]) + sumLog);
+					lPmax = std::max(_logProbs.back(), lPmax);
+				} else {
+					_logProbs.push_back(-std::numeric_limits<double>::infinity());
+				}
 			}
 		} else {
-			for (size_t j = 0; j < _logProbs.size(); ++j) {
-				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) + sumLog);
+			for (size_t j = 0; j <hs.size(); ++j) {
+				if (hs[j] > 0) {
+					_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) + sumLog);
+					lPmax = std::max(_logProbs[j], lPmax);
+				}
 			}
 		}
 	}
-	while(!_logProbs.empty() && !std::isfinite(_logProbs.back())) _logProbs.pop_back();
+	while(!_logProbs.empty() && (!std::isfinite(_logProbs.back()) || _logProbs.back() - lPmax < logTol)) _logProbs.pop_back();
+	for (auto& lP: _logProbs) {
+		lP -= lPmax;
+	}
 }
 
 void TSafEstimator::run() {
