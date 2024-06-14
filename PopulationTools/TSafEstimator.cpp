@@ -2,9 +2,9 @@
 #include "TGlfMultiReader.h"
 #include "TSafFile.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Math/mathFunctions.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace PopulationTools {
 
@@ -27,13 +27,10 @@ double sumInLog(double logA, double logB) {
 		: std::log(1 + std::exp(logA - logB)) + logB;
 }
 
-auto logChoose(size_t N) {
-	std::vector<double> res(N + 1);
-	for (size_t i = 0; i < N; ++i) { res[i] = coretools::chooseLog(N, i); }
-	return res;
+constexpr bool multiModal(double mama, double mami, double mimi) {
+  return mami < mama && mami < mimi;
 }
-}
-
+} // namespace impl
 
 TSafEstimator::TSafEstimator() {
 	_glfReader.addReference(parameters().get<std::string>("fasta"));
@@ -54,7 +51,7 @@ TSafEstimator::TSafEstimator() {
 }
 
 void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &data, Base major) {
-	assert(major == Base::N);
+	assert(major != Base::N);
 	constexpr TStrongArray<std::array<Base, 3>, Base> minors = []() {
 		TStrongArray<std::array<Base, 3>, Base> minors{};
 		minors[Base::A] = {Base::C, Base::G, Base::T};
@@ -64,44 +61,103 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		return minors;
 	}();
 	const size_t nSamples = _glfReader.numActiveSamples();
-	const static std::vector<double> logChoose = impl::logChoose(2*nSamples);
 
 	_logProbs.clear();
 
-	std::vector<double> probs(2*nSamples + 1, 0.);
 	const auto mama = genotype(major, major);
+
+
+	constexpr auto tol    = 1e-9;
+	constexpr auto logTol = -20.72326583694641;
+
+	double lPmax = logTol;
+
 	for (auto minor : minors[major]) {
 		std::vector<double> hs(2 * nSamples + 1, P(0.));
 		const auto mami = genotype(major, minor);
 		const auto mimi = genotype(minor, minor);
 
-		const auto &front = data.front();
-		hs[0]             = Probability(front[mama]);
-		hs[1]             = 2 * Probability(front[mami]);
-		hs[2]             = Probability(front[mimi]);
+		const auto &front  = data.front();
+		const double pMama = Probability(front[mama]);
+		const double pMami = Probability(front[mami]);
+		const double pMimi = Probability(front[mimi]);
+		hs[0]              = pMama;
+		hs[1]              = pMami; // not 2*pMami, see eq (6) Han et al
+		hs[2]              = pMimi;
+		size_t upper       = 2;
 
-		for (size_t d = 1; d < data.size(); ++d) {
-			for (size_t j = 2 * (d + 1); j > 1; --j) {
-				hs[j] = Probability(data[d][mama]) * hs[j] + 2 * Probability(data[d][mami]) * hs[j - 1] +
-				        Probability(data[d][mimi]) * hs[j - 2];
+		double max      = std::max({hs[0], hs[1], hs[2]});
+		double sumLog   = 0.;
+		bool multiModal = impl::multiModal(pMama, pMami, pMimi);
+
+		for (size_t d = 1; d < nSamples; ++d) {
+			double pMama = 1.;
+			double pMami = 1.;
+			double pMimi = 1.;
+			if (d < data.size()) {
+				pMama = Probability(data[d][mama]);
+				pMami = Probability(data[d][mami]);
+				pMimi = Probability(data[d][mimi]);
 			}
-			hs[1] = Probability(data[d][mama]) * hs[1] + 2 * Probability(data[d][mami]) * hs[0];
-			hs[0] = Probability(data[d][mama]) * hs[0];
-		}
-		// for non-data
-		for (size_t d = data.size(); d < nSamples; ++d) {
-			for (size_t j = 2 * d; j > 1; --j) { hs[j] = hs[j] + 2 * hs[j - 1] + hs[j - 2]; }
-			hs[1] = hs[1] + 2 * hs[0];
-			hs[0] = hs[0];
+			if (impl::multiModal(pMama, pMami, pMimi)) multiModal = true; // once true, always true
+
+			double nextMax = 0.;
+			size_t N = 2 * (d + 1);
+
+			if (multiModal) {
+				upper = N + 1;
+			} else {
+				upper = std::min(N, upper + 2);
+				for (size_t j = upper; j > 1; --j) {
+					hs[j] = ((N-j)*(N-j-1)*pMama*hs[j]
+							 + 2*j*(N-j)*pMami*hs[j - 1]
+							 + j*(j-1)*pMimi*hs[j - 2])/max;
+					if (hs[j] < tol) {
+						hs[j] = 0;
+						--upper;
+					} else {
+						break;
+					}
+				}
+			}
+			for (size_t j = upper - 1; j > 1; --j) {
+				hs[j] = ((N-j)*(N-j-1)*pMama*hs[j]
+					  + 2*j*(N-j)*pMami*hs[j - 1]
+						 + j*(j-1)*pMimi*hs[j - 2])/max;
+				nextMax = std::max(hs[j], nextMax);
+			}
+			hs[1] = ((N-1)*(N-2)*pMama * hs[1] + 2*(N-1) * pMami * hs[0])/max;
+			hs[0] = ((N)*(N-1)*pMama * hs[0])/max;
+			sumLog += std::log(max);
+			max = std::max({hs[1], hs[0], nextMax});
 		}
 
 		if (_logProbs.empty()) {
-			for (size_t j = 0; j < hs.size(); ++j) { _logProbs.push_back(std::log(hs[j]) - logChoose[j]); }
+			for (size_t j = 0; j < hs.size(); ++j) {
+				if (hs[j] > 0) {
+					_logProbs.push_back(std::log(hs[j]) + sumLog);
+					lPmax = std::max(_logProbs.back(), lPmax);
+				} else {
+					_logProbs.push_back(-std::numeric_limits<double>::infinity());
+				}
+			}
 		} else {
-			for (size_t j = 0; j < _logProbs.size(); ++j) {
-				_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) - logChoose[j]);
+			for (size_t j = 0; j <hs.size(); ++j) {
+				if (hs[j] > 0) {
+					_logProbs[j] = impl::sumInLog(_logProbs[j], std::log(hs[j]) + sumLog);
+					lPmax = std::max(_logProbs[j], lPmax);
+				}
 			}
 		}
+	}
+	// remove upper values
+	while(!_logProbs.empty() && (!std::isfinite(_logProbs.back()) || _logProbs.back() - lPmax < logTol)) _logProbs.pop_back();
+	for (auto& lP: _logProbs) {
+		lP -= lPmax;
+	}
+	// remove lower values
+	for (_lower = 0; _lower < _logProbs.size() - 1; ++_lower) { // ensure _lower remains < size
+		if (_logProbs[_lower] > logTol) break;
 	}
 }
 
@@ -129,7 +185,7 @@ void TSafEstimator::run() {
 			}
 
 			_iterate(_glfReader.data(iW), refs[iW]);
-			safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs);
+			if (!_logProbs.empty()) safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs, _lower);
 		}
 
 		// report progress
