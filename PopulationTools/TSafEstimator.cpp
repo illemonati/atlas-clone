@@ -70,7 +70,6 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 	constexpr auto tol    = 1e-9;
 	constexpr auto logTol = -20.72326583694641;
 
-	size_t upper = 2;
 	double lPmax = logTol;
 
 	for (auto minor : minors[major]) {
@@ -85,6 +84,7 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 		hs[0]              = pMama;
 		hs[1]              = pMami; // not 2*pMami, see eq (6) Han et al
 		hs[2]              = pMimi;
+		size_t upper       = 2;
 
 		double max      = std::max({hs[0], hs[1], hs[2]});
 		double sumLog   = 0.;

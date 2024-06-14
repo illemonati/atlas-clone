@@ -9,7 +9,7 @@ rm ./*
 echo "Simulating"
 name="simulate"
 $atlas --task simulate --type SFS --theta 0.01 \
-	   --sampleSize $1 --refDiv 0 --chrLength 111111 --depth $2 --ploidy 2  \
+	   --sampleSize $1 --refDiv 0.1 --chrLength 111111 --depth $2 --ploidy 2  \
 	   --out $name --logFile $name.out 2> $name.eout > /dev/null
 
 echo "GLF"
