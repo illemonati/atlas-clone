@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <locale>
 
 namespace PopulationTools {
 
@@ -71,7 +70,6 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 	constexpr auto tol    = 1e-9;
 	constexpr auto logTol = -20.72326583694641;
 
-	size_t lower = 0;
 	size_t upper = 2;
 	double lPmax = logTol;
 
@@ -152,9 +150,14 @@ void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &da
 			}
 		}
 	}
+	// remove upper values
 	while(!_logProbs.empty() && (!std::isfinite(_logProbs.back()) || _logProbs.back() - lPmax < logTol)) _logProbs.pop_back();
 	for (auto& lP: _logProbs) {
 		lP -= lPmax;
+	}
+	// remove lower values
+	for (_lower = 0; _lower < _logProbs.size() - 1; ++_lower) { // ensure _lower remains < size
+		if (_logProbs[_lower] > logTol) break;
 	}
 }
 
@@ -182,7 +185,7 @@ void TSafEstimator::run() {
 			}
 
 			_iterate(_glfReader.data(iW), refs[iW]);
-			if (!_logProbs.empty()) safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs);
+			if (!_logProbs.empty()) safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs, _lower);
 		}
 
 		// report progress
