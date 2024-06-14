@@ -69,9 +69,21 @@ double TSpearmanGWASPopulation::_calcAbsRho(const double sumPairwiseProductDataD
 	return std::fabs( (E_XY - productOfMeans) / sqrtProductOfVariances );
 }
 
+/*
 double TSpearmanGWASPopulation::_regressAndCalcF(){
 
 }
+*/
+
+/*
+double TSpearmanGWASPopulation::_sumPairwiseProduct(const size_t b, const std::vector<double>& ranksDosage){
+	double sum = 0.0;
+	for(size_t i = 0; i < _data.size(); ++i){
+		sum += _ranksData[i] * ranksDosage[ _bootstraps[b][i] ];
+	}
+	return(sum);
+}
+*/
 
 double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage){
 	double sum = 0.0;
@@ -81,6 +93,7 @@ double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b, con
 	return(sum);
 }
 
+/*
 double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho){
 	auto ranksDosage = coretools::ranks(_dosage);
 	auto meanVarRanksDosage = coretools::meanVar(ranksDosage);
@@ -94,16 +107,27 @@ double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> 
 	}
 	return _calcAbsRho(coretools::sumPairwiseProduct(_ranksData, ranksDosage), productOfMeans, sqrtProductOfVariances);
 }
+*/
 
 double TSpearmanGWASPopulation::regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho){
+
+	std::cout << "dosage = " << coretools::str::toString(_dosage) << std::endl;
+
+
 	arma::vec ranksDosage = coretools::ranks(_dosage);
 	coretools::standardizeZeroMeanUnitVar(ranksDosage);
 
-	// prepare regression
-	arma::mat XT_X_inv_X = arma::inv(_ranksData.t() * _ranksData) * _ranksData;
-	arma::mat beta = XT_X_inv_X * ranksDosage;
+	// prepare regression	
+	arma::mat XT_X_inv_X = arma::inv(_ranksData.t() * _ranksData).eval()(0,0) * _ranksData;	
+	double beta = (XT_X_inv_X.t() * ranksDosage).eval()(0,0);
 	
-	std::cout << "beta:" << beta << std::endl;
+	//calculate variance explained
+	double v = coretools::var(_ranksData);
+
+
+	std::cout << "beta = " << beta << std::endl;
+
+	
 }
 
 

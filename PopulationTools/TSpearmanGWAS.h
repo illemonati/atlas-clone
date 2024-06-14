@@ -48,7 +48,7 @@ public:
 	void prepareBootstraps(const size_t NumBootstraps);
 		
 	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
-	double calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho);
+	//double calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho);
 	double regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho);
 };
 
