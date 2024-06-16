@@ -33,11 +33,16 @@ private:
 	std::vector<double> _dosage; //mean posterior genotype
 
 	arma::vec _ranksData;	
+	double _RSStotal;
+	std::vector<double> _XT_X_inv_X;
 	std::vector< std::vector<size_t> > _bootstraps;
 
 	double _calcAbsRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
 	double _sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage);
 	
+	double _regressAndCalulateRSSModel(const std::vector<double> &ranksDosage);
+	double _regressAndCalulateRSSModelBootstrap(size_t bootstrapIdx, const std::vector<double> &ranksDosage);
+
 public:
 	TSpearmanGWASPopulation() = default;
 	TSpearmanGWASPopulation(size_t Size);	
@@ -48,7 +53,7 @@ public:
 	void prepareBootstraps(const size_t NumBootstraps);
 		
 	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
-	//double calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho);
+	double RSS_nullModel();
 	double regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho);
 };
 
@@ -78,9 +83,11 @@ private:
 	void _closeVCF();
 
 	std::map<std::string, double> _readDataIntoMap(std::string_view Filename);
+	double _calculateF(const double RSS_null, const double RSS_model, const double F_scale);
 
 public:
 	TSpearmanGWAS();
+	
 	void run();
 };
 

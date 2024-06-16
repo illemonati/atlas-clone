@@ -42,9 +42,14 @@ void TSpearmanGWASPopulation::addSample(double Data) {
 void TSpearmanGWASPopulation::finalizeDataReading(){
 	_ranksData = coretools::ranks(_data);
 
-	// standardize
+	// standardize, calculate RSS of total model and prepare XT_X_inv_X for regression
 	coretools::standardizeZeroMeanUnitVar(_ranksData);
-	
+	_RSStotal = coretools::sumOfSquares(_ranksData);
+	_XT_X_inv_X.resize(_ranksData.size());
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		_XT_X_inv_X[i] = _ranksData[i] / _RSStotal;
+	}
+
 	// prepare storage for dosage
 	_dosage.resize(_data.size());
 }
@@ -64,75 +69,55 @@ void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods<genom
 	}
 }
 
-double TSpearmanGWASPopulation::_calcAbsRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const {
-	double E_XY = sumPairwiseProductDataDosage / _data.size();
-	return std::fabs( (E_XY - productOfMeans) / sqrtProductOfVariances );
+double TSpearmanGWASPopulation::RSS_nullModel() { 
+	return _RSStotal;
 }
 
-/*
-double TSpearmanGWASPopulation::_regressAndCalcF(){
-
-}
-*/
-
-/*
-double TSpearmanGWASPopulation::_sumPairwiseProduct(const size_t b, const std::vector<double>& ranksDosage){
-	double sum = 0.0;
-	for(size_t i = 0; i < _data.size(); ++i){
-		sum += _ranksData[i] * ranksDosage[ _bootstraps[b][i] ];
+double TSpearmanGWASPopulation::_regressAndCalulateRSSModel(const std::vector<double> & ranksDosage){
+	// run regression
+	double beta = coretools::sumPairwiseProduct(_XT_X_inv_X, ranksDosage);
+	
+	// calculate RSS for model
+	double RSS_model = 0.0;
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		double tmp = _ranksData[i] - beta * ranksDosage[i];
+		RSS_model += tmp * tmp;
 	}
-	return(sum);
-}
-*/
+	return RSS_model;
+}		
 
-double TSpearmanGWASPopulation::_sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage){
-	double sum = 0.0;
-	for(size_t i = 0; i < _data.size(); ++i){
-		sum += _ranksData[i] * ranksDosage[ _bootstraps[b][i] ];
+double TSpearmanGWASPopulation::_regressAndCalulateRSSModelBootstrap(size_t bootstrapIdx, const std::vector<double> & ranksDosage){
+	// run regression
+	double beta = 0.0;
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		beta += _XT_X_inv_X[i] * ranksDosage[ _bootstraps[bootstrapIdx][i] ];
 	}
-	return(sum);
-}
 
-/*
-double TSpearmanGWASPopulation::calcSpearmanRhoAndBootstrap(std::vector<double> & bootstrapsRho){
-	auto ranksDosage = coretools::ranks(_dosage);
-	auto meanVarRanksDosage = coretools::meanVar(ranksDosage);
+	// calculate RSS for model
+	double RSS_model = 0.0;
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		double tmp = _ranksData[i] - beta * ranksDosage[ _bootstraps[bootstrapIdx][i] ];
+		RSS_model += tmp * tmp;
+	}
+	return RSS_model;
+}	
 
-	double productOfMeans = _meanVarRanksData.first * meanVarRanksDosage.first;
-	double sqrtProductOfVariances = sqrt(_meanVarRanksData.second * meanVarRanksDosage.second);
+double TSpearmanGWASPopulation::regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRSSModel){
+	std::vector<double> ranksDosage = coretools::ranks(_dosage);
+	coretools::standardizeZeroMeanUnitVar(ranksDosage);
 
 	// fill bootstraps
 	for(size_t b = 0; b < _bootstraps.size(); ++b){
-		bootstrapsRho[b] += _calcAbsRho(_sumPairwiseProductBootstrap(b, ranksDosage), productOfMeans, sqrtProductOfVariances);	
+		bootstrapsRSSModel[b] += _regressAndCalulateRSSModelBootstrap(b, ranksDosage);	
 	}
-	return _calcAbsRho(coretools::sumPairwiseProduct(_ranksData, ranksDosage), productOfMeans, sqrtProductOfVariances);
-}
-*/
 
-double TSpearmanGWASPopulation::regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho){
-
-	std::cout << "dosage = " << coretools::str::toString(_dosage) << std::endl;
-
-
-	arma::vec ranksDosage = coretools::ranks(_dosage);
-	coretools::standardizeZeroMeanUnitVar(ranksDosage);
-
-	// prepare regression	
-	arma::mat XT_X_inv_X = arma::inv(_ranksData.t() * _ranksData).eval()(0,0) * _ranksData;	
-	double beta = (XT_X_inv_X.t() * ranksDosage).eval()(0,0);
-	
-	//calculate variance explained
-	double v = coretools::var(_ranksData);
-
-
-	std::cout << "beta = " << beta << std::endl;
-
-	
+	// return model RSS
+	return _regressAndCalulateRSSModel(ranksDosage);
 }
 
 
 //------------------------------------------------
-//THardyWeinbergTest
+// TSpearmanGWAS
 //------------------------------------------------
 
 // read data
@@ -227,6 +212,10 @@ TSpearmanGWAS::TSpearmanGWAS(){
 	logfile().write("done! (parameter 'bootstraps')");
 };
 
+double TSpearmanGWAS::_calculateF(const double RSS_null, const double RSS_model, const double F_scale){
+	return (RSS_null - RSS_model) / RSS_model * F_scale;
+}
+
 void TSpearmanGWAS::run(){
 	// open VCF reader	
 	genometools::TPopulationLikelihoodReaderLocus reader(false);
@@ -234,33 +223,43 @@ void TSpearmanGWAS::run(){
 	logfile().endIndent();
 
 	//open output file	
-	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], genometools::defaultColumnNames_reference[0], genometools::defaultColumnNames_alternative[0], "rho", "p"};	
+	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], genometools::defaultColumnNames_reference[0], genometools::defaultColumnNames_alternative[0], "F", "p"};	
 	TOutputFile out(_outname, header);	
+
+	// calculate RSS_null and F_scale
+	double RSS_null = 0.0;
+	for(size_t p = 0; p < _populations.size(); ++p){
+		RSS_null += _populations[p].RSS_nullModel();
+	}
+	double F_scale = (double) (_samples.numSamples() - _samples.numPopulations()) / (double) _samples.numPopulations();
 
 	//progress
 	coretools::TTimer timer;	
 
 	// likelihood and tmp storage
 	genometools::TPopulationLikehoodLocus< genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability > > data(_samples.numSamples());
-	std::vector<double> bootstrappedRho(_numBootstraps);
+	std::vector<double> bootstrappedRSS_model(_numBootstraps);
 
 	// run through VCF file
 	logfile().startIndent("Parsing VCF file and perform Spearman GWAS:");
 	while (reader.readDataFromVCF(data, _samples)) {
 		// update dosage for each sample in populations, calculate rho and bootstrap
-		double sumRho = 0.0;
-		std::fill(bootstrappedRho.begin(), bootstrappedRho.end(), 0.0);
+		double RSS_model = 0.0;
+		std::fill(bootstrappedRSS_model.begin(), bootstrappedRSS_model.end(), 0.0);
 	
 		for(size_t p = 0; p < _populations.size(); ++p){
 			_populations[p].updateDosage(&data[_samples.startIndex(p)]);
-			//sumRho += _populations[p].calcSpearmanRhoAndBootstrap(bootstrappedRho);
-			sumRho += _populations[p].regressSpearmanAndBootstrap(bootstrappedRho);
+			RSS_model += _populations[p].regressSpearmanAndBootstrap(bootstrappedRSS_model);			
 		}
-		
+
+		// calculate F
+		double F = _calculateF(RSS_null, RSS_model, F_scale);
+
 		// determine p value from bootstraps
 		size_t nBelow = 0;
 		for(size_t b = 0; b < _numBootstraps; ++b){
-			if(bootstrappedRho[b] < sumRho){
+			double F_bootstrap = _calculateF(RSS_null, bootstrappedRSS_model[b], F_scale);
+			if(F_bootstrap <= F){
 				++nBelow;
 			}
 		}
@@ -268,7 +267,7 @@ void TSpearmanGWAS::run(){
 
 		// output
 		reader.writePosition(out);
-		out.write(sumRho, p);
+		out.write(F, p);
 		out.endln();		
 		if(_limitLines && out.curLine() >= _maxNumLines){
 			break;
