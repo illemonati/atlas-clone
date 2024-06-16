@@ -8,9 +8,7 @@
 #ifndef TSAFFILE_H_
 #define TSAFFILE_H_
 
-#include "coretools/Containers/TView.h"
 #include "coretools/Files/TStdWriter.h"
-#include "coretools/Types/probability.h"
 #include "coretools/traits.h"
 
 #include "TBgzWriter.h"
@@ -21,7 +19,6 @@ class TSafFile {
 	std::string _prefix;
 	std::string _chr;
 
-	size_t _nCat         = 0;
 	uint64_t _offsetFreq = 0;
 	uint64_t _offsetPos  = 0;
 	size_t _nSites       = 0;
@@ -43,7 +40,7 @@ class TSafFile {
 
 public:
 	TSafFile(std::string_view Prefix, size_t nSamples)
-		: _prefix(Prefix), _nCat(2 * nSamples + 1), _freqWriter(_prefix + ".saf.gz"),
+		: _prefix(Prefix), _freqWriter(_prefix + ".saf.gz"),
 		  _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
 		constexpr char magic[8] = "safv4";
 		_freqWriter.write(magic);
@@ -56,6 +53,7 @@ public:
 		_offsetPos  = _posWriter.tell();
 	}
 
+
 	~TSafFile() {
 		if (_nSites > 0) _writeIdx();
 	}
@@ -65,7 +63,7 @@ public:
 	TSafFile &operator=(TSafFile &&)      = default;
 
 	template<typename LogContainer>
-	void write(std::string_view Chr, size_t Pos, const LogContainer& AlleleFreqs) {
+	void write(std::string_view Chr, size_t Pos, const LogContainer& AlleleFreqs, size_t lower=0) {
 		if (_chr.empty()) { // first chromosome
 			_chr = Chr;
 		} else if (_chr != Chr) { // change of chromosome
@@ -82,22 +80,18 @@ public:
 		static std::vector<float> floats;
 		floats.clear();
 
-		const auto iMax   = std::max_element(AlleleFreqs.begin(), AlleleFreqs.end());
-		const size_t pMax = std::distance(AlleleFreqs.begin(), iMax);
-		const auto first  = pMax < (AlleleFreqs.size() + 1) / 2 ? 0 : _nCat - AlleleFreqs.size();
-		const auto max    = *iMax;
-		for (auto af : AlleleFreqs) {
-			floats.push_back(static_cast<float>(coretools::underlying(af) - coretools::underlying(max)));
+		for (size_t i = lower; i <AlleleFreqs.size(); ++i) {
+			floats.push_back(static_cast<float>(coretools::underlying(AlleleFreqs[i])));
 		}
 
-		_freqWriter.write(static_cast<int>(first));
+		_freqWriter.write(static_cast<int>(lower));
 		_freqWriter.write(static_cast<int>(floats.size()));
 		_freqWriter.write(floats);
 
 		_posWriter.write(static_cast<int>(Pos)); // 0-indexed in saf-file
 
 		++_nSites;
-		_sumBand += AlleleFreqs.size();
+		_sumBand += floats.size();
 	}
 };
 
