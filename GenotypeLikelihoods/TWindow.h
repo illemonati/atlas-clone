@@ -222,6 +222,7 @@ public:
 	void fillSitesSubset(SiteSubsetType &subset, size_t readUpToDepth){
 		_fillSitesSubset(_sites, subset, readUpToDepth);
 		_masked.assign(_sites.size(), false);
+		_numMaskedSites = 0;
 		_numReadsInWindow = _usedAlignments.size();
 	}
 };
