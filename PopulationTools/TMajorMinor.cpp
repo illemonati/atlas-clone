@@ -84,9 +84,7 @@ struct TMMData {
 	genometools::Base minor;
 };
 
-TMMData failedTMMData(){
-	return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), Base::N, Base::N};
-}
+constexpr TMMData failedTMMData = {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), Base::N, Base::N};
 
 class TSkotte {
 	enum class HaploDiplo : size_t { min, first = min, second, homoFirst, het, homoSecond, max };
@@ -283,8 +281,8 @@ class TSkotte {
 	static TMMData _estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF,
 							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
 							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
-		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
-		glfs.reserve(data.size());
+		static std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
+		glfs.clear();
 
 		coretools::TStrongArray<coretools::TSumLogProbability, AllelicCombination> Ls{};
 
@@ -319,7 +317,7 @@ class TSkotte {
 		for (auto ac : usedAllelicCombinations) { LLs[ac] = Ls[ac].getSum(); }
 		const auto bestAC = impl::chooseBestAllelicCombination(LLs);
 
-		auto [MAF, bestL, major, minor] = [&glfs, bestAC, maxF, hasHaploid, hasDiploid, minMAF]() {
+		auto [MAF, bestL, major, minor] = [bestAC, maxF, hasHaploid, hasDiploid, minMAF]() {
 			if (hasHaploid) {
 				if (hasDiploid) {
 					return _iterate<true, true>(glfs, bestAC, maxF, minMAF);
@@ -341,7 +339,7 @@ class TSkotte {
 																			   : Log10Probability(LL_fixed - bestL)};
 
 		if (MAF < minMAF || variantQuality < minVariantQuality) {
-			return failedTMMData();
+			return failedTMMData;
 		}
 
 		// ensure return value uses major = ref if ref was provided
@@ -416,7 +414,7 @@ private:
 																			   : Log10Probability(LL_fixed - bestL)};
 
 		if (bestFreqs.MAF() < minMAF || variantQuality < minVariantQuality) {
-			return failedTMMData();
+			return failedTMMData;
 		}
 
 		// ensure return value uses major = ref if ref was provided
@@ -564,8 +562,9 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t counterF           = 0;
 	size_t nextPrint          = dCounter;
 
+	std::vector<TMMData> data;
 	for (auto ids = glfReader.readWindow(alleles); !ids.empty(); ids = glfReader.readWindow(alleles)) {
-		std::vector<TMMData> data(glfReader.curWindow().size());
+		data.assign(ids.back() + 1, failedTMMData);
 
 		if (alleles) {
 			// 1) when working with a subset of known alleles
@@ -613,7 +612,8 @@ template<typename Estimator> void iterate(double maxF) {
 			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.variantQuality, glfReader.data(iW), di.major,
 						  di.minor);
 		}
-		counter += ids.size() + 1;
+		counter  += ids.size();
+		counterF += (glfReader.curWindow().size() - ids.size());
 
 		// report progress
 		if (counter >= nextPrint) {
