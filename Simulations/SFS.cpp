@@ -7,7 +7,10 @@
 
 #include "SFS.h"
 #include "coretools/Files/TInputFile.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/algorithms.h"
+#include "coretools/Strings/stringManipulations.h"
+#include "coretools/Strings/fillContainer.h"
 
 namespace Simulations {
 using coretools::instances::randomGenerator;
@@ -17,23 +20,33 @@ using genometools::Base;
 //--------------------------------
 
 SFS::SFS(const std::string &filename) {
-	coretools::TInputFile in(filename.c_str(), coretools::FileType::NoHeader);
+	coretools::TInputFile in(filename.c_str(), coretools::FileType::NoHeader, coretools::str::whitespaces, "//");
 
-	for (size_t i = 0; i < in.numCols(); ++i) _numChrPerPop.push_back(in.get<size_t>(i));
+	// first line reads "SHAPE=<x,y,z>", where x, y, z are dimensions per pop	
+	auto tmp = coretools::str::readBefore(coretools::str::readAfter(in.get(0), "<"), ">");
+	coretools::str::fillContainerFromString(tmp, _dimensions, "/");
 
-	//read dimensions
-	_numChr = std::accumulate(_numChrPerPop.begin(), _numChrPerPop.end(), 0);
+	//numChr = dimensions - 1: what is given is #entries = #haplotypes + 1 
+	_numChrPerPop.resize(_dimensions.size());
+	_numChr = 0;
+	int numCells = 1;
+	for(size_t i = 0; i < _dimensions.size(); ++i){
+		_numChrPerPop[i] = _dimensions[i] - 1;
+		_numChr += _numChrPerPop[i];
+		numCells *= _dimensions[i];
+	}
 
-	//add one to each dimension as what is given is #haplotypes = #entries - 1
-	_dimensions.resize(_numChrPerPop.size());
-	for(size_t i = 0; i < _numChrPerPop.size(); ++i){
-		_dimensions[i] = _numChrPerPop[i] + 1;
+	// read linbe with values and check dimensionality
+	in.popFront();
+	if(in.numCols() != numCells){
+		UERROR("Error reading SFS from file '", filename, "': number of entries (", in.numCols(), ") does not match number of entries expected from dimensions (", numCells, ")!");
 	}
 
 	//read values
-	in.popFront();
 	std::vector<double> vec;
-	for (size_t i = 0; i < in.numCols(); ++i) vec.push_back(in.get<double>(i));
+	for (size_t i = 0; i < in.numCols(); ++i){
+		vec.push_back(in.get<double>(i));
+	} 
 
 	// now store as fraction
 	coretools::fillFromNormalized(_sfs, vec);
@@ -84,26 +97,20 @@ SFS::SFS(size_t numChr, size_t onlyThisBin) {
 }
 
 void SFS::writeToFile(const std::string& filename, bool writeLog) const {
-	std::ofstream out(filename.c_str());
-	if (!out) UERROR("Failed to open file '", filename, "' for writing!");
+	coretools::TOutputFile out(filename);
 
-	//write dimensions
-	auto it = _dimensions.begin();
-	out << *it;
-	for(; it != _dimensions.end(); ++it){
-		out << "\t" << *it - 1; //substract one as we write #haplotypes, not #entries
-	}
-	out << "\n";
+	out.writeln("#SHAPE=<" + coretools::str::concatenateString(_dimensions, "/") + ">");
 
-	if (writeLog) {
-		out << log(_sfs[0]);
-		for (size_t i = 1; i < _sfs.size(); ++i) { out << " " << log(_sfs[i]); }
+	if (writeLog) {		
+		for (size_t i = 0; i < _sfs.size(); ++i){
+			 out.write(log(_sfs[i]));
+		}
 	} else {
-		out << _sfs[0];
-		for (size_t i = 1; i < _sfs.size(); ++i) { out << " " << _sfs[i]; }
+		for (size_t i = 0; i < _sfs.size(); ++i){
+			 out.write(_sfs[i]);
+		}
 	}
-	out << "\n";
-	out.close();
+	out.endln();
 }
 
 namespace /* anonymous */ {
