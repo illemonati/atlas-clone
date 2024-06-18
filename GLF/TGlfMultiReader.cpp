@@ -349,7 +349,16 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 std::vector<size_t> TGlfMultiReader::readWindow(const SiteSubset::TAlleles& Alleles) {
 	if (!Alleles) return readWindow();
 
-	if (!_dataWindow.empty()) _curWindow.move(_curWindow.to(), _windowSize);
+	// Find chromosome in allele-list
+	while (Alleles.empty(_curWindow.refID())) {
+		if(!_moveToNextChromosome()) return {};
+	}
+
+	if (_dataWindow.empty()) { // start of chromosome
+		_curWindow.move(Alleles.begin(_curWindow.refID())->position, _windowSize);
+	} else {
+		_curWindow.move(_curWindow.to(), _windowSize);
+	}
 
 	if (_curWindow.from() >= _curChr->to()) {
 		if(!_moveToNextChromosome()) return {};

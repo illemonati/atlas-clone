@@ -93,6 +93,8 @@ void TAlleles::parse(std::string_view Filename, Morphic M) {
 	coretools::instances::logfile().conclude("Parsed ", size(), " sites on ", _nChrSites, " chromosomes.");
 
 	if (unknownChrom.size() > 0) {
+		std::sort(unknownChrom.begin(), unknownChrom.end());
+		unknownChrom.erase(std::unique(unknownChrom.begin(), unknownChrom.end()), unknownChrom.end());
 		logfile().warning("Sites of the following chromosomes were ignored because these chromosomes were not in the "
 						  "BAM header / GLF index: ",
 						  unknownChrom, ".");
