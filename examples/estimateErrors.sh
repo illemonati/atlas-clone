@@ -30,6 +30,7 @@ name="estimateErrors"
 $atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
 	   --regions bed1.bed,bed2.bed --ploidy 2,1  --window 45672 \
+	   --writeRestart \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
 	   --fixedSeed 0 --out $name --logFile $name.out
 

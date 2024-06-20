@@ -4,7 +4,6 @@
  */
 #include "TErrorEstimator.h"
 
-
 namespace GenotypeLikelihoods {
 
 using coretools::instances::logfile;
@@ -169,7 +168,9 @@ void TErrorEstimator::_identifyModels() {
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
 			} else {
-				_recal.reset(rg, mate);
+				for (auto i: _recalMap.readGroupsPooledWith(rg)) {
+					_recal.reset(i, mate);
+				}
 			}
 		}
 		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
