@@ -23,6 +23,37 @@ namespace coretools { class TOutputFile; }
 
 namespace PopulationTools{
 
+namespace SpearmanGWASimpl{
+
+//--------------------------------------------
+// TSpearmanGWASBootstraps
+//--------------------------------------------
+class TSpearmanGWASBootstraps{
+private:
+	size_t _sampleSize{0};
+	std::vector< std::vector<size_t> > _bootstraps;
+
+public:
+	TSpearmanGWASBootstraps() = default;
+	TSpearmanGWASBootstraps(size_t SampleSize, size_t NumBootstraps);
+
+	size_t sampleSize() const { return _sampleSize; }
+	size_t getBootstrappedIndex(size_t Bootstrap, size_t Index) const { return _bootstraps[Bootstrap][Index]; }
+	const std::vector<size_t>& get(size_t Bootstrap) const { return _bootstraps[Bootstrap]; } 
+};
+
+class TSpearmanGWASBootstrapLibrary{
+private:
+	size_t _numBootstraps;
+	std::map<size_t, TSpearmanGWASBootstraps> _bootstraps;
+
+public:
+	TSpearmanGWASBootstrapLibrary(size_t NumBootstraps);
+
+	size_t numBootstraps() const { return _numBootstraps; }
+	const TSpearmanGWASBootstraps& get(size_t SampleSize);
+};
+
 //------------------------------------------------
 //TSpearmanGWASPopulation
 //------------------------------------------------
@@ -30,33 +61,35 @@ class TSpearmanGWASPopulation{
 private:
 	
 	std::vector<double> _data;
+	std::vector<double> _dataWithData; // vector only containing the data of individuals with genotypic information
 	std::vector<double> _dosage; //mean posterior genotype
+	std::vector<double> _ranksDosage;
+	size_t _sampleSize;
 
-	arma::vec _ranksData;	
+	std::vector<double> _ranksData;	
 	double _RSStotal;
 	std::vector<double> _XT_X_inv_X;
-	std::vector< std::vector<size_t> > _bootstraps;
 
 	double _calcAbsRho(const double sumPairwiseProductDataDosage, const double productOfMeans, const double sqrtProductOfVariances) const;
 	double _sumPairwiseProductBootstrap(const size_t b, const std::vector<double>& ranksDosage);
 	
-	double _regressAndCalulateRSSModel(const std::vector<double> &ranksDosage);
-	double _regressAndCalulateRSSModelBootstrap(size_t bootstrapIdx, const std::vector<double> &ranksDosage);
+	void _regressSpearmanAndAddRSSBootstrap(double &RSS_null, double &RSS_model, const std::vector<size_t> &Bootstraps);
 
 public:
 	TSpearmanGWASPopulation() = default;
-	TSpearmanGWASPopulation(size_t Size);	
 	void resize(size_t Size);
 	void clear();
 	void addSample(double data);
 	void finalizeDataReading();
-	void prepareBootstraps(const size_t NumBootstraps);
 		
 	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
-	double RSS_nullModel();
-	double regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRho);
+	size_t sampleSize(){ return _sampleSize; }
+	void regressSpearmanAndAddRSS(double& RSS_null, double& RSS_model);
+	void bootstrap(std::vector<double> &RSS_null, std::vector<double> &RSS_model,
+	               TSpearmanGWASBootstrapLibrary &bootstrapLib);
 };
 
+} // end namesapce impl
 
 //------------------------------------------------
 //TSpearmanGWAS
@@ -71,13 +104,11 @@ private:
 	bool _limitLines;
 	size_t _maxNumLines;
 	size_t _numBootstraps;
+	double _bootstrapPThreshold;
 
 	//samples
     genometools::TPopulationSamples _samples;
-	std::vector<TSpearmanGWASPopulation> _populations;
-
-	//genotype data
-	//THWPopulations _populations;
+	std::vector<SpearmanGWASimpl::TSpearmanGWASPopulation> _populations;
 
 	void _openVCF();
 	void _closeVCF();

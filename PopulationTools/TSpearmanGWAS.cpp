@@ -6,6 +6,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Math/mathFunctions.h"
 
 #include "genometools/DefaultColumnNames.h"
 #include "genometools/TSampleLikelihoods.h"
@@ -19,6 +20,35 @@ using coretools::TOutputFile;
 using coretools::TInputFile;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+
+namespace SpearmanGWASimpl{
+
+//--------------------------------------------
+// TSpearmanGWASBootstraps
+//--------------------------------------------
+TSpearmanGWASBootstraps::TSpearmanGWASBootstraps(size_t SampleSize, size_t NumBootstraps){
+	_bootstraps.resize(NumBootstraps);
+	for(size_t i = 0; i < NumBootstraps; ++i){
+		_bootstraps[i].resize(SampleSize);
+		coretools::instances::randomGenerator().fillRandomOrderOfIndexes(_bootstraps[i]);
+	}
+}
+
+TSpearmanGWASBootstrapLibrary::TSpearmanGWASBootstrapLibrary(size_t NumBootstraps):
+	_numBootstraps(NumBootstraps){};
+
+const TSpearmanGWASBootstraps& TSpearmanGWASBootstrapLibrary::get(size_t SampleSize) {
+	// returnbootstrap object, create if missing
+	auto lib = _bootstraps.find(SampleSize);
+	if(lib == _bootstraps.end()){
+		_bootstraps.emplace(std::pair<size_t, TSpearmanGWASBootstraps>(
+			std::piecewise_construct,
+              std::forward_as_tuple(SampleSize),
+              std::forward_as_tuple(SampleSize, _numBootstraps)));
+		lib = _bootstraps.find(SampleSize);
+	}
+	return lib->second;
+}
 
 //------------------------------------------------
 //TSpearmanGWASPopulation
@@ -52,69 +82,76 @@ void TSpearmanGWASPopulation::finalizeDataReading(){
 
 	// prepare storage for dosage
 	_dosage.resize(_data.size());
-}
-
-void TSpearmanGWASPopulation::prepareBootstraps(const size_t NumBootstraps){
-	_bootstraps.resize(NumBootstraps);
-	for(size_t i = 0; i < NumBootstraps; ++i){
-		_bootstraps[i].resize(_data.size());
-		coretools::instances::randomGenerator().fillRandomOrderOfIndexes(_bootstraps[i]);
-	}
+	_dataWithData.resize(_data.size());
 }
 
 void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods){
+
 	// calculate dosage for each sample 
+	_sampleSize = 0;
 	for(size_t i = 0; i < _data.size(); ++i){
-		_dosage[i] = GenotypeLikelihoods[i].meanPosteriorGenotype();
-	}
-}
-
-double TSpearmanGWASPopulation::RSS_nullModel() { 
-	return _RSStotal;
-}
-
-double TSpearmanGWASPopulation::_regressAndCalulateRSSModel(const std::vector<double> & ranksDosage){
-	// run regression
-	double beta = coretools::sumPairwiseProduct(_XT_X_inv_X, ranksDosage);
-	
-	// calculate RSS for model
-	double RSS_model = 0.0;
-	for(size_t i = 0; i < _ranksData.size(); ++i){
-		double tmp = _ranksData[i] - beta * ranksDosage[i];
-		RSS_model += tmp * tmp;
-	}
-	return RSS_model;
-}		
-
-double TSpearmanGWASPopulation::_regressAndCalulateRSSModelBootstrap(size_t bootstrapIdx, const std::vector<double> & ranksDosage){
-	// run regression
-	double beta = 0.0;
-	for(size_t i = 0; i < _ranksData.size(); ++i){
-		beta += _XT_X_inv_X[i] * ranksDosage[ _bootstraps[bootstrapIdx][i] ];
+		if(!GenotypeLikelihoods[i].isMissing()){
+			_dosage[_sampleSize] = GenotypeLikelihoods[i].meanPosteriorGenotype();
+			_dataWithData[_sampleSize] = _data[i];
+			++_sampleSize;
+		}
 	}
 
-	// calculate RSS for model
-	double RSS_model = 0.0;
-	for(size_t i = 0; i < _ranksData.size(); ++i){
-		double tmp = _ranksData[i] - beta * ranksDosage[ _bootstraps[bootstrapIdx][i] ];
-		RSS_model += tmp * tmp;
-	}
-	return RSS_model;
+	//resize vectors, does not actually free storage so it can be reused for next locus.
+	_dataWithData.resize(_sampleSize);
+	_dosage.resize(_sampleSize);
 }	
 
-double TSpearmanGWASPopulation::regressSpearmanAndBootstrap(std::vector<double> & bootstrapsRSSModel){
-	std::vector<double> ranksDosage = coretools::ranks(_dosage);
-	coretools::standardizeZeroMeanUnitVar(ranksDosage);
-
-	// fill bootstraps
-	for(size_t b = 0; b < _bootstraps.size(); ++b){
-		bootstrapsRSSModel[b] += _regressAndCalulateRSSModelBootstrap(b, ranksDosage);	
+void TSpearmanGWASPopulation::regressSpearmanAndAddRSS(double& RSS_null, double& RSS_model){
+	// rank, standardize, calculate RSS of total model and prepare XT_X_inv_X for regression
+	_ranksData = coretools::ranks(_dataWithData);
+	coretools::standardizeZeroMeanUnitVar(_ranksData);
+	_XT_X_inv_X.resize(_ranksData.size());
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		_XT_X_inv_X[i] = _ranksData[i] / _RSStotal;
 	}
 
-	// return model RSS
-	return _regressAndCalulateRSSModel(ranksDosage);
+	// rank and standardize dosage
+	_ranksDosage = coretools::ranks(_dosage);
+	coretools::standardizeZeroMeanUnitVar(_ranksDosage);
+
+	// perform regression
+	double beta = coretools::sumPairwiseProduct(_XT_X_inv_X, _ranksDosage);
+	
+	// calculate RSS for null and model
+	RSS_null += coretools::sumOfSquares(_ranksData);
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		double tmp = _ranksData[i] - beta * _ranksDosage[i];
+		RSS_model += tmp * tmp;
+	}
 }
 
+void TSpearmanGWASPopulation::_regressSpearmanAndAddRSSBootstrap(double& RSS_null, double& RSS_model, const std::vector<size_t>& Bootstraps){
+	// perform regression: sum pairwise product with bootstrap
+	double beta = 0.0;
+	for(size_t i = 0; i < _sampleSize; ++i){
+		beta += _XT_X_inv_X[i] * _ranksDosage[ Bootstraps[i] ];
+	}
+	
+	// calculate RSS for null and model
+	RSS_null += coretools::sumOfSquares(_ranksData);
+	for(size_t i = 0; i < _ranksData.size(); ++i){
+		double tmp = _ranksData[i] - beta * _ranksDosage[ Bootstraps[i] ];
+		RSS_model += tmp * tmp;
+	}
+}
+
+void TSpearmanGWASPopulation::bootstrap(std::vector<double>& RSS_null, std::vector<double>& RSS_model, TSpearmanGWASBootstrapLibrary& BootstrapLib){
+	// get boostraps
+	const TSpearmanGWASBootstraps& bootstraps = BootstrapLib.get(_sampleSize);
+
+	// conduct bootstraps
+	for(size_t b = 0; b < BootstrapLib.numBootstraps(); ++b){
+		_regressSpearmanAndAddRSSBootstrap(RSS_null[b], RSS_model[b], bootstraps.get(b));
+	}
+}
+
+} // end namespace SpearmanGWASimpl
 
 //------------------------------------------------
 // TSpearmanGWAS
@@ -189,6 +226,11 @@ TSpearmanGWAS::TSpearmanGWAS(){
 		_populations[_samples.populationIndex(s)].addSample(data[_samples.sampleName(s)]);
 	}
 
+	// finalize data reading
+	for(auto& p : _populations){
+		p.finalizeDataReading();
+	}
+
 	const auto tmp     = coretools::str::readBeforeLast(_vcfFilename, ".vcf");
 	auto tag = parameters().get("out", tmp);
 	_outname = tag + "_SpearmanGWAS.txt.gz";
@@ -203,13 +245,17 @@ TSpearmanGWAS::TSpearmanGWAS(){
 	}
 
 	// num bootstraps
-	_numBootstraps = parameters().get<int>("bootstraps", 1000);
-	logfile().listFlush("Preparing ", _numBootstraps, " bootstraps ... ");
-	for(auto& p: _populations){
-		p.finalizeDataReading();
-		p.prepareBootstraps(_numBootstraps);
+	_bootstrapPThreshold = parameters().get<double>("bootstrapThreshold", 0.01);
+	if(_bootstrapPThreshold <= 0.0){
+		logfile().list("Will not conduct any bootstraps. (set 'bootstrapThreshold' > 0.0 to conduct bootstraps)");
+	} else {
+		_numBootstraps = parameters().get<int>("bootstraps", 1000);
+		if(_numBootstraps == 0){
+			logfile().list("Will not conduct any bootstraps. (set 'bootstraps' > 0 to conduct bootstraps)");
+		} else  {
+			logfile().list("Will assess p-values using  ", _numBootstraps, " bootstraps if the F-based p-value is < ", _bootstrapPThreshold, ". (parameters 'bootstraps' and 'bootstrapThreshold')");
+		}
 	}
-	logfile().write("done! (parameter 'bootstraps')");
 };
 
 double TSpearmanGWAS::_calculateF(const double RSS_null, const double RSS_model, const double F_scale){
@@ -223,51 +269,69 @@ void TSpearmanGWAS::run(){
 	logfile().endIndent();
 
 	//open output file	
-	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], genometools::defaultColumnNames_reference[0], genometools::defaultColumnNames_alternative[0], "F", "p"};	
+	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], genometools::defaultColumnNames_reference[0], genometools::defaultColumnNames_alternative[0], "F", "p", "p_bootstrap"};	
 	TOutputFile out(_outname, header);	
 
-	// calculate RSS_null and F_scale
-	double RSS_null = 0.0;
-	for(size_t p = 0; p < _populations.size(); ++p){
-		RSS_null += _populations[p].RSS_nullModel();
-	}
-	double F_scale = (double) (_samples.numSamples() - _samples.numPopulations()) / (double) _samples.numPopulations();
+	// prepare bootstrap library
+	SpearmanGWASimpl::TSpearmanGWASBootstrapLibrary bootstrapLib(_numBootstraps);	
 
 	//progress
 	coretools::TTimer timer;	
 
 	// likelihood and tmp storage
 	genometools::TPopulationLikehoodLocus< genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability > > data(_samples.numSamples());
+	std::vector<double> bootstrappedRSS_null(_numBootstraps);
 	std::vector<double> bootstrappedRSS_model(_numBootstraps);
 
 	// run through VCF file
 	logfile().startIndent("Parsing VCF file and perform Spearman GWAS:");
 	while (reader.readDataFromVCF(data, _samples)) {
 		// update dosage for each sample in populations, calculate rho and bootstrap
+		double RSS_null = 0.0;
 		double RSS_model = 0.0;
-		std::fill(bootstrappedRSS_model.begin(), bootstrappedRSS_model.end(), 0.0);
-	
+		size_t totSamples = 0;
+		
 		for(size_t p = 0; p < _populations.size(); ++p){
 			_populations[p].updateDosage(&data[_samples.startIndex(p)]);
-			RSS_model += _populations[p].regressSpearmanAndBootstrap(bootstrappedRSS_model);			
+			_populations[p].regressSpearmanAndAddRSS(RSS_null, RSS_model);		
+			totSamples += _populations[p].sampleSize();	
 		}
 
-		// calculate F
-		double F = _calculateF(RSS_null, RSS_model, F_scale);
-
-		// determine p value from bootstraps
-		size_t nBelow = 0;
-		for(size_t b = 0; b < _numBootstraps; ++b){
-			double F_bootstrap = _calculateF(RSS_null, bootstrappedRSS_model[b], F_scale);
-			if(F_bootstrap <= F){
-				++nBelow;
-			}
-		}
-		double p = (double) nBelow / (double) _numBootstraps;
+		// calculate F and p-value
+		double d1 = _populations.size();
+		double d2 = totSamples - _populations.size();
+		double Fscale = d2 / d1;
+		double F = _calculateF(RSS_null, RSS_model, Fscale);
+		coretools::Probability x = coretools::Probability((d1*F) / (d1*F + d2));
+		double p = coretools::TIncompleteBeta::incompleteBeta(d1 / 2.0, d2 / 2.0, x);
 
 		// output
 		reader.writePosition(out);
 		out.write(F, p);
+
+		// calculate p-value via bootstrap
+		if(p < _bootstrapPThreshold && _numBootstraps > 0){
+			std::fill(bootstrappedRSS_null.begin(), bootstrappedRSS_null.end(), 0.0);
+			std::fill(bootstrappedRSS_model.begin(), bootstrappedRSS_model.end(), 0.0);
+			for(size_t p = 0; p < _populations.size(); ++p){
+				_populations[p].bootstrap(bootstrappedRSS_null, bootstrappedRSS_model, bootstrapLib);
+			}
+
+			// determine p value from bootstraps
+			size_t nBelow = 0;
+			for(size_t b = 0; b < _numBootstraps; ++b){
+				double F_bootstrap = _calculateF(bootstrappedRSS_null[b], bootstrappedRSS_model[b], Fscale);
+				if(F_bootstrap <= F){
+					++nBelow;
+				}
+			}
+			double pBootstrap = (double) nBelow / (double) _numBootstraps;
+			out.write(pBootstrap);
+		} else {
+			out.write("-");
+		}
+
+		// end line and decide to break if limit lines was reached
 		out.endln();		
 		if(_limitLines && out.curLine() >= _maxNumLines){
 			break;
