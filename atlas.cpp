@@ -41,6 +41,7 @@
 #include "TPolymorphicWindowIdentifier.h"
 #include "TSexEstimator.h"
 #include "TWriteGLF.h"
+#include "TSpearmanGWAS.h"
 
 //VCF
 #include "TVcfCompare.h"
@@ -90,6 +91,7 @@ void addTaks(coretools::TMain & main) {
     main.createRegularTask<PopulationTools::TF2Estimator>("calculateF2", "Calculate F2 between different samples, and within and between populations");
 	main.createRegularTask<PopulationTools::TAncestralAlleleEstimator>("ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 	main.createRegularTask<PopulationTools::TSafEstimator>("saf", "Estimating Site Allele Frequencies");
+	main.createRegularTask<PopulationTools::TSpearmanGWAS>("SpearmanGWAS", "Running GWAS with Spearman correlation, allowing for population-specific signs");
 
     //VCF
 	main.createRegularTask<VCF::TVcfDiagnostics>("VCFDiagnostics", "Diagnosing a VCF file");

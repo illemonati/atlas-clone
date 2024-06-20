@@ -391,10 +391,11 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	const auto nChromosomes = chromosomes.size();
 
 	// sample size
-	_sampleSize = parameters().get<int>("sampleSize", 10);
-
+	logfile().startIndent("Initializing SFS:");	
+	_sampleSize = parameters().get<int>("sampleSize", 10);	
+	logfile().list("Will generate data for ", _sampleSize, " samples. (parameter 'sampleSize')");
+	
 	// read SFS
-	logfile().startIndent("Initializing SFS:");
 	if (parameters().exists("sfs")) {
 		logfile().startIndent("Reading SFS from files:");
 
@@ -471,10 +472,10 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 		}
 		logfile().done();
 
-		const size_t nChr = chromosomes[i].ploidy() * _sampleSize;
-		if (_sfs.back()->numChromosomes() != nChr) {
+		const size_t nChrCopies = chromosomes[i].ploidy() * _sampleSize;
+		if (_sfs.back()->numChromosomes() != nChrCopies) {
 			UERROR("SFS does not match sample size! It contains data for ",
-							   (*_sfs.rbegin())->numChromosomes(), " instead of ", nChr, " chromosomes.");
+							   (*_sfs.rbegin())->numChromosomes(), " instead of ", nChrCopies, " chromosomes (sum of ploidies across samples).");
 		}
 	}
 }
