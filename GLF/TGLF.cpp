@@ -44,12 +44,12 @@ void TGlfIndex::addChromosme(const genometools::TChromosome& Chr, uint64_t PosIn
 	_curChr = _posInFile.size() - 1;
 }
 
-void TGlfIndex::readChromosomes(std::string_view GLFFilename) {	
+void TGlfIndex::readChromosomes(std::string_view GLFFilename) {
 	clear();
-	for(auto in = coretools::TInputFile(_getIndexFileName(GLFFilename), coretools::FileType::Header); !in.empty(); in.popFront()){ 				
-		_chrs.appendChromosome(in.get("Chr"), in.get<uint32_t>("Length"), in.get<uint8_t>("Ploidy"));				
-		_posInFile.push_back(in.get<uint64_t>("PosInFile"));		
-	}	
+	for(auto in = coretools::TInputFile(_getIndexFileName(GLFFilename), coretools::FileType::Header); !in.empty(); in.popFront()){
+		_chrs.appendChromosome(in.get("Chr"), in.get<uint32_t>("Length"), in.get<uint8_t>("Ploidy"));
+		_posInFile.push_back(in.get<uint64_t>("PosInFile"));
+	}
 }
 
 void TGlfIndex::writeChromosmes(std::string_view GLFFilename){
@@ -86,7 +86,7 @@ void TGlfIndex::setCurChromosomeToAndCheck(std::string_view Name, uint32_t Lengt
 		UERROR("Ploidy of chromosome '", Name, "' does not match ploidy given in GLF index!");
 }
 
-bool TGlfIndex::hasSameChromosomes(const TGlfIndex &Other) const { 
+bool TGlfIndex::hasSameChromosomes(const TGlfIndex &Other) const {
 	// checks if two TGlfIndexFiles contain the same chromosomes in terms of order, names and lengths
 	// ploidy may be different (e.g. X for males and females), as well as posInFile, which depends on the amount of data
 	if(_chrs.size() != Other._chrs.size()) return false;
@@ -106,7 +106,7 @@ bool TGlfIndex::hasSameChromosomes(const TGlfIndex &Other) const {
 
 void TGlfWriter::_writeHeader(const std::string &Header) {
 	_write(_version.c_str(), 4 * sizeof(char));
-	
+
 	_header = Header;
 	if (_header.length() > 0) {
 		const uint32_t labelLength = _header.size();
@@ -136,7 +136,7 @@ void TGlfWriter::newChromosome(const genometools::TChromosome &chromosome) {
 
 	// write record type
 	const uint8_t zero8 = 0;
-	_write(&zero8, sizeof(uint8_t));	
+	_write(&zero8, sizeof(uint8_t));
 
 	// write new chromosome: length of label, label, refId, length of ref sequence, ploidy
 	const uint32_t labelLength = chromosome.name().size();
@@ -218,7 +218,7 @@ void TGlfWriter::close() {
 //---------------------------------
 
 bool TGlfReader::_readChr() {
-	// store position in file before read chromosome info	
+	// store position in file before read chromosome info
 	auto posBeforeChr = _positionInFile - 1; // substract record type
 
 	// read chromosome info
@@ -237,7 +237,7 @@ bool TGlfReader::_readChr() {
 	const auto length = _read<uint32_t>();
 	const auto ploidy = _read<uint8_t>();
 
-	// check if chromosome is in index and set cur	
+	// check if chromosome is in index and set cur
 	if(_hasIndex){
 		_index.setCurChromosomeToAndCheck(std::string_view(name, len), length, ploidy);
 	} else {
@@ -275,7 +275,7 @@ void TGlfReader::_readSNPRecord() {
 
 	// genotype likelihoods
 	_read(_genotypeLikelihoodsGLF.data(),
-	      _index.curChrNumLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
+		  _index.curChrNumLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
 
 	_genotypeLikelihoodsGLF.type = _index.curChr().isHaploid() ? Ploidy::haploid : Ploidy::diploid;
 };
@@ -287,7 +287,7 @@ void TGlfReader::open(const std::string &Filename, bool HasIndex) {
 	_open(HasIndex);
 };
 
-void TGlfReader::_open(bool HasIndex) {	
+void TGlfReader::_open(bool HasIndex) {
 	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
@@ -298,11 +298,11 @@ void TGlfReader::_open(bool HasIndex) {
 	// parse header
 	// version
 	char buffer[4];
-	_read(buffer, 4 * sizeof(char));	
+	_read(buffer, 4 * sizeof(char));
 	_glfFileVersion.assign(buffer, 4);
 
 	if (_glfFileVersion != _version)
-		UERROR("Non-supported GLF version '", _glfFileVersion, "! Are you using GLF files produced with an earlier version of ATLAS?");	
+		UERROR("Non-supported GLF version '", _glfFileVersion, "! Are you using GLF files produced with an earlier version of ATLAS?");
 
 	// header
 	const auto headerLen = _read<uint32_t>();
@@ -313,7 +313,7 @@ void TGlfReader::_open(bool HasIndex) {
 	_eof = false;
 
 	// read index file
-	_hasIndex = HasIndex;	
+	_hasIndex = HasIndex;
 	if(_hasIndex){
 		_index.readChromosomes(_filename);
 	}
@@ -327,7 +327,7 @@ void TGlfReader::_open(bool HasIndex) {
 
 const genometools::TChromosomes& TGlfReader::chromosomes(){
 	assert(_hasIndex);
-	return _index.chromosomes();	
+	return _index.chromosomes();
 }
 
 const genometools::TChromosome &TGlfReader::curChromosome() {
@@ -335,7 +335,7 @@ const genometools::TChromosome &TGlfReader::curChromosome() {
 	return _index.curChr();
 }
 
-size_t TGlfReader::lastRefID() { 
+size_t TGlfReader::lastRefID() {
 	assert(_hasIndex);
 	return _index.lastRefID();
 }
@@ -360,7 +360,7 @@ bool TGlfReader::readNext() {
 };
 
 bool TGlfReader::jumpToChr(uint32_t RefID) {
-	_index.seekChr(RefID);		
+	_index.seekChr(RefID);
 	if(gzseek64(_gzfp, _index.curChrPositionInFile(), SEEK_SET) < 0){ return false; }
 
 	// read record type
@@ -378,15 +378,15 @@ bool TGlfReader::jumpToNextChr() {
 	_index.jumpToNextChromosome();
 	return jumpToChr(_index.curChr().refID());
 }
-bool TGlfReader::jumpToAtOrFirstAfterPosition(const genometools::TGenomePosition &Position) { 
+bool TGlfReader::jumpToPositionOrBeyond(const genometools::TGenomePosition &Position) {
 	// move to correct chromosome
-	if(_position.refID() != Position.refID() || _position > Position){
+	if(_position.refID() != Position.refID()){
 		jumpToChr(Position.refID());
 	}
-	
+
+
 	// jump to first position at or after Position
-	//  if there is a position 0 on the first chromosome parsed and Position is right there
-	//  -> we will not have read anything -> do this now
+	// Assume linear GLF access, i.e. if _position > Position, assume we are at correct position
 	while (_recordType == 0 || _position < Position) {
 		if (!readNext()) return false;
 	}
@@ -396,7 +396,7 @@ bool TGlfReader::jumpToAtOrFirstAfterPosition(const genometools::TGenomePosition
 bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, genometools::TGenomeWindow Window) {
 	if (_eof) return false;
 
-	if(!jumpToAtOrFirstAfterPosition(Window.from())){ return false; }	
+	if(!jumpToPositionOrBeyond(Window.from())){ return false; }
 
 	// have we passed window?
 	if (_position > Window) return false; // no data
@@ -409,8 +409,8 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, g
 	// Assumes that windows are read in order: no jumping back!
 	if (Window < _position) { return false; }
 
-	while(Window.within(_position)){	
-		// fill in genotype likelihoods of current position		
+	while(Window.within(_position)){
+		// fill in genotype likelihoods of current position
 		GenoLikelihoods[_position - Window.from()] = _genotypeLikelihoodsGLF;
 		// read next record
 		if (!readNext()) break;         // reached eof
@@ -422,17 +422,17 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, g
 void TGlfReader::printChr() {
 	std::cout << "CHROMOSOME: '" << _index.curChr().name() << "' of length " << _index.curChr().length() << " and ploidy "
 		  << (int)_index.curChr().ploidy() << "\n";
-	
+
 	// print header
 	std::cout << "chr\tpos\tdepth\tRMS(MQ)";
 	if(_index.curChr().isHaploid()){
 		for(auto g = genometools::Base::min; g < genometools::Base::max; ++g){
 			std::cout << "\tLL(" << genometools::toString(g) << ")";
-		}		
+		}
 	} else {
 		for(auto g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
 			std::cout << "\tLL(" << genometools::toString(g) << ")";
-		}		
+		}
 	}
 	std::cout << "\n";
 };
@@ -446,9 +446,9 @@ void TGlfReader::printSite() {
 };
 
 void TGlfReader::printToEnd() { // For debugging
-	std::cout << "GLF version is " << _version << "\n";	
+	std::cout << "GLF version is " << _version << "\n";
 
-	// first chromosome	
+	// first chromosome
 	printChr();
 
 	// now parse file
@@ -461,7 +461,7 @@ void TGlfReader::printToEnd() { // For debugging
 		printSite();
 	}
 }
-void TGlfReader::writeIndex() {	
+void TGlfReader::writeIndex() {
 	// read until end
 	while(readNext()){};
 

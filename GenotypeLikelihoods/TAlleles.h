@@ -65,8 +65,8 @@ public:
 	const_iterator begin() const noexcept { return _allSites.data(); }
 	const_iterator end() const noexcept { return _allSites.data() + _allSites.size(); }
 
-	template<typename Key> size_t size(const Key& K) const noexcept { return window(K).size(); }
-	template<typename Key> bool empty(const Key& K) const noexcept { return window(K).empty(); }
+	template<typename Key> size_t size(const Key& K) const noexcept { return sites(K).size(); }
+	template<typename Key> bool empty(const Key& K) const noexcept { return sites(K).empty(); }
 
 	const_iterator begin(size_t K) const noexcept { return sites(K).begin(); }
 	const_iterator begin(std::string_view K) const noexcept { return sites(K).begin(); }

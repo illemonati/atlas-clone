@@ -193,7 +193,7 @@ public:
 	bool readNext();
 	bool jumpToChr(uint32_t RefID);
 	bool jumpToNextChr();
-	bool jumpToAtOrFirstAfterPosition(const genometools::TGenomePosition& Position);
+	bool jumpToPositionOrBeyond(const genometools::TGenomePosition& Position);
 	bool readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, genometools::TGenomeWindow Window);
 
 	// printing

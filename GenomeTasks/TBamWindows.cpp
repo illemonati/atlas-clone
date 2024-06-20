@@ -222,30 +222,30 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 	logfile().endIndent();
 }
 
-void TBamWindows::filter(GenotypeLikelihoods::TWindow &window) {
+void TBamWindows::filter(GenotypeLikelihoods::TWindow &Window) {
 	// apply site-specific filters
-	if (window.numReadsInWindow() > 0) {
+	if (Window.numReadsInWindow() > 0) {
 		// apply masks and filters
 		if (_doMasking) {
-			const auto N = window.applyMask(_mask, _considerRegions);
+			const auto N = Window.applyMask(_mask, _considerRegions);
 			logfile().list("Masking ", N, " sites.");
 		} else if (_considerRegions) {
-			const auto N = window.applyMask(_mask, _considerRegions);
+			const auto N = Window.applyMask(_mask, _considerRegions);
 			logfile().list("Masking ", N, " sites outside regions.");
 		}
 
 		// filter sites
-		if (_applyDepthFilter) { window.applyDepthFilter(_depthFilter); }
-		if (_filterCpG) { window.maskCpG(_parser.reference()); }
-		if (_downsampleDepth > 0) { window.downsample(_downsampleDepth, *_subsamplePicker); };
+		if (_applyDepthFilter) { Window.applyDepthFilter(_depthFilter); }
+		if (_filterCpG) { Window.maskCpG(_parser.reference()); }
+		if (_downsampleDepth > 0) { Window.downsample(_downsampleDepth, *_subsamplePicker); };
 	}
 
 	// apply filters on window
-	window.filter(_maxMissing, _maxRefN);
+	Window.filter(_maxMissing, _maxRefN);
 
 	// report
-	if (window.numReadsInWindow() > 0) {
-		window.dataSummary();
+	if (Window.numReadsInWindow() > 0) {
+		Window.dataSummary();
 	} else {
 		logfile().conclude("No data in this window.");
 	}

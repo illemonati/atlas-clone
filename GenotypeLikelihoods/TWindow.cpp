@@ -74,6 +74,7 @@ size_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment
 void TWindow::fillSites(size_t readUpToDepth){
 	_fillSites(_sites, readUpToDepth);
 	_masked.assign(_sites.size(), false);
+	_numMaskedSites = 0;
 	_numReadsInWindow = _usedAlignments.size();
 }
 void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites, size_t readUpToDepth) const {
@@ -224,7 +225,6 @@ void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & referenc
 };
 
 size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
-	_numMaskedSites = 0;
 	if (doInverseMasking) {
 		//only keep sites in BED
 		auto pos = from();
@@ -296,13 +296,11 @@ GenotypeLikelihoods::TBaseProbabilities TWindow::estimateBaseFrequencies() const
 
 
 void TWindow::applyDepthFilter(const coretools::TNumericRange<size_t> & DepthRange){
-	for(size_t i=0; i<size(); ++i){
-		if(!_sites[i].empty()){
-			if(DepthRange.outside(_sites[i].depth())){
-				_sites[i].clear();
-				_masked[i] = true;
-				++_numMaskedSites;
-			}
+	for (size_t i = 0; i < size(); ++i) {
+		if (DepthRange.outside(_sites[i].depth())) {
+			_sites[i].clear();
+			_masked[i] = true;
+			++_numMaskedSites;
 		}
 	}
 };

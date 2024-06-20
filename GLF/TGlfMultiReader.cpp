@@ -308,13 +308,14 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 	const size_t N = _curWindow.size();
 
 	_dataWindow.assign(N, {});
-	std::vector<size_t> numActive(N, 0);
+	static std::vector<size_t> numActive;
+	numActive.assign(N, 0);
 
 	bool allEOF=true;
 
 	for (auto reader : _activeGLFs) {
 		// find first data in window
-		reader->jumpToAtOrFirstAfterPosition(_curWindow.from());
+		reader->jumpToPositionOrBeyond(_curWindow.from());
 		if (!reader->eof()) allEOF = false;
 
 		// fill everything as noData
@@ -329,6 +330,7 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 		}
 	}
 	if (allEOF) return {};
+
 	std::vector<size_t> ids;
 	ids.reserve(_dataWindow.size());
 
@@ -347,7 +349,16 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 std::vector<size_t> TGlfMultiReader::readWindow(const SiteSubset::TAlleles& Alleles) {
 	if (!Alleles) return readWindow();
 
-	if (!_dataWindow.empty()) _curWindow.move(_curWindow.to(), _windowSize);
+	// Find chromosome in allele-list
+	while (Alleles.empty(_curWindow.refID())) {
+		if(!_moveToNextChromosome()) return {};
+	}
+
+	if (_dataWindow.empty()) { // start of chromosome
+		_curWindow.move(Alleles.begin(_curWindow.refID())->position, _windowSize);
+	} else {
+		_curWindow.move(_curWindow.to(), _windowSize);
+	}
 
 	if (_curWindow.from() >= _curChr->to()) {
 		if(!_moveToNextChromosome()) return {};
@@ -373,7 +384,7 @@ std::vector<size_t> TGlfMultiReader::readWindow(const SiteSubset::TAlleles& Alle
 	for (auto reader : _activeGLFs) {
 		// find first data in window
 		auto it = begin;
-		reader->jumpToAtOrFirstAfterPosition(it->position);
+		reader->jumpToPositionOrBeyond(it->position);
 		if (!reader->eof()) allEOF = false;
 
 		// fill everything as noData

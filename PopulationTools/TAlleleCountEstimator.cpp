@@ -178,6 +178,9 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(const TSampleLikelihoods * data, 
 			// when storing as LogProbability.
 			log_alleleFrequencyLikelihoods_h.emplace_back(std::min(alleleFrequencyLikelihoods_h[j] - logChoose.at(j), 0.0));
 		}
+	} else {
+		//this is so that function NAlleles() returns 0 instead of max value
+		log_alleleFrequencyLikelihoods_h.resize(1);
 	}
 };
 
@@ -269,6 +272,9 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods * da
 			// when storing as LogProbability.
 			log_alleleFrequencyLikelihoods_h.emplace_back(std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose.at(j), 0.0));
 		}
+	} else {
+		//this is so that function NAlleles() returns 0 instead of max value
+		log_alleleFrequencyLikelihoods_h.resize(1);
 	}
 };
 

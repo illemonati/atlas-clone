@@ -13,7 +13,7 @@ done
 # theta
 name=standard
 $atlas --task theta --bam ATLAS_simulations.bam --printAll \
-	   --extraVerbose --window 4567  \
+	   --extraVerbose --window 4567  --filterDepth 4,16 \
 	   --fixedSeed 0 --out $name --logFile $name.out
 
 # theta with downsample
