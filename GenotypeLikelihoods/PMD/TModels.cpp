@@ -1,7 +1,10 @@
 #include "TModels.h"
 #include "TReadGroupInfo.h"
+#include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods::PMD {
+using coretools::instances::logfile;
+
 void TModels::initialize(size_t NReadGroups, std::string_view PMDString, const BAM::TReadGroupMap &rgMap) {
 	_withPMD.reserve(NReadGroups);
 	for (size_t i = 0; i < NReadGroups; ++i) {
@@ -40,6 +43,14 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo) {
 void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
 	for(size_t r = 0; r < _pModels.size(); ++r){
 		RgInfo.set(r, BAM::RGInfo::InfoType::pmd, model(r).info());
+	}
+}
+
+void TModels::log(size_t rgID) const {
+	if (model(rgID).hasPMD()) {
+		_pModels[rgID]->psi()->log();
+	} else {
+		logfile().list("No PMD.");
 	}
 }
 

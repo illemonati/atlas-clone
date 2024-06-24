@@ -1,5 +1,7 @@
 #include "TFunctions.h"
+#include "SequencingError/TCovariate.h"
 #include "SequencingError/TEmpiric.h"
+#include "SequencingError/TIntercept.h"
 #include "SequencingError/TNoFunction.h"
 #include "SequencingError/TPolynomial.h"
 #include "SequencingError/TProbit.h"
@@ -14,8 +16,14 @@ auto parseFunctions(std::string_view Defs) {
 	coretools::TStrongArray<std::string_view, Covariates, coretools::index(Covariates::max) + 1> functions{};
 
 	for (auto def: TSplitter(Defs, ';')) {
-		const auto cov = coretools::str::readBefore(def, ':');
-		auto fn        = coretools::str::readAfter(def, ':');
+
+		if (stringStartsWith(def, TIntercept::name)) {
+			functions[Covariates::max] = strip(def.substr(TIntercept::name.size()), "[]");
+			continue;
+		}
+
+		const auto cov = readBefore(def, ':');
+		auto fn        = readAfter(def, ':');
 		if (fn.empty()) fn = TEmpiric<TCovariate_context>::name;
 
 		if (cov == TCovariate_context::name) {
@@ -28,10 +36,6 @@ auto parseFunctions(std::string_view Defs) {
 			functions[TCovariate_position::index] = fn;
 		} else if (cov == TCovariate_quality::name) {
 			functions[TCovariate_quality::index] = fn;
-		} else if (cov == TIntercept::name) {
-			functions[TCovariate_quality::index] = fn;
-		} else if (fn == TIntercept::name) { // intercept can be wrong way around
-			functions[TCovariate_quality::index] = cov;
 		}
 	}
 	return functions;
@@ -107,14 +111,14 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 inline auto parseFunction(std::string_view str) {
 	const auto beg = str.find('[');
 	if (beg == std::string_view::npos) { // default arguments
-		return std::make_pair(str, coretools::str::TSplitter<>("", ','));
+		return std::make_pair(str, TSplitter<>("", ','));
 	}
 	const auto end = str.find(']', beg);
 	if (end == std::string_view::npos) {
 		UERROR("Wrong format for recal function '", str, "': missing ']'! ",
 			   "Expected format is TYPE[BETAS], where [BETAS] is optional.");
 	}
-	return std::make_pair(str.substr(0, beg), coretools::str::TSplitter<>(str.substr(beg + 1, end - beg - 1), ','));
+	return std::make_pair(str.substr(0, beg), TSplitter<>(str.substr(beg + 1, end - beg - 1), ','));
 }
 
 template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t index) {
@@ -138,7 +142,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		std::array<double, 9> bs{};
 		size_t i = 0;
 		while (!Spl.empty()) {
-			coretools::str::fromString<true>(Spl.front(), bs[i]);
+			fromString<true>(Spl.front(), bs[i]);
 			Spl.popFront();
 			++i;
 		}
@@ -177,7 +181,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 			if (Spl.empty())
 				UERROR("Not enough parameters given for function ", fn->typeString(), ". Expected ",
 					   fn->numParameters(), " got ", i, " !");
-			coretools::str::fromString<true>(Spl.front(), beta);
+			fromString<true>(Spl.front(), beta);
 			Spl.popFront();
 			++i;
 		}
@@ -189,7 +193,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		double back = 0.;
 		if (Spl.empty()) fn->push_back(0.); // Initialize with at least 1 value
 		for (auto s : Spl) {
-			coretools::str::TSplitter ss(s, ':');
+			TSplitter ss(s, ':');
 			const auto i = fromString<size_t, true>(strip(ss.front()));
 			ss.popFront();
 			const auto v = fromString<double, true>(strip(ss.front()));

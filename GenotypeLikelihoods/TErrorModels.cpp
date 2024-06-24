@@ -8,13 +8,22 @@
 #include "TErrorModels.h"
 #include "GenotypeFunctions.h"
 #include "TSite.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/algorithms.h"
 
 namespace GenotypeLikelihoods{
+using coretools::instances::logfile;
 
 TErrorModels::TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
 		_pmd.initialize(RGInfo);
 		_recal.initialize(RGInfo);
+		logfile().startIndent("Using the following error Models:");
+		for (size_t rg = 0; rg < RGInfo.size(); ++rg) {
+			logfile().startIndent("Readgroup ", rg, ":");
+			_recal.log(rg);
+			_pmd.log(rg);
+		}
+		logfile().endIndent();
 };
 
 coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedBase &base) const {
@@ -66,4 +75,3 @@ TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &sit
 };
 
 }; //end namespace
-

@@ -6,11 +6,13 @@
  */
 
 #include "SequencingError/TModels.h"
+#include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
 using BAM::Mate;
+using coretools::instances::logfile;
 
 //--------------------------------------------------------------------
 // TModels
@@ -141,6 +143,29 @@ void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
 		} else {
 			RgInfo.set(r, BAM::RGInfo::InfoType::recal, rgModel.front()->info());
 		}
+	}
+}
+void TModels::log(size_t rgID) const {
+	const auto& front = RGModel(rgID).front();
+	const auto& back  = RGModel(rgID).back();
+
+	if (!front->recalibrates() && !back->recalibrates()) {
+		logfile().list("No recalibration");
+		return;
+	}
+
+	if (front->recalibrates()) {
+		logfile().startIndent("Mate 1:");
+		front->epsilon()->log();
+		front->rho()->log();
+		logfile().endIndent();
+	}
+
+	if (back->recalibrates()) {
+		logfile().startIndent("Mate 2:");
+		back->epsilon()->log();
+		back->rho()->log();
+		logfile().endIndent();
 	}
 }
 

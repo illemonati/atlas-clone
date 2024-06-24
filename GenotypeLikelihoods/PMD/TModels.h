@@ -67,6 +67,7 @@ public:
 	}
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
+	void log(size_t rgID) const;
 };
 } // namespace GenotypeLikelihoods::PMD
 

@@ -2,75 +2,50 @@
 
 . $(dirname $0)/find_atlas
 
-simulate() {
-	oname=sim_$1
-	M=000000
-	$atlas --task simulate --chrLength ${L1}$M,${LX}$M --ploidy 2,1 --depth $depth,10 $2 \
-		--fixedSeed 0 --out $1 --logFile $1.out 2> $1.err
-}
+recal="intercept[-2.5];quality:polynomial[0.95,0.01];position:polynomial[0.05];"
+noRecal="intercept[.0];quality:polynomial[1.];"
+rho="rho[[-,0.7,0.2,0.1];[0.7,-,0.2,0.1];[0.7,0.2,-,0.1];[0.7,0.1,0.2,-]]"
+wrongRho="rho[[-,0.1,0.2,0.7];[0.1,-,0.2,0.7];[0.1,0.2,-,0.7];[0.1,0.7,0.2,-]]"
 
-theta() {
-	if [[ -n $2 ]]; then
-		RG="--RGInfo eE${2}_${1}_RGInfo.json"
-		oname=theta_$1_eE$2
-	else
-		RG=""
-		oname=theta_$1
-	fi
-	$atlas --task theta --averageDepth $depth --depth $depths --chr chr1 \
-		   --bam $1.bam $RG \
-		   --fixedSeed 0 --out $oname --logFile $oname.out 2> $oname.err
-}
+delta=0.001
+M="123456"
+L="5$M"
+probs="1,0.5,0.2,0.1,0.05,0.02,0.01"
 
-estimate() {
-	oname=eE${2}_$1
-	$atlas --task estimateErrors --minDeltaLL 1e-2 \
-		--chr chr2 --ploidy $2 \
-		--bam $1.bam --fasta $1.fasta \
-		--fixedSeed 0 --out $oname --logFile $oname.out 2> $oname.err
-}
+#. $(dirname $0)/simulate --recal $recal$rho \
+#  --type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
+#  --chrLength $L --depth 10 --ploidy 2 --numReadGroups 1
 
-# Globals
-L1=10 #Mb
-LX=1  #Mb
-depths="10,5,2,1,0.5,0.2,0.1,0.05"
-depth=$(echo $depths | awk -F "," '{print $1}')
-binned="--baseQuality categorical(12,22,27,32,37,41)"
+name="thetaRaw"
+$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
 
-dup="--duplicationRate 0.5"
-recal="intercept[0.0];quality:polynomial[0.9,0.01]"
-pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.2*exp(-0.3*p)+0.01"
-pmd=""
+name="thetaRecalNoRho"
+$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --recal $recal \
+	   --fixedSeed 2 --out $name --logFile $name.out 2> $name.eout
 
-# Start here
+name="thetaRecalWrongRho"
+$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --recal $recal$wrongRho \
+	   --fixedSeed 4 --out $name --logFile $name.out 2> $name.eout
 
-runDup() {
-	dup=$1
-	name="dup${dup/./_}"
-	simulate $name "--duplicationRate $dup"
-	theta $name
-	estimate $name 1
-	theta $name 1
-	estimate $name 2
-	theta $name 2
-}
+name="thetaRecalRho"
+$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --recal $recal$rho \
+	   --fixedSeed 4 --out $name --logFile $name.out 2> $name.eout
 
-for dup in 0 0.5 0.2 0.1 0.05 0.02 0.01; do
-	runDup $dup > /dev/null &
-done
-wait
+name="EE"
+$atlas --task estimateErrors --minDeltaLL 0.1  \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --fixedSeed 5 --out $name --logFile $name.out 2> $name.eout
 
-exit
-simulate "recal_pmd" "--recal $recal --pmd $pmd"
-theta "recal_pmd" > /dev/null &
-estimate "recal_pmd" "1"
-theta "recal_pmd" "1" > /dev/null &
-estimate "recal_pmd" "2"
-theta "recal_pmd" "2"
-
-simulate "recal_pmd_dup" "--recal $recal --pmd $pmd $dup"
-theta "recal_pmd_dup" > /dev/null &
-estimate "recal_pmd_dup" "1"
-theta "recal_pmd_dup" "1" > /dev/null &
-estimate "recal_pmd_dup" "2"
-theta "recal_pmd_dup" "2"
+name="thetaEE"
+$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --RGInfo EE_RGInfo.json \
+	   --fixedSeed 6 --out $name --logFile $name.out 2> $name.eout
