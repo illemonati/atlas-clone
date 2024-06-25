@@ -2,50 +2,49 @@
 
 . $(dirname $0)/find_atlas
 
-recal="intercept[-2.5];quality:polynomial[0.95,0.01];position:polynomial[0.05];"
-noRecal="intercept[.0];quality:polynomial[1.];"
-rho="rho[[-,0.7,0.2,0.1];[0.7,-,0.2,0.1];[0.7,0.2,-,0.1];[0.7,0.1,0.2,-]]"
-wrongRho="rho[[-,0.1,0.2,0.7];[0.1,-,0.2,0.7];[0.1,0.2,-,0.7];[0.1,0.7,0.2,-]]"
+intercepts=("intercept[0];" "intercept[-2.5];" "intercept[2.5];")
+eps=("intercept[.0];quality:polynomial[1.];" "quality:polynomial[0.9,0.01];position:polynomial[0.05];")
+rhos=("rho[[-,0.33,0.33,0.33];[0.33,-,0.33,0.33];[0.33,0.33,-,0.33];[0.33,0.33,0.33,-]]" \
+		  "rho[[-,0.7,0.2,0.1];[0.7,-,0.2,0.1];[0.7,0.2,-,0.1];[0.7,0.1,0.2,-]]" \
+		  "rho[[-,0.1,0.7,0.2];[0.1,-,0.2,0.7];[0.2,0.7,-,0.1];[0.7,0.2,0.1,-]]")
+
+model0=${intercepts[1]}${eps[1]}${rhos[1]}
 
 delta=0.001
 M="123456"
 L="5$M"
 probs="1,0.5,0.2,0.1,0.05,0.02,0.01"
 
-#. $(dirname $0)/simulate --recal $recal$rho \
-#  --type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
-#  --chrLength $L --depth 10 --ploidy 2 --numReadGroups 1
+name="sim"
+$atlas --task simulate --recal $model0 \
+	--type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
+	--chrLength $L --depth 10 --ploidy 2 --numReadGroups 1 \
+--fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
-name="thetaRaw"
-$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-	   --fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
+for (( i = 0; i < ${#intercepts[@]}; i++)); do
+	for (( e = 0; e < ${#eps[@]}; e++)); do
+		for (( r = 0; r < ${#rhos[@]}; r++)); do
+			id=$i$e$r
+			model=${intercepts[$i]}${eps[$e]}${rhos[$r]}
 
-name="thetaRecalNoRho"
-$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-	   --recal $recal \
-	   --fixedSeed 2 --out $name --logFile $name.out 2> $name.eout
+			name="theta$id"
+			$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
+				--bam sim.bam --fasta sim.fasta \
+				--recal $model \
+				--out $name --logFile $name.out 2> $name.eout
+		done
+	done
+done
 
-name="thetaRecalWrongRho"
-$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-	   --recal $recal$wrongRho \
-	   --fixedSeed 4 --out $name --logFile $name.out 2> $name.eout
-
-name="thetaRecalRho"
-$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-	   --recal $recal$rho \
-	   --fixedSeed 4 --out $name --logFile $name.out 2> $name.eout
+exit
 
 name="EE"
 $atlas --task estimateErrors --minDeltaLL 0.1  \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --bam sim.bam --fasta sim.fasta \
 	   --fixedSeed 5 --out $name --logFile $name.out 2> $name.eout
 
 name="thetaEE"
-$atlas --task genotypeDistribution  --genomeWide --prob "$probs" --minDeltaLL $delta \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam sim.bam --fasta sim.fasta \
 	   --RGInfo EE_RGInfo.json \
 	   --fixedSeed 6 --out $name --logFile $name.out 2> $name.eout

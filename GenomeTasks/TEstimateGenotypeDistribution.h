@@ -47,6 +47,8 @@ private:
 	double _runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites);
 	double _LL(const std::vector<GenotypeLikelihoods::TSite>& Sites);
 
+	void _openFile();
+
 public:
 	TEstimateGenotypeDistribution();
 	void run();

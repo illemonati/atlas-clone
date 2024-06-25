@@ -22,6 +22,7 @@ TErrorModels::TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
 			logfile().startIndent("Readgroup ", rg, ":");
 			_recal.log(rg);
 			_pmd.log(rg);
+			logfile().endIndent();
 		}
 		logfile().endIndent();
 };

@@ -179,6 +179,7 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 void TEstimateGenotypeDistribution::run() {
 	_traverseBAMWindows();
 	if (_genomeWide) {
+		_openFile();
 		const auto NSites = _totSites - _totMaskedSites;
 		//full
 
@@ -213,7 +214,6 @@ void TEstimateGenotypeDistribution::run() {
 }
 
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
-	using coretools::str::toString;
 	_windows.requireReference();
 
 	_numEMIterations  = parameters().get<int>("iterations", 200);
@@ -269,9 +269,11 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 		}
 	} else {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
+		_openFile(); // will be written every Window
 	}
-
-	// Output file
+}
+void TEstimateGenotypeDistribution::_openFile() {
+	using coretools::str::toString;
 	std::vector<std::string> header{"Chr", "Start", "End"};
 	const auto sp = _probs.empty() ? "": "p1.0_";
 	header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"), toString(sp, "fracMissing")});

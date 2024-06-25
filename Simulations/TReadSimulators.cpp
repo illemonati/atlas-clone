@@ -32,6 +32,11 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 		} else {
 			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}
+		logfile().startIndent("Error Models:");
+		_recal.log(rg);
+		_pmd.log(rg);
+		logfile().endIndent();
+
 		logfile().endIndent();
 	}
 }
@@ -83,8 +88,9 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	_initializeReadGroupFrequencies(RGinfo);
 
-	_pmd.initialize(RGinfo);
 	_recal.initialize(RGinfo);
+	_pmd.initialize(RGinfo);
+
 
 	//Initialize read groups
 	logfile().startIndent("Will use the following ", _readGroups.size(), " read groups:");
