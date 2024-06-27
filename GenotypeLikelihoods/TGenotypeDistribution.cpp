@@ -9,6 +9,7 @@
 #include "GenotypeData.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/toString.h"
+#include "stattools/MLEInference/TNelderMead.h"
 
 #include <armadillo>
 
@@ -54,7 +55,9 @@ double Q(double mu, double theta_r, double theta_g,
 			for (auto g = Genotype::min; g < Genotype::max; ++g) { Q += std::log(pi[r][g]) * lkhSum[r][g]; }
 		}
 		return Q;
-	} catch (...) { return std::numeric_limits<double>::lowest(); }
+	} catch (...) {
+		return std::numeric_limits<double>::lowest();
+	}
 }
 
 TStrongArray<TBaseProbabilities, genometools::Base>	piTable(double mu, double theta) {
@@ -253,7 +256,7 @@ double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Bas
 
 THKY85::THKY85()
 	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
-	  _nelderMead([this](auto Vals) { return -impl::Q(coretools::expit(Vals[0]), std::exp(Vals[1]), std::exp(Vals[2]), _likelihoodSum); }) {
+	  _nelderMead([this](auto Vals) { return -impl::Q(coretools::expit(Vals[0]), coretools::expit(Vals[1]), coretools::expit(Vals[2]), _likelihoodSum); }) {
 }
 
 void THKY85::estimate() {
@@ -261,12 +264,18 @@ void THKY85::estimate() {
 	constexpr size_t AA_CC = 100;
 	const bool isWorthIt = _likelihoodSum[Base::A][Genotype::AA] > AA_CC*_likelihoodSum[Base::A][Genotype::CC];
 
-	if (isWorthIt && _nelderMead.minimize({coretools::logit(_mu), std::log(_theta_r), std::log(_theta_g)},
-							 10.)) {
+	const auto lMu = coretools::logit(_mu);
+	const auto lTheta_r = coretools::logit(_theta_r);
+	const auto lTheta_g = coretools::logit(_theta_g);
+
+	const stattools::TSimplex<3> simpl({lMu, lTheta_r, lTheta_g},
+									   {std::abs(lMu), std::abs(lTheta_r), std::abs(lTheta_g)});
+
+	if (isWorthIt && _nelderMead.minimize(simpl)) {
 		const auto &crds = _nelderMead.coordinates();
 		_mu              = coretools::expit(crds[0]);
-		_theta_r         = std::exp(crds[1]);
-		_theta_g         = std::exp(crds[2]);
+		_theta_r         = coretools::expit(crds[1]);
+		_theta_g         = coretools::expit(crds[2]);
 		_pi              = impl::piTable(_mu, _theta_r, _theta_g);
 	}
 	_likelihoodSum.fill({});
@@ -295,7 +304,6 @@ void THKY85::reset() {
 	_theta_g = _theta_g_init;
 	_pi      = impl::piTable(_mu, _theta_r, _theta_g);
 }
-
 
 TGenotypeLikelihoods THKY85fixedMu::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);

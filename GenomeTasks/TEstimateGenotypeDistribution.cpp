@@ -96,9 +96,11 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 			else logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
 			break;
 		}
+	}
 
-		// end loop
-		if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
+	if (deltaLL > _minDeltaLL) {
+		logfile().warning("EM has not converged after maximum number of iterations!");
+		oldLL = -std::numeric_limits<double>::infinity();
 	}
 
 	// finalize
@@ -106,6 +108,7 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 	logfile().endIndent();
 	return oldLL;
 }
+
 void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 	_totSites += window.size();
 	_totMaskedSites += window.numMaskedSites();
@@ -145,25 +148,26 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 
 void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 	// full P
-	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
-			   window.numSitesWithData(), window.fracMissing());
 
 	logfile().list("Using full data.");
 	const auto LL = _runEM(window.sites());
 
-	_out.write(_genoDist->pis(), LL);
+	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
+			   window.numSitesWithData(), window.fracMissing(), _genoDist->pis(), LL);
 
 	// downsample
+	const auto nIT = _numEMIterations;
 	for (const auto p : _probs) {
 		logfile().list("Downsampling reads to probability ", p, ".");
 		GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
 		_windows.filter(downsampled);
 
-		_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
-				   downsampled.fracMissing());
+		_numEMIterations = std::min<size_t>(10*nIT, nIT/p); // may need a bit longer
 		const auto LL_p = _runEM(downsampled.sites());
-		_out.write(_genoDist->pis(), LL_p);
+		_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
+				   downsampled.fracMissing(), _genoDist->pis(), LL_p);
 	}
+	_numEMIterations = nIT;
 
 	_out.endln();
 }
@@ -187,6 +191,7 @@ void TEstimateGenotypeDistribution::run() {
 		const auto LL  = _runEM(_sites_full);
 		const auto pis = _genoDist->pis();
 
+		const auto nIT = _numEMIterations;
 		for (size_t r = 0; r < _nRounds; ++r) {
 			if (_windows.considerRegions()) {
 				_out.write("regions", "Round", r+1);
@@ -194,19 +199,18 @@ void TEstimateGenotypeDistribution::run() {
 				_out.write("genome-wide", "Round", r+1);
 			}
 			_out.write(_stats_full.NData / NSites, NSites, _totSites - _stats_full.NMissing,
-					   double(_stats_full.NMissing - _totMaskedSites) / NSites);
-			_out.write(pis, LL);
+					   double(_stats_full.NMissing - _totMaskedSites) / NSites, pis, LL);
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
 				logfile().list("Using downsampled reads at probability ", _probs[i], ".");
+				_numEMIterations = std::min<size_t>(10*nIT, nIT/_probs[i]); // may need a bit longer
 				const auto &sites = _sites_P[r][i];
 				const auto &stat  = _stats_P[r][i];
 
 				const auto LL_i = _runEM(sites);
 				_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
-						   double(stat.NMissing - _totMaskedSites) / NSites);
-				_out.write(_genoDist->pis(), LL_i);
+						   double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
 			}
 			_out.endln();
 		}

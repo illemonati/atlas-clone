@@ -103,13 +103,13 @@ public:
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	constexpr static coretools::Probability _mu_init{1./3};
+	constexpr static double _mu_init = 1./3;
 	constexpr static double _theta_r_init = 1e-2;
 	constexpr static double _theta_g_init = 1e-4;
 
-	coretools::Probability _mu = _mu_init;
-	double _theta_r            = _theta_r_init;
-	double _theta_g            = _theta_g_init;
+	double _mu      = _mu_init;
+	double _theta_r = _theta_r_init;
+	double _theta_g = _theta_g_init;
 
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
 	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
