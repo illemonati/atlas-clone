@@ -20,7 +20,7 @@ void TFunction::log() const {
 	} else {
 		for (size_t i = 0; i < Nmax; ++i) out.append(toString(*(begin() + i), ", "));
 		out.append("...,");
-		const auto pStart = end() - 1 - Nmax;
+		const auto pStart = end() - Nmax;
 		for (size_t i = 0; i < Nmax; ++i) out.append(toString(*pStart + i, ", "));
 	}
 	out.pop_back();

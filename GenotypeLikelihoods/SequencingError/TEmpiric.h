@@ -109,7 +109,7 @@ public:
 			for (size_t j = 0; j < Nmax; ++j)
 				ret.append(toString(iis[j], ": ", _betas[iis[j]], ", "));
 			ret.append("..., ");
-			const auto jStart = iis.size() - 1 - Nmax;
+			const auto jStart = iis.size() - Nmax;
 			for (size_t j = 0; j < Nmax; ++j)
 				ret.append(toString(iis[jStart + j], ": ", _betas[iis[jStart + j]], ", "));
 		}

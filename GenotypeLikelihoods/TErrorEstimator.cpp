@@ -324,20 +324,20 @@ double TErrorEstimator::_calculateLL_updatePg() {
 }
 
 void TErrorEstimator::_writeModels(std::string_view Intro) {
-	logfile().startIndent(Intro, " pi");
+	logfile().startIndent(Intro, " Genotype Distribution");
 	for (const auto& g: _genoDist) g->log();
 	logfile().endIndent();
 
-	logfile().startIndent(Intro, " rho");
-	for (const auto& r: _rhos) r->log();
-	logfile().endIndent();
-
-	logfile().startIndent(Intro, " psi");
+	logfile().startIndent(Intro, " PMD");
 	for (const auto& p: _psis) p->log();
 	logfile().endIndent();
 
-	logfile().startIndent(Intro, " epsilon");
+	logfile().startIndent(Intro, " Sequencing Errors");
 	for (const auto& e: _epsilons) e->log();
+	logfile().endIndent();
+
+	logfile().startIndent(Intro, " Relative Errors");
+	for (const auto& r: _rhos) r->log();
 	logfile().endIndent();
 }
 
@@ -358,17 +358,16 @@ void TErrorEstimator::_runEM() {
 		logfile().number("EM Iteration:");
 		logfile().addIndent();
 
+		_updatePbbar();
+
 		if (i < _nPi) {
 			logfile().list("Estimating pi");
 			for (auto &g : _genoDist) g->estimate();
 		}
 
-		_updatePbbar();
-
-		if (i < _nEpsilon) {
-			logfile().startIndent("Estimating epsilon:");
-			_updateEpsilon(deltaLL);
-			logfile().endIndent();
+		if (i < _nPsi) {
+			logfile().list("Estimating psi");
+			for (auto &psi : _psis) psi->estimate();
 		}
 
 		if (i < _nRho) {
@@ -376,9 +375,10 @@ void TErrorEstimator::_runEM() {
 			for (auto &rho : _rhos) rho->estimate();
 		}
 
-		if (i < _nPsi) {
-			logfile().list("Estimating psi");
-			for (auto &psi : _psis) psi->estimate();
+		if (i < _nEpsilon) {
+			logfile().startIndent("Estimating epsilon:");
+			_updateEpsilon(deltaLL);
+			logfile().endIndent();
 		}
 
 		const double LL = _calculateLL_updatePg();
