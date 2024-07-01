@@ -191,8 +191,15 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 		} else {
 			_maxDupOverlap = parameters().get<size_t>(sDup);
 		}
-		_old.resize(_readGroups.size());
-		logfile().list("Will identify and mark duplicates on same readgroup where start and end do not differ more than ",
+		std::string agn = "";
+		if (parameters().exists("RGagnostic")) {
+			_old.resize(1);
+			agn = "all readgroups";
+		} else {
+			_old.resize(_readGroups.size());
+			agn = "same readgroup";
+		}
+		logfile().list("Will identify and mark duplicates on ", agn, " where start and end do not differ more than ",
 					   _maxDupOverlap, ". (parameter '", sDup, "')");
 	} else {
 		logfile().list("Will not identify and mark duplicates. (use '", sDup, "')");
@@ -219,7 +226,7 @@ bool TBamFile::_readNextAlignmentFromFile(){
 }
 
 bool TBamFile::_identifyDuplicate() {
-	const auto ID    = _curReadGroupID;
+	const auto ID    = _old.size() > 1 ? _curReadGroupID : 0;
 	const auto &pNow = curPosition();
 	const auto &pOld = _old[ID].position;
 	if (pNow.refID() != pOld.refID()) return false;
@@ -379,8 +386,13 @@ bool TBamFile::readNextAlignment(){
 	if (_resetDuplicates) _curBamAlignment.SetIsDuplicate(false);
 	if (_maxDupOverlap != _nope && !curIsDuplicate()) {
 		_numIdentifiedDuplicates       += _identifyDuplicate();
-		_old[_curReadGroupID].position = curPosition();
-		_old[_curReadGroupID].length   = curFragmentLength();
+		if (_old.size() > 1) {
+			_old[_curReadGroupID].position = curPosition();
+			_old[_curReadGroupID].length   = curFragmentLength();
+		} else {
+			_old.front().position = curPosition();
+			_old.front().length   = curFragmentLength();
+		}
 	}
 
 	//apply filters

@@ -18,6 +18,11 @@ $atlas --task filterBAM --bam $bam \
 	   --markDuplicates --keepDuplicates \
 	   --out $name --logFile $name.out
 
+name="markDupAgn"
+$atlas --task filterBAM --bam $bam \
+	   --markDuplicates --RGagnostic --keepDuplicates \
+	   --out $name --logFile $name.out
+
 bam="markDup_filtered.bam"
 name="BD_markDup"
 $atlas --task BAMDiagnostics --bam $bam \
