@@ -10,6 +10,7 @@
 #include "TSite.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/algorithms.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 using coretools::instances::logfile;
@@ -65,14 +66,40 @@ double TErrorModels::calculateLogPMDS(const BAM::TSequencedBase & base, const ge
 };
 
 TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &site) const {
+	using coretools::P;
+	using genometools::Base;
+	using genometools::Genotype;
+		
 	if (site.empty()) { return TGenotypeLikelihoods{coretools::P(1.)}; }
 	std::vector<TBaseLikelihoods> baseLikelihoods;
 	baseLikelihoods.reserve(site.depth());
 	// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-	for (const auto &d : site) { baseLikelihoods.push_back(_pmd.P_dij(d, _recal.P_dij(d))); }
+	TGenotypeLikelihoods ret{P(1.)};
 
-	// calculate genotype likelihoods
-	return getGLH(baseLikelihoods, site.depth());
+	// Normalize to max = 1
+	double max = 1.;
+	for (const auto &d : site) {
+		double nextMax = 0.;
+		const auto bLikes = _pmd.P_dij(d, _recal.P_dij(d));
+		for (auto k = Base::min; k < Base::max; ++k) {
+			const auto kk = genometools::genotype(k, k);
+			ret[kk] *= P(bLikes[k]/max);
+			nextMax = std::max<double>(ret[kk], nextMax);
+		}
+		for (const auto kl: {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+			const auto k = genometools::first(kl);
+			const auto l = genometools::second(kl);
+			ret[kl] *= P(0.5*(bLikes[k] + bLikes[l])/max);
+			nextMax = std::max<double>(ret[kl], nextMax);
+		}
+		max = nextMax;
+	}
+	for (auto& r: ret) {
+		r = P(r/max);
+	}
+
+	return ret;
+
 };
 
 }; //end namespace

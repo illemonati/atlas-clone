@@ -14,7 +14,7 @@ using coretools::logP;
 class TSiteAlleleFrequencyLikelihoods_Test : public Test {
 public:
     coretools::TRandomGenerator randomGenerator;
-    size_t N = 5;
+    static constexpr size_t N = 5;
 
     void fillSampleLikelihoodsOnlyDiploid(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> * SampleLikelihoods,
                                           const std::vector<uint32_t> & PhredScores){

@@ -21,6 +21,50 @@ using genometools::Genotype;
 using genometools::HighPrecisionPhredIntProbability;
 using GenotypeLikelihoods::TBaseLikelihoods;
 
+template<template<typename...> typename Container, typename... Args>
+GenotypeLikelihoods::TGenotypeLikelihoods getGLH(const Container<GenotypeLikelihoods::TBaseLikelihoods, Args...> &bases, const size_t size) {
+	using genometools::Base;
+	using GT = genometools::Genotype;
+	using genometools::genotype;
+	using coretools::P;
+	static_assert(std::is_enum_v<Base>);
+	// allows for vector to be longer than what is to be used
+	// do in log if depth is high
+	if (bases.size() > 50) {
+		GenotypeLikelihoods::TGenotypeData tmp{0.};
+		for (size_t i = 0; i < size; ++i) {
+			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
+				tmp[genotype(b1, b1)] += log(bases[i][b1]);
+				for (auto b2 = coretools::next(b1); b2 < Base::max; ++b2) {
+					tmp[genotype(b1, b2)] += log(0.5 * ((double)bases[i][b1] + (double)bases[i][b2]));
+				}
+			}
+		}
+
+		// standardize and de-log
+		const auto max = *std::max_element(tmp.begin(), tmp.end());
+		GenotypeLikelihoods::TGenotypeLikelihoods ret;
+		for (auto i = GT::min; i < GT::max; ++i) ret[i] = P(exp(tmp[i] - max));
+		return ret;
+	} else { // on natural scale
+		GenotypeLikelihoods::TGenotypeLikelihoods ret{P(1.)};
+		for (size_t i = 0; i < size; ++i) {
+			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
+				ret[genotype(b1, b1)] *= bases[i][b1];
+				for (auto b2 = coretools::next(b1); b2 < Base::max; ++b2) {
+					ret[genotype(b1, b2)] *= coretools::average(bases[i][b1], bases[i][b2]);
+				}
+			}
+		}
+		return ret;
+	}
+}
+
+template<template<typename...> typename Container, typename... Args>
+GenotypeLikelihoods::TGenotypeLikelihoods getGLH(const Container<GenotypeLikelihoods::TBaseLikelihoods, Args...> &bases) {
+	return getGLH(bases, bases.size());
+}
+
 class TGLF_Test_WriteRead : public ::testing::Test {
 protected:
 	std::string _filename = "testGLF.glf.gz";
@@ -78,7 +122,7 @@ public:
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
-		GenotypeLikelihoods::TGenotypeLikelihoods gtL = GenotypeLikelihoods::getGLH(bases);
+		GenotypeLikelihoods::TGenotypeLikelihoods gtL = getGLH(bases);
 		outputGLF.writeDummySite(30, 0, gtL);
 		// 5) depth = 10, all bases are A, but mapping quality is zero
 		bases.clear();
@@ -87,7 +131,7 @@ public:
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
-		gtL = GenotypeLikelihoods::getGLH(bases);
+		gtL = getGLH(bases);
 		outputGLF.writeSite(40, 0, gtL, 0);
 
 		// 6) third chromosome is empty

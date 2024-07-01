@@ -23,35 +23,29 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 		const auto ref = site.refBase;
 		if (site.empty() || ref == genometools::Base::N) continue;
 		TGenotypeLikelihoods P_g_I_di(P(1.));
+		double sum = 1.;
 		for (auto &d_ij : site) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
 			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 
 			if (isInvariant) {
-				double max = 0.;
+				double nextSum = 0.;
 				for (auto b = Base::min; b < Base::max; ++b) {
 					const auto g = genometools::genotype(b, b);
-					P_g_I_di[g] *= P_dij_I_b[b];
-					max = std::max<double>(max, P_g_I_di[g]);
+					P_g_I_di[g] *= P(P_dij_I_b[b]/sum);
+					nextSum     += P_g_I_di[g];
 				}
-				if (max < 1e-2) {
-					LL.add(max);
-					for (auto b = Base::min; b < Base::max; ++b) {
-						const auto g = genometools::genotype(b, b);
-						P_g_I_di[g].scale(max);
-					}
-				}
+				LL.add(sum);
+				sum = nextSum;
 			} else {
 				const auto P_dij_I_g = GenotypeLikelihoods::base2genotype<genometools::Ploidy::diploid>(P_dij_I_b);
-				double max           = 0.;
+				double nextSum = 0.;
 				for (auto g = Genotype::min; g < Genotype::max; ++g) {
-					P_g_I_di[g] *= P_dij_I_g[g];
-					max = std::max<double>(max, P_g_I_di[g]);
+					P_g_I_di[g] *= P(P_dij_I_g[g]/sum);
+					nextSum     += P_g_I_di[g];
 				}
-				if (max < 1e-2) {
-					LL.add(max);
-					for (auto &p : P_g_I_di) p.scale(max);
-				}
+				LL.add(sum);
+				sum = nextSum;
 			}
 		}
 		LL.add(_genoDist->normalize_add(P_g_I_di, ref));
