@@ -106,33 +106,45 @@ private:
 		using genometools::Genotype;
 		using genometools::Base;
 		using coretools::P;
+
+		constexpr auto PgI_init = []() {
+			TGenotypeLikelihoods Ps(P(1.));
+			if constexpr (Pl == genometools::Ploidy::haploid) {
+				Ps[Genotype::AC] = P(0.);
+				Ps[Genotype::AG] = P(0.);
+				Ps[Genotype::AT] = P(0.);
+				Ps[Genotype::CG] = P(0.);
+				Ps[Genotype::CT] = P(0.);
+				Ps[Genotype::GT] = P(0.);
+			}
+			return Ps;
+		}();
+
 		coretools::TSumLogProbability LL{};
 		for (const auto &site : sites) {
 			if (site.genotype == Genotype::NN) { // unknown genotype
 				const auto ref = site.refBase;
-				TGenotypeLikelihoods P_g_I_di{P(1.)};
-				double sum = 1.;
+				TGenotypeLikelihoods P_g_I_di = PgI_init;
+				double sum                    = 1.;
 				for (const auto &d_ij : site) {
 					const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 					const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
+
+					LL.add(sum);
+					const double sum_inv = 1./sum;
+					sum = 0.;
+					for (auto k = Base::min; k < Base::max; ++k) {
+						const auto kk = genometools::genotype(k, k);
+						P_g_I_di[kk] *= P(P_dij_I_b[k]*sum_inv);
+						sum      += P_g_I_di[kk];
+					}
 					if constexpr (Pl == genometools::Ploidy::diploid) {
-						const auto P_dij_I_g = base2genotype<genometools::Ploidy::diploid>(P_dij_I_b);
-						double nextSum = 0.;
-						for (auto g = Genotype::min; g < Genotype::max; ++g) {
-							P_g_I_di[g] *= P(P_dij_I_g[g]/sum);
-							nextSum     += P_g_I_di[g];
+						for (const auto kl: {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+							const auto k = genometools::first(kl);
+							const auto l = genometools::second(kl);
+							P_g_I_di[kl] *= P(0.5*(P_dij_I_b[k] + P_dij_I_b[l])*sum_inv);
+							sum     += P_g_I_di[kl];
 						}
-						LL.add(sum);
-						sum = nextSum;
-					} else {
-						double nextSum = 0.;
-						for (auto b = Base::min; b < Base::max; ++b) {
-							const auto g = genometools::genotype(b, b);
-							P_g_I_di[g] *= P(P_dij_I_b[b]/sum);
-							nextSum     += P_g_I_di[g];
-						}
-						LL.add(sum);
-						sum = nextSum;
 					}
 				}
 				LL.add(genoDist->normalize_add(P_g_I_di, ref));
