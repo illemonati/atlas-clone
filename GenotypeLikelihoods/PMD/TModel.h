@@ -48,7 +48,7 @@ struct TNoPMD final : public TModel {
 class TWithPMD final: public TModel {
 	TPsi _psi;
 public:
-	TWithPMD(std::string_view Psi) : _psi(Psi) {}
+	TWithPMD() = default;
 	TWithPMD(const BAM::RGInfo::TInfo & info) : _psi(info) {}
 
 	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept override;

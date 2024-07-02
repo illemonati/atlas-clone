@@ -47,6 +47,7 @@ class TPsi {
 	coretools::TStrongArray<coretools::TStrongArray<std::vector<SumType>, Type>, End> _tableSums;
 
 	void _fromString(std::string_view Psi);
+	void _parse(const BAM::RGInfo::TInfo & info);
 
 	template<Type From_To>
 	void _add(const BAM::TSequencedBase &data, coretools::Probability &P_g_I_di,
@@ -86,15 +87,17 @@ class TPsi {
 		} else if (ref == To) {
 			if (base == From) tSum[pos].fromTo.toFrom += 1.;
 			tSum[pos].fromTo.toSum += 1.;
-		} 
+		}
 	}
 
 public:
 
-	TPsi(std::string_view Psi); 
+	TPsi();
 	TPsi(const BAM::RGInfo::TInfo & info);
 
-	BAM::RGInfo::TInfo info() const; 
+	BAM::RGInfo::TInfo info() const;
+
+	void reset(const BAM::RGInfo::TInfo & info);
 
 	template<Type From_To>
 	coretools::Probability prob(const BAM::TSequencedBase &data) const noexcept {
@@ -126,6 +129,14 @@ public:
 	void estimateInit() noexcept;
 
 	void log() const noexcept;
+
+	Type type(End E) const noexcept {
+		return _tables[E][Type::CT].size() > _tables[E][Type::GA].size() ? Type::CT : Type::GA;
+	}
+
+	const std::vector<coretools::Probability>& vals(End E) const noexcept {
+		return _tables[E][type(E)];
+	}
 };
 } // namespace GenotypeLikelihoods::PMD
 

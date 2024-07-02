@@ -5,15 +5,18 @@
 #ifndef GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
+#include "PMD/TModel.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TGenotypeDistribution.h"
 #include "TBamWindowTraverser.h"
+#include <memory>
 
 namespace GenomeTasks {
 class TEstimateGenotypeDistribution final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
+	std::unique_ptr<GenotypeLikelihoods::PMD::TWithPMD> _pmd;
 
 	// EM
 	size_t _numEMIterations;

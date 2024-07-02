@@ -2,48 +2,43 @@
 
 . $(dirname $0)/find_atlas
 
-intercepts=("intercept[0];" "intercept[-2.5];")
-eps=("intercept[.0];quality:polynomial[1.];" "quality:polynomial[0.9,0.01];position:polynomial[0.05];")
+intercept=("intercept[0];" "intercept[-2.5];")
+eps=("quality:polynomial[1.];" "quality:polynomial[0.9,0.01];position:polynomial[0.05];")
 rhos=("rho[[-,0.33,0.33,0.33];[0.33,-,0.33,0.33];[0.33,0.33,-,0.33];[0.33,0.33,0.33,-]]" \
-		  "rho[[-,0.7,0.2,0.1];[0.7,-,0.2,0.1];[0.7,0.2,-,0.1];[0.7,0.1,0.2,-]]" \
-		  "rho[[-,0.6,0.3,0.1];[0.6,-,0.3,0.1];[0.6,0.3,-,0.1];[0.6,0.1,0.3,-]]" \
-		  "rho[[-,0.5,0.3,0.2];[0.5,-,0.3,0.2];[0.5,0.3,-,0.2];[0.5,0.2,0.3,-]]" \
-		  "rho[[-,0.1,0.7,0.2];[0.1,-,0.2,0.7];[0.2,0.7,-,0.1];[0.7,0.2,0.1,-]]")
+		  "rho[[-,0.7,0.2,0.1];[0.7,-,0.2,0.1];[0.7,0.2,-,0.1];[0.7,0.1,0.2,-]]")
+pmd="CT5:0.1*exp(-0.2*p)+0.001;GA3:0.1*exp(-0.3*p)+0.001"
 
-model0=${intercepts[1]}${eps[1]}${rhos[1]}
+model1=${intercepts[1]}${eps[1]}${rhos[1]}
 
 delta=0.001
 M="123456"
-L="5$M"
+L="10$M"
 probs="1,0.5,0.2,0.1,0.05,0.02,0.01"
 
 name="sim"
-$atlas --task simulate --recal $model0 \
+$atlas --task simulate --recal $model1 --pmd $pmd \
 	--type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
 	--chrLength $L --depth 10 --ploidy 2 --numReadGroups 1 \
 --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
-#name="theta111"
-#$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
-#	--bam sim.bam --fasta sim.fasta \
-#	--recal $model0 \
-#	--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
+name="theta0"
+$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
+	--bam sim.bam --fasta sim.fasta \
+	--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
 
-for (( i = 0; i < ${#intercepts[@]}; i++)); do
-	for (( e = 0; e < ${#eps[@]}; e++)); do
-		for (( r = 0; r < ${#rhos[@]}; r++)); do
-			id=$i$e$r
-			model=${intercepts[$i]}${eps[$e]}${rhos[$r]}
+name="theta1"
+$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
+	--bam sim.bam --fasta sim.fasta \
+	--recal $model1 --pmd $pmd \
+	--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
 
-			name="theta$id"
-			$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
-				--bam sim.bam --fasta sim.fasta \
-				--recal $model \
-				--fixedSeed $id --out $name --logFile $name.out 2> $name.eout
-		done
-	done
-done
+name="theta1doPMD"
+$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta --doPMD \
+	--bam sim.bam --fasta sim.fasta \
+	--recal $model1 --pmd $pmd \
+	--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
 
+exit
 
 name="EE"
 $atlas --task estimateErrors --minDeltaLL 0.1  \
@@ -52,6 +47,12 @@ $atlas --task estimateErrors --minDeltaLL 0.1  \
 
 name="thetaEE"
 $atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
+	   --bam sim.bam --fasta sim.fasta \
+	   --RGInfo EE_RGInfo.json \
+	   --fixedSeed 6 --out $name --logFile $name.out 2> $name.eout
+
+name="thetaEEdoPMD"
+$atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta --doPMD \
 	   --bam sim.bam --fasta sim.fasta \
 	   --RGInfo EE_RGInfo.json \
 	   --fixedSeed 6 --out $name --logFile $name.out 2> $name.eout

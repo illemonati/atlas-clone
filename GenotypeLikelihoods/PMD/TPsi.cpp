@@ -81,33 +81,38 @@ void TPsi::_fromString(std::string_view Psi) {
 			if (v.empty()) v = {P(0.)};
 }
 
-TPsi::TPsi(std::string_view Psi) {
-	_fromString(Psi);
+TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
+	_parse(Info);
 }
 
-TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
-	if (info.is_string()) {
-		_fromString(info.get<std::string_view>());
+TPsi::TPsi() {
+	for (auto &t : _tables)
+		for (auto &v : t) v.emplace_back(0.);
+}
+
+void TPsi::_parse(const BAM::RGInfo::TInfo & Info) {
+	if (Info.is_string()) {
+		_fromString(Info.get<std::string_view>());
 	} else {
 		for (auto e = End::min; e < End::max; ++e) {
 			for (auto t = Type::min; t < Type::max; ++t) {
 				auto &v        = _tables[e][t];
 				const auto key = impl::toString(t) + impl::toString(e);
-				if (!info.contains(key) || info[key].empty()) {
+				if (!Info.contains(key) || Info[key].empty()) {
 					v = {P(0.)};
 				} else {
-					if (info[key].is_string()) {
-						const auto sFunction = info[key].get<std::string_view>();
+					if (Info[key].is_string()) {
+						const auto sFunction = Info[key].get<std::string_view>();
 						if (sFunction.find('*') != sFunction.npos)
 							v = impl::exp(sFunction);
 						else
 							v = impl::empiric(sFunction);
-					} else if (info[key].is_array()) {
-						for (auto [k, d] : info[key].items()) {
+					} else if (Info[key].is_array()) {
+						for (auto [k, d] : Info[key].items()) {
 							v.emplace_back(d);
 						}
 					} else {
-						UERROR("Cannot parse json-token ", info, "!");
+						UERROR("Cannot parse json-token ", Info, "!");
 					}
 				}
 			}
@@ -132,7 +137,7 @@ BAM::RGInfo::TInfo TPsi::info() const {
 void TPsi::estimate() noexcept {
 	constexpr double PMDmin = 1e-9;
 	for (auto e = End::min; e < End::max; ++e) {
-		const auto t = _tableSums[e][Type::CT].empty() ? Type::GA : Type::CT;
+		const auto t = type(e);
 		auto &table  = _tables[e][t];
 		auto &tSum   = _tableSums[e][t];
 
@@ -155,18 +160,18 @@ void TPsi::estimateInit() noexcept {
 			auto &table = _tables[e][t];
 			table.clear();
 
-			auto &tSum  = _tableSums[e][t];
+			auto &tSum = _tableSums[e][t];
 			if (tSum.empty()) continue;
 
 			while (tSum.size() > 1) {
 				const auto &ts = tSum.back();
-				auto& ts_m     = *(tSum.end() - 2);
+				auto &ts_m     = *(tSum.end() - 2);
 
-				if (ts.fromTo.fromSum < Nmin ||  ts.fromTo.toSum < Nmin) {
+				if (ts.fromTo.fromSum < Nmin || ts.fromTo.toSum < Nmin) {
 					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
-					ts_m.fromTo.fromTo  += ts.fromTo.fromTo;
-					ts_m.fromTo.toSum   += ts.fromTo.toSum;
-					ts_m.fromTo.toFrom  += ts.fromTo.toFrom;
+					ts_m.fromTo.fromTo += ts.fromTo.fromTo;
+					ts_m.fromTo.toSum += ts.fromTo.toSum;
+					ts_m.fromTo.toFrom += ts.fromTo.toFrom;
 					tSum.pop_back();
 				} else {
 					break;
@@ -185,7 +190,6 @@ void TPsi::estimateInit() noexcept {
 				// Prepare ts for probabilistic sum
 				ts.numDenom.num   = 0.;
 				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
-
 			}
 		}
 		// Either CT or GA
@@ -221,6 +225,30 @@ void TPsi::log() const noexcept {
 		}
 	}
 	if (!hasAny) logfile().list("[]");
+}
+
+void TPsi::reset(const BAM::RGInfo::TInfo &info) {
+	for (auto e = End::min; e < End::max; ++e) {
+		for (auto t = Type::min; t < Type::max; ++t) {
+			_tables[e][t].clear();
+		}
+	}
+	_parse(info);
+
+	const auto stInit = []() {
+		SumType stInit{};
+		stInit.numDenom.num   = 0.;
+		stInit.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+		return stInit;
+	}();
+
+	for (auto e = End::min; e < End::max; ++e) {
+		if ((_tables[e][Type::CT].size() > _tables[e][Type::GA].size())) {
+			_tableSums[e][Type::CT].assign(_tables[e][Type::CT].size(), stInit);
+		} else {
+			_tableSums[e][Type::GA].assign(_tables[e][Type::GA].size(), stInit);
+		}
+	}
 }
 
 } // namespace GenotypeLikelihoods::PMD
