@@ -130,6 +130,7 @@ BAM::RGInfo::TInfo TPsi::info() const {
 }
 
 void TPsi::estimate() noexcept {
+	constexpr double PMDmin = 1e-9;
 	for (auto e = End::min; e < End::max; ++e) {
 		const auto t = _tableSums[e][Type::CT].empty() ? Type::GA : Type::CT;
 		auto &table  = _tables[e][t];
@@ -137,7 +138,8 @@ void TPsi::estimate() noexcept {
 
 		table.clear();
 		for (auto &ts : tSum) {
-			table.emplace_back(ts.numDenom.num / ts.numDenom.denom);
+			const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
+			table.emplace_back(PMD);
 			ts.numDenom.num   = 0.;
 			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
 		}
@@ -145,10 +147,10 @@ void TPsi::estimate() noexcept {
 }
 
 void TPsi::estimateInit() noexcept {
-	constexpr int Nmin = 100;
-	constexpr double psiMin = 1./Nmin/10;
+	constexpr int Nmin      = 100;
+	constexpr double PMDmin = 1e-9;
 	for (auto e = End::min; e < End::max; ++e) {
-		coretools::TStrongArray<size_t, Type> sums{};
+		coretools::TStrongArray<double, Type> sums{};
 		for (auto t = Type::min; t < Type::max; ++t) {
 			auto &table = _tables[e][t];
 			table.clear();
@@ -156,16 +158,11 @@ void TPsi::estimateInit() noexcept {
 			auto &tSum  = _tableSums[e][t];
 			if (tSum.empty()) continue;
 
-			// add up end to have enough data
-			for (size_t i = tSum.size() - 1; i > 0; --i) {
-				const auto &ts = tSum[i];
-				auto& ts_m     = tSum[i - 1]; // i > 0 -> always ok
+			while (tSum.size() > 1) {
+				const auto &ts = tSum.back();
+				auto& ts_m     = *(tSum.end() - 2);
 
-				auto merge = [](auto ts) {
-					return (ts.fromTo.fromTo <= ts.fromTo.toFrom) || (ts.fromTo.fromSum + ts.fromTo.toSum < Nmin);
-				};
-
-				if (merge(ts) || merge(ts_m)) {
+				if (ts.fromTo.fromSum < Nmin ||  ts.fromTo.toSum < Nmin) {
 					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
 					ts_m.fromTo.fromTo  += ts.fromTo.fromTo;
 					ts_m.fromTo.toSum   += ts.fromTo.toSum;
@@ -179,10 +176,16 @@ void TPsi::estimateInit() noexcept {
 			for (auto &ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				table.emplace_back(std::max(psiMin, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0, so add something small
-				sums[t] += std::max(0, ts.fromTo.fromTo - ts.fromTo.toFrom);
+				const auto PMD    = std::max(PMDmin, (fromTo - toFrom) / (1.0 - toFrom));
+				// once 0, always 0, so add something small
+
+				table.emplace_back(PMD);
+				sums[t] += table.back();
+
+				// Prepare ts for probabilistic sum
 				ts.numDenom.num   = 0.;
 				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+
 			}
 		}
 		// Either CT or GA
