@@ -103,8 +103,8 @@ public:
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	constexpr static double _mu_init = 1./3;
-	constexpr static double _theta_r_init = 1e-2;
+	constexpr static double _mu_init      = 0.5;
+	constexpr static double _theta_r_init = 1e-3;
 	constexpr static double _theta_g_init = 1e-4;
 
 	double _mu      = _mu_init;

@@ -155,22 +155,24 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 	}
 
 	// downsample
-	for (size_t r = 0; r < _nRounds; ++r) {
-		for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-			const auto p = _probs[i];
-			auto &sites  = _sites_P[r][i];
-			auto &stat   = _stats_P[r][i];
+	if (_sample == Sample::reads) {
+		for (size_t r = 0; r < _nRounds; ++r) {
+			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
+				const auto p = _probs[i];
+				auto &sites  = _sites_P[r][i];
+				auto &stat   = _stats_P[r][i];
 
-			logfile().list("Downsampling reads to probability ", p, ".");
-			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
-			_windows.filter(downsampled);
+				logfile().list("Downsampling reads to probability ", p, ".");
+				GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+				_windows.filter(downsampled);
 
-			for (const auto &site : downsampled) {
-				stat.NData += site.depth();
-				if (site.empty() || site.refBase == Base::N) {
-					++stat.NMissing;
-				} else {
-					sites.push_back(site);
+				for (const auto &site : downsampled) {
+					stat.NData += site.depth();
+					if (site.empty() || site.refBase == Base::N) {
+						++stat.NMissing;
+					} else {
+						sites.push_back(site);
+					}
 				}
 			}
 		}
@@ -192,13 +194,29 @@ void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindo
 	const auto nIT = _numEMIterations;
 	for (const auto p : _probs) {
 		logfile().list("Downsampling reads to probability ", p, ".");
-		GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
-		_windows.filter(downsampled);
 
-		_numEMIterations = std::min<size_t>(10*nIT, nIT/p); // may need a bit longer
-		const auto LL_p = _runEM(downsampled.sites());
-		_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
-				   downsampled.fracMissing(), _genoDist->pis(), LL_p);
+		_numEMIterations = std::min<size_t>(10 * nIT, nIT / p); // may need a bit longer
+
+		if (_sample == Sample::reads) {
+			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+			_windows.filter(downsampled);
+
+			const auto LL_p  = _runEM(downsampled.sites());
+			_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
+			           downsampled.fracMissing(), _genoDist->pis(), LL_p);
+		} else {
+			auto sites      = window.sites();
+			size_t depth    = 0;
+			size_t withData = 0;
+			for (auto &site : sites) {
+				site.downsample(p);
+				depth += site.depth();
+				if (!site.empty()) ++withData;
+			}
+			const auto LL_p  = _runEM(sites);
+			_out.write(double(depth)/window.numSites(), window.numSites(), withData, double(window.numSites() - withData) / window.numSites(),
+					   _genoDist->pis(), LL_p);
+		}
 		if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
 	}
 	_numEMIterations = nIT;
@@ -228,6 +246,7 @@ void TEstimateGenotypeDistribution::run() {
 
 		const auto nIT = _numEMIterations;
 		for (size_t r = 0; r < _nRounds; ++r) {
+			logfile().list("Downsampling round ", r + 1, ".");
 			if (_windows.considerRegions()) {
 				_out.write("regions", "Round", r+1);
 			} else {
@@ -239,14 +258,29 @@ void TEstimateGenotypeDistribution::run() {
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-				logfile().list("Using downsampled reads at probability ", _probs[i], ".");
 				_numEMIterations = std::min<size_t>(10*nIT, nIT/_probs[i]); // may need a bit longer
-				const auto &sites = _sites_P[r][i];
-				const auto &stat  = _stats_P[r][i];
 
-				const auto LL_i = _runEM(sites);
-				_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
-						   double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
+				if (_sample == Sample::reads) {
+					logfile().list("Using downsampled reads at probability ", _probs[i], ".");
+					const auto &sites = _sites_P[r][i];
+					const auto &stat  = _stats_P[r][i];
+
+					const auto LL_i = _runEM(sites);
+					_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
+					           double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
+				} else {
+					logfile().list("Using downsampled bases at probability ", _probs[i], ".");
+					auto sites      = _sites_full;
+					size_t depth    = 0;
+					size_t withData = 0;
+					for (auto &site : sites) {
+						site.downsample(_probs[i]);
+						depth += site.depth();
+						if (!site.empty()) ++withData;
+					}
+					const auto LL_p = _runEM(sites);
+					_out.write(double(depth)/NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(), LL_p);
+				}
 				if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
 			}
 			_out.endln();
@@ -290,7 +324,15 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 			// we will do the full probability anyway
 			_probs.erase(_probs.begin());
 		}
-		logfile().list("Will do downsampling experiment using all data, and downsampling with probabilities ", _probs, ". (parameter 'prob')");
+		const auto type = parameters().get("sample", "reads");
+		if (type == "reads") {
+			_sample = Sample::reads;
+		} else if (type == "bases") {
+			_sample = Sample::bases;
+		} else {
+			UERROR("Downsampling type ", type, " does not exist");
+		}
+		logfile().list("Will do downsampling experiment using all data, and downsampling ", type, " with probabilities ", _probs, ". (parameter 'prob')");
 	} else {
 		logfile().list("Will not do downsampling. (use parameter 'prob')");
 	}

@@ -33,7 +33,8 @@ $atlas --task genotypeDistribution --genomeWide 3 --prob "$probs" --minDeltaLL 0
 	   --fixedSeed 0 --out $name --logFile $name.out
 
 name=diploEE
-$atlas --task genotypeDistribution  --genomeWide 4 --prob "$probs" --minDeltaLL 0.1 \
+$atlas --task genotypeDistribution  --minDeltaLL 0.1 --genomeWide 4 \
+	   --prob "$probs" --sample bases \
 	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
 	   --regions diplo.bed --ploidy 2 --recal $recal --pmd $pmd \
 	   --fixedSeed 0 --out $name --logFile $name.out

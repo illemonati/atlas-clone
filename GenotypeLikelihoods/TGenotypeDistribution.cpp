@@ -264,12 +264,15 @@ void THKY85::estimate() {
 	constexpr size_t AA_CC = 100;
 	const bool isWorthIt = _likelihoodSum[Base::A][Genotype::AA] > AA_CC*_likelihoodSum[Base::A][Genotype::CC];
 
-	const auto lMu = coretools::logit(_mu);
+	const auto lMu      = coretools::logit(_mu);
 	const auto lTheta_r = coretools::logit(_theta_r);
 	const auto lTheta_g = coretools::logit(_theta_g);
+	const auto sMu      = std::max(1., lMu);
+	const auto sTheta_r = std::max(1., lTheta_r);
+	const auto sTheta_g = std::max(1., lTheta_g);
 
 	const stattools::TSimplex<3> simpl({lMu, lTheta_r, lTheta_g},
-									   {std::abs(lMu), std::abs(lTheta_r), std::abs(lTheta_g)});
+									   {sMu, sTheta_r, sTheta_g});
 
 	if (isWorthIt && _nelderMead.minimize(simpl)) {
 		const auto &crds = _nelderMead.coordinates();

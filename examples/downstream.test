@@ -19,7 +19,7 @@ name="sim"
 $atlas --task simulate --recal $model1 --pmd $pmd \
 	--type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
 	--chrLength $L --depth 10 --ploidy 2 --numReadGroups 1 \
---fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+	--fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
 
 name="theta0"
 $atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
@@ -30,13 +30,27 @@ name="theta1"
 $atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta \
 	--bam sim.bam --fasta sim.fasta \
 	--recal $model1 --pmd $pmd \
-	--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
+	--fixedSeed 2 --out $name --logFile $name.out 2> $name.eout
 
 name="theta1doPMD"
 $atlas --task genotypeDistribution --genomeWide --prob "$probs" --minDeltaLL $delta --doPMD \
 	--bam sim.bam --fasta sim.fasta \
 	--recal $model1 --pmd $pmd \
-	--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
+	--fixedSeed 2 --out $name --logFile $name.out 2> $name.eout
+
+name="theta1bases"
+$atlas --task genotypeDistribution --minDeltaLL $delta --genomeWide \
+	   --prob "$probs" --sample bases \
+	   --bam sim.bam --fasta sim.fasta \
+	   --recal $model1 --pmd $pmd \
+	   --fixedSeed 3 --out $name --logFile $name.out 2> $name.eout
+
+name="theta1doPMDbases"
+$atlas --task genotypeDistribution --minDeltaLL $delta --genomeWide --doPMD \
+	   --prob "$probs" --sample bases \
+	   --bam sim.bam --fasta sim.fasta \
+	   --recal $model1 --pmd $pmd \
+	   --fixedSeed 3 --out $name --logFile $name.out 2> $name.eout
 
 exit
 
