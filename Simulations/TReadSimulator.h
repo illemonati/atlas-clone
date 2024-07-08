@@ -82,7 +82,7 @@ protected:
 	std::string _getNextReadName();
 	void _simulateAlignmentDetails(const genometools::TGenomePosition & Position);
 	bool _simulateContamination();
-	void _addSoftclippedBases(std::vector<genometools::Base> & bases, const std::unique_ptr<coretools::probdist::TCategoricalDistribution<size_t>> & softClippedDist, BAM::TCigar & Cigar);
+	void _addSoftclippedBases(std::vector<genometools::Base> & bases, const size_t &softClipLength, BAM::TCigar & Cigar);
 	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<genometools::Base> &haplotype, size_t fragmentLength,
 								 size_t readLength, bool readIsContaminated);
 

@@ -113,15 +113,12 @@ bool TReadSimulator::_simulateContamination(){
 	return _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 }
 
-void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<size_t>> & SoftClippedDist, BAM::TCigar & Cigar){
-	if(SoftClippedDist){
-		auto len = SoftClippedDist->sample();
-		if(len > 0){
-			for (size_t i = 0; i < len; i++){
-				Bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
-			}
-			Cigar.add('S', len);
+void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases,const size_t &softClipLength, BAM::TCigar & Cigar){
+	if(softClipLength > 0){
+		for (size_t i = 0; i < softClipLength; i++){
+			Bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
 		}
+		Cigar.add('S', softClipLength);
 	}
 }
 
@@ -132,25 +129,36 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 	std::vector<Base> bases;
 	BAM::TCigar cigar;
 
+	//sample softclip lengths
+	size_t softClipLength3 = 0;
+	size_t softClipLength5 = 0;
+	if(_softClipDist3){
+		softClipLength3 = _softClipDist3->sample();
+	}
+
+	if(_softClipDist5){
+		softClipLength5 = _softClipDist5->sample();
+	}
+
 	// set read length
 	if (alignment.isReverseStrand()) {
 		alignment.setInsertSize(-fragmentLength);
-		_addSoftclippedBases(bases, _softClipDist3, cigar);
+		_addSoftclippedBases(bases, softClipLength3, cigar);
 	} else {
 		alignment.setInsertSize(fragmentLength);
-		_addSoftclippedBases(bases, _softClipDist5, cigar);
+		_addSoftclippedBases(bases, softClipLength5, cigar);
 	}
 
 	// simulate true bases
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + alignment.position() : haplotype.cbegin() + alignment.position();
-	auto len = std::min(fragmentLength, readLength);
+	auto len = std::min(fragmentLength, readLength) - softClipLength5 - softClipLength3;
 	bases.insert(bases.end(), start, start + len);
 	cigar.add('M', len);
 
 	if (alignment.isReverseStrand()) {
-		_addSoftclippedBases(bases, _softClipDist5, cigar);
+		_addSoftclippedBases(bases, softClipLength5, cigar);
 	} else {
-		_addSoftclippedBases(bases, _softClipDist3, cigar);
+		_addSoftclippedBases(bases, softClipLength3, cigar);
 	}
 	
 	// simulate true qualities
