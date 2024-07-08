@@ -46,16 +46,16 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
 
     const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AA],oneMinusError);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AC],0.5 - errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AG], (oneMinusError + errorOneThird) / 2.0);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AT],0.5 - errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::CC], errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::CG],(2.0  * errorOneThird) / 2.0);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::CT], errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::GG], errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::GT],(2.0 * errorOneThird) / 2.0);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::TT], errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AA],oneMinusError/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AC],(0.5 - errorOneThird)/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AG], (oneMinusError + errorOneThird) / 2.0/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AT],(0.5 - errorOneThird)/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::CC], errorOneThird/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::CG],(2.0  * errorOneThird) / 2.0/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::CT], errorOneThird/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::GG], errorOneThird/oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::GT],(2.0 * errorOneThird) / 2.0 / oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::TT], errorOneThird/oneMinusError);
 }
 
 //vec[AA] *= oneMinusError;
