@@ -590,20 +590,12 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 }
 
 //-----------------------------------------
-// TAlignmentSplitMerger
+// TAlignmentOverlappingReadsMerger
 //-----------------------------------------
 
-TAlignmentSplitMerger::TAlignmentSplitMerger() : TWaitingListBamTraverser("_splitMerged.bam") {
+TAlignmentOverlappingReadsMerger::TAlignmentOverlappingReadsMerger() : TWaitingListBamTraverser("_merged.bam") {
 	//parse read group settings
 	_rgSettings.initialize(_genome.bamFile().readGroupsMutable());
-
-	//allow for reads to exceed max cycle length?
-	if(_rgSettings.needTruncation() || parameters().exists("allowForLarger")){
-		_allowForLarger = true;
-		logfile().list("Adding single end reads that are longer than maxCycles to 'truncated' read group without throwing an error. (parameter 'allowForLarger')");
-	} else {
-		_allowForLarger = false;
-	}
 
 	//initialize merger, if needed
 	if(_rgSettings.needsMerging()){
@@ -611,7 +603,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TWaitingListBamTraverser("_spli
 	}
 };
 
-void TAlignmentSplitMerger::_initializeMerger() {
+void TAlignmentOverlappingReadsMerger::_initializeMerger() {
 	// check if keepAllReads is turned on
 	// TODO: what is the basic set of filters needed?
 	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){
@@ -644,7 +636,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	}
 };
 
-void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
+void TAlignmentOverlappingReadsMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 	const auto type = _rgSettings.getType(lhs.alignment.readGroupId());
 
 	if (type == ReadGroupType::single) {
@@ -672,16 +664,16 @@ void TAlignmentSplitMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignme
 	}
 }
 
-void TAlignmentSplitMerger::_handleSingle(TWaitingAlignment &lhs){
+void TAlignmentOverlappingReadsMerger::_handleSingle(TWaitingAlignment &lhs){
 	const auto &settings = _rgSettings.getSettings(lhs.alignment.readGroupId());
 
 	if(settings.type == ReadGroupType::unchanged){
 		//add as ready for writing
 		lhs.status = AlignmentStatus::ready;
 	} else if(settings.type == ReadGroupType::single || settings.type == ReadGroupType::mixed){
-		//truncate
-		if(!_allowForLarger && lhs.alignment.length() > settings.maxCycles){
-			UERROR("Length of read ", lhs.alignment.name(), " is > max cycles for its read group (",settings.maxCycles, ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
+		//truncate (allowForLarger is not an option any more)
+		if(lhs.alignment.length() > settings.maxCycles){
+			UERROR("Length of read ", lhs.alignment.name(), " is > max cycles for its read group (",settings.maxCycles, ")! ");
 		} else if(lhs.alignment.length() >= settings.maxCycles){
 			//add to truncated read group
 			lhs.alignment.setReadGroup(settings.altReadGroupId);
@@ -696,7 +688,7 @@ void TAlignmentSplitMerger::_handleSingle(TWaitingAlignment &lhs){
 	}
 };
 
-bool TAlignmentSplitMerger::_alignmentCanBeWrittenUnchanged(){
+bool TAlignmentOverlappingReadsMerger::_alignmentCanBeWrittenUnchanged(){
 	return  !_recalibrate &&
 			!_genome.bamFile().curIsPaired() &&
 			_waitingList.empty() &&

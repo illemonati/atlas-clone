@@ -109,14 +109,13 @@ public:
 };
 
 //-----------------------------------------
-// TAlignmentSplitMerger
+// TAlignmentOverlappingReadsMerger
 //-----------------------------------------
-class TAlignmentSplitMerger final
+class TAlignmentOverlappingReadsMerger final
 	: public TWaitingListBamTraverser {
 private:
 	std::unique_ptr<TAlignmentMerger> _merger;
 	TAlignmentMergerReadGroupSettings _rgSettings;
-	bool _allowForLarger;
 
 	void _initializeMerger();
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
@@ -124,7 +123,7 @@ private:
 	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:
-	TAlignmentSplitMerger();
+	TAlignmentOverlappingReadsMerger();
 	void run() {
 		traverseBAM();
 	}
