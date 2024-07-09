@@ -1,5 +1,6 @@
 #include "TEstimateGenotypeDistribution.h"
 
+#include "PMD/TPsi.h"
 #include "TGenotypeDistribution.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
@@ -7,6 +8,7 @@
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
+#include <memory>
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
@@ -41,7 +43,7 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 
 		for (auto &d_ij : site) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			const auto P_dij_I_b    = _pmd ? _pmd->P_dij(d_ij, P_dij_I_bbar) : _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 
 			LL.add(sum);
 			const double sum_inv = 1. / sum;
@@ -53,7 +55,7 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 			}
 			if (!isInvariant) {
 				for (const auto kl :
-				     {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+					 {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
 					const auto k  = genometools::first(kl);
 					const auto l  = genometools::second(kl);
 					P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
@@ -62,6 +64,22 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 			}
 		}
 		LL.add(_genoDist->normalize_add(P_g_I_di, ref));
+		if (_pmd) {
+			for (auto &d_ij : site) {
+				const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
+				_pmd->psi()->addCT(d_ij, P_g_I_di[Genotype::CC], _pmd->P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
+				_pmd->psi()->addGA(d_ij, P_g_I_di[Genotype::GG], _pmd->P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
+
+				if (!isInvariant)
+					for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
+						_pmd->psi()->addCT(d_ij, P_g_I_di[g], _pmd->P_b_bbar(g, d_ij, P_dij_I_bbar));
+					}
+				if (!isInvariant)
+					for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
+						_pmd->psi()->addGA(d_ij, P_g_I_di[g], _pmd->P_b_bbar(g, d_ij, P_dij_I_bbar));
+					}
+			}
+		}
 	}
 	if (!std::isfinite(LL.getSum())) UERROR("LL = ", LL.getSum(), "!");
 	return LL.getSum();
@@ -71,9 +89,13 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 	using coretools::str::toString;
 	// run EM
 	_genoDist->reset();
-	logfile().startIndent("Estimating ", _genoDist->typeString(), ":");
+	if (_pmd) _pmd->psi()->reset(_genome.rgInfo()[0][BAM::RGInfo::InfoType::pmd]);
+
+	const auto s = _pmd ? " and PMD:" : ":";
+	logfile().startIndent("Estimating ", _genoDist->typeString(), s);
 	logfile().startIndent("Initial values:");
 	_genoDist->log();
+	if (_pmd) _pmd->psi()->log();
 
 	// calculate initial LL
 	double oldLL   = _LL(Sites);
@@ -87,11 +109,13 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 		logfile().addIndent();
 		logfile().number("EM Iteration:");
 		_genoDist->estimate();
+		if (_pmd) _pmd->psi()->estimate();
 
 		const double LL = _LL(Sites);
 		deltaLL         = LL - oldLL;
 
 		_genoDist->log();
+		if (_pmd) _pmd->psi()->log();
 		logfile().list("Log Likelihood = ", LL);
 		logfile().list("delta LL = ", deltaLL);
 
@@ -131,22 +155,24 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 	}
 
 	// downsample
-	for (size_t r = 0; r < _nRounds; ++r) {
-		for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-			const auto p = _probs[i];
-			auto &sites  = _sites_P[r][i];
-			auto &stat   = _stats_P[r][i];
+	if (_sample == Sample::reads) {
+		for (size_t r = 0; r < _nRounds; ++r) {
+			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
+				const auto p = _probs[i];
+				auto &sites  = _sites_P[r][i];
+				auto &stat   = _stats_P[r][i];
 
-			logfile().list("Downsampling reads to probability ", p, ".");
-			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
-			_windows.filter(downsampled);
+				logfile().list("Downsampling reads to probability ", p, ".");
+				GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+				_windows.filter(downsampled);
 
-			for (const auto &site : downsampled) {
-				stat.NData += site.depth();
-				if (site.empty() || site.refBase == Base::N) {
-					++stat.NMissing;
-				} else {
-					sites.push_back(site);
+				for (const auto &site : downsampled) {
+					stat.NData += site.depth();
+					if (site.empty() || site.refBase == Base::N) {
+						++stat.NMissing;
+					} else {
+						sites.push_back(site);
+					}
 				}
 			}
 		}
@@ -154,6 +180,7 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 }
 
 void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
+	using GenotypeLikelihoods::PMD::End;
 	// full P
 
 	logfile().list("Using full data.");
@@ -161,18 +188,36 @@ void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindo
 
 	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
 			   window.numSitesWithData(), window.fracMissing(), _genoDist->pis(), LL);
+	if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
 
 	// downsample
 	const auto nIT = _numEMIterations;
 	for (const auto p : _probs) {
 		logfile().list("Downsampling reads to probability ", p, ".");
-		GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
-		_windows.filter(downsampled);
 
-		_numEMIterations = std::min<size_t>(10*nIT, nIT/p); // may need a bit longer
-		const auto LL_p = _runEM(downsampled.sites());
-		_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
-				   downsampled.fracMissing(), _genoDist->pis(), LL_p);
+		_numEMIterations = std::min<size_t>(10 * nIT, nIT / p); // may need a bit longer
+
+		if (_sample == Sample::reads) {
+			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+			_windows.filter(downsampled);
+
+			const auto LL_p  = _runEM(downsampled.sites());
+			_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
+			           downsampled.fracMissing(), _genoDist->pis(), LL_p);
+		} else {
+			auto sites      = window.sites();
+			size_t depth    = 0;
+			size_t withData = 0;
+			for (auto &site : sites) {
+				site.downsample(p);
+				depth += site.depth();
+				if (!site.empty()) ++withData;
+			}
+			const auto LL_p  = _runEM(sites);
+			_out.write(double(depth)/window.numSites(), window.numSites(), withData, double(window.numSites() - withData) / window.numSites(),
+					   _genoDist->pis(), LL_p);
+		}
+		if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
 	}
 	_numEMIterations = nIT;
 
@@ -188,6 +233,7 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 }
 
 void TEstimateGenotypeDistribution::run() {
+	using GenotypeLikelihoods::PMD::End;
 	_traverseBAMWindows();
 	if (_genomeWide) {
 		_openFile();
@@ -200,6 +246,7 @@ void TEstimateGenotypeDistribution::run() {
 
 		const auto nIT = _numEMIterations;
 		for (size_t r = 0; r < _nRounds; ++r) {
+			logfile().list("Downsampling round ", r + 1, ".");
 			if (_windows.considerRegions()) {
 				_out.write("regions", "Round", r+1);
 			} else {
@@ -207,17 +254,34 @@ void TEstimateGenotypeDistribution::run() {
 			}
 			_out.write(_stats_full.NData / NSites, NSites, _totSites - _stats_full.NMissing,
 					   double(_stats_full.NMissing - _totMaskedSites) / NSites, pis, LL);
+			if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-				logfile().list("Using downsampled reads at probability ", _probs[i], ".");
 				_numEMIterations = std::min<size_t>(10*nIT, nIT/_probs[i]); // may need a bit longer
-				const auto &sites = _sites_P[r][i];
-				const auto &stat  = _stats_P[r][i];
 
-				const auto LL_i = _runEM(sites);
-				_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
-						   double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
+				if (_sample == Sample::reads) {
+					logfile().list("Using downsampled reads at probability ", _probs[i], ".");
+					const auto &sites = _sites_P[r][i];
+					const auto &stat  = _stats_P[r][i];
+
+					const auto LL_i = _runEM(sites);
+					_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
+					           double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
+				} else {
+					logfile().list("Using downsampled bases at probability ", _probs[i], ".");
+					auto sites      = _sites_full;
+					size_t depth    = 0;
+					size_t withData = 0;
+					for (auto &site : sites) {
+						site.downsample(_probs[i]);
+						depth += site.depth();
+						if (!site.empty()) ++withData;
+					}
+					const auto LL_p = _runEM(sites);
+					_out.write(double(depth)/NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(), LL_p);
+				}
+				if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
 			}
 			_out.endln();
 		}
@@ -225,7 +289,16 @@ void TEstimateGenotypeDistribution::run() {
 }
 
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
+	using BAM::RGInfo::InfoType;
 	_windows.requireReference();
+
+	if (parameters().exists("doPMD")) {
+		logfile().list("Will re-estimate pmd per Window. (parameter 'doPMD')");
+		_pmd = std::make_unique<GenotypeLikelihoods::PMD::TWithPMD>();
+		_pmd->psi()->log();
+	} else {
+		logfile().list("Not re-estimating PMD. (use 'doPMD')");
+	}
 
 	_numEMIterations  = parameters().get<int>("iterations", 200);
 	_minDeltaLL       = parameters().get<double>("minDeltaLL", 1e-6);
@@ -241,7 +314,7 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85_mono>();
 	} else {
 		UERROR("Cannot estimate a HK85 model with a ploidy of ", ploidy, "!");
-	} 
+	}
 	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
 
 	// Downsample?
@@ -251,7 +324,15 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 			// we will do the full probability anyway
 			_probs.erase(_probs.begin());
 		}
-		logfile().list("Will do downsampling experiment using all data, and downsampling with probabilities ", _probs, ". (parameter 'prob')");
+		const auto type = parameters().get("sample", "reads");
+		if (type == "reads") {
+			_sample = Sample::reads;
+		} else if (type == "bases") {
+			_sample = Sample::bases;
+		} else {
+			UERROR("Downsampling type ", type, " does not exist");
+		}
+		logfile().list("Will do downsampling experiment using all data, and downsampling ", type, " with probabilities ", _probs, ". (parameter 'prob')");
 	} else {
 		logfile().list("Will not do downsampling. (use parameter 'prob')");
 	}
@@ -290,6 +371,7 @@ void TEstimateGenotypeDistribution::_openFile() {
 	header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"), toString(sp, "fracMissing")});
 	_genoDist->addHeader(header, sp); //, sp);
 	header.push_back(toString(sp, "LL"));
+	if (_pmd) header.insert(header.end(), {"PMD5", "PMD3"});
 
 	for (const auto p : _probs) {
 		const auto sp = toString("p", p, "_");
@@ -297,6 +379,7 @@ void TEstimateGenotypeDistribution::_openFile() {
 									 toString(sp, "fracMissing")});
 		_genoDist->addHeader(header, sp); //, sp);
 		header.push_back(toString(sp, "LL"));
+		if (_pmd) header.insert(header.end(), {toString(sp, "PMD5"), toString(sp, "PMD3")});
 	}
 
 	_out.open(_genome.outputName() + ".txt.gz");

@@ -27,7 +27,7 @@ private:
 	void _pool(const BAM::TReadGroupMap& rgMap);
 
 public:
-	void initialize(size_t NReadGroups, std::string_view PMDString, const BAM::TReadGroupMap& rgMap);
+	void initialize(size_t NReadGroups, const BAM::TReadGroupMap& rgMap);
 	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
 
 	void reset(size_t rgID) noexcept {
@@ -61,7 +61,7 @@ public:
 		return model(data).P_bbar(g, data, P_dij_bbar);
 	}
 
-	TBaseBaseProbabilities P_b_bar(genometools::Genotype g, const BAM::TSequencedBase &data,
+	TBaseBaseProbabilities P_b_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 										   const TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_b_bbar(g, data, P_dij_bbar);
 	}

@@ -5,15 +5,20 @@
 #ifndef GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
+#include "PMD/TModel.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TGenotypeDistribution.h"
 #include "TBamWindowTraverser.h"
+#include <memory>
 
 namespace GenomeTasks {
 class TEstimateGenotypeDistribution final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
+	enum class Sample {min, reads=min, bases, max};
+
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
+	std::unique_ptr<GenotypeLikelihoods::PMD::TWithPMD> _pmd;
 
 	// EM
 	size_t _numEMIterations;
@@ -24,6 +29,7 @@ private:
 	coretools::TOutputFile _out;
 	std::vector<coretools::Probability> _probs;
 	bool _genomeWide       = false;
+	Sample _sample;
 
 	// genomeWide data
 	size_t _nRounds = 1;

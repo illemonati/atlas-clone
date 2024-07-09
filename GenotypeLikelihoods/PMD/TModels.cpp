@@ -5,10 +5,10 @@
 namespace GenotypeLikelihoods::PMD {
 using coretools::instances::logfile;
 
-void TModels::initialize(size_t NReadGroups, std::string_view PMDString, const BAM::TReadGroupMap &rgMap) {
+void TModels::initialize(size_t NReadGroups, const BAM::TReadGroupMap &rgMap) {
 	_withPMD.reserve(NReadGroups);
 	for (size_t i = 0; i < NReadGroups; ++i) {
-		_withPMD.emplace_back(PMDString);
+		_withPMD.emplace_back();
 		_pModels.push_back(&_withPMD.back());
 	}
 	_pool(rgMap);

@@ -22,12 +22,6 @@ TErrorEstimator::TErrorEstimator()
 	_windows.requireReference();
 
 
-	bool fixedMu = false;
-	if (parameters().exists("fixedMu")) {
-		logfile().list("Assuming fixed mu at 1./3");
-		fixedMu = true;
-	}
-
 	// regions
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
@@ -49,8 +43,7 @@ TErrorEstimator::TErrorEstimator()
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
 			}  else {
-				fixedMu ? _genoDist.push_back(std::make_unique<THKY85fixedMu>())
-						: _genoDist.push_back(std::make_unique<THKY85>());
+				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
 	} else if (parameters().exists("chr")) {
@@ -67,8 +60,7 @@ TErrorEstimator::TErrorEstimator()
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
 			}  else {
-				fixedMu ? _genoDist.push_back(std::make_unique<THKY85fixedMu>())
-						: _genoDist.push_back(std::make_unique<THKY85>());
+				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
 	} else {
@@ -77,18 +69,15 @@ TErrorEstimator::TErrorEstimator()
 		if (ploidies.front() == 1) {
 			_genoDist.push_back(std::make_unique<THKY85_mono>());
 		} else {
-			fixedMu ? _genoDist.push_back(std::make_unique<THKY85fixedMu>())
-					: _genoDist.push_back(std::make_unique<THKY85>());
+			_genoDist.push_back(std::make_unique<THKY85>());
 		}
 	}
 
 	const auto recalModel = parameters().get("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
-	const auto pmdModel   = parameters().get("pmdModel", "CT5;GA5;CT3;GA3");
 
 	logfile().list("Initial recal model: ", recalModel);
-	logfile().list("Initial pmd model: ", pmdModel);
 	_recal.initialize(_recalMap.size(), recalModel, _recalMap);
-	_pmd.initialize(_pmdMap.size(), pmdModel, _pmdMap);
+	_pmd.initialize(_pmdMap.size(), _pmdMap);
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
@@ -215,14 +204,14 @@ void TErrorEstimator::_updatePbbar() {
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
-				_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[Genotype::CC], _pmd.P_b_bar(Genotype::CC, d_ij, P_dij_I_bbar));
-				_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[Genotype::GG], _pmd.P_b_bar(Genotype::GG, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[Genotype::CC], _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[Genotype::GG], _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
 
 				if (!isInvariant) for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
-						_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[g], _pmd.P_b_bar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[g], _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 				if (!isInvariant) for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
-						_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[g], _pmd.P_b_bar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[g], _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 
 				// Rho

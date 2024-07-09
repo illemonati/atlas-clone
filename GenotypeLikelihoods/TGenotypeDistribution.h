@@ -103,8 +103,8 @@ public:
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	constexpr static double _mu_init = 1./3;
-	constexpr static double _theta_r_init = 1e-2;
+	constexpr static double _mu_init      = 0.5;
+	constexpr static double _theta_r_init = 1e-3;
 	constexpr static double _theta_g_init = 1e-4;
 
 	double _mu      = _mu_init;
@@ -118,35 +118,6 @@ class THKY85 final : public TGenotypeDistribution {
 public:
 	static constexpr std::string_view name = "HKY85";
 	THKY85();
-
-	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
-	void estimate() override;
-	std::string_view typeString() const noexcept override { return name; }
-	void log() const override;
-	bool isInvariant() const noexcept override {return false;}
-	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
-	std::vector<double> pis() const override;
-	virtual void reset() override;
-};
-
-class THKY85fixedMu final : public TGenotypeDistribution {
-	constexpr static double _theta_r_init = 1e-2;
-	constexpr static double _theta_g_init = 1e-4;
-
-	constexpr static coretools::Probability _mu{1./3};
-	double _theta_r            = _theta_r_init;
-	double _theta_g            = _theta_g_init;
-
-	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
-	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
-	stattools::TNelderMead<2> _nelderMead;
-
-public:
-	static constexpr std::string_view name = "HKY85";
-	THKY85fixedMu();
 
 	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,

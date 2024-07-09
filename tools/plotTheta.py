@@ -51,6 +51,8 @@ if __name__ == "__main__":
         ithetas_g = []
         ithetas_r = []
         ithetas_f = []
+        iPMD5s    = []
+        iPMD3s    = []
 
         for j, key in enumerate(f.readline().split()):
             key = key.decode()
@@ -61,6 +63,8 @@ if __name__ == "__main__":
             if "theta_r" in key: ithetas_r.append(j)
             if "thetaMLE" in key: ithetas_f.append(j)
             if "expHetMLE" in key: ihets.append(j)
+            if "PMD5" in key: iPMD5s.append(j)
+            if "PMD3" in key: iPMD3s.append(j)
         f.close()
 
         # get average and std
@@ -108,6 +112,14 @@ if __name__ == "__main__":
             thetas_r = []
             for j in ithetas_r:
                 thetas_r.append(data[:, j]/theta0_r)
+
+            PMD5s = []
+            for j in iPMD5s:
+                PMD5s.append(data[:, j])
+
+            PMD3s = []
+            for j in iPMD3s:
+                PMD3s.append(data[:, j])
         else:
             label += "_Fels"
             if args.relative:
@@ -130,7 +142,9 @@ if __name__ == "__main__":
             mhets     = r_[[nanmedian(h) for h in hets]]
             if hky85_i:
                 mthetas_r = r_[[nanmedian(t) for t in thetas_r]]
-                mmus      = r_[[nanmedian(t) for t in mus]]
+                mmus      = r_[[nanmedian(m) for m in mus]]
+                mPMD5s    = r_[[nanmedian(p) for p in PMD5s]]
+                mPMD3s    = r_[[nanmedian(p) for p in PMD3s]]
         else:
             print("using mean")
             mdepths   = r_[[nanmean(d) for d in depths]]
@@ -138,14 +152,18 @@ if __name__ == "__main__":
             mhets     = r_[[nanmean(h) for h in hets]]
             if hky85_i:
                 mthetas_r = r_[[nanmean(t) for t in thetas_r]]
-                mmus      = r_[[nanmean(t) for t in mus]]
+                mmus      = r_[[nanmean(m) for m in mus]]
+                mPMD5s    = r_[[nanmean(p) for p in PMD5s]]
+                mPMD3s    = r_[[nanmean(p) for p in PMD3s]]
 
         sdepths   = r_[[nanstd(d) for d in depths]]
         sthetas_g = r_[[nanstd(t) for t in thetas_g]]
         shets     = r_[[nanstd(h) for h in hets]]
         if hky85_i:
             sthetas_r = r_[[nanstd(t) for t in thetas_r]]
-            smus      = r_[[nanstd(t) for t in mus]]
+            smus      = r_[[nanstd(m) for m in mus]]
+            sPMD5s    = r_[[nanstd(p) for p in PMD5s]]
+            sPMD3s    = r_[[nanstd(p) for p in PMD3s]]
         
         if hky85_i:
             print(label)
@@ -153,6 +171,10 @@ if __name__ == "__main__":
             print("theta_g:", mthetas_g)
             print("theta_r:", mthetas_r)
             print("mu:", mmus)
+            if len(mPMD5s) > 0:
+                print("PMD5:", mPMD5s)
+            if len(mPMD3s) > 0:
+                print("PMD3:", mPMD3s)
         else:
             print(label)
             print("depth:", mdepths)
@@ -162,7 +184,7 @@ if __name__ == "__main__":
         xma = max(max(mdepths), xma)
 
         if hky85:
-            ax1 = plt.subplot(211)
+            ax1 = plt.subplot(311)
             plt.tick_params('x', labelbottom=False)
         else:
             ax1 = plt.subplot(111)
@@ -190,7 +212,8 @@ if __name__ == "__main__":
             else: plt.ylabel(r"$\theta_f$")
 
         if hky85 and hky85_i:
-            plt.subplot(212, sharex=ax1)
+            plt.subplot(312, sharex=ax1)
+            plt.tick_params('x', labelbottom=False)
             plt.errorbar(mdepths, mthetas_r, color=col[i%nSamples], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
 
             if args.relative:
@@ -208,6 +231,14 @@ if __name__ == "__main__":
                 ymi[1] = min(ymi[1], min(mis[nonzero(mis)]))
                 plt.ylim(min(ymi[1]/1.1, yma[1]/20), yma[1]*1.1)
 
+        if hky85 and hky85_i:
+            plt.subplot(313, sharex=ax1)
+
+            plt.errorbar(mdepths, mmus, color=col[i%nSamples], xerr=sdepths, yerr=smus, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
+
+            plt.yscale("linear")
+            plt.ylim(0, 1.)
+            plt.ylabel(r"$\mu$")
 
     # All
     plt.xlabel(r"Depth")

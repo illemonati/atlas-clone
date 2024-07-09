@@ -14,6 +14,7 @@
 
 #include "coretools/Math/TSubsamplePicker.h"
 
+#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
 #include "GenotypeData.h"
@@ -44,6 +45,7 @@ public:
 	void add(const BAM::TSequencedBase &base);
 	TBaseData baseFrequencies() const noexcept;
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
+	void downsample(coretools::Probability p);
 
 	// getters
 	bool empty() const noexcept { return _bases.empty(); };

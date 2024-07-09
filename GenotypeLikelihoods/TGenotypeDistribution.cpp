@@ -264,12 +264,15 @@ void THKY85::estimate() {
 	constexpr size_t AA_CC = 100;
 	const bool isWorthIt = _likelihoodSum[Base::A][Genotype::AA] > AA_CC*_likelihoodSum[Base::A][Genotype::CC];
 
-	const auto lMu = coretools::logit(_mu);
+	const auto lMu      = coretools::logit(_mu);
 	const auto lTheta_r = coretools::logit(_theta_r);
 	const auto lTheta_g = coretools::logit(_theta_g);
+	const auto sMu      = std::max(1., lMu);
+	const auto sTheta_r = std::max(1., lTheta_r);
+	const auto sTheta_g = std::max(1., lTheta_g);
 
 	const stattools::TSimplex<3> simpl({lMu, lTheta_r, lTheta_g},
-									   {std::abs(lMu), std::abs(lTheta_r), std::abs(lTheta_g)});
+									   {sMu, sTheta_r, sTheta_g});
 
 	if (isWorthIt && _nelderMead.minimize(simpl)) {
 		const auto &crds = _nelderMead.coordinates();
@@ -304,75 +307,6 @@ void THKY85::reset() {
 	_theta_g = _theta_g_init;
 	_pi      = impl::piTable(_mu, _theta_r, _theta_g);
 }
-
-TGenotypeLikelihoods THKY85fixedMu::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);
-}
-
-coretools::Probability THKY85fixedMu::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-																   Genotype genotype) const {
-	// if first == second, then 0.5*first + 0.5*first = first
-	return coretools::average(baseLikelihoods[genometools::first(genotype)],
-							  baseLikelihoods[genometools::second(genotype)]);
-}
-
-double THKY85fixedMu::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {
-	double sum = 0;
-	// all 10
-	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		likelihoods[g] *= _pi[ref][g];
-		sum += likelihoods[g];
-	}
-	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		_likelihoodSum[ref][g] += likelihoods[g].scale(sum);
-	}
-	return sum;
-}
-
-
-THKY85fixedMu::THKY85fixedMu()
-	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
-	  _nelderMead([this](auto Vals) { return -impl::Q(_mu, std::exp(Vals[0]), std::exp(Vals[1]), _likelihoodSum); }) {
-}
-
-void THKY85fixedMu::estimate() {
-	// If likelihoodSum is totally off, it is not worth it
-	constexpr size_t AA_CC = 100;
-	const bool isWorthIt = _likelihoodSum[Base::A][Genotype::AA] > AA_CC*_likelihoodSum[Base::A][Genotype::CC];
-
-	if (isWorthIt && _nelderMead.minimize({std::log(_theta_r), std::log(_theta_g)},
-							 10.)) {
-		const auto &crds = _nelderMead.coordinates();
-		_theta_r         = std::exp(crds[0]);
-		_theta_g         = std::exp(crds[1]);
-		_pi              = impl::piTable(_mu, _theta_r, _theta_g);
-	}
-	_likelihoodSum.fill({});
-}
-
-void THKY85fixedMu::log() const {
-	logfile().list(name, ": mu=", _mu, ", theta_r=", _theta_r, ", theta_g=", _theta_g);
-}
-
-void THKY85fixedMu::addHeader(std::vector<std::string> &Header, std::string_view Prefix) const {
-	using coretools::str::toString;
-	Header.push_back(toString(Prefix, "mu"));
-	Header.push_back(toString(Prefix, "theta_r"));
-	Header.push_back(toString(Prefix, "theta_g"));
-	Header.push_back(toString(Prefix, "het"));
-}
-
-std::vector<double> THKY85fixedMu::pis() const {
-	return {_mu, _theta_r, _theta_g, impl::het(_mu, _theta_g)};
-}
-
-void THKY85fixedMu::reset() {
-	_likelihoodSum.fill({});
-	_theta_r = _theta_r_init;
-	_theta_g = _theta_g_init;
-	_pi      = impl::piTable(_mu, _theta_r, _theta_g);
-}
-
 
 TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return base2genotype<genometools::Ploidy::haploid>(baseLikelihoods);

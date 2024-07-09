@@ -8,6 +8,7 @@
 #include "TSite.h"
 
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 
@@ -45,6 +46,18 @@ void TSite::downsample(size_t maxDepth, const coretools::TSubsamplePicker &picke
 
 		// swap vectors
 		_bases = std::move(newBases);
+	}
+}
+
+void TSite::downsample(coretools::Probability p) {
+	using coretools::instances::randomGenerator;
+	const auto iMax  = _bases.size() - 1;
+	const auto pComp = p.complement();
+	for (int i = iMax; i >= 0; --i) {
+		if (randomGenerator().getRand() < pComp) {
+			std::swap(_bases[i], _bases.back());
+			_bases.pop_back();
+		}
 	}
 }
 
