@@ -4,23 +4,25 @@
 
 rm ./*
 
-N=2
+N=1
 
 echo "Simulating"
+
 name="simulate"
 $atlas --task simulate --type HW --F 0.1 --ploidy 2 \
-	   --depth 2 --chrLength 20123456 --sampleSize $N --fracPoly 0.1 \
+	   --depth 2 --chrLength 10000{1000} --sampleSize $N --fracPoly 0.1 \
 	   --alpha 2.0 --beta 2.0 \
-	   --out $name --logFile $name.out 2> $name.eout > /dev/null
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout > /dev/null
 
 echo "GLF"
 echo *.bam | xargs -P 6 -n 1 $atlas --task GLF --bam > /dev/null
 
-allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
+allSamples=`ls *.glf.gz | paste -s -d ',' -`","
+echo $allSamples
 
 name="normal"
 perf record -g --call-graph dwarf $atlas --task majorMinor --glf $allSamples --maxThreads 1 --method Skotte  \
-	--logFile $name.out --out $name \
+	--logFile $name.out --out $name 2> $name.eout
 
 #name="ref"
 #$atlas --task majorMinor --glf $allSamples --maxThreads 1 --fasta ATLAS_simulations.fasta --method Skotte \

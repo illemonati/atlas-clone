@@ -33,7 +33,7 @@ void TGlfIndex::addChromosme(std::string_view Name, uint32_t Length, uint8_t Plo
 		UERROR("Currently GLFs only support ploidies 1 and 2 (not ", Ploidy, ")!");
 	_chrs.appendChromosome(Name, Length, Ploidy);
 	_posInFile.push_back(PosInFile);
-	_curChr = _posInFile.size() - 1;
+	_refID = _posInFile.size() - 1;
 }
 
 void TGlfIndex::addChromosme(const genometools::TChromosome& Chr, uint64_t PosInFile){
@@ -41,7 +41,7 @@ void TGlfIndex::addChromosme(const genometools::TChromosome& Chr, uint64_t PosIn
 		UERROR("Currently GLFs only support ploidies 1 and 2 (not ", Chr.ploidy(), ")!");
 	_chrs.appendChromosome(Chr);
 	_posInFile.push_back(PosInFile);
-	_curChr = _posInFile.size() - 1;
+	_refID = _posInFile.size() - 1;
 }
 
 void TGlfIndex::readChromosomes(std::string_view GLFFilename) {
@@ -60,29 +60,37 @@ void TGlfIndex::writeChromosmes(std::string_view GLFFilename){
 }
 
 void TGlfIndex::jumpToNextChromosome() {
-	++_curChr;
-	if(_curChr == _chrs.size()){
+	++_refID;
+	if(_refID == _chrs.size()){
 		DEVERROR("Can not jump to next chromosome: already at end of GLF index!");
 	}
 }
 
 void TGlfIndex::seekChr(uint32_t RefID) {
 	if(RefID < _chrs.size()){
-		_curChr = RefID;
+		_refID = RefID;
 	} else {
 		UERROR("Chromosome with ref ID '", RefID, "' not found in GLF index!");
 	}
 }
 
-void TGlfIndex::setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy) {
-	if(!_chrs.exists(Name))
-		UERROR("Chromosome '", Name, "' not found in GLF index!");
-	_curChr = _chrs.refID(Name);
+void TGlfIndex::setCurChromosome(std::string_view Name, uint32_t Length, uint8_t Ploidy) {
+	size_t oldRefID = _refID;
 
-	if(_chrs[_curChr].length() != Length)
+	// forward
+	while (_refID < _chrs.size() && _chrs[_refID].name() != Name) {++_refID;}
+	if (_refID == _chrs.size()) {
+		_refID = 0;
+		// wrap around
+		while (_refID < oldRefID && _chrs[_refID].name() != Name) {++_refID;}
+	}
+	if (_chrs[_refID].name() !=  Name)
+		UERROR("Chromosome '", Name, "' not found in GLF index!");
+
+	if(_chrs[_refID].length() != Length)
 		UERROR("Length of chromosome '", Name, "' does not match length given in GLF index!");
 
-	if(_chrs[_curChr].ploidy() != Ploidy)
+	if(_chrs[_refID].ploidy() != Ploidy)
 		UERROR("Ploidy of chromosome '", Name, "' does not match ploidy given in GLF index!");
 }
 
@@ -239,7 +247,7 @@ bool TGlfReader::_readChr() {
 
 	// check if chromosome is in index and set cur
 	if(_hasIndex){
-		_index.setCurChromosomeToAndCheck(std::string_view(name, len), length, ploidy);
+		_index.setCurChromosome(std::string_view(name, len), length, ploidy);
 	} else {
 		_index.addChromosme(std::string_view(name, len), length, ploidy, posBeforeChr);
 	}
@@ -359,7 +367,8 @@ bool TGlfReader::readNext() {
 		UERROR("Unknown record type in file '", _filename, "'!");
 };
 
-bool TGlfReader::jumpToChr(uint32_t RefID) {
+bool TGlfReader::jumpToChr(uint32_t RefID, bool OnlyForward) {
+	if (OnlyForward && refId() >= RefID) return true;
 	_index.seekChr(RefID);
 	if(gzseek64(_gzfp, _index.curChrPositionInFile(), SEEK_SET) < 0){ return false; }
 
@@ -378,11 +387,9 @@ bool TGlfReader::jumpToNextChr() {
 	_index.jumpToNextChromosome();
 	return jumpToChr(_index.curChr().refID());
 }
-bool TGlfReader::jumpToPositionOrBeyond(const genometools::TGenomePosition &Position) {
+bool TGlfReader::jumpToPositionOrBeyond(const genometools::TGenomePosition &Position, bool OnlyForward) {
 	// move to correct chromosome
-	if(_position.refID() != Position.refID()){
-		jumpToChr(Position.refID());
-	}
+	jumpToChr(Position.refID(), OnlyForward);
 
 
 	// jump to first position at or after Position

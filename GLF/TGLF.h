@@ -31,14 +31,14 @@ class TGlfIndex{
 private:
 	genometools::TChromosomes _chrs;
 	std::vector<uint64_t> _posInFile;
-	size_t _curChr;	
+	size_t _refID;
 
 	std::string _getIndexFileName(std::string_view FileName);
 
 public:
 	TGlfIndex(){};
 	~TGlfIndex() = default;
-	
+
 	void clear();
 
 	void addChromosme(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PosInFile);
@@ -49,22 +49,22 @@ public:
 
 	void jumpToNextChromosome();
 	void seekChr(uint32_t RefID);
-	void setCurChromosomeToAndCheck(std::string_view Name, uint32_t Length, uint8_t Ploidy);
+	void setCurChromosome(std::string_view Name, uint32_t Length, uint8_t Ploidy);
 
 	// compare
 	bool hasSameChromosomes(const TGlfIndex& Other) const;
 
 	// getters do not check if chromosomes were initialized!
 	const genometools::TChromosomes& chromosomes(){ return _chrs; };
-	const genometools::TChromosome& curChr(){ return _chrs[_curChr]; };
+	const genometools::TChromosome& curChr(){ return _chrs[_refID]; };
 	size_t curChrNumLikelihoodValues() const noexcept {
-		std::array<size_t, 3> N{0, 4, 10}; // for ploidy 0, 1 and 2		
-		return N[_chrs[_curChr].ploidy()];
-	};	
-	uint64_t curChrPositionInFile(){ return _posInFile[_curChr]; };
+		std::array<size_t, 3> N{0, 4, 10}; // for ploidy 0, 1 and 2
+		return N[_chrs[_refID].ploidy()];
+	};
+	uint64_t curChrPositionInFile(){ return _posInFile[_refID]; };
 	size_t lastRefID(){ return _chrs.size() - 1; };
-	bool curChrIsLast(){ return _curChr == lastRefID(); };
-	
+	bool curChrIsLast(){ return _refID == lastRefID(); };
+
 };
 
 //----------------------------------------------------
@@ -74,7 +74,7 @@ class TGlfHandle {
 protected:
 	std::string _filename;
 	gzFile _gzfp         = nullptr;
-	
+
 	std::string _version = "GLF2";
 	uint64_t _positionInFile = 0;
 
@@ -124,7 +124,7 @@ public:
 	void open(const std::string &Filename, const genometools::TChromosomes &Chrs, const std::string &Header = "");
 	void newChromosome(const genometools::TChromosome &chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
-		       const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
+			   const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
 	void close() override;
 };
 
@@ -140,7 +140,7 @@ private:
 
 	// about site
 	int _recordType = 99;
-	genometools::TGenomePosition _position;	
+	genometools::TGenomePosition _position;
 	uint16_t _depth = 0;
 	int _RMS_mappingQual = 0;
 	TGLFLikelihoods _genotypeLikelihoodsGLF;
@@ -165,7 +165,7 @@ private:
 
 	bool _readChr();
 	bool _readRecordType();
-	void _readSNPRecord();	
+	void _readSNPRecord();
 
 public:
 	TGlfReader() = default;
@@ -176,14 +176,14 @@ public:
 	// get details
 	bool eof() const { return _eof; };
 	const genometools::TChromosomes& chromosomes();
-	const genometools::TChromosome& curChromosome();	
+	const genometools::TChromosome& curChromosome();
 	size_t lastRefID();
 	uint32_t refId(){ return _index.curChr().refID(); };
-	const TGlfIndex& index(){ return _index; };	
+	const TGlfIndex& index(){ return _index; };
 	genometools::TGenomePosition position() const { return _position; };
 	uint16_t depth() const { return _depth; };
-	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };		
-	
+	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };
+
 	// open file and parse header
 	void setFilename(const std::string &Filename);
 	void open(const std::string &Filename, bool HasIndex = true);
@@ -191,9 +191,10 @@ public:
 
 	// parse file
 	bool readNext();
-	bool jumpToChr(uint32_t RefID);
+	bool jumpToChr(uint32_t RefID, bool OnlyForward=true);
+	bool jumpForwardToChr(uint32_t RefID);
 	bool jumpToNextChr();
-	bool jumpToPositionOrBeyond(const genometools::TGenomePosition& Position);
+	bool jumpToPositionOrBeyond(const genometools::TGenomePosition& Position, bool OnlyForward=true);
 	bool readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, genometools::TGenomeWindow Window);
 
 	// printing
