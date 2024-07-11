@@ -36,7 +36,7 @@ FetchContent_Declare(coretools
 include(FetchContent)
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           c7bc5c0
+  GIT_TAG           949d3c3
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
