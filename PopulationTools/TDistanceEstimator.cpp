@@ -59,7 +59,7 @@ TDistance::TDistance(){
 double TDistance::calculateDistance(const TDistanceData & phi){
 	using DP = DistancePhi;
 	return    phi[DP::aa_aa] * _distanceWeight[DP::aa_aa]
-		    + phi[DP::ab_aa] * _distanceWeight[DP::ab_aa]
+			+ phi[DP::ab_aa] * _distanceWeight[DP::ab_aa]
 			+ phi[DP::aa_ab] * _distanceWeight[DP::aa_ab]
 			+ phi[DP::aa_bb] * _distanceWeight[DP::aa_bb]
 			+ phi[DP::ab_ab] * _distanceWeight[DP::ab_ab]
@@ -210,8 +210,8 @@ void TEMforDistanceEstimation::fill_K(TBaseData & thesePi){
 
 	//cases of two bases
 	K[DP::ab_ab] = thesePi[Base::A] * thesePi[Base::C]
-         + thesePi[Base::A] * thesePi[Base::G]
-         + thesePi[Base::A] * thesePi[Base::T]
+		 + thesePi[Base::A] * thesePi[Base::G]
+		 + thesePi[Base::A] * thesePi[Base::T]
 		 + thesePi[Base::C] * thesePi[Base::G]
 		 + thesePi[Base::C] * thesePi[Base::T]
 		 + thesePi[Base::G] * thesePi[Base::T];
@@ -513,7 +513,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 //----------------------------------------------------
 TDistanceEstimator::TDistanceEstimator(){
 	maxNumEMIterations = 0;
-	epsilonForEM = 0.0;	
+	epsilonForEM = 0.0;
 
 	//outputname
 	outputName = coretools::instances::parameters().get<std::string>("out", "ATLAS");
@@ -521,10 +521,10 @@ TDistanceEstimator::TDistanceEstimator(){
 }
 
 void TDistanceEstimator::openGLF(){
-	_GLFs.openFromParameters();	
+	_GLFs.openFromParameters();
 
 	if(_GLFs.size() < 2)
-		UERROR("At least two GLF files have to be provided to estimate distances!");	
+		UERROR("At least two GLF files have to be provided to estimate distances!");
 }
 
 //------------------------------------------------------------------
@@ -611,7 +611,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfReader & g2){
 	while(g1.curChromosome().refID() != g2.curChromosome().refID() || g1.curChromosome().isHaploid() || g2.curChromosome().isHaploid()){
 		//advance the one laging behind
-		if(g1.refId() < g2.refId()){
+		if(g1.refID() < g2.refID()){
 			if(!g1.jumpToNextChr()) return false;
 		} else {
 			if(!g2.jumpToNextChr()) return false;
@@ -730,7 +730,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	//write header to output file
 	out << "chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
 
-	//prepare variables	
+	//prepare variables
 	genometools::TGenomeWindow window;
 
 	int numSitesWithData = 100;
@@ -740,8 +740,8 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	logfile().startIndent("Will estimate distance in windows of size ", windowLen, ":");
 	while(!g1.eof() && !g2.eof()){
 		//move to new chromosome
-		window.move(g1.refId(), 0, windowLen);	
-		const genometools::TChromosome& curChr = g1.curChromosome();		
+		window.move(g1.refID(), 0, windowLen);
+		const genometools::TChromosome& curChr = g1.curChromosome();
 
 		logfile().startNumbering("Chromosome ", curChr.name(), ":");
 

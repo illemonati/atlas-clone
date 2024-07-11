@@ -306,6 +306,7 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 		_curWindow.move(_curWindow.from(), _curChr->to());
 	}
 	const size_t N = _curWindow.size();
+	if (N == 0) readWindow();
 
 	_dataWindow.assign(N, {});
 	static std::vector<size_t> numActive;
@@ -374,6 +375,7 @@ std::vector<size_t> TGlfMultiReader::readWindow(const SiteSubset::TAlleles& Alle
 		_curWindow.move(_curWindow.from(), _curChr->to());
 	}
 	const size_t N = latest->position - _curWindow.from() + 1;
+	if (N == 0) readWindow(Alleles);
 
 	_dataWindow.assign(N, {});
 	static std::vector<size_t> numActive;
