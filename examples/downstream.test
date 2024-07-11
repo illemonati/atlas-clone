@@ -10,16 +10,45 @@ pmd="CT5:0.1*exp(-0.2*p)+0.001;GA3:0.1*exp(-0.3*p)+0.001"
 
 model1=${intercepts[1]}${eps[1]}${rhos[1]}
 
-delta=0.001
+delta=0.01
 M="123456"
 L="5$M"
 probs="1,0.5,0.2,0.1,0.05,0.02,0.01"
+probs="1,0.5,0.2"
 
-name="sim"
-$atlas --task simulate --recal $model1 --pmd $pmd \
-	--type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
-	--chrLength $L --depth 10 --ploidy 2 --numReadGroups 1 \
-	--fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+for L in 10 5 2 1; do
+	for d in 1 2 5 10; do
+		tag=${L}MB_${d}x
+		name="sim_$tag"
+		$atlas --task simulate --recal $model1 --pmd $pmd --softClipping "-" \
+			--type "HKY85" --mu 0.7 --thetaG 0.0003 --thetaR 0.0004 \
+			--chrLength $L$M,5$M --depth $d --ploidy 2 --numReadGroups 1 \
+			--fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+		name="EE_$tag"
+		$atlas --task estimateErrors --minDeltaLL $delta  \
+			--bam sim_$tag.bam --fasta sim_$tag.fasta --chr chr1 \
+			--fixedSeed 1 --out $name --logFile $name.out 2> $name.eout
+
+		name="theta_$tag"
+		$atlas --task genotypeDistribution --genomeWide \
+			   --prob "$probs" --minDeltaLL $delta \
+			   --bam sim_$tag.bam --fasta sim_$tag.fasta --chr chr2 \
+			   --RGInfo EE_${tag}_RGInfo.json \
+			   --fixedSeed 2 --out $name --logFile $name.out 2> $name.eout
+	done
+
+	name="theta_correct_${L}MB"
+	$atlas --task genotypeDistribution --genomeWide \
+		   --prob "$probs" --minDeltaLL $delta \
+		   --bam sim_$tag.bam --fasta sim_$tag.fasta --chr chr2 \
+		   --recal $model1 --pmd $pmd \
+		   --fixedSeed 3 --out $name --logFile $name.out 2> $name.eout
+done
+
+exit
+
 
 name="theta0"
 $atlas --task genotypeDistribution --genomeWide 3 --prob "$probs" --minDeltaLL $delta \

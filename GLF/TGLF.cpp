@@ -59,14 +59,7 @@ void TGlfIndex::writeChromosmes(std::string_view GLFFilename){
 	}
 }
 
-void TGlfIndex::jumpToNextChromosome() {
-	++_refID;
-	if(_refID == _chrs.size()){
-		DEVERROR("Can not jump to next chromosome: already at end of GLF index!");
-	}
-}
-
-void TGlfIndex::seekChr(uint32_t RefID) {
+void TGlfIndex::setChr(uint32_t RefID) {
 	if(RefID < _chrs.size()){
 		_refID = RefID;
 	} else {
@@ -369,7 +362,7 @@ bool TGlfReader::readNext() {
 
 bool TGlfReader::jumpToChr(uint32_t RefID, bool OnlyForward) {
 	if (OnlyForward && refId() >= RefID) return true;
-	_index.seekChr(RefID);
+	_index.setChr(RefID);
 	if(gzseek64(_gzfp, _index.curChrPositionInFile(), SEEK_SET) < 0){ return false; }
 
 	// read record type
@@ -384,8 +377,7 @@ bool TGlfReader::jumpToChr(uint32_t RefID, bool OnlyForward) {
 
 bool TGlfReader::jumpToNextChr() {
 	if(_index.curChrIsLast()) { return false; }
-	_index.jumpToNextChromosome();
-	return jumpToChr(_index.curChr().refID());
+	return jumpToChr(_index.curChr().refID() + 1);
 }
 bool TGlfReader::jumpToPositionOrBeyond(const genometools::TGenomePosition &Position, bool OnlyForward) {
 	// move to correct chromosome

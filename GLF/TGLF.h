@@ -31,7 +31,7 @@ class TGlfIndex{
 private:
 	genometools::TChromosomes _chrs;
 	std::vector<uint64_t> _posInFile;
-	size_t _refID;
+	size_t _refID = 0;
 
 	std::string _getIndexFileName(std::string_view FileName);
 
@@ -47,8 +47,7 @@ public:
 	void writeChromosmes(std::string_view GLFFilename);
 	void readChromosomes(std::string_view GLFFilename);
 
-	void jumpToNextChromosome();
-	void seekChr(uint32_t RefID);
+	void setChr(uint32_t RefID);
 	void setCurChromosome(std::string_view Name, uint32_t Length, uint8_t Ploidy);
 
 	// compare
@@ -178,7 +177,7 @@ public:
 	const genometools::TChromosomes& chromosomes();
 	const genometools::TChromosome& curChromosome();
 	size_t lastRefID();
-	uint32_t refId(){ return _index.curChr().refID(); };
+	uint32_t refId(){ return _position.refID(); };
 	const TGlfIndex& index(){ return _index; };
 	genometools::TGenomePosition position() const { return _position; };
 	uint16_t depth() const { return _depth; };
