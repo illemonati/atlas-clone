@@ -298,7 +298,7 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 std::vector<size_t> TGlfMultiReader::readWindow() {
 	if (!_dataWindow.empty()) _curWindow.move(_curWindow.to(), _windowSize);
 
-	if (_curWindow.from() >= _curChr->to()) {
+	while (_curWindow.from() >= _curChr->to()) {
 		if(!_moveToNextChromosome()) return {};
 	}
 
