@@ -4,6 +4,7 @@
 #include "GenotypeData.h"
 #include "TGLFIndex.h"
 #include "coretools/Files/TWriter.h"
+#include <memory>
 #include <string>
 
 namespace GLF {
@@ -14,7 +15,7 @@ private:
 	std::string _header;
 
 	TGLFIndex _index;
-	std::unique_ptr<coretools::TWriter> _writer;
+	std::unique_ptr<coretools::TWriter> _writer = std::make_unique<coretools::TNoWriter>();
 
 	void _writeHeader(std::string_view Header);
 

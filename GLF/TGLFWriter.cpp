@@ -1,5 +1,8 @@
 #include "TGLFWriter.h"
 #include "TGLF.h"
+#include "coretools/Files/TWriter.h"
+#include "genometools/VCF/TVcfWriter.h"
+#include <memory>
 
 
 namespace GLF {
@@ -52,6 +55,7 @@ void TGLFWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 			   const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
 	using genometools::Genotype;
 	using coretools::Probability;
+	using genometools::Ploidy;
 	const uint8_t _recordType1 = 1 << 4;
 	// record type
 	// TODO: add reference?
@@ -105,9 +109,9 @@ void TGLFWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 	_writer->write(glfValues);
 }
 void TGLFWriter::close() {
-	if(_writer && _writer->isOpen()){
+	if(_writer->isOpen()){
 		_index.writeChromosmes(_writer->name());
 	}
-	_writer.reset();
+	_writer = std::make_unique<coretools::TNoWriter>();
 };
 }

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "TGLF.h"
+#include "TGLFReader.h"
 #include "TAlleles.h"
 
 
