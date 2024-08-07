@@ -31,7 +31,7 @@ namespace GLF {
 class TGlfVector{
 private:		
 	std::vector<std::string> _GLFFileNames;
-	std::vector<TGlfReader> _GLFs;
+	std::vector<TGLFReader> _GLFs;
 	std::vector<std::string> _sampleNames;	
 	bool _sampleNamesProvided;
 	
@@ -44,10 +44,10 @@ public:
 	void openFromParameters();
 
 	size_t size() const { return _GLFs.size(); };
-	std::vector<TGlfReader>::iterator begin(){ return _GLFs.begin(); };
-	std::vector<TGlfReader>::iterator end(){ return _GLFs.end(); };
+	std::vector<TGLFReader>::iterator begin(){ return _GLFs.begin(); };
+	std::vector<TGLFReader>::iterator end(){ return _GLFs.end(); };
 
-	TGlfReader& operator[](size_t i){ return _GLFs[i]; };	
+	TGLFReader& operator[](size_t i){ return _GLFs[i]; };	
 	const std::string& fileName(size_t i){ return _GLFFileNames[i]; };
 	size_t index(const std::string& name) const;
 	const std::string& sampleName(size_t i) const { return _sampleNames[i]; };
@@ -65,7 +65,7 @@ private:
 	// Object will loop only over active files
 	size_t _minSamplesWithData  = 0;
 	std::vector<bool> _GLFIsActive;
-	std::vector<TGlfReader *> _activeGLFs;
+	std::vector<TGLFReader *> _activeGLFs;
 
 	// Moving along active files	
 	uint32_t _curRefId = 0;

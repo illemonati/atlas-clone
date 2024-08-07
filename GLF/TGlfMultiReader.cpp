@@ -20,7 +20,7 @@ using coretools::str::toString;
 
 namespace impl {
 
-TGlfReader * nextChr(const std::vector<TGlfReader *>& ps, bool onlyData) {
+TGLFReader * nextChr(const std::vector<TGLFReader *>& ps, bool onlyData) {
 	if (onlyData) {
 		return *std::min_element(ps.begin(), ps.end(), [](auto p1, auto p2) {
 			if (p1->curChromosome().refID() < p2->curChromosome().refID()) return true;
@@ -206,7 +206,7 @@ void TGlfMultiReader::_setAllInactive() {
 }
 
 void TGlfMultiReader::_prepareParsing() {
-	for (TGlfReader *it : _activeGLFs) {
+	for (TGLFReader *it : _activeGLFs) {
 		it->rewind();
 		it->readNext();
 	}
@@ -282,7 +282,7 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 
 	// advance all active files behind
 	bool allFilesReachedEnd = true;
-	for (TGlfReader *it : _activeGLFs) {
+	for (TGLFReader *it : _activeGLFs) {
 		it->jumpToChr(_curRefId);
 		if (!it->eof()) allFilesReachedEnd = false;
 	}
@@ -422,7 +422,7 @@ std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
 	// sample names are file names without glf ending
-	for (TGlfReader *it : _activeGLFs) { vec.emplace_back(it->name()); }
+	for (TGLFReader *it : _activeGLFs) { vec.emplace_back(it->name()); }
 	return vec;
 }
 

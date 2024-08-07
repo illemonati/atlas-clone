@@ -73,7 +73,7 @@ protected:
 
 public:
 	GLF::TTestGLFFile outputGLF;
-	GLF::TGlfReader inputGLF;
+	GLF::TGLFReader inputGLF;
 
 	// store stuff from input GLF to later compare with output
 	std::vector<genometools::TGenomePosition> positions;

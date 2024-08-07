@@ -8,15 +8,15 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
-#include <array>
 #include <string>
 #include <vector>
 #include <zlib.h>
 
+#include "TGLFIndex.h"
+
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Containers/TDualStrongArray.h"
-#include "GenotypeData.h"
 #include "genometools/VCF/TVcfWriter.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
@@ -24,46 +24,7 @@ namespace GLF {
 using genometools::Ploidy;
 using TGLFLikelihoods = coretools::TDualStrongArray<genometools::HighPrecisionPhredIntProbability, genometools::Base, genometools::Genotype, 4, 10, Ploidy>;
 
-//--------------------------------------------
-// TGlfIndexFile
-//--------------------------------------------
-class TGlfIndex{
-private:
-	genometools::TChromosomes _chrs;
-	std::vector<uint64_t> _posInFile;
-
-	std::string _getIndexFileName(std::string_view FileName);
-
-public:
-	void clear();
-
-	void addChromosme(std::string_view Name, uint32_t Length, uint8_t Ploidy, uint64_t PosInFile);
-	void addChromosme(const genometools::TChromosome& Chr, uint64_t PosInFile);
-
-	void writeChromosmes(std::string_view GLFFilename);
-	void readChromosomes(std::string_view GLFFilename);
-
-	void checkChromosome(size_t LastRefID, std::string_view Name, uint32_t Length, uint8_t Ploidy);
-
-	// compare
-	bool hasSameChromosomes(const TGlfIndex& Other) const;
-
-	// getters do not check if chromosomes were initialized!
-	const genometools::TChromosomes& chromosomes() const noexcept { return _chrs; };
-	size_t lastChrNumLikelihoodValues() const noexcept {
-		std::array<size_t, 3> N{0, 4, 10}; // for ploidy 0, 1 and 2
-		return N[_chrs.back().ploidy()];
-	}
-
-	size_t chrNumLikelihoodValues(size_t refID) const noexcept {
-		std::array<size_t, 3> N{0, 4, 10}; // for ploidy 0, 1 and 2
-		return N[_chrs[refID].ploidy()];
-	}
-
-	uint64_t positionInFile(size_t RefID) const noexcept { return _posInFile[RefID]; }
-	size_t size() const noexcept {return _chrs.size();}
-
-};
+constexpr std::string_view version() noexcept { return "GLF2"; }
 
 //----------------------------------------------------
 // TGlfHandle
@@ -76,7 +37,7 @@ protected:
 	std::string _version = "GLF2";
 	uint64_t _positionInFile = 0;
 
-	TGlfIndex _index;
+	TGLFIndex _index;
 
 public:
 	TGlfHandle()                              = default;
@@ -99,37 +60,9 @@ public:
 };
 
 //----------------------------------------------------
-// TGlfWriter
-//----------------------------------------------------
-class TGlfWriter : public TGlfHandle {
-private:
-	long _oldPos         = 0;
-	std::string _header;
-
-	void _writeHeader(const std::string &Header);
-
-	template<typename T> void _write(T var) { _positionInFile += gzwrite(_gzfp, &var, sizeof(T)); };
-	void _write(const void *buf, size_t len) { _positionInFile += gzwrite(_gzfp, buf, len); };
-
-public:
-	TGlfWriter() = default;
-	TGlfWriter(const std::string &Filename, const genometools::TChromosomes &Chrs) {
-		open(Filename, Chrs, "");
-	};
-	~TGlfWriter(){ close(); };
-
-	// open & close streams
-	void open(const std::string &Filename, const genometools::TChromosomes &Chrs, const std::string &Header = "");
-	void newChromosome(const genometools::TChromosome &chromosome);
-	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
-			   const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
-	void close() override;
-};
-
-//----------------------------------------------------
 // TGlfReader
 //----------------------------------------------------
-class TGlfReader : public TGlfHandle {
+class TGLFReader : public TGlfHandle {
 private:
 	// file parsing
 	std::string _glfFileVersion;
@@ -166,8 +99,8 @@ private:
 	void _readSNPRecord();
 
 public:
-	TGlfReader() = default;
-	TGlfReader(const std::string &Filename, bool HasIndex = true) {
+	TGLFReader() = default;
+	TGLFReader(const std::string &Filename, bool HasIndex = true) {
 		open(Filename, HasIndex);
 	};
 
@@ -177,7 +110,7 @@ public:
 	const genometools::TChromosome& curChromosome();
 	size_t lastRefID();
 	uint32_t refID() const noexcept { return _position.refID(); };
-	const TGlfIndex& index() const noexcept { return _index; };
+	const TGLFIndex& index() const noexcept { return _index; };
 	genometools::TGenomePosition position() const noexcept { return _position; };
 	uint16_t depth() const noexcept { return _depth; };
 	const TGLFLikelihoods &genotypeLikelihoodsGLF() const noexcept { return _genotypeLikelihoodsGLF; };
