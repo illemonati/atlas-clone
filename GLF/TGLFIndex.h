@@ -67,6 +67,8 @@ public:
 	}
 	size_t size() const noexcept {return _chrs.size();}
 
+	bool empty() const noexcept {return size() == 0;}
+
 };
 }
 

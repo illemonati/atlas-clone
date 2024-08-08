@@ -107,7 +107,7 @@ void TGLFReader::open(const std::string &Filename, bool HasIndex) {
 	}
 
 	// read info of first chromosome
-	readNext();
+	popFront();
 	//jumpToChr(0, false);
 };
 
@@ -130,17 +130,18 @@ void TGLFReader::rewind() {
 	jumpToChr(0, false);
 }
 
-bool TGLFReader::readNext() {
+void TGLFReader::popFront() {
 	// read record type
-	if (!_readRecordType()) return false;
+	if (!_readRecordType()) return;
+
 	if (_recordType == 0) {
 		_readChr();
-		return readNext();
+		popFront();
 	} else if (_recordType == 1) {
 		_readSNPRecord();
-		return true;
-	} else
+	} else {
 		UERROR("Unknown record type in file '", _reader->name(), "'!");
+	}
 };
 
 bool TGLFReader::jumpToChr(uint32_t RefID, bool OnlyForward) {
@@ -154,7 +155,8 @@ bool TGLFReader::jumpToChr(uint32_t RefID, bool OnlyForward) {
 	}
 
 	_readChr();
-	return readNext();
+	popFront();
+	return !empty();
 };
 
 bool TGLFReader::jumpToNextChr() {
@@ -168,8 +170,10 @@ bool TGLFReader::jumpToPositionOrBeyond(const genometools::TGenomePosition &Posi
 
 	// jump to first position at or after Position
 	// Assume linear GLF access, i.e. if _position > Position, assume we are at correct position
+
 	while (_recordType == 0 || _position < Position) {
-		if (!readNext()) return false;
+		popFront();
+		if (empty()) return false;
 	}
 	return true;
 };
@@ -194,7 +198,8 @@ bool TGLFReader::readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, g
 		// fill in genotype likelihoods of current position
 		GenoLikelihoods[_position - Window.from()] = _genotypeLikelihoodsGLF;
 		// read next record
-		if (!readNext()) break;         // reached eof
+		popFront();
+		if (empty()) break;
 	}
 	return true;
 };
@@ -230,17 +235,17 @@ void TGLFReader::printToEnd() { // For debugging
 	std::cout << "GLF version is " << version() << "\n";
 
 	std::string oldChr = "";
-	do {
+	for(; !empty(); popFront()) {
 		if (oldChr != curChr().name()) {
 			printChr();
 			oldChr = curChr().name();
 		}
 		printSite();
-	} while (readNext());
+	}
 }
 void TGLFReader::writeIndex() {
 	// read until end
-	while (readNext()) {}
+	while (!empty()) {popFront();}
 
 	//write index
 	_index.writeChromosmes(_reader->name());

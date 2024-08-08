@@ -608,31 +608,27 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	distMatrixFile.close();
 };
 
-bool TDistanceEstimator::moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
+void TDistanceEstimator::moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
 	while(g1.curChromosome().refID() != g2.curChromosome().refID() || g1.curChromosome().isHaploid() || g2.curChromosome().isHaploid()){
 		//advance the one laging behind
 		if(g1.refID() < g2.refID()){
-			if(!g1.jumpToNextChr()) return false;
+			if(!g1.jumpToNextChr()) return;
 		} else {
-			if(!g2.jumpToNextChr()) return false;
+			if(!g2.jumpToNextChr()) return;
 		}
 	}
-
-	return true;
 };
 
-bool TDistanceEstimator::advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
+void TDistanceEstimator::advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
 	//advance
 	if(g2.position() == g1.position()){
 		//advance both
-		if(!g1.readNext()) return false;
-		if(!g2.readNext()) return false;
+		g1.popFront();
+		g2.popFront();
 	} else if(g2.position() < g1.position()){
-		//advance g2
-		if(!g2.readNext()) return false;
+		g2.popFront();
 	} else {
-		//advance g1
-		if(!g1.readNext()) return false;
+		g1.popFront();
 	}
 
 	//make sure we are on same chromosome
@@ -647,13 +643,13 @@ void TDistanceEstimator::readCommonSites(GenotypeQualityVector & genoQual1, Geno
 	g2.rewind();
 
 	//if not both are good at least one file reach end. So we are done!
-	do {
+	for(; !g1.empty() && !g2.empty(); advance(g1, g2)) {
 		if(g2.position() == g1.position()){
 			//add data
-			genoQual1.push_back(g1.genotypeLikelihoodsGLF());
-			genoQual2.push_back(g2.genotypeLikelihoodsGLF());
+			genoQual1.push_back(g1.front());
+			genoQual2.push_back(g2.front());
 		}
-	} while(advance(g1, g2));
+	}
 };
 
 void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGLFReader & g1, GLF::TGLFReader & g2, gz::ogzstream & out){
@@ -738,7 +734,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	//parse GLFs in windows
 	using namespace coretools::instances;
 	logfile().startIndent("Will estimate distance in windows of size ", windowLen, ":");
-	while(!g1.eof() && !g2.eof()){
+	while(!g1.empty() && !g2.empty()){
 		//move to new chromosome
 		window.move(g1.refID(), 0, windowLen);
 		const genometools::TChromosome& curChr = g1.curChromosome();
@@ -746,15 +742,15 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		logfile().startNumbering("Chromosome ", curChr.name(), ":");
 
 		//parse all windows of chromosome
-		while(window < curChr.to() && !g1.eof() && !g2.eof()){
+		while(window < curChr.to() && !g1.empty() && !g2.empty()){
 			logfile().number("Window [", window, ")");
 			logfile().addIndent();
 
 			//read data
 			isGood1 = g1.readNextWindow(genoQual1, window);
-			if(isGood1 || g1.eof()){
+			if(isGood1 || g1.empty()){
 				isGood2 = g2.readNextWindow(genoQual2, window);
-				if(isGood2 || g2.eof()){
+				if(isGood2 || g2.empty()){
 					//estimate distance
 					EM_object.estimatePhiWithEM(genoQual1, genoQual2);
 

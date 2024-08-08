@@ -186,8 +186,8 @@ private:
 
 
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
-	bool moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
-	bool advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
+	void moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
+	void advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
 	void readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, GLF::TGLFReader & g1, GLF::TGLFReader & g2);
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGLFReader & g1, GLF::TGLFReader & g2, gz::ogzstream & out);
 

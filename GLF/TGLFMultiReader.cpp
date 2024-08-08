@@ -208,7 +208,7 @@ void TGLFMultiReader::_prepareParsing() {
 void TGLFMultiReader::_jumpToNextPosition() {
 	auto min = impl::nextChr(_activeGLFs, _minSamplesWithData);
 
-	if (min->eof()) { return; }
+	if (min->empty()) { return; }
 
 	_curRefId = min->curChromosome().refID();
 	if (_minSamplesWithData > 0) {
@@ -268,7 +268,7 @@ bool TGLFMultiReader::_moveToNextChromosome() {
 	bool allFilesReachedEnd = true;
 	for (TGLFReader *it : _activeGLFs) {
 		it->jumpToChr(_curRefId);
-		if (!it->eof()) allFilesReachedEnd = false;
+		if (!it->empty()) allFilesReachedEnd = false;
 	}
 
 	// check if we reached end of all files
@@ -299,14 +299,14 @@ std::vector<size_t> TGLFMultiReader::readWindow() {
 	for (auto reader : _activeGLFs) {
 		// find first data in window
 		reader->jumpToPositionOrBeyond(_curWindow.from());
-		if (!reader->eof()) allEOF = false;
+		if (!reader->empty()) allEOF = false;
 
 		// fill everything as noData
 		for (size_t iW = 0; iW < N; ++iW) {
-			if (!reader->eof() && reader->position() == _curWindow.from() + iW) {
-				_dataWindow[iW].emplace_back(reader->genotypeLikelihoodsGLF(), reader->depth());
+			if (!reader->empty() && reader->position() == _curWindow.from() + iW) {
+				_dataWindow[iW].emplace_back(reader->front(), reader->depth());
 				++numActive[iW];
-				reader->readNext();
+				reader->popFront();
 			} else {
 				_dataWindow[iW].emplace_back(reader->curChromosome().isHaploid());
 			}
@@ -363,14 +363,14 @@ std::vector<size_t> TGLFMultiReader::readWindow(const SiteSubset::TAlleles &Alle
 		// find first data in window
 		auto it = begin;
 		reader->jumpToPositionOrBeyond(it->position);
-		if (!reader->eof()) allEOF = false;
+		if (!reader->empty()) allEOF = false;
 
 		// fill everything as noData
 		for (size_t iW = 0; iW < N; ++iW) {
-			if (!reader->eof() && reader->position() == _curWindow.from() + iW) {
-				_dataWindow[iW].emplace_back(reader->genotypeLikelihoodsGLF(), reader->depth());
+			if (!reader->empty() && reader->position() == _curWindow.from() + iW) {
+				_dataWindow[iW].emplace_back(reader->front(), reader->depth());
 				++numActive[iW];
-				reader->readNext();
+				reader->popFront();
 			} else {
 				_dataWindow[iW].emplace_back(reader->curChromosome().isHaploid());
 			}

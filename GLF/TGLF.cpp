@@ -24,11 +24,12 @@ void TGLFIndexer::run() {
 	const auto glf = parameters().get<std::string>("glf");
 	if (parameters().exists("check")) {
 		logfile().list("Checking index-file of ", glf);
-		TGLFReader reader(glf, true);
-		while (reader.readNext()) {}
+
+		for (TGLFReader reader(glf, true); !reader.empty(); reader.popFront()) {}
 		logfile().list("GLF-file is OK!");
 	} else {
 		logfile().list("Indexing GLF-file: ", glf);
+
 		TGLFReader reader(glf, false);
 		reader.writeIndex();
 	}

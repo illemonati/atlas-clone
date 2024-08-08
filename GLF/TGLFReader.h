@@ -11,15 +11,15 @@ namespace GLF {
 class TGLFReader {
 private:
 	// file parsing
-	bool _eof = true;
+	bool _eof      = true;
 	bool _hasIndex = false;
 
 	// about site
-	int _recordType = 99;
+	TGLFLikelihoods _genotypeLikelihoodsGLF;
 	genometools::TGenomePosition _position;
+	int _recordType          = 99;
 	uint16_t _depth          = 0;
 	uint8_t _RMS_mappingQual = 0;
-	TGLFLikelihoods _genotypeLikelihoodsGLF;
 
 	TGLFIndex _index;
 	std::unique_ptr<coretools::TReader> _reader = std::make_unique<coretools::TNoReader>();
@@ -34,8 +34,11 @@ public:
 		open(Filename, HasIndex);
 	}
 
+	bool empty() const noexcept { return _eof; };
+	void popFront();
+	const TGLFLikelihoods &front() const noexcept { return _genotypeLikelihoodsGLF; };
+
 	// get details
-	bool eof() const { return _eof; };
 	const genometools::TChromosomes& chromosomes() const;
 	const genometools::TChromosome& curChromosome() const;
 	size_t lastRefID() const;
@@ -43,7 +46,6 @@ public:
 	const TGLFIndex& index() const noexcept { return _index; };
 	genometools::TGenomePosition position() const noexcept { return _position; };
 	uint16_t depth() const noexcept { return _depth; };
-	const TGLFLikelihoods &genotypeLikelihoodsGLF() const noexcept { return _genotypeLikelihoodsGLF; };
 
 	const std::string& name() const {return _reader->name();}
 
@@ -52,7 +54,6 @@ public:
 	void rewind();
 
 	// parse file
-	bool readNext();
 	bool jumpToChr(uint32_t RefID, bool OnlyForward=true);
 	bool jumpToNextChr();
 	bool jumpToPositionOrBeyond(const genometools::TGenomePosition& Position, bool OnlyForward=true);
