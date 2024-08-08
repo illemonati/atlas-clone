@@ -16,7 +16,7 @@
 #include "genometools/GenotypeTypes.h"
 
 #include "TGLF.h"
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 #include "GenotypeData.h"
 
 namespace gz { class ogzstream; }

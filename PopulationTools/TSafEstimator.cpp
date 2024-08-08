@@ -1,5 +1,5 @@
 #include "TSafEstimator.h"
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 #include "TSafFile.h"
 #include "coretools/Main/TParameters.h"
 #include <algorithm>

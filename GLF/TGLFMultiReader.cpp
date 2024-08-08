@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 #include "TAlleles.h"
 
 #include "coretools/Files/TInputFile.h"
@@ -205,10 +205,10 @@ void TGLFMultiReader::_prepareParsing() {
 	_jumpToNextPosition();
 }
 
-bool TGLFMultiReader::_jumpToNextPosition() {
+void TGLFMultiReader::_jumpToNextPosition() {
 	auto min = impl::nextChr(_activeGLFs, _minSamplesWithData);
 
-	if (min->eof()) { return false; }
+	if (min->eof()) { return; }
 
 	_curRefId = min->curChromosome().refID();
 	if (_minSamplesWithData > 0) {
@@ -217,8 +217,6 @@ bool TGLFMultiReader::_jumpToNextPosition() {
 		_curWindow.move(curChr().from(), _windowSize);
 	}
 	_dataWindow.clear();
-
-	return true;
 }
 
 void TGLFMultiReader::setActive(int index) {

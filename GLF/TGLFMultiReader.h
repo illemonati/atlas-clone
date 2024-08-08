@@ -24,7 +24,6 @@ using TGenotypeLikelihoodsAllCombinationsVector       = std::vector<genometools:
 
 namespace GLF {
 
-
 //--------------------------------------------
 // TGlfVector
 //--------------------------------------------
@@ -92,7 +91,7 @@ private:
 	void _setActive(size_t index);
 	void _setAllInactive();
 	void _prepareParsing();
-	bool _jumpToNextPosition();
+	void _jumpToNextPosition();
 
 	bool _moveToNextChromosome();
 

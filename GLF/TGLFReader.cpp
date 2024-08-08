@@ -107,7 +107,8 @@ void TGLFReader::open(const std::string &Filename, bool HasIndex) {
 	}
 
 	// read info of first chromosome
-	jumpToChr(0, false);
+	readNext();
+	//jumpToChr(0, false);
 };
 
 const genometools::TChromosomes& TGLFReader::chromosomes() const{
@@ -239,7 +240,7 @@ void TGLFReader::printToEnd() { // For debugging
 }
 void TGLFReader::writeIndex() {
 	// read until end
-	while(readNext()){};
+	while (readNext()) {}
 
 	//write index
 	_index.writeChromosmes(_reader->name());

@@ -1,7 +1,7 @@
 #ifndef TSAFESTIMATOR_H_
 #define TSAFESTIMATOR_H_
 
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 
 namespace PopulationTools {
 

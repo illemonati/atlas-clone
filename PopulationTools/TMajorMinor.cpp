@@ -21,7 +21,7 @@
 
 #include "TAlleles.h"
 #include "TBgzWriter.h"
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 
 #ifdef _OPENMP
 #include "omp.h"
