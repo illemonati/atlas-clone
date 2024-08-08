@@ -647,13 +647,13 @@ void TDistanceEstimator::readCommonSites(GenotypeQualityVector & genoQual1, Geno
 	g2.rewind();
 
 	//if not both are good at least one file reach end. So we are done!
-	while(advance(g1, g2)){
+	do {
 		if(g2.position() == g1.position()){
 			//add data
 			genoQual1.push_back(g1.genotypeLikelihoodsGLF());
 			genoQual2.push_back(g2.genotypeLikelihoodsGLF());
 		}
-	}
+	} while(advance(g1, g2));
 };
 
 void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGLFReader & g1, GLF::TGLFReader & g2, gz::ogzstream & out){

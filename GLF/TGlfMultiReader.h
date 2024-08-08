@@ -28,7 +28,7 @@ namespace GLF {
 //--------------------------------------------
 // TGlfVector
 //--------------------------------------------
-class TGlfVector{
+class TGLFVector{
 private:		
 	std::vector<std::string> _GLFFileNames;
 	std::vector<TGLFReader> _GLFs;
@@ -38,28 +38,38 @@ private:
 	void _openFiles();
 
 public:
-	TGlfVector(){};	
-	~TGlfVector()=default;
-	
 	void openFromParameters();
 
-	size_t size() const { return _GLFs.size(); };
-	std::vector<TGLFReader>::iterator begin(){ return _GLFs.begin(); };
-	std::vector<TGLFReader>::iterator end(){ return _GLFs.end(); };
+	size_t size() const noexcept { return _GLFs.size(); }
+	auto begin() const noexcept { return _GLFs.begin(); }
+	auto end() const noexcept { return _GLFs.end(); }
 
-	TGLFReader& operator[](size_t i){ return _GLFs[i]; };	
-	const std::string& fileName(size_t i){ return _GLFFileNames[i]; };
+	const TGLFReader& operator[](size_t i) const noexcept {
+		assert(i < size());
+		return _GLFs[i];
+	}
+	TGLFReader& operator[](size_t i) noexcept {
+		assert(i < size());
+		return _GLFs[i];
+	}
+	const std::string& fileName(size_t i) const noexcept {
+		assert(i < size());
+		return _GLFFileNames[i];
+	}
 	size_t index(const std::string& name) const;
-	const std::string& sampleName(size_t i) const { return _sampleNames[i]; };
-	const std::vector<std::string>& sampleNames() const { return _sampleNames; };
+	const std::string& sampleName(size_t i) const noexcept {
+		assert(i < size());
+		return _sampleNames[i];
+	}
+	const std::vector<std::string>& sampleNames() const noexcept { return _sampleNames; }
 };
 
 //----------------------------------------------------
 // TGlfMultiReader
 //----------------------------------------------------
-class TGlfMultiReader {
+class TGLFMultiReader {
 private:	
-	TGlfVector _GLFs;	
+	TGLFVector _GLFs;	
 
 	// active files
 	// Object will loop only over active files
@@ -69,7 +79,6 @@ private:
 
 	// Moving along active files	
 	uint32_t _curRefId = 0;
-	const genometools::TChromosome* _curChr = nullptr;
 	uint32_t _minDepth = 0;
 	genometools::TGenomeWindow _curWindow;
 	size_t _windowSize  = 100000;
@@ -88,13 +97,21 @@ private:
 	bool _moveToNextChromosome();
 
 public:
-	const TGenotypeLikelihoodsAllCombinationsVector& data(size_t iWindow) const noexcept {return _dataWindow[iWindow];};
+	const TGenotypeLikelihoodsAllCombinationsVector& data(size_t iWindow) const noexcept {
+		assert(iWindow < _dataWindow.size());
+		return _dataWindow[iWindow];
+	}
 
-	TGlfMultiReader();
+	TGLFMultiReader();
 	
 	void openGLFs();
 	void addReference(const std::string& FastaFile);
-	const genometools::TChromosomes& chromosomes();	
+	const genometools::TChromosomes& chromosomes() const {
+		return _GLFs[0].chromosomes();
+	}
+	const genometools::TChromosome& curChr() const noexcept {
+		return chromosomes()[_curRefId];
+	}
 	void minSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
 
 	// set active / inactive
@@ -115,8 +132,8 @@ public:
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
 	// access data
-	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); }
-	std::string curChrName() const { return _curChr->name(); }
+	size_t numActiveSamples() const noexcept { return _activeGLFs.size(); }
+	std::string curChrName() const { return curChr().name(); }
 	const genometools::TGenomeWindow& curWindow() const { return _curWindow; };
 	genometools::TGenomePosition position(size_t iWindow) const noexcept { return _curWindow.from() + iWindow; }
 	bool hasRef() const noexcept {return fastaReader.isOpen();}

@@ -455,7 +455,7 @@ public:
 
 template<typename Estimator> void iterate(double maxF) {
 	// open GLF files
-	GLF::TGlfMultiReader glfReader;
+	GLF::TGLFMultiReader glfReader;
 	glfReader.openGLFs();
 	glfReader.setAllActive();
 

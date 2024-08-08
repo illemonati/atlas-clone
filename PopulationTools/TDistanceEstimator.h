@@ -180,7 +180,7 @@ private:
 	std::string outputName;
 
 	//GLF files
-	GLF::TGlfVector _GLFs;
+	GLF::TGLFVector _GLFs;
 
 	void openGLF();
 

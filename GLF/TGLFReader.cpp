@@ -61,9 +61,11 @@ void TGLFReader::_readSNPRecord() {
 	uint32_t offset;
 	_reader->fill(offset);
 	_position += offset;
+	if (_position.position() >= _index.length(_position.refID())) {
+		UERROR("Read a position in GLF file ", _reader->name(), " on chromosome ", refID(), " outside its length of ", _index.length(refID()), "!");
+	}
 
 	// maxLL and depth (both uint16)
-	// read(&maxLL, sizeof(uint16_t));
 	_reader->fill(_depth);
 	_reader->fill(_RMS_mappingQual);
 
@@ -105,32 +107,26 @@ void TGLFReader::open(const std::string &Filename, bool HasIndex) {
 	}
 
 	// read info of first chromosome
-	_readRecordType();
-	if (_recordType != 0)
-		UERROR("GLF file does not start with chromosome entry. Are you using GLF files produced with an earlier version of ATLAS?");
-	_readChr();
+	jumpToChr(0, false);
 };
 
-const genometools::TChromosomes& TGLFReader::chromosomes(){
+const genometools::TChromosomes& TGLFReader::chromosomes() const{
 	assert(_hasIndex);
 	return _index.chromosomes();
 }
 
-const genometools::TChromosome &TGLFReader::curChromosome() {
+const genometools::TChromosome &TGLFReader::curChromosome() const {
 	assert(_hasIndex);
 	return _index.chromosomes()[refID()];
 }
 
-size_t TGLFReader::lastRefID() {
+size_t TGLFReader::lastRefID() const {
 	assert(_hasIndex);
 	return _index.size() - 1;
 }
 
 void TGLFReader::rewind() {
-	// go back to beginning of file
-	std::string fn = _reader->name();
-	_reader        = std::make_unique<coretools::TNoReader>();
-	open(fn, true);
+	jumpToChr(0, false);
 }
 
 bool TGLFReader::readNext() {
@@ -232,18 +228,14 @@ void TGLFReader::printSite() {
 void TGLFReader::printToEnd() { // For debugging
 	std::cout << "GLF version is " << version() << "\n";
 
-	// first chromosome
-	printChr();
-
-	// now parse file
-	std::string oldChr = curChr().name();
-	while (readNext()) {
+	std::string oldChr = "";
+	do {
 		if (oldChr != curChr().name()) {
 			printChr();
 			oldChr = curChr().name();
 		}
 		printSite();
-	}
+	} while (readNext());
 }
 void TGLFReader::writeIndex() {
 	// read until end

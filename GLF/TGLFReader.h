@@ -32,13 +32,13 @@ public:
 	TGLFReader() = default;
 	TGLFReader(const std::string &Filename, bool HasIndex = true) {
 		open(Filename, HasIndex);
-	};
+	}
 
 	// get details
 	bool eof() const { return _eof; };
-	const genometools::TChromosomes& chromosomes();
-	const genometools::TChromosome& curChromosome();
-	size_t lastRefID();
+	const genometools::TChromosomes& chromosomes() const;
+	const genometools::TChromosome& curChromosome() const;
+	size_t lastRefID() const;
 	uint32_t refID() const noexcept { return _position.refID(); };
 	const TGLFIndex& index() const noexcept { return _index; };
 	genometools::TGenomePosition position() const noexcept { return _position; };
@@ -54,7 +54,6 @@ public:
 	// parse file
 	bool readNext();
 	bool jumpToChr(uint32_t RefID, bool OnlyForward=true);
-	bool jumpForwardToChr(uint32_t RefID);
 	bool jumpToNextChr();
 	bool jumpToPositionOrBeyond(const genometools::TGenomePosition& Position, bool OnlyForward=true);
 	bool readNextWindow(std::vector<TGLFLikelihoods> &GenoLikelihoods, genometools::TGenomeWindow Window);
