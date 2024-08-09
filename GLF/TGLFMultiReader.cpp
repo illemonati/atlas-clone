@@ -218,16 +218,16 @@ bool TGLFMultiReader::_moveToNextChromosome() {
 	return true;
 }
 
-std::vector<size_t> TGLFMultiReader::readWindow() {
+void TGLFMultiReader::_readWindow() {
 	if (!_dataWindow.empty()) _curWindow.move(_curWindow.to(), _windowSize);
 
 	while (_curWindow.from() >= curChr().to()) {
-		if (!_moveToNextChromosome()) return {};
+		if (!_moveToNextChromosome()) return;
 	}
 
 	if (curChr().to() < _curWindow.to()) { _curWindow.move(_curWindow.from(), curChr().to()); }
 	const size_t N = _curWindow.size();
-	if (N == 0) readWindow();
+	if (N == 0) return _readWindow();
 
 	_dataWindow.assign(N, {});
 	static std::vector<size_t> numActive;
@@ -251,46 +251,44 @@ std::vector<size_t> TGLFMultiReader::readWindow() {
 			}
 		}
 	}
-	if (allEOF) return {};
+	if (allEOF) return;
 
-	std::vector<size_t> ids;
-	ids.reserve(_dataWindow.size());
 
 	for (size_t i = 0; i < _dataWindow.size(); ++i) {
-		if (numActive[i] >= _minSamplesWithData) { ids.push_back(i); }
+		if (numActive[i] >= _minSamplesWithData) { _ids.push_back(i); }
 	}
 
-	if (ids.empty()) { return readWindow(); }
-	return ids;
+	if (_ids.empty()) {
+		_readWindow();
+	}
 }
 
-std::vector<size_t> TGLFMultiReader::readWindow(const SiteSubset::TAlleles &Alleles) {
-	if (!Alleles) return readWindow();
-
+void TGLFMultiReader::_readWindowAlleles() {
+	assert(_alleles);
 	// Find chromosome in allele-list
-	while (Alleles.empty(_curWindow.refID())) {
-		if (!_moveToNextChromosome()) return {};
+	while (_alleles->empty(_curWindow.refID())) {
+		if (!_moveToNextChromosome()) return;
 	}
 
 	if (_dataWindow.empty()) { // start of chromosome
-		_curWindow.move(Alleles.begin(_curWindow.refID())->position, _windowSize);
+		_curWindow.move(_alleles->begin(_curWindow.refID())->position, _windowSize);
 	} else {
 		_curWindow.move(_curWindow.to(), _windowSize);
 	}
 
 	if (_curWindow.from() >= curChr().to()) {
-		if (!_moveToNextChromosome()) return {};
+		if (!_moveToNextChromosome()) return;
 	}
 
-	const auto begin = Alleles.begin(_curWindow);
-	if (begin == Alleles.end()) return readWindow(Alleles);
+	const auto begin = _alleles->begin(_curWindow);
+	if (begin == _alleles->end()) return _readWindowAlleles();
 
 	auto latest = begin;
-	while ((latest + 1) != Alleles.end() && _curWindow.within((latest + 1)->position)) ++latest;
+	while ((latest + 1) != _alleles->end() && _curWindow.within((latest + 1)->position)) ++latest;
 
 	if (curChr().to() < _curWindow.to()) { _curWindow.move(_curWindow.from(), curChr().to()); }
 	const size_t N = latest->position - _curWindow.from() + 1;
-	if (N == 0) readWindow(Alleles);
+	if (N == 0) return _readWindowAlleles();
 
 	_dataWindow.assign(N, {});
 	static std::vector<size_t> numActive;
@@ -316,17 +314,25 @@ std::vector<size_t> TGLFMultiReader::readWindow(const SiteSubset::TAlleles &Alle
 		}
 	}
 
-	if (allEOF) return {};
-	std::vector<size_t> ids;
-	ids.reserve(N);
+	if (allEOF) return;
 
 	for (auto it = begin; it != latest + 1; ++it) {
 		const auto iW = it->position - _curWindow.from();
-		if (numActive[iW] >= _minSamplesWithData) { ids.push_back(iW); }
+		if (numActive[iW] >= _minSamplesWithData) { _ids.push_back(iW); }
 	}
 
-	if (ids.empty()) { return readWindow(Alleles); }
-	return ids;
+	if (_ids.empty()) {
+		_readWindowAlleles();
+	}
+}
+
+void TGLFMultiReader::popFront() {
+	_ids.clear();
+	if (_alleles) {
+		_readWindowAlleles();
+	} else {
+		_readWindow();
+	}
 }
 
 std::vector<std::string> TGLFMultiReader::sampleNames() const {

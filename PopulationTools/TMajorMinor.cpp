@@ -466,6 +466,7 @@ template<typename Estimator> void iterate(double maxF) {
 		logfile().startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
 		const auto filename = parameters().get("alleles");
 		alleles.parse(filename, glfReader.chromosomes());
+		glfReader.setAlleles(alleles);
 		logfile().endIndent();
 	} else if (parameters().exists("fasta")) {
 		logfile().list("Will use reference allele and only identify the most likely alternative allele. (argument: fasta)");
@@ -561,7 +562,8 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t nextPrint          = dCounter;
 
 	std::vector<TMMData> data;
-	for (auto ids = glfReader.readWindow(alleles); !ids.empty(); ids = glfReader.readWindow(alleles)) {
+	for (glfReader.popFront(); !glfReader.empty(); glfReader.popFront()) {
+		const auto& ids = glfReader.front();
 		data.assign(ids.back() + 1, failedTMMData);
 
 		if (alleles) {

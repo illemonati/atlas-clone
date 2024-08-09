@@ -174,7 +174,8 @@ void TSafEstimator::run() {
 	size_t nextPrint      = dCounter;
 
 	logfile().startIndent("Parsing through glf files:");
-	for (auto ids = _glfReader.readWindow(); !ids.empty(); ids = _glfReader.readWindow()) {
+	for (_glfReader.popFront(); !_glfReader.empty(); _glfReader.popFront()) {
+		const auto ids  = _glfReader.front();
 		const auto refs = _glfReader.refView();
 		for (const auto iW : ids) {
 			if (refs[iW] == Base::N) {

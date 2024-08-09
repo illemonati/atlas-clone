@@ -70,6 +70,7 @@ public:
 class TGLFMultiReader {
 private:
 	TGLFVector _GLFs;
+	std::vector<size_t> _ids;
 
 	size_t _minSamplesWithData = 0;
 	uint32_t _curRefId         = 0;
@@ -81,6 +82,7 @@ private:
 
 	// reference
 	genometools::TFastaReader _fastaReader;
+	const SiteSubset::TAlleles* _alleles = nullptr;
 
 	void _openGLFs();
 	int _getGLFIndexFromName(const std::string &name) const;
@@ -88,8 +90,15 @@ private:
 	void _jumpToNextPosition();
 	bool _moveToNextChromosome();
 
+	void _readWindow();
+	void _readWindowAlleles();
+
 public:
 	TGLFMultiReader();
+
+	bool empty() const noexcept { return _ids.empty(); }
+	void popFront();
+	const std::vector<size_t> &front() const { return _ids; }
 
 	const TGenotypeLikelihoodsAllCombinationsVector& data(size_t iWindow) const noexcept {
 		assert(iWindow < _dataWindow.size());
@@ -105,10 +114,8 @@ public:
 		return chromosomes()[_curRefId];
 	}
 
-	void setMinSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
-
-	std::vector<size_t> readWindow();
-	std::vector<size_t> readWindow(const SiteSubset::TAlleles& Alleles);
+	void setMinSamplesWithData(size_t MinSamplesWithData) noexcept { _minSamplesWithData = MinSamplesWithData; };
+	void setAlleles(const SiteSubset::TAlleles& Alleles) noexcept {_alleles = &Alleles;}
 
 	std::vector<std::string> sampleNames() const;
 
