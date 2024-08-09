@@ -29,19 +29,22 @@ namespace GLF {
 //--------------------------------------------
 class TGLFVector{
 private:		
-	std::vector<std::string> _GLFFileNames;
 	std::vector<TGLFReader> _GLFs;
 	std::vector<std::string> _sampleNames;	
 	bool _sampleNamesProvided;
 	
-	void _openFiles();
+	void _openFiles(const std::vector<std::string>& FileNames);
 
 public:
-	void openFromParameters();
+	TGLFVector();
 
 	size_t size() const noexcept { return _GLFs.size(); }
+
 	auto begin() const noexcept { return _GLFs.begin(); }
 	auto end() const noexcept { return _GLFs.end(); }
+
+	auto begin() noexcept { return _GLFs.begin(); }
+	auto end() noexcept { return _GLFs.end(); }
 
 	const TGLFReader& operator[](size_t i) const noexcept {
 		assert(i < size());
@@ -53,14 +56,12 @@ public:
 	}
 	const std::string& fileName(size_t i) const noexcept {
 		assert(i < size());
-		return _GLFFileNames[i];
+		return _GLFs[i].name();
 	}
-	size_t index(const std::string& name) const;
 	const std::string& sampleName(size_t i) const noexcept {
 		assert(i < size());
 		return _sampleNames[i];
 	}
-	const std::vector<std::string>& sampleNames() const noexcept { return _sampleNames; }
 };
 
 //----------------------------------------------------
@@ -84,12 +85,12 @@ private:
 	std::vector<TGenotypeLikelihoodsAllCombinationsVector> _dataWindow;
 
 	// reference
-	genometools::TFastaReader fastaReader;
+	genometools::TFastaReader _fastaReader;
 
 	void _openGLFs();
 	int _getGLFIndexFromName(const std::string &name) const;
 	void _setActive(size_t index);
-	void _setAllInactive();
+	void setAllActive();
 	void _prepareParsing();
 	void _jumpToNextPosition();
 
@@ -103,7 +104,6 @@ public:
 
 	TGLFMultiReader();
 	
-	void openGLFs();
 	void addReference(const std::string& FastaFile);
 	const genometools::TChromosomes& chromosomes() const {
 		return _GLFs[0].chromosomes();
@@ -113,14 +113,6 @@ public:
 	}
 	void minSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
 
-	// set active / inactive
-	void setActive(int index);
-	void setActive(const std::string &name);
-	void setActive(int index1, int index2);
-	void setActive(const std::string &name1, const std::string &name2);
-	void setActive(const std::vector<int> &indexes);
-	void setActive(const std::vector<std::string> &names);
-	void setAllActive();
 
 	// parse
 	std::vector<size_t> readWindow();
@@ -135,10 +127,10 @@ public:
 	std::string curChrName() const { return curChr().name(); }
 	const genometools::TGenomeWindow& curWindow() const { return _curWindow; };
 	genometools::TGenomePosition position(size_t iWindow) const noexcept { return _curWindow.from() + iWindow; }
-	bool hasRef() const noexcept {return fastaReader.isOpen();}
+	bool hasRef() const noexcept {return _fastaReader.isOpen();}
 	coretools::TView<genometools::Base> refView() const {
 		assert(hasRef());
-		return fastaReader.view(_curWindow);
+		return _fastaReader.view(_curWindow);
 	}
 };
 

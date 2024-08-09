@@ -182,9 +182,6 @@ private:
 	//GLF files
 	GLF::TGLFVector _GLFs;
 
-	void openGLF();
-
-
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
 	void moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
 	void advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2);

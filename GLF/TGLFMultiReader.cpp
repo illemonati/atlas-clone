@@ -42,21 +42,21 @@ TGLFReader *nextChr(const std::vector<TGLFReader *> &ps, bool onlyData) {
 // TGlfVector
 //--------------------------------------------
 
-void TGLFVector::_openFiles() {
+void TGLFVector::_openFiles(const std::vector<std::string>& FileNames) {
 	// open GLF files
-	const auto _numGLFs = _GLFFileNames.size();
+	const auto _numGLFs = FileNames.size();
 	_GLFs.clear();
 	_GLFs.reserve(_numGLFs);
 
 	logfile().startIndent("Opening " + toString(_numGLFs) + " GLF files:");
 
-	for (size_t i = 0; i < _GLFFileNames.size(); ++i) {
+	for (size_t i = 0; i < FileNames.size(); ++i) {
 		if (_sampleNamesProvided) {
-			logfile().listFlush("Opening GLF file '" + _GLFFileNames[i] + "' of sample '", _sampleNames[i], "' ...");
+			logfile().listFlush("Opening GLF file '" + FileNames[i] + "' of sample '", _sampleNames[i], "' ...");
 		} else {
-			logfile().listFlush("Opening GLF file '" + _GLFFileNames[i] + "' ...");
+			logfile().listFlush("Opening GLF file '" + FileNames[i] + "' ...");
 		}
-		_GLFs.emplace_back(_GLFFileNames[i]);
+		_GLFs.emplace_back(FileNames[i]);
 		logfile().done();
 	}
 	logfile().endIndent();
@@ -71,19 +71,19 @@ void TGLFVector::_openFiles() {
 	}
 }
 
-void TGLFVector::openFromParameters() {
+TGLFVector::TGLFVector() {
 	using namespace coretools::str;
 	_GLFs.clear();
-	_GLFFileNames.clear();
 	_sampleNamesProvided = false;
 
 	logfile().startIndent("Opening GLF files (parameter 'glf'):");
 
+	std::vector<std::string> GLFFileNames;
 	// read file if provided, else parse command line
 	const auto FileNames = parameters().get<std::string>("glf");
 	if (stringContains(FileNames, ",") || FileNames.substr(FileNames.size() - 6, 6) == "glf.gz") {
 		logfile().list("Parsing GLF file names from comma separated list.");
-		parameters().fill("glf", _GLFFileNames);
+		parameters().fill("glf", GLFFileNames);
 	} else {
 		logfile().list("Reading GLF info from file '", FileNames, "'.");
 
@@ -91,18 +91,18 @@ void TGLFVector::openFromParameters() {
 		coretools::TInputFile in(FileNames, coretools::FileType::NoHeader);
 		if (in.numCols() > 1) {
 			for (; !in.empty(); in.popFront()) {
-				_GLFFileNames.emplace_back(in.get(0));
+				GLFFileNames.emplace_back(in.get(0));
 				_sampleNames.emplace_back(in.get(1));
 			}
 			_sampleNamesProvided = true;
 		} else {
-			for (; !in.empty(); in.popFront()) { _GLFFileNames.emplace_back(in.get(0)); }
+			for (; !in.empty(); in.popFront()) { GLFFileNames.emplace_back(in.get(0)); }
 		}
 
 		if (_sampleNamesProvided) {
-			logfile().conclude("Read ", _GLFFileNames.size(), " file names and corresponding sample names.");
+			logfile().conclude("Read ", GLFFileNames.size(), " file names and corresponding sample names.");
 		} else {
-			logfile().conclude("Read ", _GLFFileNames.size(), " file names.");
+			logfile().conclude("Read ", GLFFileNames.size(), " file names.");
 		}
 	}
 
@@ -120,15 +120,15 @@ void TGLFVector::openFromParameters() {
 				parameters().fill("sampleNames", _sampleNames);
 			}
 
-			if (_sampleNames.size() != _GLFFileNames.size()) {
+			if (_sampleNames.size() != GLFFileNames.size()) {
 				UERROR("Number of provided sample names does not match number of GLF files!");
 			}
 			_sampleNamesProvided = true;
 		} else {
 			logfile().list(
 			    "Will deduce sample names from GLF file names. (use 'sampleNames' to provide alternative names)");
-			_sampleNames.reserve(_GLFFileNames.size());
-			for (auto &f : _GLFFileNames) { _sampleNames.emplace_back(coretools::str::readBeforeLast(f, ".glf")); }
+			_sampleNames.reserve(GLFFileNames.size());
+			for (auto &f : GLFFileNames) { _sampleNames.emplace_back(coretools::str::readBeforeLast(f, ".glf")); }
 		}
 
 		// if there are duplicates, add suffix
@@ -150,14 +150,8 @@ void TGLFVector::openFromParameters() {
 	}
 
 	// open GLF files
-	_openFiles();
+	_openFiles(GLFFileNames);
 	logfile().endIndent();
-}
-
-size_t TGLFVector::index(const std::string &name) const {
-	const auto res = std::find(_GLFFileNames.cbegin(), _GLFFileNames.cend(), name);
-	if (res == _GLFFileNames.cend()) UERROR("GLF with name '", name, "' not in TGlfMultiReader!");
-	return std::distance(_GLFFileNames.begin(), res);
 }
 
 //----------------------------------------------------
@@ -169,16 +163,12 @@ TGLFMultiReader::TGLFMultiReader() {
 
 	_windowSize = parameters().get<size_t>("window", 100000);
 	if (_windowSize == 0) UERROR("Window size must be at least 1!");
-}
-
-void TGLFMultiReader::openGLFs() {
-	_GLFs.openFromParameters();
 
 	_GLFIsActive.resize(_GLFs.size(), false);
-	_setAllInactive();
+	setAllActive();
 }
 
-void TGLFMultiReader::addReference(const std::string &FastaFile) { fastaReader.open(FastaFile); }
+void TGLFMultiReader::addReference(const std::string &FastaFile) { _fastaReader.open(FastaFile); }
 
 //-------------------------------------
 // set active / inactive
@@ -190,11 +180,6 @@ void TGLFMultiReader::_setActive(size_t index) {
 		_GLFIsActive[index] = true;
 		_activeGLFs.push_back(&_GLFs[index]);
 	}
-}
-
-void TGLFMultiReader::_setAllInactive() {
-	_GLFIsActive.assign(_GLFs.size(), false);
-	_activeGLFs.clear();
 }
 
 void TGLFMultiReader::_prepareParsing() {
@@ -219,39 +204,7 @@ void TGLFMultiReader::_jumpToNextPosition() {
 	_dataWindow.clear();
 }
 
-void TGLFMultiReader::setActive(int index) {
-	_setAllInactive();
-	_setActive(index);
-	_prepareParsing();
-}
-
-void TGLFMultiReader::setActive(const std::string &name) { setActive(_GLFs.index(name)); }
-
-void TGLFMultiReader::setActive(int index1, int index2) {
-	_setAllInactive();
-	_setActive(index1);
-	_setActive(index2);
-	_prepareParsing();
-}
-
-void TGLFMultiReader::setActive(const std::string &name1, const std::string &name2) {
-	setActive(_GLFs.index(name1), _GLFs.index(name2));
-}
-
-void TGLFMultiReader::setActive(const std::vector<int> &indexes) {
-	_setAllInactive();
-	for (const auto i : indexes) _setActive(i);
-	_prepareParsing();
-}
-
-void TGLFMultiReader::setActive(const std::vector<std::string> &names) {
-	_setAllInactive();
-	for (const auto &name : names) { _setActive(_GLFs.index(name)); }
-	_prepareParsing();
-}
-
 void TGLFMultiReader::setAllActive() {
-	_setAllInactive();
 	for (size_t i = 0; i < _GLFs.size(); ++i) _setActive(i);
 	_prepareParsing();
 }

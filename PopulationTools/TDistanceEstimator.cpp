@@ -518,10 +518,6 @@ TDistanceEstimator::TDistanceEstimator(){
 	//outputname
 	outputName = coretools::instances::parameters().get<std::string>("out", "ATLAS");
 	coretools::instances::logfile().list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
-}
-
-void TDistanceEstimator::openGLF(){
-	_GLFs.openFromParameters();
 
 	if(_GLFs.size() < 2)
 		UERROR("At least two GLF files have to be provided to estimate distances!");
@@ -529,9 +525,6 @@ void TDistanceEstimator::openGLF(){
 
 //------------------------------------------------------------------
 void TDistanceEstimator::run(){
-	//open all GLF files specified
-	openGLF();
-
 	//open EM object
 	TEMforDistanceEstimation EM_object;
 

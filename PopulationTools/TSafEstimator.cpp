@@ -34,8 +34,6 @@ constexpr bool multiModal(double mama, double mami, double mimi) {
 
 TSafEstimator::TSafEstimator() {
 	_glfReader.addReference(parameters().get<std::string>("fasta"));
-	_glfReader.openGLFs();
-	_glfReader.setAllActive();
 	const size_t nSamples = _glfReader.numActiveSamples();
 
 	logfile().list("Will estimate Site Allele Frequency for ", nSamples, " samples.");
