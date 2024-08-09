@@ -20,18 +20,18 @@ using coretools::str::toString;
 
 namespace impl {
 
-TGLFReader *nextChr(const std::vector<TGLFReader *> &ps, bool onlyData) {
+const TGLFReader& nextChr(const TGLFVector &ps, bool onlyData) {
 	if (onlyData) {
-		return *std::min_element(ps.begin(), ps.end(), [](auto p1, auto p2) {
-			if (p1->curChromosome().refID() < p2->curChromosome().refID()) return true;
-			if (p1->curChromosome().refID() == p2->curChromosome().refID())
-				return p1->position() < p2->position();
+		return *std::min_element(ps.begin(), ps.end(), [](const auto& p1, const auto& p2) {
+			if (p1.curChromosome().refID() < p2.curChromosome().refID()) return true;
+			if (p1.curChromosome().refID() == p2.curChromosome().refID())
+				return p1.position() < p2.position();
 			else
 				return false;
 		});
 	} else {
-		return *std::min_element(ps.begin(), ps.end(), [](auto p1, auto p2) {
-			return p1->curChromosome().refID() < p2->curChromosome().refID();
+		return *std::min_element(ps.begin(), ps.end(), [](const auto& p1, const auto& p2) {
+			return p1.curChromosome().refID() < p2.curChromosome().refID();
 		});
 	}
 }
@@ -126,7 +126,7 @@ TGLFVector::TGLFVector() {
 			_sampleNamesProvided = true;
 		} else {
 			logfile().list(
-			    "Will deduce sample names from GLF file names. (use 'sampleNames' to provide alternative names)");
+				"Will deduce sample names from GLF file names. (use 'sampleNames' to provide alternative names)");
 			_sampleNames.reserve(GLFFileNames.size());
 			for (auto &f : GLFFileNames) { _sampleNames.emplace_back(coretools::str::readBeforeLast(f, ".glf")); }
 		}
@@ -164,8 +164,7 @@ TGLFMultiReader::TGLFMultiReader() {
 	_windowSize = parameters().get<size_t>("window", 100000);
 	if (_windowSize == 0) UERROR("Window size must be at least 1!");
 
-	_GLFIsActive.resize(_GLFs.size(), false);
-	setAllActive();
+	_prepareParsing();
 }
 
 void TGLFMultiReader::addReference(const std::string &FastaFile) { _fastaReader.open(FastaFile); }
@@ -174,39 +173,26 @@ void TGLFMultiReader::addReference(const std::string &FastaFile) { _fastaReader.
 // set active / inactive
 //-------------------------------------
 
-void TGLFMultiReader::_setActive(size_t index) {
-	if (index >= _GLFs.size()) UERROR("Index out of range in TGlfMultiReader::setActive(const int index)!");
-	if (!_GLFIsActive[index]) {
-		_GLFIsActive[index] = true;
-		_activeGLFs.push_back(&_GLFs[index]);
-	}
-}
-
 void TGLFMultiReader::_prepareParsing() {
-	for (TGLFReader *it : _activeGLFs) {
-		it->rewind();
+	for (auto& glf : _GLFs) {
+		glf.rewind();
 	}
 	// where to start?
 	_jumpToNextPosition();
 }
 
 void TGLFMultiReader::_jumpToNextPosition() {
-	auto min = impl::nextChr(_activeGLFs, _minSamplesWithData);
+	const auto& min = impl::nextChr(_GLFs, _minSamplesWithData);
 
-	if (min->empty()) { return; }
+	if (min.empty()) { return; }
 
-	_curRefId = min->curChromosome().refID();
+	_curRefId = min.curChromosome().refID();
 	if (_minSamplesWithData > 0) {
-		_curWindow.move(min->position(), _windowSize);
+		_curWindow.move(min.position(), _windowSize);
 	} else {
 		_curWindow.move(curChr().from(), _windowSize);
 	}
 	_dataWindow.clear();
-}
-
-void TGLFMultiReader::setAllActive() {
-	for (size_t i = 0; i < _GLFs.size(); ++i) _setActive(i);
-	_prepareParsing();
 }
 
 //-------------------------------------
@@ -219,9 +205,9 @@ bool TGLFMultiReader::_moveToNextChromosome() {
 
 	// advance all active files behind
 	bool allFilesReachedEnd = true;
-	for (TGLFReader *it : _activeGLFs) {
-		it->jumpToChr(_curRefId);
-		if (!it->empty()) allFilesReachedEnd = false;
+	for (auto& glf : _GLFs) {
+		glf.jumpToChr(_curRefId);
+		if (!glf.empty()) allFilesReachedEnd = false;
 	}
 
 	// check if we reached end of all files
@@ -249,19 +235,19 @@ std::vector<size_t> TGLFMultiReader::readWindow() {
 
 	bool allEOF = true;
 
-	for (auto reader : _activeGLFs) {
+	for (auto& glf : _GLFs) {
 		// find first data in window
-		reader->jumpToPositionOrBeyond(_curWindow.from());
-		if (!reader->empty()) allEOF = false;
+		glf.jumpToPositionOrBeyond(_curWindow.from());
+		if (!glf.empty()) allEOF = false;
 
 		// fill everything as noData
 		for (size_t iW = 0; iW < N; ++iW) {
-			if (!reader->empty() && reader->position() == _curWindow.from() + iW) {
-				_dataWindow[iW].emplace_back(reader->front(), reader->depth());
+			if (!glf.empty() && glf.position() == _curWindow.from() + iW) {
+				_dataWindow[iW].emplace_back(glf.front(), glf.depth());
 				++numActive[iW];
-				reader->popFront();
+				glf.popFront();
 			} else {
-				_dataWindow[iW].emplace_back(reader->curChromosome().isHaploid());
+				_dataWindow[iW].emplace_back(glf.curChromosome().isHaploid());
 			}
 		}
 	}
@@ -312,20 +298,20 @@ std::vector<size_t> TGLFMultiReader::readWindow(const SiteSubset::TAlleles &Alle
 
 	bool allEOF = true;
 
-	for (auto reader : _activeGLFs) {
+	for (auto& glf : _GLFs) {
 		// find first data in window
 		auto it = begin;
-		reader->jumpToPositionOrBeyond(it->position);
-		if (!reader->empty()) allEOF = false;
+		glf.jumpToPositionOrBeyond(it->position);
+		if (!glf.empty()) allEOF = false;
 
 		// fill everything as noData
 		for (size_t iW = 0; iW < N; ++iW) {
-			if (!reader->empty() && reader->position() == _curWindow.from() + iW) {
-				_dataWindow[iW].emplace_back(reader->front(), reader->depth());
+			if (!glf.empty() && glf.position() == _curWindow.from() + iW) {
+				_dataWindow[iW].emplace_back(glf.front(), glf.depth());
 				++numActive[iW];
-				reader->popFront();
+				glf.popFront();
 			} else {
-				_dataWindow[iW].emplace_back(reader->curChromosome().isHaploid());
+				_dataWindow[iW].emplace_back(glf.curChromosome().isHaploid());
 			}
 		}
 	}
@@ -343,19 +329,11 @@ std::vector<size_t> TGLFMultiReader::readWindow(const SiteSubset::TAlleles &Alle
 	return ids;
 }
 
-std::vector<std::string> TGLFMultiReader::namesOfActiveFiles() const {
-	std::vector<std::string> vec;
-
-	// sample names are file names without glf ending
-	for (TGLFReader *it : _activeGLFs) { vec.emplace_back(it->name()); }
-	return vec;
-}
-
-std::vector<std::string> TGLFMultiReader::sampleNamesOfActiveFiles() const {
+std::vector<std::string> TGLFMultiReader::sampleNames() const {
 	std::vector<std::string> vec;
 
 	for (size_t i = 0; i < _GLFs.size(); ++i) {
-		if (_GLFIsActive[i]) { vec.emplace_back(_GLFs.sampleName(i)); }
+		vec.emplace_back(_GLFs.sampleName(i));
 	}
 	return vec;
 }

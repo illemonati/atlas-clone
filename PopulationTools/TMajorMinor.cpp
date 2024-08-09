@@ -525,7 +525,7 @@ template<typename Estimator> void iterate(double maxF) {
 			logfile().list("Will keep sites regardless of their minor allele frequency. (use 'minMAF' to filter)");
 		}
 	}
-	glfReader.minSamplesWithData(minSamplesWithData);
+	glfReader.setMinSamplesWithData(minSamplesWithData);
 
 	// limit input
 	const size_t limitSites = parameters().get("limitSites", 0);
@@ -546,10 +546,10 @@ template<typename Estimator> void iterate(double maxF) {
 	// open vcf file
 	genometools::TVcfWriter vcf;
 	if (coretools::instances::parameters().exists("bgz")) {
-		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", glfReader.sampleNamesOfActiveFiles(),
+		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", glfReader.sampleNames(),
 									  usePhredLikelihoods);
 	} else {
-		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNamesOfActiveFiles(), usePhredLikelihoods);
+		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNames(), usePhredLikelihoods);
 	}
 
 	// vars

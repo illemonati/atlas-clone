@@ -39,7 +39,7 @@ TSafEstimator::TSafEstimator() {
 	logfile().list("Will estimate Site Allele Frequency for ", nSamples, " samples.");
 
 	const auto minSamples = parameters().get<size_t>("minSamplesWithData", 1);
-	_glfReader.minSamplesWithData(minSamples);
+	_glfReader.setMinSamplesWithData(minSamples);
 
 	logfile().list("Will print sites for which at least ", minSamples,
 				   " samples have data. (parameter minSamplesWithData)");
