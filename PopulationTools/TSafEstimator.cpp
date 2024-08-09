@@ -1,5 +1,5 @@
 #include "TSafEstimator.h"
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 #include "TSafFile.h"
 #include "coretools/Main/TParameters.h"
 #include <algorithm>
@@ -34,14 +34,12 @@ constexpr bool multiModal(double mama, double mami, double mimi) {
 
 TSafEstimator::TSafEstimator() {
 	_glfReader.addReference(parameters().get<std::string>("fasta"));
-	_glfReader.openGLFs();
-	_glfReader.setAllActive();
 	const size_t nSamples = _glfReader.numActiveSamples();
 
 	logfile().list("Will estimate Site Allele Frequency for ", nSamples, " samples.");
 
 	const auto minSamples = parameters().get<size_t>("minSamplesWithData", 1);
-	_glfReader.minSamplesWithData(minSamples);
+	_glfReader.setMinSamplesWithData(minSamples);
 
 	logfile().list("Will print sites for which at least ", minSamples,
 				   " samples have data. (parameter minSamplesWithData)");
@@ -176,7 +174,8 @@ void TSafEstimator::run() {
 	size_t nextPrint      = dCounter;
 
 	logfile().startIndent("Parsing through glf files:");
-	for (auto ids = _glfReader.readWindow(); !ids.empty(); ids = _glfReader.readWindow()) {
+	for (_glfReader.popFront(); !_glfReader.empty(); _glfReader.popFront()) {
+		const auto ids  = _glfReader.front();
 		const auto refs = _glfReader.refView();
 		for (const auto iW : ids) {
 			if (refs[iW] == Base::N) {

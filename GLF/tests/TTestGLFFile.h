@@ -25,7 +25,7 @@ protected:
 
     //GLF file for writing
     std::string _filename;
-    GLF::TGlfWriter _glfFile;
+    GLF::TGLFWriter _glfFile;
 
     // chromosomes
     genometools::TChromosomes _chromosomes;

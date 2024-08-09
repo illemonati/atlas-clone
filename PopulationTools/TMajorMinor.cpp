@@ -21,7 +21,7 @@
 
 #include "TAlleles.h"
 #include "TBgzWriter.h"
-#include "TGlfMultiReader.h"
+#include "TGLFMultiReader.h"
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -455,9 +455,7 @@ public:
 
 template<typename Estimator> void iterate(double maxF) {
 	// open GLF files
-	GLF::TGlfMultiReader glfReader;
-	glfReader.openGLFs();
-	glfReader.setAllActive();
+	GLF::TGLFMultiReader glfReader;
 
 	// use known alleles or reference allele, if provided
 
@@ -468,6 +466,7 @@ template<typename Estimator> void iterate(double maxF) {
 		logfile().startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
 		const auto filename = parameters().get("alleles");
 		alleles.parse(filename, glfReader.chromosomes());
+		glfReader.setAlleles(alleles);
 		logfile().endIndent();
 	} else if (parameters().exists("fasta")) {
 		logfile().list("Will use reference allele and only identify the most likely alternative allele. (argument: fasta)");
@@ -527,7 +526,7 @@ template<typename Estimator> void iterate(double maxF) {
 			logfile().list("Will keep sites regardless of their minor allele frequency. (use 'minMAF' to filter)");
 		}
 	}
-	glfReader.minSamplesWithData(minSamplesWithData);
+	glfReader.setMinSamplesWithData(minSamplesWithData);
 
 	// limit input
 	const size_t limitSites = parameters().get("limitSites", 0);
@@ -548,10 +547,10 @@ template<typename Estimator> void iterate(double maxF) {
 	// open vcf file
 	genometools::TVcfWriter vcf;
 	if (coretools::instances::parameters().exists("bgz")) {
-		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", glfReader.sampleNamesOfActiveFiles(),
+		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", glfReader.sampleNames(),
 									  usePhredLikelihoods);
 	} else {
-		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNamesOfActiveFiles(), usePhredLikelihoods);
+		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNames(), usePhredLikelihoods);
 	}
 
 	// vars
@@ -563,7 +562,8 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t nextPrint          = dCounter;
 
 	std::vector<TMMData> data;
-	for (auto ids = glfReader.readWindow(alleles); !ids.empty(); ids = glfReader.readWindow(alleles)) {
+	for (glfReader.popFront(); !glfReader.empty(); glfReader.popFront()) {
+		const auto& ids = glfReader.front();
 		data.assign(ids.back() + 1, failedTMMData);
 
 		if (alleles) {
