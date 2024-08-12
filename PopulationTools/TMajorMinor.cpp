@@ -562,7 +562,7 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t nextPrint          = dCounter;
 
 	std::vector<TMMData> data;
-	for (glfReader.popFront(); !glfReader.empty(); glfReader.popFront()) {
+	for (; !glfReader.empty(); glfReader.popFront()) {
 		const auto& ids = glfReader.front();
 		data.assign(ids.back() + 1, failedTMMData);
 

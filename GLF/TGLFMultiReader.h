@@ -114,8 +114,14 @@ public:
 		return chromosomes()[_curRefId];
 	}
 
-	void setMinSamplesWithData(size_t MinSamplesWithData) noexcept { _minSamplesWithData = MinSamplesWithData; };
-	void setAlleles(const SiteSubset::TAlleles& Alleles) noexcept {_alleles = &Alleles;}
+	void setMinSamplesWithData(size_t MinSamplesWithData) noexcept {
+		_minSamplesWithData = MinSamplesWithData;
+		_prepareParsing();
+	};
+	void setAlleles(const SiteSubset::TAlleles& Alleles) noexcept {
+		_alleles = &Alleles;
+		_prepareParsing();
+	}
 
 	std::vector<std::string> sampleNames() const;
 

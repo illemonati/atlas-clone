@@ -179,6 +179,7 @@ void TGLFMultiReader::_prepareParsing() {
 	}
 	// where to start?
 	_jumpToNextPosition();
+	popFront();
 }
 
 void TGLFMultiReader::_jumpToNextPosition() {

@@ -45,7 +45,6 @@ TSafEstimator::TSafEstimator() {
 				   " samples have data. (parameter minSamplesWithData)");
 
 	_logProbs.assign(2*nSamples + 1, LogProbability::lowest());
-
 }
 
 void TSafEstimator::_iterate(const TGenotypeLikelihoodsAllCombinationsVector &data, Base major) {
@@ -174,7 +173,7 @@ void TSafEstimator::run() {
 	size_t nextPrint      = dCounter;
 
 	logfile().startIndent("Parsing through glf files:");
-	for (_glfReader.popFront(); !_glfReader.empty(); _glfReader.popFront()) {
+	for (; !_glfReader.empty(); _glfReader.popFront()) {
 		const auto ids  = _glfReader.front();
 		const auto refs = _glfReader.refView();
 		for (const auto iW : ids) {
