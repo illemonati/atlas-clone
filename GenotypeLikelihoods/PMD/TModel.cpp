@@ -87,30 +87,27 @@ double bbProbs(Base b, TBaseBaseProbabilities &probs, Probability pCT, Probabili
 } // namespace impl
 
 TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+									const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
 
-		TBaseData Psum{0};
-		for (const auto b : {first(g), second(g)}) {
-			switch (b) {
-			case Base::A: Psum[Base::A] += P_dij_bbar[Base::A]; break;
-			case Base::C: {
-				Psum[Base::C] += (1. - pCT) * P_dij_bbar[Base::C];
-				Psum[Base::T] += pCT * P_dij_bbar[Base::T];
-			} break;
-			case Base::G: {
-				Psum[Base::A] += pGA * P_dij_bbar[Base::A];
-				Psum[Base::G] += (1. - pGA) * P_dij_bbar[Base::G];
-			} break;
-			default: Psum[Base::T] += P_dij_bbar[Base::T];
-			}
+	TBaseData Psum{0};
+	for (const auto b : {first(g), second(g)}) {
+		switch (b) {
+		case Base::A: Psum[Base::A] += P_dij_bbar[Base::A]; break;
+		case Base::C: {
+			Psum[Base::C] += (1. - pCT) * P_dij_bbar[Base::C];
+			Psum[Base::T] += pCT * P_dij_bbar[Base::T];
+		} break;
+		case Base::G: {
+			Psum[Base::A] += pGA * P_dij_bbar[Base::A];
+			Psum[Base::G] += (1. - pGA) * P_dij_bbar[Base::G];
+		} break;
+		default: Psum[Base::T] += P_dij_bbar[Base::T];
 		}
-		return TBaseProbabilities::normalize(Psum);
-	return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	}
+	return TBaseProbabilities::normalize(Psum);
 }
-
-
 
 TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedBase &data,
 								const TBaseLikelihoods &P_dij_bbar) const noexcept {
