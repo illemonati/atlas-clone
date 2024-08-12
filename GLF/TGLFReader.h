@@ -11,7 +11,7 @@ namespace GLF {
 class TGLFReader {
 private:
 	// file parsing
-	bool _eof      = true;
+	bool _eof      = false;
 	bool _hasIndex = false;
 
 	// about site

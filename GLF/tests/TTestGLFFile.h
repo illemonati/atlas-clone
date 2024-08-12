@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "TGLF.h"
+#include "TGLFWriter.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "GenotypeData.h"
 

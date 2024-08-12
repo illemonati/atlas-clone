@@ -6,8 +6,9 @@
 #include <algorithm>
 
 #include "GenotypeFunctions.h"
-#include "TGLF.h"
+#include "TGLFReader.h"
 #include "coretools/algorithms.h"
+#include "genometools/VCF/TVcfWriter.h"
 #include "tests/TTestGLFFile.h"
 
 //-------------------------------------------------------------
@@ -20,6 +21,7 @@ using genometools::Base;
 using genometools::Genotype;
 using genometools::HighPrecisionPhredIntProbability;
 using GenotypeLikelihoods::TBaseLikelihoods;
+using genometools::Ploidy;
 
 template<template<typename...> typename Container, typename... Args>
 GenotypeLikelihoods::TGenotypeLikelihoods getGLH(const Container<GenotypeLikelihoods::TBaseLikelihoods, Args...> &bases, const size_t size) {
@@ -179,11 +181,11 @@ public:
 		if (open) inputGLF.open(_filename);
 
 		// read!
-		while (inputGLF.readNext()) {
+		for (; !inputGLF.empty(); inputGLF.popFront()) {
 			// store
 			positions.push_back(inputGLF.position());
 			depths.push_back(inputGLF.depth());
-			genotypeLikelihoods.push_back(inputGLF.genotypeLikelihoodsGLF());
+			genotypeLikelihoods.push_back(inputGLF.front());
 		}
 	}
 
@@ -315,12 +317,13 @@ TEST_F(TGLF_Test_WriteRead, readNext) {
 	
 	// check all other positions
 	for (; pos != outputGLF.endPositions(); pos++) {
-		EXPECT_TRUE(inputGLF.readNext());
+		EXPECT_FALSE(inputGLF.empty());
 		EXPECT_EQ(*pos, inputGLF.position());
+		inputGLF.popFront();
 	}
 	
 	// This was the last position -> jumping to the next one returns false
-	EXPECT_FALSE(inputGLF.readNext());
+	EXPECT_TRUE(inputGLF.empty());
 }
 
 //-------------------------------------------------------------
@@ -384,12 +387,7 @@ TEST_F(TGLF_Test_WriteRead, jumpToNextChr_missingData) {
 	read();
 	inputGLF.rewind();
 	
-	// we start on chromosome 0
-	EXPECT_EQ(0, inputGLF.curChromosome().refID());
-	EXPECT_EQ(chrLength[0], inputGLF.curChromosome().length());
-
-	// jump to first site on chromosome 1
-	inputGLF.jumpToNextChr();
+	// chromosome 0 is empty, goes directly to 1
 	EXPECT_EQ(1, inputGLF.curChromosome().refID());
 	EXPECT_EQ(chrLength[1], inputGLF.curChromosome().length());
 	EXPECT_EQ(10, inputGLF.position().position());
@@ -490,19 +488,19 @@ public:
 		if (open) inputGLF.open(_filename);
 
 		// parse GLFs in windows
-		while (!inputGLF.eof()) {
+		while (!inputGLF.empty()) {
 			// move to new chromosome
 			const auto& curChr = inputGLF.curChromosome();			
 			genometools::TGenomeWindow window(curChr.from(), windowLen);			
 
 			// parse all windows of chromosome (unless file ends before chromosome ends)
-			while (window < curChr.to() && !inputGLF.eof()) {
+			while (window < curChr.to() && !inputGLF.empty()) {
 				// resize storage
 				std::vector<TGLFLikelihoods> genoLikelihoods_oneWindow;
 
 				// read data
 				const auto isGood = inputGLF.readNextWindow(genoLikelihoods_oneWindow, window);
-				if (isGood || inputGLF.eof()) {
+				if (isGood || inputGLF.empty()) {
 					// store if window contains data
 					genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
 				}

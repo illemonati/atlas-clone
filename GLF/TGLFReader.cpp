@@ -127,6 +127,7 @@ size_t TGLFReader::lastRefID() const {
 }
 
 void TGLFReader::rewind() {
+	_eof = false;
 	jumpToChr(0, false);
 }
 
@@ -149,7 +150,9 @@ bool TGLFReader::jumpToChr(uint32_t RefID, bool OnlyForward) {
 	_reader->seek(_index.positionInFile(RefID));
 
 	// read record type
-	if (!_readRecordType()){ return false; }
+	if (!_readRecordType()){
+		return false;
+	}
 	if(_recordType != 0){
 		UERROR("File index (position in file) of chromosome '", _index.chromosomes()[RefID].name(), "' does not point to a valid position within the GLF file!");
 	}
