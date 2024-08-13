@@ -3,8 +3,8 @@
 . $(dirname $0)/find_atlas
 . $(dirname $0)/simulate
 
-$atlas --task removeSoftClippedBases --bam ATLAS_simulations.bam \
-	   --fixedSeed 0 --out removeSoftClippedBases --logFile removeSoftClippedBases.out 
+$atlas --task trimSoftClips --bam ATLAS_simulations.bam \
+	   --fixedSeed 0 --out trimSoftClips --logFile trimSoftClips.out 
 
 for f in *.bam; do
 	name=${f%.bam}

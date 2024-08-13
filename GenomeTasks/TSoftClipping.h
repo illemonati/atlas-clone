@@ -55,13 +55,13 @@ public:
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TRemoveSoftClippedBases final : public TBamReadTraverser<ReadType::Parsed> {
+class TSoftClipsTrimmer final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	BAM::TOutputBamFile _outBam;
 	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
-	TRemoveSoftClippedBases();
+	TSoftClipsTrimmer();
 	void run();
 };
 

@@ -393,7 +393,7 @@ void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 	_sequenceAndQualitiesChanged = true;
 };
 
-void TAlignment::removeSoftClippedBases() {
+void TAlignment::trimSoftClips() {
 	// make sure read is parsed
 	if (!_parsed) DEVERROR("Read was not parsed!");
 
@@ -408,7 +408,7 @@ void TAlignment::removeSoftClippedBases() {
 	_cigar.removeSoftClips();
 };
 
-void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
+void TAlignment::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 	// make sure read is parsed
 	if (!_parsed) DEVERROR("Read was not parsed!");
 

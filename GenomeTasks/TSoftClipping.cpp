@@ -141,16 +141,16 @@ void TAssessSoftClipping::run() {
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TBamReadTraverser<ReadType::Parsed>(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
+	TSoftClipsTrimmer::TSoftClipsTrimmer() : TBamReadTraverser<ReadType::Parsed>(), _outBam(_genome.outputName() + "_softClippedBasesRemoved.bam", _genome.bamFile()){
 		
 	};
 
-void TRemoveSoftClippedBases::_handleAlignment(BAM::TAlignment& alignment) {
-	alignment.removeSoftClippedBases();
+void TSoftClipsTrimmer::_handleAlignment(BAM::TAlignment& alignment) {
+	alignment.trimSoftClips();
 	_outBam.writeAlignment(alignment);
 };
 
-void TRemoveSoftClippedBases::run() {
+void TSoftClipsTrimmer::run() {
 	logfile().list("Writing reads after soft-clip trimming to file '", _genome.outputName(),  "_softClippedBasesRemoved.bam'.");
 
 	// traverse BAM

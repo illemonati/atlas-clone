@@ -205,7 +205,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 		if (_removeSoftClippedBases) {
 			// parse and then remove softclipped reads
 			alignment.parse();
-			alignment.removeSoftClippedBases(_maxNumberOfSoftClippedBases);
+			alignment.trimSoftClips(_maxNumberOfSoftClippedBases);
 		}
 
 		if(_blacklist.isInBlacklist(alignment.name())) {
