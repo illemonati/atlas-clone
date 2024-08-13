@@ -1,0 +1,43 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+
+rm ./*
+
+echo "Simulating"
+
+name="simulate"
+$atlas --task simulate --depth 2,1,0,0,2,0,4 --chrLength  1000 \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="chr12"
+$atlas --task GLF --bam simulate.bam --chr chr1,chr2 \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="chr34"
+$atlas --task GLF --bam simulate.bam --chr chr3,chr4 \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="chr56"
+$atlas --task GLF --bam simulate.bam --chr chr5,chr6 \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="chr7"
+$atlas --task GLF --bam simulate.bam --chr chr7 \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="check12"
+$atlas --task indexGLF --check --glf chr12.glf.gz \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="check34"
+$atlas --task indexGLF --check --glf chr34.glf.gz \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="check56"
+$atlas --task indexGLF --check --glf chr56.glf.gz \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
+
+name="check7"
+$atlas --task indexGLF --check --glf chr7.glf.gz \
+	   --fixedSeed 0 --out $name --logFile $name.out 2> $name.eout
