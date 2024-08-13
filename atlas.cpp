@@ -9,7 +9,7 @@
 #include "coretools/Main/TMain.h"
 
 //BAM
-#include "GenomeTasks/TBamFilter.h"
+#include "TFilterBam.h"
 #include "TAlignmentMerger.h"
 #include "TBamDiagnoser.h"
 #include "TIlluminaIdentifier.h"
@@ -53,7 +53,7 @@
 
 void addTaks(coretools::TMain & main) {
 	//BAM
-	main.createRegularTask<GenomeTasks::TBamFilter>("filterBAM", "Writing reads that pass filters to BAM file");
+	main.createRegularTask<GenomeTasks::TFilterBam>("filterBAM", "Writing reads that pass filters to BAM file");
 	main.createRegularTask<GenomeTasks::AlignmentMerger::TAlignmentOverlappingReadsMerger>("mergeOverlappingReads", "Merging paired-end reads in BAM file");
 	main.createRegularTask<GenomeTasks::TReadGroupMerger>("mergeRG", "Merging read groups in a BAM file");
 	main.createRegularTask<GenomeTasks::TPileup>("pileup", "Printing pileup from BAM file");

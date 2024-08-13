@@ -1,5 +1,5 @@
-#ifndef TBAMFILTER_H_
-#define TBAMFILTER_H_
+#ifndef TFILTERBAM_H_
+#define TFILTERBAM_H_
 
 #include "TWaitingListBamTraverser.h"
 
@@ -11,14 +11,14 @@ namespace GenomeTasks {
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-class TBamFilter final:public TWaitingListBamTraverser {
+class TFilterBam final:public TWaitingListBamTraverser {
 protected:
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &lhs) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:
-	TBamFilter() : TWaitingListBamTraverser("_filtered.bam") {}
+	TFilterBam() : TWaitingListBamTraverser("_filtered.bam") {}
 	void run() {
 		traverseBAM();
 	}

@@ -1,10 +1,10 @@
-#include "TBamFilter.h"
+#include "TFilterBam.h"
 #include "TWaitingListBamTraverser.h"
 
 namespace GenomeTasks {
 using namespace coretools::str;
 
-void TBamFilter::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
+void TFilterBam::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 	if (!lhs.alignment.isProperPair()) {
 		// not a proper pair: mark mate as as improper
 		rhs.alignment.setIsProperPair(false);
@@ -14,12 +14,12 @@ void TBamFilter::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 	rhs.status = AlignmentStatus::ready;
 }
 
-void TBamFilter::_handleSingle(TWaitingAlignment &lhs) {
+void TFilterBam::_handleSingle(TWaitingAlignment &lhs) {
 	// read is single end: add for writing
 	lhs.status = AlignmentStatus::ready;
 }
 
-bool TBamFilter::_alignmentCanBeWrittenUnchanged() {
+bool TFilterBam::_alignmentCanBeWrittenUnchanged() {
 	return !_recalibrate && !_genome.bamFile().curIsPaired() && _waitingList.empty() &&
 		   (_removeSoftClippedBases
 				? (_genome.bamFile().curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases &&
