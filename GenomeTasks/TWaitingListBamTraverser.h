@@ -6,6 +6,7 @@
 #include "TOutputBamFile.h"
 #include "TParser.h"
 #include "genometools/BED/TBed.h"
+#include <memory>
 
 namespace GenomeTasks {
 
@@ -36,7 +37,7 @@ protected:
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
 	std::vector<TWaitingAlignment> _waitingList;
 
-	BAM::TOutputBamFile _outBam;
+	std::unique_ptr<BAM::TOutputBamFile> _outBam;
 
 	size_t _maxDistanceBetweenMates;
 	bool _recalibrate;

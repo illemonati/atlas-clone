@@ -1,7 +1,10 @@
 #include "TWaitingListBamTraverser.h"
 
+#include "TOutputBamFile.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
+#include <memory>
 
 namespace GenomeTasks {
 
@@ -17,11 +20,11 @@ void insert_sorted(Container &Vec, const typename Container::value_type &Item) {
 
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 	if (WAlignment.status == AlignmentStatus::ready) {
-		_outBam.writeAlignment(WAlignment.alignment);
+		if (_outBam) _outBam->writeAlignment(WAlignment.alignment);
 	} else if (WAlignment.status == AlignmentStatus::orphan) {
 		if (_keepOrphans) {
 			WAlignment.alignment.setIsProperPair(false);
-			_outBam.writeAlignment(WAlignment.alignment);
+			if (_outBam) _outBam->writeAlignment(WAlignment.alignment);
 		} else {
 			_genome.bamFile().filterOut(WAlignment.alignment); // write reason to bam log
 		}
@@ -105,8 +108,16 @@ void TWaitingListBamTraverser::_setMasks(const genometools::TChromosomes& Chromo
 }
 
 TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
-	: _genome(BAM::TBamFilters{true}), _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()) {
+	: _genome(BAM::TBamFilters{true}) {
 	// max distance between mates
+	if (parameters().exists("dryRun")) {
+		logfile().list("Doing dry-run, no BAM file will be written. (parameter 'dryRun')");
+	} else {
+		const auto fn = _genome.outputName() + std::string(OutName);
+		logfile().list("Filtering into BAM file", fn , ". (use 'dryRun' for filter summary)");
+		_outBam = std::make_unique<BAM::TOutputBamFile>(fn, _genome.bamFile());
+	}
+
 	_maxDistanceBetweenMates = parameters().template get<int>("acceptedDistance", 2000);
 	logfile().list("Mates that are farther than ", _maxDistanceBetweenMates,
 				   " apart will be considered orphans. (parameter 'acceptedDistance')");
@@ -194,7 +205,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 			if ((_doMasking && _mask.overlaps(alnWin)) || (_considerRegions && !_mask.overlaps(alnWin))) {
 				// ignore
 			} else {
-				bamFile.writeCurAlignment(_outBam);
+				if (_outBam) bamFile.writeCurAlignment(*_outBam);
 			}
 			continue;
 		}

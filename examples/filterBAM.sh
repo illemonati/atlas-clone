@@ -9,7 +9,7 @@ echo "chr1	0	1000" > bed.bed
 echo "chr2	0	1000" >> bed.bed
 echo "chr3	0	1000" >> bed.bed
 
-$atlas --task filterBAM --bam ATLAS_simulations_ind1.bam --regions bed.bed \
+$atlas --task filterBAM --bam ATLAS_simulations_ind1.bam --regions bed.bed --dryRun \
 	   --fixedSeed 0 --filterSoftClips --out filterBAM_1 --logFile filterBAM_1.out
 
 for i in {2..19}; do
