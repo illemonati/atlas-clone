@@ -33,7 +33,7 @@ class TBamWindowTraverser {
 
 			_windows.parser().fill(genome, alignment);
 
-			if (alignment.lastAlignedPositionWithRespectToRef() >= Window.from()) { Window.addAlignment(alignment); }
+			if (alignment < Window.to() && alignment.lastAlignedPositionWithRespectToRef() >= Window.from()) { Window.addAlignment(alignment); }
 		} while (genome.bamFile().readNextAlignmentThatPassesFilters());
 	}
 
