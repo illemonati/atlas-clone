@@ -33,7 +33,7 @@ class TBamWindowTraverser {
 
 			_windows.parser().fill(genome, alignment);
 
-			if (alignment.lastAlignedPositionWithRespectToRef() >= Window.from()) { Window.addAlignment(alignment); }
+			if (alignment < Window.to() && alignment.lastAlignedPositionWithRespectToRef() >= Window.from()) { Window.addAlignment(alignment); }
 		} while (genome.bamFile().readNextAlignmentThatPassesFilters());
 	}
 
@@ -112,10 +112,13 @@ protected:
 		}
 
 		for (const auto &chr : _chromosomes(_genome)) {
-			if (!chr.inUse()) continue;
+			_startChromosome(chr);
+			if (!chr.inUse()) {
+				_endChromosome(chr);
+				continue;
+			}
 
 			logfile().startNumbering("Parsing chromosome '" + chr.name() + "':");
-			_startChromosome(chr);
 
 			GenotypeLikelihoods::TWindow window(chr.refID(), chr.name());
 			for (const auto &gWindow : _windows[chr.refID()]) {

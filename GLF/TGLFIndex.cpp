@@ -44,6 +44,9 @@ void TGLFIndex::writeChromosmes(std::string_view GLFFilename) {
 }
 
 void TGLFIndex::checkChromosome(size_t RefID, std::string_view Name, uint32_t Length, uint8_t Ploidy) {
+	if (RefID >= _chrs.size()) {
+		UERROR("Chromosome ", RefID, ", named ", Name, " in GLF file is a higher number than the ", _chrs.size(), " chromosomes in index file!");
+	}
 
 	if (_chrs[RefID].name() != Name) {
 		UERROR("Chromosome ", RefID, " is named ", Name, " in GLF file but ", _chrs[RefID].name(), " in index file!");
