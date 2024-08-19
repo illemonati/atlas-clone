@@ -4,7 +4,7 @@ namespace Simulations {
 
 using genometools::Base;
 
-TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq) {
+TSimulatorMutationtable::TSimulatorMutationtable(const genometools::TBaseProbabilities &baseFreq) {
 	for (Base a = Base::min; a < Base::max; ++a) {
 		for (Base b = Base::min; b < Base::max; ++b) {
 			_mutTable[a][b] = baseFreq[a] * baseFreq[b];
@@ -14,7 +14,7 @@ TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBas
 	_normalizeAndMakeCumulative();
 }
 
-TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq,
+TSimulatorMutationtable::TSimulatorMutationtable(const genometools::TBaseProbabilities &baseFreq,
 						 double theta) {
 	const double exp_t   = exp(-theta);
 	const double o_exp_t = 1 - exp_t;

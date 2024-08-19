@@ -11,7 +11,7 @@
 #include "TReadGroupMap.h"
 #include "genometools/GenotypeTypes.h"
 
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 #include "TSequencedBase.h"
 #include "TModel.h"
 
@@ -47,22 +47,22 @@ public:
 
 	bool hasPMD() const noexcept { return !_withPMD.empty(); }
 
-	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_dij(data, P_dij_bbar);
 	}
 
-	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	genometools::TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+							  const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_bbar(b, data, P_dij_bbar);
 	}
 
-	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	genometools::TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+							  const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_bbar(g, data, P_dij_bbar);
 	}
 
 	TBaseBaseProbabilities P_b_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
-										   const TBaseLikelihoods &P_dij_bbar) const noexcept {
+										   const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_b_bbar(g, data, P_dij_bbar);
 	}
 

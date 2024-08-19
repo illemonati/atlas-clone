@@ -14,7 +14,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::P;
-using GenotypeLikelihoods::TGenotypeLikelihoods;
+using genometools::TGenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
 

@@ -16,9 +16,13 @@
 
 namespace GenotypeLikelihoods {
 
-//-------------------------------------------------------
-// TThetaEstimatorTemporaryFile
-//-------------------------------------------------------
+using genometools::TBaseProbabilities;
+using genometools::TBaseData;
+
+using genometools::TGenotypeLikelihoods;
+using genometools::TGenotypeProbabilities;
+using genometools::TGenotypeData;
+
 void TThetaEstimatorTemporaryFile::openForWriting() {
 	if (_sizeOfData == 0) UERROR("Can not open temporary data file for theta: file was not initialized!");
 
@@ -65,7 +69,7 @@ bool TThetaEstimatorTemporaryFile::isEOF() {
 	return gzeof(_fp);
 }
 
-void TThetaEstimatorTemporaryFile::save(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) {
+void TThetaEstimatorTemporaryFile::save(const TGenotypeLikelihoods &genoLik) {
 	if (!_isOpenForWriting) UERROR("Can not add data to '", _filename, "': file is closed!");
 
 	gzwrite(_fp, genoLik.data(), _sizeOfData);
@@ -137,7 +141,7 @@ TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	return TBaseProbabilities::normalize(bd);
 };
 
-GenotypeLikelihoods::TGenotypeData TThetaEstimatorData::P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
+TGenotypeData TThetaEstimatorData::P_G(const TGenotypeProbabilities &pGenotype) {
 	using genometools::Genotype;
 	// assumes that pGenotype is set!
 	GenotypeLikelihoods::TGenotypeData P_G(0.);

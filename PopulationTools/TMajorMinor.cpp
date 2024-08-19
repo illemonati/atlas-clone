@@ -19,9 +19,9 @@
 #include "genometools/TGenotypeFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
 
-#include "TAlleles.h"
+#include "genometools/TAlleles.h"
 #include "TBgzWriter.h"
-#include "TGLFMultiReader.h"
+#include "genometools/GLF/TGLFMultiReader.h"
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -455,13 +455,13 @@ public:
 
 template<typename Estimator> void iterate(double maxF) {
 	// open GLF files
-	GLF::TGLFMultiReader glfReader;
+	genometools::TGLFMultiReader glfReader;
 
 	// use known alleles or reference allele, if provided
 
 	bool filterN = false;
 
-	SiteSubset::TAlleles alleles;
+	genometools::TAlleles alleles;
 	if (parameters().exists("alleles")) {
 		logfile().startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
 		const auto filename = parameters().get("alleles");

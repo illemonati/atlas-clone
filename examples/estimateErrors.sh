@@ -33,3 +33,9 @@ $atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
 	   --writeRestart \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
 	   --fixedSeed 0 --out $name --logFile $name.out
+
+name="onlyIntercept"
+$atlas --task estimateErrors --minDeltaLL $delta --recalModel "intercept;" \
+	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
+	   --poolRecal "all" --poolPMD "all" \
+	   --fixedSeed 0 --out $name --logFile $name.out

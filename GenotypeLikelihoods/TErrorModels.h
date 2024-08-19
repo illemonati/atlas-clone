@@ -13,7 +13,7 @@
 
 #include "PMD/TModels.h"
 #include "SequencingError/TModels.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 #include "TReadGroupInfo.h"
 
 namespace BAM { class TReadGroups; }
@@ -44,7 +44,7 @@ public:
 	double calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
 
 	//functions performed on sites
-	TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite & site) const;
+	genometools::TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite & site) const;
 };
 
 

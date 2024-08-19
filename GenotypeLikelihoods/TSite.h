@@ -17,7 +17,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods {
@@ -31,7 +31,7 @@ class TSite {
 private:
 	std::vector<BAM::TSequencedBase> _bases;
 public:
-	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
+	genometools::TGenotypeLikelihoods genotypeLikelihoods;
 	genometools::Base refBase      = genometools::Base::N;
 	genometools::Genotype genotype = genometools::Genotype::NN;
 
@@ -43,7 +43,7 @@ public:
 
 	// add
 	void add(const BAM::TSequencedBase &base);
-	TBaseData baseFrequencies() const noexcept;
+	genometools::TBaseData baseFrequencies() const noexcept;
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 	void downsample(coretools::Probability p);
 
@@ -55,7 +55,7 @@ public:
 	std::vector<genometools::Base> sampleBases() const;
 	std::string getQualities() const;
 
-	TBaseCounts countAlleles() const;
+	genometools::TBaseCounts countAlleles() const;
 	coretools::TStrongArray<size_t, BAM::Mate> countMates() const;
 	std::array<int, 2> countFwdRev() const;
 

@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "coretools/Types/probability.h"
-#include "genometools/BED/TBed.h"
+#include "genometools/TBed.h"
 
 #include "TBamWindowTraverser.h"
 #include "TThetaEstimator.h"

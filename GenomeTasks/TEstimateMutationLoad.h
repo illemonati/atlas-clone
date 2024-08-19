@@ -7,14 +7,14 @@
 
 #include <vector>
 
-#include "genometools/BED/TBed.h"
+#include "genometools/TBed.h"
 #include "genometools/GenotypeTypes.h"
 #include "stattools/EM/TEMPriorIndependent.h"
 #include "stattools/EM/TLatentVariable.h"
 
 
 #include "TBamWindowTraverser.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 #include "TWindow.h"
 
 namespace GenomeTasks{
@@ -31,10 +31,10 @@ using LengthType = size_t;
 //------------------------------------------------
 class TSiteData {
 public:
-	GenotypeLikelihoods::TGenotypeLikelihoods likelihoods;
+	genometools::TGenotypeLikelihoods likelihoods;
 	genometools::Base preferredBase;
 
-	TSiteData(const GenotypeLikelihoods::TGenotypeLikelihoods &Likelihoods, const genometools::Base PreferredBase)
+	TSiteData(const genometools::TGenotypeLikelihoods &Likelihoods, const genometools::Base PreferredBase)
 		: likelihoods(Likelihoods), preferredBase(PreferredBase){};
 
 	TSiteData(const TSiteData & other) = delete;
@@ -91,7 +91,7 @@ private:
 
 public:
 	TMutationLoadEMPrior(std::vector<MutationLoad::TSiteData>& Sites) : 
-		TEMPriorIndependent_base(GenotypeLikelihoods::TGenotypeLikelihoods::capacity),
+		TEMPriorIndependent_base(genometools::TGenotypeLikelihoods::capacity),
 		_sites(Sites) {};
 
 	PrecisionType operator()(LengthType Index, NumStatesType State) const override;

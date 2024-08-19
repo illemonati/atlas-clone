@@ -13,11 +13,12 @@
 #include <vector>
 
 #include "coretools/Containers/TStrongArray.h"
-#include "genometools/GenotypeTypes.h"
 
-#include "TGLF.h"
-#include "TGLFMultiReader.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/GenotypeContainers.h"
+
+#include "genometools/GLF/TGLF.h"
+#include "genometools/GLF/TGLFMultiReader.h"
 
 namespace gz { class ogzstream; }
 
@@ -135,7 +136,7 @@ public:
 //TDistanceEstimate
 //--------------------------------------------
 
-typedef std::vector<GLF::TGLFLikelihoods> GenotypeQualityVector;
+typedef std::vector<genometools::TGLFLikelihoods> GenotypeQualityVector;
 
 class TEMforDistanceEstimation{
 private:
@@ -157,11 +158,11 @@ private:
 
 	void guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
 	void guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
-	void fill_K(GenotypeLikelihoods::TBaseData  & thesePi);
-	void fill_P_g_given_phi_pi(const TDistanceData & phi, GenotypeLikelihoods::TBaseData & pi);
+	void fill_K(genometools::TBaseData  & thesePi);
+	void fill_P_g_given_phi_pi(const TDistanceData & phi, genometools::TBaseData & pi);
 
 public:
-	GenotypeLikelihoods::TBaseData pi;
+	genometools::TBaseData pi;
 	TDistanceData phi;
 	double LL;
 	double distance;
@@ -180,16 +181,16 @@ private:
 	std::string outputName;
 
 	//GLF files
-	GLF::TGLFVector _GLFs;
+	genometools::TGLFVector _GLFs;
 
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
-	void moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
-	void advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2);
-	void readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, GLF::TGLFReader & g1, GLF::TGLFReader & g2);
-	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGLFReader & g1, GLF::TGLFReader & g2, gz::ogzstream & out);
+	void moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
+	void advance(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
+	void readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, genometools::TGLFReader & g1, genometools::TGLFReader & g2);
+	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out);
 
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
-	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGLFReader & g1, GLF::TGLFReader & g2, uint32_t windowLen);
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, genometools::TGLFReader & g1, genometools::TGLFReader & g2, uint32_t windowLen);
 
 	void writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);

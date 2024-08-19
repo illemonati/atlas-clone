@@ -25,7 +25,7 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using genometools::Base;
-using GenotypeLikelihoods::TBaseProbabilities;
+using genometools::TBaseProbabilities;
 using coretools::P;
 
 namespace impl {

@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "genometools/BED/TBed.h"
+#include "genometools/TBed.h"
 
 #include "TBamWindowTraverser.h"
 

@@ -8,7 +8,7 @@ $atlas --task GLF --printAll --window 7777 \
 	   --fixedSeed 0 --out GLF --logFile GLF.out
 
 $atlas --task printGLF --glf GLF.glf.gz \
-	   --fixedSeed 0 --logFile printGLF.out | tail -n +14 > GLF.txt
+	   --fixedSeed 0 --logFile printGLF.out | tail -n +14 | head -n -4 > GLF.txt
 
 mv GLF.glf.idx GLF.glf.idx.old
 

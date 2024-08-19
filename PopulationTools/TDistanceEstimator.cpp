@@ -13,7 +13,7 @@
 
 namespace PopulationTools{
 
-using GenotypeLikelihoods::TBaseData;
+using genometools::TBaseData;
 using genometools::Genotype;
 using genometools::Base;
 using coretools::Probability;
@@ -601,7 +601,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	distMatrixFile.close();
 };
 
-void TDistanceEstimator::moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
+void TDistanceEstimator::moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2){
 	while(g1.curChromosome().refID() != g2.curChromosome().refID() || g1.curChromosome().isHaploid() || g2.curChromosome().isHaploid()){
 		//advance the one laging behind
 		if(g1.refID() < g2.refID()){
@@ -612,7 +612,7 @@ void TDistanceEstimator::moveToNextCommonChr(GLF::TGLFReader & g1, GLF::TGLFRead
 	}
 };
 
-void TDistanceEstimator::advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
+void TDistanceEstimator::advance(genometools::TGLFReader & g1, genometools::TGLFReader & g2){
 	//advance
 	if(g2.position() == g1.position()){
 		//advance both
@@ -628,7 +628,7 @@ void TDistanceEstimator::advance(GLF::TGLFReader & g1, GLF::TGLFReader & g2){
 	return(moveToNextCommonChr(g1, g2));
 };
 
-void TDistanceEstimator::readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, GLF::TGLFReader & g1, GLF::TGLFReader & g2){
+void TDistanceEstimator::readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, genometools::TGLFReader & g1, genometools::TGLFReader & g2){
 	//parse GLFs. Only keep sites where both individuals have data!
 
 	//rewind GLFs
@@ -645,7 +645,7 @@ void TDistanceEstimator::readCommonSites(GenotypeQualityVector & genoQual1, Geno
 	}
 };
 
-void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGLFReader & g1, GLF::TGLFReader & g2, gz::ogzstream & out){
+void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out){
 	//initialize storage for two windows
 	using namespace coretools::instances;
 	logfile().listFlush("Reading common sites ...");
@@ -700,7 +700,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	}
 };
 
-void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGLFReader & g1, GLF::TGLFReader & g2, uint32_t windowLen){
+void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, genometools::TGLFReader & g1, genometools::TGLFReader & g2, uint32_t windowLen){
 	//initialize variables
 	bool isGood1 = true;
 	bool isGood2 = true;

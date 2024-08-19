@@ -35,7 +35,7 @@ void TAllelicDepthCounts::clear(){
 	std::fill(_counts.begin(), _counts.end(), 0);
 };
 
-void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts){
+void TAllelicDepthCounts::addSite(const genometools::TBaseCounts & alleleCounts){
 	using genometools::Base;
 	const auto aA = alleleCounts[Base::A];
 	const auto aC = alleleCounts[Base::C];

@@ -5,16 +5,15 @@
 #include "TEstimateMutationLoad.h"
 #include "stattools/EM/TEM.h"
 
-using coretools::instances::logfile;
-using genometools::Genotype;
-using GenotypeLikelihoods::TGenotypeLikelihoods;
-
 namespace GenomeTasks {
 
-namespace MutationLoad {
+using coretools::instances::logfile;
 using genometools::Genotype;
+using genometools::TGenotypeLikelihoods;
+
+
+namespace MutationLoad {
 using genometools::Base;
-using GenotypeLikelihoods::TGenotypeLikelihoods;
 
 //------------------------------------------------
 // TGenotypeProbabilities
@@ -122,7 +121,7 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 //------------------------------------------------
 void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, const genometools::Base PreferredBase) {
 	if (!site.empty()) {
-		GenotypeLikelihoods::TGenotypeLikelihoods genoLik =
+		genometools::TGenotypeLikelihoods genoLik =
 		    _genome.errorModels().calculateGenotypeLikelihoods(site);
 		_sites.emplace_back(genoLik, PreferredBase);
 	}

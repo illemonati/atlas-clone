@@ -1,12 +1,13 @@
 #ifndef TWAITINGLISTBAMTRAVERSER_H_
 #define TWAITINGLISTBAMTRAVERSER_H_
 
+#include <memory>
+#include "genometools/TBed.h"
+
 #include "TAlignment.h"
 #include "TGenome.h"
 #include "TOutputBamFile.h"
 #include "TParser.h"
-#include "genometools/BED/TBed.h"
-#include <memory>
 
 namespace GenomeTasks {
 

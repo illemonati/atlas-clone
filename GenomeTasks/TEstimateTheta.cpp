@@ -281,7 +281,7 @@ void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, 
 	while (it != Region.end() && Window.overlaps(*it)) {
 		for (genometools::TGenomePosition s = std::max(it->from(), Window.from()); s < it->to() && s < Window.to();
 			 ++s) {
-			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
+			genometools::TGenotypeLikelihoods genoLik;
 			genoLik = _genome.errorModels().calculateGenotypeLikelihoods(Window[s - Window.from()]);
 			Data.add(Window[s - Window.from()], genoLik);
 		}

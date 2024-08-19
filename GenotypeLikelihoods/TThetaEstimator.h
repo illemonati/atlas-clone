@@ -14,7 +14,7 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/TOutputFile.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
 
@@ -36,7 +36,7 @@ struct Theta {
 	double logTheta        = -9e100;
 	double thetaConfidence = 0.0;
 	double LL              = -9e100;
-	TBaseProbabilities baseFreq;
+	genometools::TBaseProbabilities baseFreq;
 
 	void set(double val) {
 		theta    = val;
@@ -77,8 +77,8 @@ struct Theta {
 // TThetaEstimator
 //---------------------------------------------------------------
 
-GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &baseFrequencies);
-GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta);
+genometools::TGenotypeProbabilities getPGenotype(double expTheta, const genometools::TBaseProbabilities &baseFrequencies);
+genometools::TGenotypeProbabilities getPGenotype(const Theta &thisTheta);
 
 class TThetaEstimator_base {
 protected:
@@ -108,7 +108,7 @@ public:
 	virtual ~TThetaEstimator_base() = default;
 
 	TThetaEstimatorData *pointerToDataContainer() { return _data.get(); };
-	GenotypeLikelihoods::TGenotypeProbabilities pGenotype() { return ::GenotypeLikelihoods::getPGenotype(_theta); };
+	genometools::TGenotypeProbabilities pGenotype() { return ::GenotypeLikelihoods::getPGenotype(_theta); };
 };
 
 //---------------------------------------------------------------
@@ -125,8 +125,8 @@ private:
 	bool _estimationSuccessful = false;
 	double _expectedHet        = 0.0;
 
-	bool _NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
-	void _NROnlyTheta(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
+	bool _NRAllParams(const genometools::TGenotypeProbabilities &pGenotype);
+	void _NROnlyTheta(const genometools::TGenotypeProbabilities &pGenotype);
 	void _runEMForTheta();
 	void _estimateConfidenceInterval();
 	void _calcExpectedHet();
@@ -135,12 +135,12 @@ public:
 	TThetaEstimator();
 
 	void clear();
-	void add(const TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
+	void add(const TSite &site, const genometools::TGenotypeLikelihoods &genotypeLikelihoods);
 	void add(const TWindow &window, const TErrorModels &glCalculator);
 	long sizeWithData() { return _data->sizeWithData(); };
 	bool estimateTheta();
 	void setTheta(double Theta);
-	void setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities &BaseFreq);
+	void setBaseFreq(const genometools::TBaseProbabilities &BaseFreq);
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix = "");
 	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out);
 	void writeResultsToFile(coretools::TOutputFile &out, size_t NumMaskedSites);

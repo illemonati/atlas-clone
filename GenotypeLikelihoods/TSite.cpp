@@ -9,8 +9,12 @@
 
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
+#include "genometools/GenotypeContainers.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods {
+using genometools::TBaseData;
+using genometools::TBaseCounts;
 
 //-------------------------------------------------------
 // TSite

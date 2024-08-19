@@ -11,7 +11,7 @@
 #include <armadillo>
 
 #include "SequencingError/TFunctions.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
@@ -57,8 +57,8 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQ(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
-				const TGenotypeLikelihoods &P_bbar_I_gds) {
+	void _addToQ(const BAM::TSequencedBase &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+				const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
 
 		const double eps    = calcErrorRate(base);
@@ -74,8 +74,8 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQJF(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
-				   const TGenotypeLikelihoods &P_bbar_I_gds) {
+	void _addToQJF(const BAM::TSequencedBase &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+				   const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
 		static std::vector<T1stDerivative> der1st;
 		static std::vector<T2ndDerivative> der2nd;
@@ -128,7 +128,7 @@ public:
 	double maxF() const noexcept {return _maxF;};
 
 	template<bool updateJF, bool isInvariant>
-	void add(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods & P_bbar_I_gds) {
+	void add(const BAM::TSequencedBase &base, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
 		if constexpr (updateJF) _addToQJF<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 	}

@@ -5,6 +5,8 @@
 #include "TContextErrors.h"
 #include "TEstimateGenotypeDistribution.h"
 #include "TFromTo.h"
+#include "TGLFIndexer.h"
+#include "TGLFPrinter.h"
 #include "TSafEstimator.h"
 #include "coretools/Main/TMain.h"
 
@@ -33,7 +35,6 @@
 #include "TEstimateMutationLoad.h"
 #include "TEstimateTheta.h"
 #include "TF2Estimator.h"
-#include "TGLF.h"
 #include "THardyWeinbergTest.h"
 #include "TInbreedingEstimator.h"
 #include "TMajorMinor.h"
@@ -91,8 +92,8 @@ void addTaks(coretools::TMain & main) {
 	//Population tools
 	{
 	constexpr auto groupName = "Population";
-	main.createGroupedTask<GLF::TGLFIndexer>(groupName, "indexGLF", "Indexing a GLF file");
-	main.createGroupedTask<GLF::TGLFPrinter>(groupName, "printGLF", "Printing a GLF file to screen");
+	main.createGroupedTask<PopulationTools::TGLFIndexer>(groupName, "indexGLF", "Indexing a GLF file");
+	main.createGroupedTask<PopulationTools::TGLFPrinter>(groupName, "printGLF", "Printing a GLF file to screen");
 	main.createGroupedTask<PopulationTools::TMajorMinor>(groupName, "majorMinor", "Estimating major and minor alles", "Skotte et al. (2012) Genetic Epidemiology");
 	main.createGroupedTask<PopulationTools::TDistanceEstimator>(groupName, "geneticDist", "Estimating the genetic distance between individuals");
 	main.createGroupedTask<PopulationTools::TAlleleCounter>(groupName, "alleleCounts", "Estimating population allele counts");

@@ -6,7 +6,7 @@
  */
 
 #include "TWindow.h"
-#include "genometools/BED/TBed.h"
+#include "genometools/TBed.h"
 #include "genometools/TFastaReader.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/Main/TLog.h"
@@ -285,13 +285,13 @@ void TWindow::downsample(size_t maxDepth, const coretools::TSubsamplePicker & pi
 	}
 };
 
-GenotypeLikelihoods::TBaseProbabilities TWindow::estimateBaseFrequencies() const{
+genometools::TBaseProbabilities TWindow::estimateBaseFrequencies() const{
 	//estimate initial base frequencies
-	TBaseData bd{};
+	genometools::TBaseData bd{};
 	for(auto& s : _sites){
 		bd += s.baseFrequencies();
 	}
-	return TBaseProbabilities::normalize(bd);
+	return genometools::TBaseProbabilities::normalize(bd);
 };
 
 

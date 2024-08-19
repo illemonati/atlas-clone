@@ -18,6 +18,9 @@ using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using coretools::str::toString;
 using coretools::P;
+using genometools::TGenotypeProbabilities;
+using genometools::TGenotypeLikelihoods;
+using genometools::TBaseProbabilities;
 
 //---------------------------------------------------------------
 // TThetaEstimator_base
@@ -222,7 +225,7 @@ void TThetaEstimator::clear() {
 };
 
 void TThetaEstimator::add(const GenotypeLikelihoods::TSite &site,
-						  const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
+						  const TGenotypeLikelihoods &genotypeLikelihoods) {
 	_data->add(site, genotypeLikelihoods);
 };
 
@@ -239,7 +242,7 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 	// calculate substitution probabilities
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(pGenotype); // see paper
+	const TGenotypeData P_G = _data->P_G(pGenotype); // see paper
 
 	// prepare storage
 	arma::mat::fixed<6,6> Jacobian;
@@ -323,7 +326,7 @@ void TThetaEstimator::_NROnlyTheta(const GenotypeLikelihoods::TGenotypeProbabili
 	using namespace genometools;
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(pGenotype); // see paper
+	const TGenotypeData P_G = _data->P_G(pGenotype); // see paper
 
 	double rho = _theta.expMinusTheta / (1.0 - _theta.expMinusTheta);
 

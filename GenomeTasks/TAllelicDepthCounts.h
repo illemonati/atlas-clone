@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "TBamWindowTraverser.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 
 namespace GenomeTasks{
 
@@ -30,7 +30,7 @@ public:
 
 	void resize(size_t MaxAllelicDepth);
 	void clear();
-	void addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts);
+	void addSite(const genometools::TBaseCounts & alleleCounts);
 	void addSiteZeroDepth();
 	void write(const std::string &filename, bool printEmpty);
 	size_t size() const noexcept {return _counts.size();}

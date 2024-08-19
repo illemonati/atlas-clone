@@ -21,8 +21,11 @@ using coretools::Probability;
 using coretools::P;
 using genometools::Base;
 using namespace coretools::str;
+using genometools::TGenotypeLikelihoods;
+using genometools::TBaseCounts;
+using genometools::TGenotypeProbabilities;
 
-namespace /*anonymous*/ {
+namespace impl {
 template<template<typename, typename, size_t, typename...> typename Container, typename Type, typename Index, size_t N, typename... Args>
 auto sampleFirstSecond(const Container<Type, Index, N, Args...> &c) {
 	std::array<Index, N> is;
@@ -244,7 +247,7 @@ void TCaller::_fillInfoFieldFunctionPointers(){
 
 };
 
-std::string TCaller::_getVCFInfoString_DP(const TSite & site, const TGenotypeLikelihoods &){
+	std::string TCaller::_getVCFInfoString_DP(const TSite & site, const genometools::TGenotypeLikelihoods &){
 	return "DP=" + toString(site.depth());
 };
 
@@ -509,7 +512,7 @@ bool TCallerMajorityBase::_callGenotype(const TSite & site, const TGenotypeLikel
 	_countAlleles(site);
 
 	//call majority
-	const auto [majorityBase, second] = sampleFirstSecond(_alleleCounts);
+	const auto [majorityBase, second] = impl::sampleFirstSecond(_alleleCounts);
 
 	//decide on alt
 	if(majorityBase == referenceBase){
@@ -547,7 +550,7 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, const TG
 	} else {
 		//pick among all alleles and check
 		//call majority
-		const auto majorityBase = randomGenerator().sampleIndexOfMaxima<TBaseCounts, Base, 4>(_alleleCounts);
+		const auto majorityBase = randomGenerator().sampleIndexOfMaxima<genometools::TBaseCounts, Base, 4>(_alleleCounts);
 
 		//decide on call
 		if(majorityBase == referenceBase){
@@ -592,7 +595,7 @@ bool TCallerConsensify::_callGenotype(const TSite & site, const TGenotypeLikelih
 	_countAlleles(site);
 
 	//call majority
-	const auto [majorityBase, second] = sampleFirstSecond(_alleleCounts);
+	const auto [majorityBase, second] = impl::sampleFirstSecond(_alleleCounts);
 
 	//check if we have sufficient depth to call
 	if(_alleleCounts[majorityBase] < _minMajorityDepth){
@@ -680,7 +683,7 @@ bool TCallerAllelePresence::_callGenotype(const TSite &, const TGenotypeLikeliho
 	_fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
-	const auto [majorityBase, second] = sampleFirstSecond(_alleleCounts);
+	const auto [majorityBase, second] = impl::sampleFirstSecond(_alleleCounts);
 	_MAP = majorityBase;
 
 	//decide on alt
@@ -761,7 +764,7 @@ void TCallerDiploid::_clearAfterCall(){
 
 void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metric){
 	using namespace genometools;
-	std::tie(_genotypeAtMax, _genotypeAtSecond) = sampleFirstSecond(metric);
+	std::tie(_genotypeAtMax, _genotypeAtSecond) = impl::sampleFirstSecond(metric);
 
 	//decide on alternative alleles
 	if(first(_genotypeAtMax) == referenceBase){
@@ -1086,7 +1089,7 @@ std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite &, const TGenotypeL
 
 std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
 	//normalize
-	TGenotypeData tmp;
+	genometools::TGenotypeData tmp;
 	for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
 		tmp[g] = log10(genotypeLikelihoods[g].get() / genotypeLikelihoods[_genotypeAtMax].get());
 	}

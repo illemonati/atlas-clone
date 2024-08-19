@@ -21,7 +21,7 @@
 #include "genometools/GenotypeTypes.h"
 
 #include "SFS.h"
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 
 
 namespace genometools { class TChromosome; }
@@ -33,7 +33,7 @@ class TSimulatorHaplotypes;
 class THaplotypeSimulator {
 protected:
 	coretools::TStrongArray<double, genometools::Base> _cumulRef;
-	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
+	genometools::TBaseProbabilities _baseFreq;
 	 coretools::TStrongArray<double, genometools::Base>_cumulBaseFreq;
 	coretools::Probability _referenceDivergence;
 	THaplotypeSimulator();

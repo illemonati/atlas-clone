@@ -21,12 +21,12 @@ namespace GenotypeLikelihoods {
 //---------------------------------------------------------------------------------
 class TGenotypePrior {
 protected:
-	TGenotypeProbabilities genotypePrior{};
+	genometools::TGenotypeProbabilities genotypePrior{};
 public:
 	virtual ~TGenotypePrior() = default;
 
 	virtual void update(const TWindow &window, const TErrorModels &) = 0;
-	TGenotypeProbabilities *getPointerToPrior() { return &genotypePrior; };
+	genometools::TGenotypeProbabilities *getPointerToPrior() { return &genotypePrior; };
 	coretools::Probability operator[](const genometools::Genotype &genotype) { return genotypePrior[genotype]; };
 };
 
@@ -44,7 +44,7 @@ public:
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if (equalBaseFreq) {
-			GenotypeLikelihoods::TBaseProbabilities freq{};
+			genometools::TBaseProbabilities freq{};
 			thetaEstimator->setBaseFreq(freq);
 		}
 		genotypePrior = thetaEstimator->pGenotype();
@@ -57,7 +57,7 @@ public:
 		using coretools::instances::logfile;
 		if (!equalBaseFreq) {
 			logfile().listFlush("Estimating base frequencies for prior ...");
-			GenotypeLikelihoods::TBaseProbabilities freq = window.estimateBaseFrequencies();
+			genometools::TBaseProbabilities freq = window.estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(freq);
 			logfile().done();
 			logfile().conclude("Estimated base frequencies: " + coretools::str::toString(freq[Base::A]) + ", " +
@@ -115,7 +115,7 @@ public:
 			if (hasDefaultTheta) {
 				logfile().conclude("Will use a default theta of " + coretools::str::toString(defaultTheta) + ".");
 				thetaEstimator->setTheta(defaultTheta);
-				GenotypeLikelihoods::TBaseProbabilities freq{};
+				genometools::TBaseProbabilities freq{};
 				thetaEstimator->setBaseFreq(freq);
 			} else
 				UERROR("Please increase window size or provide a default theta!");

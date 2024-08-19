@@ -9,19 +9,18 @@
 #include <memory>
 #include <vector>
 
-#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Math/TSumLog.h"
-#include "genometools/BED/TBed.h"
+
+#include "genometools/TBed.h"
 #include "genometools/GenotypeTypes.h"
+#include "genometools/GenotypeContainers.h"
 
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"
+#include "SequencingError/TRecalDataTables.h"
 #include "TBamWindowTraverser.h"
-#include "GenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TSite.h"
-#include "genometools/VCF/TVcfWriter.h"
-#include "SequencingError/TRecalDataTables.h"
 
 namespace GenotypeLikelihoods {
 
@@ -37,10 +36,10 @@ private:
 	std::vector<std::unique_ptr<TGenotypeDistribution>> _genoDist;
 
 	// per site
-	std::vector<TGenotypeLikelihoods> _P_g_I_dis;
+	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_dis;
 
 	// per read
-	std::vector<TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
+	std::vector<genometools::TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
 
 	BAM::TReadGroupMap _recalMap;
 	BAM::TReadGroupMap _pmdMap;
@@ -108,7 +107,7 @@ private:
 		using coretools::P;
 
 		constexpr auto PgI_init = []() {
-			TGenotypeLikelihoods Ps(P(1.));
+			genometools::TGenotypeLikelihoods Ps(P(1.));
 			if constexpr (Pl == genometools::Ploidy::haploid) {
 				Ps[Genotype::AC] = P(0.);
 				Ps[Genotype::AG] = P(0.);
@@ -124,7 +123,7 @@ private:
 		for (const auto &site : sites) {
 			if (site.genotype == Genotype::NN) { // unknown genotype
 				const auto ref = site.refBase;
-				TGenotypeLikelihoods P_g_I_di = PgI_init;
+				genometools::TGenotypeLikelihoods P_g_I_di = PgI_init;
 				double sum                    = 1.;
 				for (const auto &d_ij : site) {
 					const auto P_dij_I_bbar = _recal.P_dij(d_ij);

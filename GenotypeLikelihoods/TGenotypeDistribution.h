@@ -8,31 +8,23 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
-#include "GenotypeData.h"
-
-#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Types/probability.h"
 
+#include "genometools/GenotypeContainers.h"
 #include "genometools/GenotypeTypes.h"
 
-#include "genometools/VCF/TVcfWriter.h"
 #include "stattools/MLEInference/TNelderMead.h"
 
 namespace GenotypeLikelihoods {
-
-//-------------------------------------------
-// TGenotypeDistribution
-// Base class.
-//-------------------------------------------
 
 class TGenotypeDistribution {
 public:
 	TGenotypeDistribution()                                                                            = default;
 	virtual ~TGenotypeDistribution()                                                                   = default;
-	virtual TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const = 0;
-	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+	virtual genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const = 0;
+	virtual coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
 														 genometools::Genotype genotype) const         = 0;
-	virtual double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref)             = 0;
+	virtual double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base ref)             = 0;
 	virtual void estimate()                                                                            = 0;
 	virtual std::string_view typeString() const noexcept                                               = 0;
 	virtual void log() const                                                                           = 0;
@@ -43,15 +35,15 @@ public:
 };
 
 template<genometools::Ploidy P>
-TGenotypeLikelihoods base2genotype(const TBaseLikelihoods &baseLikelihoods) {
+genometools::TGenotypeLikelihoods base2genotype(const genometools::TBaseLikelihoods &baseLikelihoods) {
 	using genometools::Base;
 	using coretools::average;
 	constexpr auto P0 = coretools::P(0.);
 	if constexpr (P == genometools::Ploidy::haploid) {
-		return TGenotypeLikelihoods({baseLikelihoods[Base::A], P0, P0, P0, baseLikelihoods[Base::C], P0, P0,
+		return genometools::TGenotypeLikelihoods({baseLikelihoods[Base::A], P0, P0, P0, baseLikelihoods[Base::C], P0, P0,
 									 baseLikelihoods[Base::G], P0, baseLikelihoods[Base::T]});
 	} else {
-		return TGenotypeLikelihoods(
+		return genometools::TGenotypeLikelihoods(
 			{baseLikelihoods[Base::A], average(baseLikelihoods[Base::A], baseLikelihoods[Base::C]),
 			 average(baseLikelihoods[Base::A], baseLikelihoods[Base::G]),
 			 average(baseLikelihoods[Base::A], baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
@@ -62,15 +54,15 @@ TGenotypeLikelihoods base2genotype(const TBaseLikelihoods &baseLikelihoods) {
 }
 
 class THaploidDistribution final : public TGenotypeDistribution {
-	TBaseProbabilities _pi{};
-	TBaseData _piSum{};
+	genometools::TBaseProbabilities _pi{};
+	genometools::TBaseData _piSum{};
 public:
 	static constexpr std::string_view name = "haploid";
 
-	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
@@ -82,17 +74,17 @@ public:
 
 class TDiploidDistribution final : public TGenotypeDistribution {
 	constexpr static double _het   = 6. / 4 * 0.001; // initial educated guess: theta = 0.001
-	constexpr static auto _pi_init = TGenotypeProbabilities::normalize({1., _het, _het, _het, 1., _het, _het, 1., _het, 1.});
-	TGenotypeProbabilities _pi     = _pi_init;
-	TGenotypeData _piSum{};
+	constexpr static auto _pi_init = genometools::TGenotypeProbabilities::normalize({1., _het, _het, _het, 1., _het, _het, 1., _het, 1.});
+	genometools::TGenotypeProbabilities _pi     = _pi_init;
+	genometools::TGenotypeData _piSum{};
 
 public:
 	static constexpr std::string_view name = "diploid";
 
-	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
@@ -111,18 +103,18 @@ class THKY85 final : public TGenotypeDistribution {
 	double _theta_r = _theta_r_init;
 	double _theta_g = _theta_g_init;
 
-	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
-	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
+	coretools::TStrongArray<genometools::TGenotypeProbabilities, genometools::Base> _pi;
+	coretools::TStrongArray<genometools::TGenotypeData, genometools::Base> _likelihoodSum{};
 	stattools::TNelderMead<3> _nelderMead;
 
 public:
 	static constexpr std::string_view name = "HKY85";
 	THKY85();
 
-	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
@@ -139,18 +131,18 @@ class THKY85_mono final : public TGenotypeDistribution {
 	coretools::Probability _mu = _mu_init;
 	double _theta              = _theta_init;
 
-	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _pi;
-	coretools::TStrongArray<TBaseData, genometools::Base> _likelihoodSum{};
+	coretools::TStrongArray<genometools::TBaseProbabilities, genometools::Base> _pi;
+	coretools::TStrongArray<genometools::TBaseData, genometools::Base> _likelihoodSum{};
 	stattools::TNelderMead<2> _nelderMead;
 
 public:
 	static constexpr std::string_view name = "HKY85_mono";
 	THKY85_mono();
 
-	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;

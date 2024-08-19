@@ -1,16 +1,16 @@
 #ifndef TSAFESTIMATOR_H_
 #define TSAFESTIMATOR_H_
 
-#include "TGLFMultiReader.h"
+#include "genometools/GLF/TGLFMultiReader.h"
 
 namespace PopulationTools {
 
 class TSafEstimator {
 	std::vector<double> _logProbs;
-	GLF::TGLFMultiReader _glfReader;
+	genometools::TGLFMultiReader _glfReader;
 	size_t _lower = 0;
 
-	void _iterate(const TGenotypeLikelihoodsAllCombinationsVector& data, genometools::Base major);
+	void _iterate(const genometools::TGenotypeLikelihoodsAllCombinationsVector& data, genometools::Base major);
 public:
 	TSafEstimator();
 	void run();

@@ -2,12 +2,19 @@
 #include "TSequencedBase.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
+#include "genometools/GenotypeContainers.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {
 
 using genometools::Base;
+using genometools::TBaseProbabilities;
+using genometools::TBaseLikelihoods;
+using genometools::TBaseMassFunctions;
+using genometools::TBaseData;
+
 using genometools::Genotype;
+using genometools::TGenotypeProbabilities;
 using BAM::TSequencedBase;
 using coretools::P;
 using coretools::Probability;

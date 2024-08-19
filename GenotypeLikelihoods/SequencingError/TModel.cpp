@@ -15,6 +15,7 @@ using coretools::Probability;
 using coretools::P;
 using coretools::instances::randomGenerator;
 using genometools::Base;
+using genometools::TBaseLikelihoods;
 
 //*********************************************************
 // TModelNoRecal

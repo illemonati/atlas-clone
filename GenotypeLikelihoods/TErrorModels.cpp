@@ -6,14 +6,18 @@
  */
 
 #include "TErrorModels.h"
+
 #include "GenotypeFunctions.h"
 #include "TSite.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/algorithms.h"
+#include "genometools/GenotypeContainers.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 using coretools::instances::logfile;
+using genometools::TBaseLikelihoods;
+using genometools::TGenotypeLikelihoods;
 
 TErrorModels::TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
 		_pmd.initialize(RGInfo);

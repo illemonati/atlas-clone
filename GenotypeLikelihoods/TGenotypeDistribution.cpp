@@ -4,18 +4,29 @@
  *  Created on: May 12, 2020
  *      Author: phaentu
  */
-
 #include "TGenotypeDistribution.h"
-#include "GenotypeData.h"
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Strings/toString.h"
-#include "stattools/MLEInference/TNelderMead.h"
 
 #include <armadillo>
 
+#include "coretools/Main/TLog.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Strings/toString.h"
+
+#include "genometools/GenotypeContainers.h"
+
+#include "stattools/MLEInference/TNelderMead.h"
+
+
 namespace GenotypeLikelihoods {
 using genometools::Base;
+using genometools::TBaseLikelihoods;
+using genometools::TBaseProbabilities;
+using genometools::TBaseData;
+
 using genometools::Genotype;
+using genometools::TGenotypeProbabilities;
+using genometools::TGenotypeData;
+using genometools::TGenotypeLikelihoods;
 using coretools::instances::logfile;
 
 namespace impl {

@@ -1,12 +1,5 @@
-/*
- * TWriter.h
- *
- *  Created on: 2023-06-23
- *      Author: Andreas
- */
-
-#ifndef CORE_FILES_TWRITERIMPL_H
-#define CORE_FILES_TWRITERIMPL_H
+#ifndef TBGZWRITER_H_
+#define TBGZWRITER_H_
 
 #include "coretools/Main/TError.h"
 #include "htslib/bgzf.h"
@@ -40,4 +33,3 @@ public:
 } // namespace coretools
 
 #endif
-    

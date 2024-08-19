@@ -12,7 +12,7 @@
 #include <vector>
 #include <zlib.h>
 
-#include "GenotypeData.h"
+#include "genometools/GenotypeContainers.h"
 
 namespace GenotypeLikelihoods {
 class TSite;
@@ -46,8 +46,8 @@ public:
 	void clean();
 	bool isEOF();
 
-	void save(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
-	bool read(GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
+	void save(const genometools::TGenotypeLikelihoods &genoLik);
+	bool read(genometools::TGenotypeLikelihoods &genoLik);
 };
 
 //---------------------------------------------------------------
@@ -61,7 +61,7 @@ private:
 	size_t _numSites2x;
 	double _cumulativeDepth;
 
-	std::vector<GenotypeLikelihoods::TBaseData> _baseFreqs;
+	std::vector<genometools::TBaseData> _baseFreqs;
 	std::vector<size_t> _numBootstrapRepsPerEntry;
 	size_t _curRep;
 
@@ -73,17 +73,17 @@ protected:
 	bool _begin();
 	bool _next();
 
-	virtual void _saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &) = 0;
+	virtual void _saveSite(const genometools::TGenotypeLikelihoods &) = 0;
 	virtual void _start()                                                     = 0;
 	virtual void _readNext()                                                  = 0;
 	virtual void _emptyStorage()                                              = 0;
-	virtual GenotypeLikelihoods::TGenotypeLikelihoods &_GL()                  = 0;
+	virtual genometools::TGenotypeLikelihoods &_GL()                  = 0;
 
 public:
 	TThetaEstimatorData();
 	virtual ~TThetaEstimatorData() = default;
 
-	void add(const GenotypeLikelihoods::TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
+	void add(const GenotypeLikelihoods::TSite &site, const genometools::TGenotypeLikelihoods &genoLik);
 	void clear();
 
 	void bootstrap();
@@ -94,13 +94,13 @@ public:
 
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix);
 	void writeSite(coretools::TOutputFile &out, size_t NumMaskedSites);
-	TBaseProbabilities baseFrequencies();
+	genometools::TBaseProbabilities baseFrequencies();
 
-	double fisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype);
+	double fisherInfo(const genometools::TGenotypeProbabilities &pGenotype, const genometools::TGenotypeData deriv_pGenotype);
 
 
-	GenotypeLikelihoods::TGenotypeData P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
-	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
+	genometools::TGenotypeData P_G(const genometools::TGenotypeProbabilities &pGenotype);
+	double calcLogLikelihood(const genometools::TGenotypeProbabilities &pGenotype);
 };
 
 //---------------------------------------------------------------
@@ -108,13 +108,13 @@ public:
 //---------------------------------------------------------------
 class TThetaEstimatorDataVector final : public TThetaEstimatorData {
 private:
-	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> _sites;
+	std::vector<genometools::TGenotypeLikelihoods> _sites;
 
-	void _saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
+	void _saveSite(const genometools::TGenotypeLikelihoods &genoLik) override;
 	void _readNext() override;
 	void _emptyStorage() override;
 	void _start() override;
-	GenotypeLikelihoods::TGenotypeLikelihoods &_GL() override;
+	genometools::TGenotypeLikelihoods &_GL() override;
 
 public:
 	TThetaEstimatorDataVector();
@@ -129,13 +129,13 @@ protected:
 	std::string _dataFileName;
 
 	TThetaEstimatorTemporaryFile _sites;
-	GenotypeLikelihoods::TGenotypeLikelihoods _genotypeLikelihoods;
+	genometools::TGenotypeLikelihoods _genotypeLikelihoods;
 
-	void _saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
+	void _saveSite(const genometools::TGenotypeLikelihoods &genoLik) override;
 	void _readNext() override;
 	void _emptyStorage() override;
 	void _start() override;
-	GenotypeLikelihoods::TGenotypeLikelihoods &_GL() override;
+	genometools::TGenotypeLikelihoods &_GL() override;
 
 public:
 	TThetaEstimatorDataFile(std::string TmpFileName);

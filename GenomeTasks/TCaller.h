@@ -8,15 +8,13 @@
 #ifndef TCALLER_H_
 #define TCALLER_H_
 
-#include <memory>
 #include <string>
 #include <vector>
 
-#include "genometools/VCF/TVCFFields.h"
-
 #include "TBamWindowTraverser.h"
-#include "GenotypeData.h"
 #include "TGenotypePrior.h"
+#include "genometools/VCF/TVCFFields.h"
+#include "genometools/GenotypeContainers.h"
 
 
 namespace GenotypeLikelihoods { class TSite; }
@@ -67,12 +65,12 @@ protected:
 	std::vector<genometools::Base> _genotypesWithHighestMetric;
 	genometools::Base referenceBase;
 	std::vector<genometools::Base> _altAlleles;
-	GenotypeLikelihoods::TBaseCounts _alleleCounts;
+	genometools::TBaseCounts _alleleCounts;
 	bool _allelesCounted;
 
 	//genotype prior
 	bool _usesPrior;
-	GenotypeLikelihoods::TGenotypeProbabilities* _genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
+	genometools::TGenotypeProbabilities* _genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
 	bool _priorSet;
 
 	//functions regarding VCF file
@@ -81,35 +79,35 @@ protected:
 	void _writeVCFHeader(const std::string & sampleName);
 
 	//function to write info fields
-	std::vector< std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) > _VCFInfoFunctionsVec;
+	std::vector< std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) > _VCFInfoFunctionsVec;
 	void _fillInfoFieldFunctionPointers();
-	virtual std::string _getVCFInfoString_DP(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFInfoString_DP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 
 	//functions to write genotype fields
-	std::vector< std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) > _VCFGenotypeFunctionsVec;
+	std::vector< std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) > _VCFGenotypeFunctionsVec;
 	void _fillGenotypeFieldFunctionPointers();
-	virtual std::string _getVCFGenotypeString_GT(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_DP(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AD(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite &, const GenotypeLikelihoods::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GT(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFGenotypeString_DP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AD(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
 
 	//write VCF
-	std::string _composeVCFString(std::vector<std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _composeVCFString(std::vector<std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual void _writeAlternativeAllelesToVCF();
-	void _writeCallToVCF(const std::string & chr, const long pos, const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	void _writeCallToVCF(const std::string & chr, const long pos, const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 	void _writeMissingDataToVCF(const GenotypeLikelihoods::TSite & site);
 	virtual void _clearAfterCall();
 
 	//call
 	void _countAlleles(const GenotypeLikelihoods::TSite & site);
-	virtual bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
 	TCaller();
@@ -133,9 +131,9 @@ public:
 
 	//prior
 	bool usesPrior(){ return _usesPrior; };
-	void setPrior(GenotypeLikelihoods::TGenotypeProbabilities* prior){ _genotypePrior = prior; _priorSet = true; };
-	void call(const std::string & chr, long pos, const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
-	void call(const std::string & chr, long pos, const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele);
+	void setPrior(genometools::TGenotypeProbabilities* prior){ _genotypePrior = prior; _priorSet = true; };
+	void call(const std::string & chr, long pos, const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
+	void call(const std::string & chr, long pos, const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele);
 };
 
 //------------------------------------------------------
@@ -143,8 +141,8 @@ public:
 //------------------------------------------------------
 class TCallerRandomBase:public TCaller{
 private:
-	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerRandomBase();
@@ -155,8 +153,8 @@ public:
 //------------------------------------------------------
 class TCallerMajorityBase:public TCaller{
 private:
-	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerMajorityBase();
@@ -169,9 +167,9 @@ class TCallerConsensify:public TCaller{
 private:
 	uint32_t _downsampleDepth, _minMajorityDepth;
 
-	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	void _callGenotypeKnownAlleles(const GenotypeLikelihoods::TBaseCounts & AlleleCounts);
-	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	void _callGenotypeKnownAlleles(const genometools::TBaseCounts & AlleleCounts);
+	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerConsensify(uint32_t DownsampleDepth);
@@ -182,15 +180,15 @@ public:
 //------------------------------------------------------
 class TCallerAllelePresence:public TCaller{
 private:
-	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
-	GenotypeLikelihoods::TBaseLikelihoods _allelePostProb;
+	genometools::TGenotypeProbabilities _posterior;
+	genometools::TBaseLikelihoods _allelePostProb;
 	genometools::Base _MAP;
 
-	void _fillPosteriors(const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	void _fillPosteriors(const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerAllelePresence();
@@ -209,9 +207,9 @@ protected:
 	//TGenotypeData tmpGenoData;
 
 	void _clearAfterCall() override;
-	void callGenotypeFromMetric(const GenotypeLikelihoods::TGenotypeProbabilities & metric);
-	void callGenotypeFromMetricKnownAlleles(const GenotypeLikelihoods::TGenotypeProbabilities & metric);
-	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const GenotypeLikelihoods::TGenotypeProbabilities & metric);
+	void callGenotypeFromMetric(const genometools::TGenotypeProbabilities & metric);
+	void callGenotypeFromMetricKnownAlleles(const genometools::TGenotypeProbabilities & metric);
+	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const genometools::TGenotypeProbabilities & metric);
 
 	template<typename T> std::string _getPerGenotypeMetricString(const T & metric){
 		using genometools::Base;
@@ -256,8 +254,8 @@ protected:
 	};
 
 	void calculateImbalance(const GenotypeLikelihoods::TSite & site);
-	std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerDiploid();
@@ -268,11 +266,11 @@ public:
 //------------------------------------------------------
 class TCallerMLE:public TCallerDiploid{
 private:
-	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerMLE();
@@ -283,13 +281,13 @@ public:
 //------------------------------------------------------
 class TCallerBayes:public TCallerDiploid{
 private:
-	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
+	genometools::TGenotypeProbabilities _posterior;
 
-	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
-	std::string _getVCFGenotypeString_PP(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_PP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
 	TCallerBayes();
