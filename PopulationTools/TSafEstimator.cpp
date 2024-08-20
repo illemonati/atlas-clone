@@ -1,7 +1,9 @@
 #include "TSafEstimator.h"
 
 #include "TSafFile.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/GLF/GLF.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -47,7 +49,7 @@ TSafEstimator::TSafEstimator() {
 	_logProbs.assign(2*nSamples + 1, LogProbability::lowest());
 }
 
-	void TSafEstimator::_iterate(const genometools::TGenotypeLikelihoodsAllCombinationsVector &data, Base major) {
+	void TSafEstimator::_iterate(const std::vector<genometools::TGLFEntry> &data, Base major) {
 	assert(major != Base::N);
 	constexpr TStrongArray<std::array<Base, 3>, Base> minors = []() {
 		TStrongArray<std::array<Base, 3>, Base> minors{};

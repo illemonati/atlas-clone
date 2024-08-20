@@ -17,7 +17,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenotypeContainers.h"
 
-#include "genometools/GLF/TGLF.h"
+#include "genometools/GLF/GLF.h"
 #include "genometools/GLF/TGLFMultiReader.h"
 
 namespace gz { class ogzstream; }
@@ -27,7 +27,6 @@ namespace PopulationTools{
 //------------------------------------------------
 // DistancePhi
 //------------------------------------------------
-
 
 enum class DistancePhi : uint8_t {min=0, aa_aa=min, aa_ab, ab_aa, aa_bb, ab_ab, ab_ac, aa_bc, ab_cc, ab_cd, nn_nn, max = nn_nn};
 
@@ -72,36 +71,6 @@ inline std::string toString(DistancePhi dp) {
 
 using TDistanceData = coretools::TStrongArray<double, DistancePhi>;
 
-/*
-class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, coretools::index(DistancePhi::max)>{
-private:
-	using GenotypeLikelihoods::TData_base<double, DistancePhi, coretools::index(DistancePhi::max)>::_data;
-
-public:
-	TDistanceData() : GenotypeLikelihoods::TData_base<double, DistancePhi, coretools::index(DistancePhi::max)>(0.0) {};
-	~TDistanceData() = default;
-
-	double& operator()(const genometools::Genotype & g1, const genometools::Genotype & g2){
-		return _data[coretools::index(distancePhi(g1, g2))];
-	};
-	};*/
-
-//--------------------------------------------
-//TGenocombinationToBaseMap
-//--------------------------------------------
-class TGenocombinationToBaseMap{
-public:
-	std::array< std::array< std::array< bool, 4>, 10>, 10> genotypeCombinationHasBase{};
-
-	TGenocombinationToBaseMap();
-	~TGenocombinationToBaseMap() = default;
-
-	bool operator()(const genometools::Genotype &g1, const genometools::Genotype &g2, const genometools::Base &b) {
-		using coretools::index;
-		return genotypeCombinationHasBase[index(g1)][index(g2)][index(b)];
-	};
-};
-
 //----------------------------------------------------
 //TDistanceClass
 //----------------------------------------------------
@@ -140,35 +109,39 @@ typedef std::vector<genometools::TGLFLikelihoods> GenotypeQualityVector;
 
 class TEMforDistanceEstimation{
 private:
-	TGenocombinationToBaseMap genoToBaseMap;
+	coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<bool, genometools::Base>, genometools::Genotype>, genometools::Genotype> _genoToBaseMap();
 
 	//settings
-	int maxNumEMIterations;
-	double epsilonForEM;
+	int _maxIterations;
+	double _epsilon;
 
 	//tmp variables
-	double old_LL;
-	TDistanceData K; //normalizing constant
+	double _old_LL;
+	TDistanceData _K; //normalizing constant
 
-	std::array< std::array<double, 10>, 10 > probGeno;
-	std::array< std::array<double, 10>, 10 > P_G;
-	std::array< std::array<double, 10>, 10 > P_G_one_site;
+	std::array< std::array<double, 10>, 10 > _probGeno;
+	std::array< std::array<double, 10>, 10 > _P_G;
+	std::array< std::array<double, 10>, 10 > _P_G_one_site;
 
-	std::unique_ptr<TDistance> distanceObject;
+	std::unique_ptr<TDistance> _distanceObject;
 
-	void guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
-	void guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
-	void fill_K(genometools::TBaseData  & thesePi);
-	void fill_P_g_given_phi_pi(const TDistanceData & phi, genometools::TBaseData & pi);
+	genometools::TBaseData _pi;
+	TDistanceData _phi;
+	double _LL;
+	double _distance;
+
+	void _guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
+	void _guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
+	void _fill_K(genometools::TBaseData  & thesePi);
+	void _fill_P_g_given_phi_pi(const TDistanceData & phi, genometools::TBaseData & pi);
 
 public:
-	genometools::TBaseData pi;
-	TDistanceData phi;
-	double LL;
-	double distance;
 
 	TEMforDistanceEstimation();
 	bool estimatePhiWithEM(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
+	double distance() const noexcept {return _distance;}
+	const genometools::TBaseData& pi() const noexcept {return _pi;};
+	const TDistanceData& phi() const noexcept {return _phi;}
 };
 
 //--------------------------------------------
@@ -176,26 +149,26 @@ public:
 //--------------------------------------------
 class TDistanceEstimator{
 private:
-	int maxNumEMIterations;
-	double epsilonForEM;
-	std::string outputName;
+	int maxterations;
+	double _epsilon;
+	std::string _outputName;
 
 	//GLF files
 	genometools::TGLFVector _GLFs;
 
-	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
-	void moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
-	void advance(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
-	void readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, genometools::TGLFReader & g1, genometools::TGLFReader & g2);
-	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out);
+	void _estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
+	void _moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
+	void _advance(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
+	void _readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, genometools::TGLFReader & g1, genometools::TGLFReader & g2);
+	void _estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out);
 
-	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
-	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, genometools::TGLFReader & g1, genometools::TGLFReader & g2, uint32_t windowLen);
+	void _estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
+	void _estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, genometools::TGLFReader & g1, genometools::TGLFReader & g2, uint32_t windowLen);
 
-	void writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
-	void writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
-	void writeDistanceEstimatesNoData(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window);
-	void writeDistanceEstimatesNoData(gz::ogzstream & out);
+	void _writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void _writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void _writeDistanceEstimatesNoData(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window);
+	void _writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:
 	TDistanceEstimator();

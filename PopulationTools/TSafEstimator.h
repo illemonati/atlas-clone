@@ -10,7 +10,7 @@ class TSafEstimator {
 	genometools::TGLFMultiReader _glfReader;
 	size_t _lower = 0;
 
-	void _iterate(const genometools::TGenotypeLikelihoodsAllCombinationsVector& data, genometools::Base major);
+	void _iterate(const std::vector<genometools::TGLFEntry>& data, genometools::Base major);
 public:
 	TSafEstimator();
 	void run();
