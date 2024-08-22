@@ -82,7 +82,7 @@ coretools::TStrongArray<
 	coretools::TStrongArray<coretools::TStrongArray<bool, genometools::Base>, genometools::Genotype>,
 	genometools::Genotype>
 TEMforDistanceEstimation::_genoToBaseMap() {
-	constexpr coretools::TStrongArray<
+	static const coretools::TStrongArray<
 		coretools::TStrongArray<coretools::TStrongArray<bool, genometools::Base>, genometools::Genotype>,
 		genometools::Genotype>
 		map = []() {
