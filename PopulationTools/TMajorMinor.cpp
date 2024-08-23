@@ -15,6 +15,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
+#include "coretools/Types/probability.h"
 #include "genometools/GLF/GLF.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
@@ -33,6 +34,7 @@ namespace PopulationTools {
 using coretools::Log10Probability;
 using coretools::P;
 using coretools::Probability;
+using coretools::PhredInt;
 using coretools::TConstView;
 using coretools::TDualStrongArray;
 using coretools::TStrongArray;
@@ -80,12 +82,12 @@ template<typename Container> AllelicCombination chooseBestAllelicCombination(con
 struct TMMData {
 	bool pass{false};
 	Probability MAF;
-	genometools::PhredIntProbability variantQuality;
+	PhredInt variantQuality;
 	genometools::Base major;
 	genometools::Base minor;
 };
 
-constexpr TMMData failedTMMData = {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), Base::N, Base::N};
+constexpr TMMData failedTMMData = {false, Probability::lowest(), PhredInt::lowest(), Base::N, Base::N};
 
 class TSkotte {
 	enum class HaploDiplo : size_t { min, first = min, second, homoFirst, het, homoSecond, max };
@@ -281,7 +283,7 @@ class TSkotte {
 	template<size_t N>
 	static TMMData _estimate(coretools::TConstView<TGLFEntry> data, double maxF,
 							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
-							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+							Probability minMAF, PhredInt minVariantQuality) {
 		static std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.clear();
 
@@ -336,7 +338,7 @@ class TSkotte {
 
 		// determine variant quality
 		Log10Probability LL_fixed = impl::LLFixedAllele(data, major);
-		const genometools::PhredIntProbability variantQuality{LL_fixed > bestL ? Log10Probability(0.0)
+		const PhredInt variantQuality{LL_fixed > bestL ? Log10Probability(0.0)
 																			   : Log10Probability(LL_fixed - bestL)};
 
 		if (MAF < minMAF || variantQuality < minVariantQuality) {
@@ -354,7 +356,7 @@ class TSkotte {
 public:
 
 	static TMMData estimate(coretools::TConstView<TGLFEntry> data, double maxF,
-							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+							Probability minMAF, PhredInt minVariantQuality) {
 		using AC = AllelicCombination;
 		constexpr std::array usedAllelicCombinations = {AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
 		return _estimate(data, maxF, usedAllelicCombinations, Base::N, minMAF, minVariantQuality);
@@ -362,7 +364,7 @@ public:
 
 	static TMMData estimate(coretools::TConstView<TGLFEntry> data, double maxF,
 							genometools::Base ref, Probability minMAF,
-							genometools::PhredIntProbability minVariantQuality) {
+							PhredInt minVariantQuality) {
 		if (ref == Base::N) return estimate(data, maxF, minMAF, minVariantQuality);
 		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
@@ -370,7 +372,7 @@ public:
 
 	static TMMData estimate(coretools::TConstView<TGLFEntry> data, double maxF,
 							genometools::Base ref, genometools::Base alt, Probability minMAF,
-							genometools::PhredIntProbability minVariantQuality) {
+							PhredInt minVariantQuality) {
 		const auto usedAllelicCombinations = std::array{allelicCombination(ref, alt)};
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
@@ -381,7 +383,7 @@ private:
 	template<size_t N>
 	static TMMData _estimate(coretools::TConstView<TGLFEntry> data, double maxF,
 							 const std::array<AllelicCombination, N>& usedAllelicCombinations, genometools::Base ref,
-							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+							Probability minMAF, PhredInt minVariantQuality) {
 		// calculate L10L for each allelic combination
 		genometools::TGenotypeFrequencies bestFreqs;
 		coretools::Log10Probability bestL = coretools::Log10Probability::lowest();
@@ -411,7 +413,7 @@ private:
 
 		// determine variant quality
 		Log10Probability LL_fixed = impl::LLFixedAllele(data, major);
-		const genometools::PhredIntProbability variantQuality{LL_fixed > bestL ? Log10Probability(0.0)
+		const PhredInt variantQuality{LL_fixed > bestL ? Log10Probability(0.0)
 																			   : Log10Probability(LL_fixed - bestL)};
 
 		if (bestFreqs.MAF() < minMAF || variantQuality < minVariantQuality) {
@@ -430,7 +432,7 @@ private:
 public:
 
 	static TMMData estimate(coretools::TConstView<TGLFEntry> data, double maxF,
-							Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+							Probability minMAF, PhredInt minVariantQuality) {
 		// calculate L10L for each allelic combination
 		using AC = AllelicCombination;
 		constexpr std::array usedAllelicCombinations = {AC::AC, AC::AG, AC::AT, AC::CG, AC::CT, AC::GT};
@@ -439,7 +441,7 @@ public:
 
 	static TMMData estimate(coretools::TConstView<TGLFEntry> data, double maxF,
 							genometools::Base ref, Probability minMAF,
-							genometools::PhredIntProbability minVariantQuality) {
+							PhredInt minVariantQuality) {
 		// calculate L10L for each allelic combination
 		if (ref == Base::N) return estimate(data, maxF, minMAF, minVariantQuality);
 		const auto usedAllelicCombinations = impl::useAllelicCombinationsThatContain(ref);
@@ -448,7 +450,7 @@ public:
 
 	static TMMData estimate(coretools::TConstView<TGLFEntry> data, double maxF,
 							genometools::Base ref, genometools::Base alt, Probability minMAF,
-							genometools::PhredIntProbability minVariantQuality) {
+							PhredInt minVariantQuality) {
 		const auto usedAllelicCombinations = std::array{allelicCombination(ref, alt)};
 		return _estimate(data, maxF, usedAllelicCombinations, ref, minMAF, minVariantQuality);
 	}
@@ -500,12 +502,12 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 
 	size_t minSamplesWithData = 1;
-	genometools::PhredIntProbability minVariantQuality{0};
+	PhredInt minVariantQuality = PhredInt::highest();
 	coretools::Probability minMAF{P(0.0)};
 	if (parameters().exists("printAll")) {
 		logfile().list("Will write all sites and samples. (parameter printAll)");
 		minSamplesWithData = 0;
-		minVariantQuality  = 0;
+		minVariantQuality  = PhredInt::highest();
 	} else {
 		minSamplesWithData = parameters().get<size_t>("minSamplesWithData", 1);
 		if (minSamplesWithData > 0) {
@@ -513,9 +515,9 @@ template<typename Estimator> void iterate(double maxF) {
 						   " samples have data. (parameter minSamplesWithData)");
 		}
 
-		minVariantQuality = parameters().get<genometools::PhredIntProbability>(
-			"minVariantQual", genometools::PhredIntProbability::highest());
-		if (minVariantQuality > genometools::PhredIntProbability::highest()) {
+		minVariantQuality = parameters().get<PhredInt>(
+			"minVariantQual", PhredInt::highest());
+		if (minVariantQuality > PhredInt::highest()) {
 			logfile().list("Will only print sites with variant quality >= ", minVariantQuality,
 						   ". (parameter minVariantQual)");
 		}

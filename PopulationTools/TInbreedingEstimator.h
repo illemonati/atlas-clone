@@ -11,7 +11,6 @@
 #include "coretools/Types/TStringHash.h"
 #include "coretools/Types/probability.h"
 
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
@@ -22,12 +21,7 @@
 #include "stattools/Priors/TPriorBeta.h"
 #include "stattools/Priors/TPriorUniform.h"
 
-namespace stattools {
-class TObservationBase;
-}
-namespace genometools {
-	class THardyWeinbergGenotypeProbabilities;
-}
+namespace genometools {class THardyWeinbergGenotypeProbabilities;}
 
 namespace PopulationTools {
 
@@ -46,7 +40,7 @@ using TypeGamma    = coretools::StrictlyPositive; // gamma in (0, inf]
 using TypePi       = coretools::ZeroOneOpen;      // pi in (0, 1)
 using TypeFModel   = coretools::Boolean;          // FModel = 0,1
 using TypePModel   = coretools::Boolean;          // PModel = 0,1
-using PhredType    = genometools::HighPrecisionPhredIntProbability;
+using PhredType    = coretools::HPPhredInt;
 using TypeGTL      = genometools::TSampleLikelihoods<PhredType>;
 
 constexpr static size_t NumDimParams = 1;

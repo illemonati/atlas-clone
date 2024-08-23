@@ -8,8 +8,6 @@
 #ifndef TRECALIBRATIONEMMODEL_H_
 #define TRECALIBRATIONEMMODEL_H_
 
-#include "genometools/PhredProbabilityTypes.h"
-
 #include "TEpsilon.h"
 #include "genometools/GenotypeContainers.h"
 #include "TReadGroupInfo.h"
@@ -30,7 +28,7 @@ namespace SequencingError {
 struct TModel {
 	virtual ~TModel()                                                                                 = default;
 	// Per Base
-	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept = 0;
+	virtual coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept = 0;
 	virtual genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept                    = 0;
 	// Per Alignment
 	virtual void simulate(BAM::TAlignment &aln) const noexcept                                        = 0;
@@ -47,7 +45,7 @@ struct TModel {
 //------------------------------------------------
 struct TNoRecal final : public TModel {
 	// Per Base
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept override;
+	coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept override;
 	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
 
 	// Per Alignment
@@ -74,7 +72,7 @@ public:
 	TWithRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 
 	// Per Base
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept override;
+	coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept override;
 	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
 
 	void simulate(BAM::TAlignment &aln) const noexcept override;

@@ -12,7 +12,6 @@
 
 #include "TReadGroupMap.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/TModel.h"
 #include "TAlignment.h"
@@ -55,7 +54,7 @@ public:
 	bool recalibrates() const noexcept { return !_withRecal.empty(); }
 
 	// calculate error rates
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept {
+	coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept {
 		return model(data).phredInt(data);
 	}
 	void recalibrate(BAM::TAlignment &aln) const noexcept { RGModel(aln.readGroupId())[aln.mate()]->recalibrate(aln); };

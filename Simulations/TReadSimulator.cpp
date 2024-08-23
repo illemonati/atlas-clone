@@ -19,7 +19,6 @@ using coretools::instances::randomGenerator;
 using coretools::probdist::TCategoricalDistribution;
 using coretools::P;
 using genometools::Base;
-using genometools::PhredIntProbability;
 using genometools::TGenomePosition;
 
 //------------------------------------------------
@@ -162,7 +161,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 	}
 	
 	// simulate true qualities
-	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
+	std::vector<coretools::PhredInt> phredIntQualities(bases.size());
 	_qualityDist.sample(phredIntQualities);
 
 	alignment.setSequenceQualities(cigar, bases, phredIntQualities);

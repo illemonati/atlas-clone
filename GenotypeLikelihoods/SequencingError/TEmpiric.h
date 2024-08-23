@@ -33,7 +33,7 @@ public:
 		for (size_t i = 0; i < _betas.size(); ++i) {
 			if (Covariate::isUsed(dataTable[Covariate::index], i)) {
 				if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
-					const coretools::Probability p = coretools::Probability(genometools::PhredIntProbability(i));
+					const coretools::Probability p = coretools::Probability(coretools::PhredInt(i));
 					_betas[i] = coretools::logit(p);
 				} else {
 					_betas[i] = 0.;

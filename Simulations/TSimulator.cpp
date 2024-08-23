@@ -376,7 +376,7 @@ auto calculateVariantQuality(const genometools::TGenotypeLikelihoodsOneAllelicCo
 	const auto LL_fixed              = calculateLog10ProbFixed(GenotypeLikelihoods, Major, Ref, IsDiploid);
 
 	// calculate variant quality
-	return genometools::PhredIntProbability(
+	return coretools::PhredInt(
 		LL_fixed > LL_allelicCombination ? Log10Probability(0.0) : Log10Probability(LL_fixed - LL_allelicCombination));
 }
 

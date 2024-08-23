@@ -20,8 +20,8 @@ using genometools::TBaseLikelihoods;
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
-	if (data == Base::N) return genometools::PhredIntProbability::highest();
+coretools::PhredInt TNoRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) return coretools::PhredInt::highest();
 	return data.originalQuality;
 }
 
@@ -53,9 +53,9 @@ void TNoRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
 // TModelRecal
 //*********************************************************
 
-genometools::PhredIntProbability TWithRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
-	if (data == Base::N) return genometools::PhredIntProbability::highest();
-	return genometools::PhredIntProbability(_epsilon.calcErrorRate(data));
+coretools::PhredInt TWithRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) return coretools::PhredInt::highest();
+	return coretools::PhredInt(_epsilon.calcErrorRate(data));
 }
 
 TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {

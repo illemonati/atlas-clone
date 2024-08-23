@@ -9,6 +9,7 @@
 #include "GenotypeFunctions.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/fillContainer.h"
+#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenomeTasks{
@@ -734,15 +735,15 @@ bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite &, const TGeno
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_GQ(const TSite &, const TGenotypeLikelihoods &){
-	return (std::string) genometools::PhredIntProbability(_allelePostProb[_MAP].complement());
+	return (std::string) coretools::PhredInt(_allelePostProb[_MAP].complement());
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_AP(const TSite &, const TGenotypeLikelihoods &){
 	using genometools::Base;
-	std::string ret = (std::string) genometools::PhredIntProbability(_allelePostProb[Base::A]);
-	ret += ',' + (std::string) genometools::PhredIntProbability(_allelePostProb[Base::C]);
-	ret += ',' + (std::string) genometools::PhredIntProbability(_allelePostProb[Base::G]);
-	ret += ',' + (std::string) genometools::PhredIntProbability(_allelePostProb[Base::T]);
+	std::string ret = (std::string) coretools::PhredInt(_allelePostProb[Base::A]);
+	ret += ',' + (std::string) coretools::PhredInt(_allelePostProb[Base::C]);
+	ret += ',' + (std::string) coretools::PhredInt(_allelePostProb[Base::G]);
+	ret += ',' + (std::string) coretools::PhredInt(_allelePostProb[Base::T]);
 	return ret;
 };
 
@@ -1083,7 +1084,7 @@ bool TCallerMLE::_callGenotypeKnownAlleles(const TSite &, const TGenotypeLikelih
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
 	Probability error(genotypeLikelihoods[_genotypeAtSecond].get() / genotypeLikelihoods[_genotypeAtMax].get());
-	genometools::PhredIntProbability phred(error);
+	coretools::PhredInt phred(error);
 	return toString(phred);
 };
 
@@ -1101,10 +1102,11 @@ std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite &, const TGenotypeL
 std::string TCallerMLE::_getVCFGenotypeString_PL(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
 	//normalize
 	using genometools::Genotype;
-	coretools::TStrongArray<genometools::PhredIntProbability, Genotype, 10> PL;
-	genometools::PhredProbability phredMax(genotypeLikelihoods[_genotypeAtMax]);
+	coretools::TStrongArray<coretools::PhredInt, Genotype, 10> PL;
 	for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
-		PL[g] = genometools::PhredProbability(genotypeLikelihoods[g] / genotypeLikelihoods[_genotypeAtMax]);
+		auto p = genotypeLikelihoods[g];
+		p.scale(genotypeLikelihoods[_genotypeAtMax]);
+		PL[g] = coretools::PhredInt(p);
 	}
 
 	//get string
@@ -1150,14 +1152,14 @@ bool TCallerBayes::_callGenotypeKnownAlleles(const TSite &, const TGenotypeLikel
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GQ(const TSite &, const TGenotypeLikelihoods &){
-	return (std::string) genometools::PhredIntProbability(_posterior[_genotypeAtMax].complement());
+	return (std::string) coretools::PhredInt(_posterior[_genotypeAtMax].complement());
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite &, const TGenotypeLikelihoods &){
 	//posterior to phred int
-	coretools::TStrongArray<genometools::PhredIntProbability, genometools::Genotype, 10> tmp;
+	coretools::TStrongArray<coretools::PhredInt, genometools::Genotype, 10> tmp;
 	for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
-		tmp[g] = _posterior[g];
+		tmp[g] = coretools::PhredInt(_posterior[g]);
 	}
 
 	//get string

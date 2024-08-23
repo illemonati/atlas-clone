@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 #include "TCigar.h"
 #include "TSamFlags.h"
@@ -34,6 +34,9 @@ class TFastaReader;
 
 namespace BAM {
 
+coretools::PhredInt makeIllumina(coretools::PhredInt value) noexcept;
+char makeIllumina(char Quality) noexcept;
+
 //-----------------------------------------------------
 // TAlignment
 //-----------------------------------------------------
@@ -42,7 +45,7 @@ private:
 	// Alignment data
 	std::string _name;
 	TSamFlags _flags;
-	genometools::PhredIntProbability _mappingQuality;
+	coretools::PhredInt _mappingQuality;
 	TCigar _cigar;
 	TGenomePosition _mateGenomicPosition;
 	int32_t _insertSize_TLEN = 0;
@@ -97,13 +100,13 @@ public:
 	void addReference(const genometools::TFastaReader &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
 	void setName(std::string Name) { _name = std::move(Name); };
-	void setMappingQuality(genometools::PhredIntProbability Mappingquality) { _mappingQuality = Mappingquality; };
+	void setMappingQuality(coretools::PhredInt Mappingquality) { _mappingQuality = Mappingquality; };
 	void setMateGenomicPosition(const TGenomePosition & Position) {
 		_mateGenomicPosition.move(Position);
 	};
 	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
-							  const std::vector<genometools::PhredIntProbability> &Quals);
+							  const std::vector<coretools::PhredInt> &Quals);
 	void setReadGroup(uint16_t readGroupId);
 	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
 	void setIsRead1(bool IsRead1) { _flags.setIsRead1(IsRead1); };
@@ -128,7 +131,7 @@ public:
 	size_t parsedLength() const { return _alignedPosition.size(); };
 	uint32_t length() const { return _cigar.lengthRead(); };
 	int32_t insertSize() const { return _insertSize_TLEN; };
-	genometools::PhredIntProbability mappingQuality() const { return _mappingQuality; };
+	coretools::PhredInt mappingQuality() const { return _mappingQuality; };
 	uint16_t flags() const { return _flags.asInt(); };
 	const TCigar &cigar() const { return _cigar; };
 
@@ -169,7 +172,7 @@ public:
 		for (auto &b : _bases) {
 			if (!F.pass(b)) {
 				b.base         = genometools::Base::N;
-				b.recalQuality = 0;
+				b.recalQuality = coretools::PhredInt::highest();
 			}
 		}
 	}

@@ -39,11 +39,11 @@ coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedBase &bas
 	return _pmd.P_dij(base, _recal.P_dij(base))[base.base].complement();
 };
 
-genometools::PhredIntProbability TErrorModels::phredIntWithPMD(const BAM::TSequencedBase & base) const{
+coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedBase & base) const{
 	if(base.base == genometools::Base::N){
-		return genometools::PhredIntProbability::min();
+		return coretools::PhredInt::highest();
 	} else {
-		return genometools::PhredIntProbability(errorWithPMD(base));
+		return coretools::PhredInt(errorWithPMD(base));
 	}
 };
 

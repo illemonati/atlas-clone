@@ -10,7 +10,6 @@
 
 #include <vector>
 
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "coretools/Types/probability.h"
 
@@ -19,7 +18,7 @@ namespace gz { class ogzstream; }
 
 namespace PopulationTools{
 
-using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+using TSampleLikelihoods = genometools::TSampleLikelihoods<coretools::HPPhredInt>;
 
 
 //-------------------------------------------------

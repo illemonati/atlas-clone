@@ -11,7 +11,6 @@
 #include <memory>
 #include <set>
 
-#include "TBamFilter.h"
 #include "TWaitingListBamTraverser.h"
 
 namespace BAM { class TAlignment; }

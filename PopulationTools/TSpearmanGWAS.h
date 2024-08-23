@@ -8,16 +8,14 @@
 #ifndef POPULATIONTOOLS_TSPEARMANGWAS_H_
 #define POPULATIONTOOLS_TSPEARMANGWAS_H_
 
-#include <array>
 #include <map>
 #include <string>
 #include <vector>
 #include <armadillo>
 
-#include "genometools/GenotypeTypes.h"
+#include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TVcfFile.h"
-#include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace coretools { class TOutputFile; }
 
@@ -82,7 +80,7 @@ public:
 	void addSample(double data);
 	void finalizeDataReading();
 		
-	void updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods);
+	void updateDosage(genometools::TSampleLikelihoods<coretools::HPPhredInt> *GenotypeLikelihoods);
 	size_t sampleSize(){ return _sampleSize; }
 	void regressSpearmanAndAddRSS(double& RSS_null, double& RSS_model);
 	void bootstrap(std::vector<double> &RSS_null, std::vector<double> &RSS_model,

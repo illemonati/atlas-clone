@@ -25,8 +25,6 @@
 #include "THaplotypeSimulator.h"
 #include "TReadSimulators.h"
 
-namespace genometools { class PhredIntProbability; }
-
 namespace Simulations {
 class TSimulatorBamFiles;
 

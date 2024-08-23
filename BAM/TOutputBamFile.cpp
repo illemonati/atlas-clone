@@ -2,22 +2,23 @@
 
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TNumericRange.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::TNumericRange;
-using genometools::BaseQuality;
+using coretools::PhredInt;
 
 TQualityAdjusterForWriting::TQualityAdjusterForWriting() {
 	if (parameters().exists("outQual")) {
-		TNumericRange<uint8_t> qualRange;
+		TNumericRange<char> qualRange;
 		parameters().fill("outQual", qualRange);
 		limitRange(qualRange);
 
 		logfile().list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
 
-		if (qualRange.max() > BaseQuality::max().get()) { logfile().warning("Truncated quality range to BAM limits!"); }
+		if (qualRange.max() > _maxBaseQuality) { logfile().warning("Truncated quality range to BAM limits!"); }
 
 	} else {
 		logfile().list(
@@ -38,13 +39,7 @@ void TQualityAdjusterForWriting::binQualitiesIllumina(){
 	_adjust      = true;
 };
 
-void TQualityAdjusterForWriting::limitRange(const BaseQuality & min, const BaseQuality & max){
-	_minQual = min;
-	_maxQual = max;
-	_adjust  = true;
-};
-
-void TQualityAdjusterForWriting::limitRange(const TNumericRange<uint8_t> & Range){
+void TQualityAdjusterForWriting::limitRange(const TNumericRange<char> & Range){
 	if(Range.minIncluded()){
 		_minQual = Range.min();
 	} else {
@@ -59,26 +54,26 @@ void TQualityAdjusterForWriting::limitRange(const TNumericRange<uint8_t> & Range
 };
 
 std::string TQualityAdjusterForWriting::rangeString(){
-	return "[" + coretools::str::toString(genometools::PhredIntProbability(_minQual)) + "," + coretools::str::toString(genometools::PhredIntProbability(_maxQual)) + "]";
+	return "[" + coretools::str::toString(coretools::fromChar(_minQual)) + "," + coretools::str::toString(coretools::fromChar(_maxQual)) + "]";
 };
 
-char TQualityAdjusterForWriting::_adjustOneQuality(BaseQuality qual) const {
-	if(qual < _minQual){
-		qual = _minQual;
-	} else if (qual > _maxQual){
-		qual = _maxQual;
+char TQualityAdjusterForWriting::_adjustOneQuality(char Qual) const {
+	if(Qual < _minQual){
+		Qual = _minQual;
+	} else if (Qual > _maxQual){
+		Qual = _maxQual;
 	}
 	if(_binIllumina){
-		qual.makeIllumina();
+		Qual = makeIllumina(Qual);
 	}
 
-	return qual.get();
+	return Qual;
 };
 
 void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const {
 	if(_adjust){
 		for(auto& q : qualities){
-			q = _adjustOneQuality(BaseQuality(q));
+			q = _adjustOneQuality(q);
 		}
 	}
 };

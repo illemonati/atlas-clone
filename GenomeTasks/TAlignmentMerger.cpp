@@ -12,6 +12,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/fillContainer.h"
 #include "coretools/Strings/stringProperties.h"
+#include "coretools/Types/probability.h"
 
 
 namespace GenomeTasks{
@@ -21,6 +22,7 @@ namespace AlignmentMerger{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using coretools::PhredInt;
 using namespace coretools::str;
 
 
@@ -43,12 +45,12 @@ namespace impl{
 		}
 	}
 
-	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQual(const BAM::TAlignment & firstRead, const BAM::TAlignment & secondRead) {
+	std::pair<PhredInt,PhredInt> minQual(const BAM::TAlignment & firstRead, const BAM::TAlignment & secondRead) {
 		//base iterator starts at first position of the reverse strand, then increments until it reaches either the last aligned position of itself or the forward read
 		std::vector<BAM::TSequencedBase>::const_iterator baseIterator = secondRead.begin();
 		size_t internalPos = 0;
 		//use the recalibrated quality
-		genometools::PhredIntProbability secondReadMinQual = baseIterator->recalQuality;
+		PhredInt secondReadMinQual = baseIterator->recalQuality;
 
 		while(!secondRead.isAlignedAtInternalPos(internalPos) || (secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position() != secondRead.lastAlignedPositionWithRespectToRef().position())){
 			//if the base at the current position of the iterator is aligned and its PhredIntProbability is higher (therefore the error-probability is higher and the quality is lower)
@@ -63,7 +65,7 @@ namespace impl{
 		//base iterator starts at last position of the forward strand, then decrements until it reaches either the first aligned position of itself or the forward read
 		std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
 		internalPos = firstRead.getLastInternalPos();
-		genometools::PhredIntProbability firstReadMinQual = baseIteratorReverse->recalQuality;
+		PhredInt firstReadMinQual = baseIteratorReverse->recalQuality;
 		while (!firstRead.isAlignedAtInternalPos(internalPos) || (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position() != firstRead.position())) {
 			if(firstRead.isAlignedAtInternalPos(internalPos)){
 				if (baseIteratorReverse->recalQuality > firstReadMinQual)
@@ -76,18 +78,18 @@ namespace impl{
 		return std::make_pair(firstReadMinQual,secondReadMinQual);
 	}
 
-	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> getMinQuals(const BAM::TAlignment & alignment, const BAM::TAlignment & mate) {
+	std::pair<PhredInt,PhredInt> getMinQuals(const BAM::TAlignment & alignment, const BAM::TAlignment & mate) {
 		//this if-statement ensures that the order of the pair of minimum qualities that is returned matches the order in which the two reads were passed to the function
 		//this is necessary because the minQual function needs the two reads in the order of (forwardStrand, reverseStrand)
 		if (!alignment.isReverseStrand()){
 			return minQual(alignment,mate);
 		} else {
-			std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment);
+			std::pair<PhredInt,PhredInt> flippedResult = minQual(mate,alignment);
 			return std::make_pair(flippedResult.second,flippedResult.first);
 		}
 	}
 
-	genometools::PhredIntProbability determineQualAtSingleBase(const BAM::TAlignment & alignment, size_t numBasesFromEnd, bool isFirst){
+	PhredInt determineQualAtSingleBase(const BAM::TAlignment & alignment, size_t numBasesFromEnd, bool isFirst){
 		//for the first read, we start at the last base of the read and go to the base at the center of the overlap and return its quality-value
 		if (isFirst){
 			std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIterator = alignment.rbegin() + numBasesFromEnd;
@@ -99,7 +101,7 @@ namespace impl{
 		}
 	}
 
-	void compareQualities(const genometools::PhredIntProbability & alignmentQual, const genometools::PhredIntProbability & mateQual, size_t & alignmentOverlapLength, size_t & mateOverlapLength){
+	void compareQualities(const PhredInt & alignmentQual, const PhredInt & mateQual, size_t & alignmentOverlapLength, size_t & mateOverlapLength){
 		if (alignmentQual < mateQual) 
 			mateOverlapLength++;
 		else if (alignmentQual > mateQual) 
@@ -128,8 +130,8 @@ namespace impl{
 
 	void mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, size_t halfOverlap){
 		//calculate qualities for the position at the center of the overlap for both reads
-		genometools::PhredIntProbability firstReadQual = determineQualAtSingleBase(firstRead, halfOverlap, true);
-		genometools::PhredIntProbability secondReadQual = determineQualAtSingleBase(secondRead, halfOverlap, false);
+		PhredInt firstReadQual = determineQualAtSingleBase(firstRead, halfOverlap, true);
+		PhredInt secondReadQual = determineQualAtSingleBase(secondRead, halfOverlap, false);
 
 		size_t firstReadOverlapLength = halfOverlap;
 		size_t secondReadOverlapLength = halfOverlap;
@@ -150,8 +152,8 @@ namespace impl{
 			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
 		} else {
 			//if the overlap is not divisible by two, we first need to determine the quality at the position in the center of the overlap for both reads
-			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, !smallerRead.isReverseStrand());
-			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, !largerRead.isReverseStrand());
+			PhredInt smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, !smallerRead.isReverseStrand());
+			PhredInt largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, !largerRead.isReverseStrand());
 		
 			compareQualities(smallerReadQual, largerReadQual, smallerReadOverlapLength, largerReadOverlapLength);
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
@@ -571,7 +573,7 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 	size_t overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
 	//if they do -> calculate minimum quality of each read in the overlap
 	if (overlapLength > 0) {
-		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = impl::getMinQuals(alignment, mate);
+		std::pair<PhredInt,PhredInt> minQuals = impl::getMinQuals(alignment, mate);
 		//merge the read with the lower minimum quality (the read with the higher PhredIntProbability has the higher error-rate and the lower quality)
 		if (minQuals.first < minQuals.second){
 			impl::callMergeFunction(mate, alignment, overlapLength);

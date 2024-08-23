@@ -7,7 +7,6 @@
 #include "SequencingError/TDerivatives.h"
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include <string>
 #include <vector>
 
@@ -20,9 +19,9 @@ struct TNoTransform {
 };
 
 struct TLogitTransform {
-	static constexpr size_t N = genometools::PhredIntProbability::max().get();
+	static constexpr size_t N = coretools::PhredInt::max();
 	static double transform(uint16_t val) noexcept {
-		// logit(coretools::Probability(genometools::PhredIntProbability(v)));
+		// logit(coretools::Probability(coretools::PhredInt(v)));
 		constexpr std::array<double, 256> map = {
 			5.8715919871401411001e+01,  1.3512152439604214749e+00,  5.3632602549409980064e-01,
 			4.7489433250102125808e-03,  -4.1335816330680280606e-01, -7.7116213850872239455e-01,

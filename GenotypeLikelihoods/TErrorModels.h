@@ -9,7 +9,6 @@
 #define GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 
 #include "coretools/Types/probability.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 #include "PMD/TModels.h"
 #include "SequencingError/TModels.h"
@@ -37,7 +36,7 @@ public:
 	PMD::TModels& postMortemDamageModels() { return _pmd; };
 
 	coretools::Probability errorWithPMD(const BAM::TSequencedBase & base) const;
-	genometools::PhredIntProbability phredIntWithPMD(const BAM::TSequencedBase & base) const;
+	coretools::PhredInt phredIntWithPMD(const BAM::TSequencedBase & base) const;
 	void recalibrateWithPMD(BAM::TSequencedBase & base) const;
 
 	void recalibrateWithPMD(BAM::TAlignment& aln) const;

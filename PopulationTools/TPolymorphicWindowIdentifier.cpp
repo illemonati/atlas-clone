@@ -49,7 +49,7 @@ void TPolymorphicWindowIdentifier::run() {
 	out.writeHeader(header);
 
 	//create likelihood window
-    using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+    using TSampleLikelihoods = genometools::TSampleLikelihoods<coretools::HPPhredInt>;
     genometools::TPopulationLikehoodWindow<TSampleLikelihoods> window(0, samples.numSamples());
 
     //run through VCF file

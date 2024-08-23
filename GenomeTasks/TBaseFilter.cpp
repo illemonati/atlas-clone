@@ -3,6 +3,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
+#include <sys/types.h>
 namespace GenomeTasks {
 
 using coretools::instances::parameters;
@@ -13,10 +14,10 @@ using coretools::instances::logfile;
 TQualityFilter::TQualityFilter() {
 	if(parameters().exists("filterBaseQual")){
 		parameters().fill("filterBaseQual", _range);
-		if (_range.within(genometools::PhredIntProbability(0))){ UERROR("Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"); }
+		if (_range.within(coretools::PhredInt::highest())){ UERROR("Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"); }
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
-		_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
+		_range.set(coretools::PhredInt(1), true, coretools::PhredInt(93), true);
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + ". (use 'filterBaseQual' to change)");
 	}
 };

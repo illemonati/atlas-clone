@@ -8,8 +8,9 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/mathFunctions.h"
 
+#include "coretools/algorithms.h"
 #include "genometools/DefaultColumnNames.h"
-#include "genometools/TSampleLikelihoods.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
 
 
 #include <map>
@@ -85,7 +86,7 @@ void TSpearmanGWASPopulation::finalizeDataReading(){
 	_dataWithData.resize(_data.size());
 }
 
-void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> *GenotypeLikelihoods){
+void TSpearmanGWASPopulation::updateDosage(genometools::TSampleLikelihoods<coretools::HPPhredInt> *GenotypeLikelihoods){
 
 	// calculate dosage for each sample 
 	_sampleSize = 0;
@@ -279,7 +280,7 @@ void TSpearmanGWAS::run(){
 	coretools::TTimer timer;	
 
 	// likelihood and tmp storage
-	genometools::TPopulationLikehoodLocus< genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability > > data(_samples.numSamples());
+	genometools::TPopulationLikehoodLocus< genometools::TSampleLikelihoods<coretools::HPPhredInt > > data(_samples.numSamples());
 	std::vector<double> bootstrappedRSS_null(_numBootstraps);
 	std::vector<double> bootstrappedRSS_model(_numBootstraps);
 

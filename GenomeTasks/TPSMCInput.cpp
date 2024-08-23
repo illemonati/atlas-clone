@@ -51,7 +51,7 @@ void TPSMCInput::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	const auto nBlocks = window.size() / _blockSize;
 	for(size_t b=0; b<nBlocks; ++b){
 		size_t blockStart = b * _blockSize;
-		coretools::LogProbability logPHomo{0};
+		coretools::LogProbability logPHomo{0.};
 
 		for(size_t i=0; i<_blockSize; ++i){
 			const auto wIndex = blockStart + i;

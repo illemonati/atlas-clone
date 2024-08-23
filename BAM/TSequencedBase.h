@@ -10,8 +10,8 @@
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 namespace BAM {
 
@@ -31,11 +31,11 @@ public:
 	genometools::Base previousBase = genometools::Base::N;
 
 	// original quality as in BAM file, but transformed to phredInt
-	genometools::PhredIntProbability originalQuality{0};
+	coretools::PhredInt originalQuality = coretools::PhredInt::highest();
 	// Quality after recalibration (used for filtering)
-	genometools::PhredIntProbability recalQuality{0};
+	coretools::PhredInt recalQuality = coretools::PhredInt::highest();
 
-	genometools::PhredIntProbability mappingQuality{0};
+	coretools::PhredInt mappingQuality = coretools::PhredInt::highest();
 
 	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
 

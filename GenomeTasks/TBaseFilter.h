@@ -12,7 +12,7 @@ namespace GenomeTasks {
 //---------------------------------------------------------------
 class TQualityFilter {
 private:
-	coretools::TNumericRange<genometools::PhredIntProbability> _range;
+	coretools::TNumericRange<coretools::PhredInt> _range;
 
 public:
 	TQualityFilter();

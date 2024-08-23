@@ -12,7 +12,6 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
@@ -25,7 +24,7 @@ template<typename Type> class TPopulationLikehoodLocus;
 
 namespace VCF {
 
-using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+using TSampleLikelihoods = genometools::TSampleLikelihoods<coretools::HPPhredInt>;
 
 //------------------------------------------
 // TVcfConverter

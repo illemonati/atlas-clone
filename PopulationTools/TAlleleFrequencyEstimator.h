@@ -15,7 +15,6 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/probability.h"
 
-#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
@@ -24,7 +23,7 @@ namespace genometools { class TGenotypeFrequencies; }
 namespace genometools { class THardyWeinbergGenotypeProbabilities; }
 
 
-using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+using TSampleLikelihoods = genometools::TSampleLikelihoods<coretools::HPPhredInt>;
 
 namespace PopulationTools{
 

@@ -6,6 +6,7 @@
 #include "TBamFile.h"
 #include "TReadGroups.h"
 #include "api/BamWriter.h"
+#include "coretools/Types/probability.h"
 #include <string>
 
 namespace BAM {
@@ -16,18 +17,19 @@ namespace BAM {
 //------------------------------------------------
 class TQualityAdjusterForWriting{
 private:
+	static constexpr char _minBaseQuality = coretools::toChar(coretools::PhredInt::highest());
+	static constexpr char _maxBaseQuality = coretools::toChar(coretools::PhredInt::highest());
 	bool _adjust      = false;
 	bool _binIllumina = false;
-	genometools::BaseQuality _minQual{genometools::BaseQuality::min()};
-	genometools::BaseQuality _maxQual {genometools::BaseQuality::max()};
+	char _minQual = _minBaseQuality;
+	char _maxQual = _maxBaseQuality;
 
-	char _adjustOneQuality(genometools::BaseQuality qual) const;
+	char _adjustOneQuality(char Qual) const;
 
 public:
 	TQualityAdjusterForWriting();
 	void binQualitiesIllumina();
-	void limitRange(const genometools::BaseQuality & min, const genometools::BaseQuality & max);
-	void limitRange(const coretools::TNumericRange<uint8_t> & Range);
+	void limitRange(const coretools::TNumericRange<char> & Range);
 	std::string rangeString();
 	void adjustQualities(std::string & qualities) const;
 };

@@ -17,7 +17,6 @@
 #include "coretools/Math/TCategoricalDistribution.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 #include "SequencingError/TModels.h"
 #include "TAlignment.h"
@@ -48,8 +47,8 @@ protected:
 
 	// required distributions
 	coretools::probdist::TCategoricalDistribution<size_t> _fragmentLengthDistr;
-	coretools::probdist::TCategoricalDistribution<genometools::PhredIntProbability> _qualityDist;
-	coretools::probdist::TCategoricalDistribution<genometools::PhredIntProbability> _mappingQualityDist;
+	coretools::probdist::TCategoricalDistribution<coretools::PhredInt> _qualityDist;
+	coretools::probdist::TCategoricalDistribution<coretools::PhredInt> _mappingQualityDist;
 
 	// Additional info
 	int _readXPos = 1;

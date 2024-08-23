@@ -88,7 +88,7 @@ std::vector<genometools::Base> TSite::sampleBases() const {
 std::string TSite::getQualities() const {
 	if (empty()) return "-";
 	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""), [](auto tot, auto b) {
-		return tot + static_cast<char>(genometools::BaseQuality(b.recalQuality)); });
+		return tot + coretools::toChar(b.recalQuality); });
 }
 
 size_t TSite::refDepth() const {
