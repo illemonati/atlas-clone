@@ -7,6 +7,7 @@
 #include "TFromTo.h"
 #include "TGLFIndexer.h"
 #include "TGLFPrinter.h"
+#include "TIlluminaIdentifier.h"
 #include "TSafEstimator.h"
 #include "coretools/Main/TMain.h"
 
@@ -14,7 +15,6 @@
 #include "TFilterBam.h"
 #include "TAlignmentMerger.h"
 #include "TBamDiagnoser.h"
-#include "TIlluminaIdentifier.h"
 #include "TPMDSCalculator.h"
 #include "TPileup.h"
 #include "TQualityDistribution.h"
@@ -64,7 +64,7 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");
 	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
 	main.createGroupedTask<GenomeTasks::TBamDiagnoser>(groupName, "BAMDiagnostics", "Estimating depth and read property frequencies");
-	main.createGroupedTask<GenomeTasks::AlignmentMerger::TOverlapQuantifier>(groupName, "readOverlap", "Estimating distribution of overlap of paired reads in BAM file");
+	main.createGroupedTask<GenomeTasks::AlignmentMerger::TOverlapQuantifier>(groupName, "readOverlap", "Estimating distribution of overlap of paired reads");
 	main.createGroupedTask<GenomeTasks::TAssessSoftClipping>(groupName, "assessSoftClipping", "Assessing level of soft clipping in BAM file");
 	main.createGroupedTask<GenomeTasks::TSoftClipsTrimmer>(groupName, "trimSoftClips", "Removing soft clipped bases from reads");
 	main.createGroupedTask<GenomeTasks::TQualityTransformation>(groupName, "qualityTransformation", "Printing Quality Transformation");
@@ -82,7 +82,7 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TPSMCInput>(groupName, "PSMC", "Generating a PSMC Input file probabilistically");
 	main.createGroupedTask<GenomeTasks::TCall>(groupName, "call", "Calling genotypes");
 	main.createGroupedTask<GenomeTasks::TEstimateTheta>(groupName, "theta", "Estimating heterozygosity (theta)", "Kousathanas et al. (2017) Genetics");
-	main.createGroupedTask<GenomeTasks::TEstimateThetaRatio>(groupName, "thetaRatio", "Estimate the ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
+	main.createGroupedTask<GenomeTasks::TEstimateThetaRatio>(groupName, "thetaRatio", "Estimate ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TWriteGLF>(groupName, "GLF", "Writing genotype likelihoods to a GLF file");
 	main.createGroupedTask<GenomeTasks::TSexEstimator>(groupName, "sexEstimation", "Estimating depth distribution among sites and per window");
 	main.createGroupedTask<GenomeTasks::TEstimateMutationLoad>(groupName, "mutationLoad", "Estimating mutation load across the genome");
