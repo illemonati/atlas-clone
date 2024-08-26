@@ -1,13 +1,16 @@
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --type HW --sampleSize 2
+. $(dirname $0)/simulate --type HW --sampleSize 2 --fixedSeed 101
 
-$atlas --task GLF --bam ATLAS_simulations_ind1.bam --printAll \
-	   --fixedSeed 0 --out GLF1 --logFile GLF1.out
+out="GLF1"
+$atlas --task GLF --bam simulate_ind1.bam --printAll \
+	   --fixedSeed 102 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task GLF --bam ATLAS_simulations_ind2.bam --printAll \
-	   --fixedSeed 0 --out GLF2 --logFile GLF2.out
+out="GLF2"
+$atlas --task GLF --bam simulate_ind2.bam --printAll \
+	   --fixedSeed 103 --out $out --logFile $out.out 2> $out.eout
 
+out="geneticDist"
 $atlas --task geneticDist --glf GLF1.glf.gz,GLF2.glf.gz \
-	   --fixedSeed 0 --out geneticDist --logFile geneticDist.out
+	   --fixedSeed 104 --out $out --logFile $out.out 2> $out.eout
 
 

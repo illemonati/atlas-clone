@@ -1,38 +1,35 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --duplicationRate 0.113
+. $(dirname $0)/simulate --duplicationRate 0.113 --fixedSeed 77
 
-bam="ATLAS_simulations.bam"
-name="BD_original"
-$atlas --task BAMDiagnostics --bam $bam \
-	   --out $name --perChromosome --logFile $name.out
+bam="simulate.bam"
+out="original"
+$atlas --task BAMDiagnostics --bam $bam --perChromosome \
+	   --fixedSeed 71 --out $out --logFile $out.out 2> $out.eout
 
-name="BD_original_markDup"
-$atlas --task BAMDiagnostics --bam $bam --markDuplicates \
-	   --out $name --perChromosome --logFile $name.out
+out="original_markDup"
+$atlas --task BAMDiagnostics --bam $bam --markDuplicates --perChromosome \
+	   --fixedSeed 73 --out $out --logFile $out.out 2> $out.eout
 
-name="markDup"
+out="markDup"
 #mark but keep
-$atlas --task filterBAM --bam $bam \
-	   --markDuplicates --keepDuplicates \
-	   --out $name --logFile $name.out
+$atlas --task filterBAM --bam $bam --markDuplicates --keepDuplicates \
+	   --fixedSeed 75 --out $out --logFile $out.out 2> $out.eout
 
-name="markDupAgn"
-$atlas --task filterBAM --bam $bam \
-	   --markDuplicates --RGagnostic --keepDuplicates \
-	   --out $name --logFile $name.out
+out="markDupAgn"
+$atlas --task filterBAM --bam $bam --markDuplicates --RGagnostic --keepDuplicates \
+	   --fixedSeed 77 --out $out --logFile $out.out 2> $out.eout
 
 bam="markDup_filtered.bam"
-name="BD_markDup"
-$atlas --task BAMDiagnostics --bam $bam \
-	   --out $name --perChromosome --logFile $name.out
+out="BD_markDup"
+$atlas --task BAMDiagnostics --bam $bam --perChromosome \
+	   --fixedSeed 79 --out $out --logFile $out.out 2> $out.eout
 
-name="BD_markDup_keep"
-$atlas --task BAMDiagnostics --bam $bam --keepDuplicates \
-	   --out $name --perChromosome --logFile $name.out
+out="BD_markDup_keep"
+$atlas --task BAMDiagnostics --bam $bam --keepDuplicates --perChromosome \
+	   --fixedSeed 72 --out $out --logFile $out.out 2> $out.eout
 
-name="BD_reset_markDup"
-$atlas --task BAMDiagnostics --bam $bam \
-	   --resetDuplicates --markDuplicates \
-	   --out $name --perChromosome --logFile $name.out
+out="BD_reset_markDup"
+$atlas --task BAMDiagnostics --bam $bam --resetDuplicates --markDuplicates \
+	   --fixedSeed 74 --out $out --logFile $out.out 2> $out.eout

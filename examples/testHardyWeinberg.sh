@@ -1,7 +1,9 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate_vcf --sampleSize 11 --chrLength 13217 --ploidy 2
+. $(dirname $0)/simulate_vcf --sampleSize 11 \
+  --chrLength 13217 --ploidy 2 --fixedSeed 242
 
-$atlas --task testHardyWeinberg --vcf ATLAS_simulations.vcf.gz \
-	   --fixedSeed 0 --out testHardyWeinberg --logFile testHardyWeinberg.out 
+out="testHardyWeinberg"
+$atlas --task testHardyWeinberg --vcf simulate.vcf.gz \
+	   --fixedSeed 245 --out $out --logFile $out.out 2> $out.eout

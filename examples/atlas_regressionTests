@@ -6,7 +6,7 @@ compare() {
 	for a_ref in ${1}_ref/*; do
 		[[ $a_ref == *.bai ]] && continue
 		[[ $a_ref == *.out ]] && continue
-		[[ $a_ref == eout ]]  && continue
+		[[ $a_ref == *.eout ]]  && continue
 		a_new=${1}_new/$(basename $a_ref)
 		if [[ $a_ref == *.bam ]]; then
 			command -v samtools > /dev/null || continue
@@ -29,9 +29,10 @@ cnt=0
 fail=0
 shs="*.sh"
 if [[ $1 ]]; then
-	shs="$1.sh"
+	shs="${1%.sh}.sh"
 fi
    
+tBegin=$(date +%s)
 for f in $(eval echo $shs); do
 	fo=${f%.sh}
 	((cnt++))
@@ -41,21 +42,23 @@ for f in $(eval echo $shs); do
 		echo "- Creating reference ATLAS-files in folder ${fo}_ref"
 		mkdir ${fo}_ref
 		cd ${fo}_ref
-		bash ../$f > /dev/null 2> eout
-		[[ -s eout ]] && echo "Reference simulation of $fo ended with errors:"; head eout
+		bash ../$f > /dev/null
+		cat *.eout >> all.eout
+		[[ -s all.eout ]] && echo "Reference run of $fo ended with errors:"; head all.eout
 		cd ..
 	else
 		echo "- Found reference ATLAS-files in folder ${fo}_ref"
-		[[ -s ${fo}_ref/eout ]] && echo "Reference simulation of $fo ended with errors:"; head ${fo}_ref/eout
+		[[ -s ${fo}_ref/all.eout ]] && echo "Reference run of $fo ended with errors:"; head ${fo}_ref/all.eout
 		if [[ ! -d ${fo}_new ]]; then
 			echo "- Creating new ATLAS-files in folder ${fo}_new"
 			mkdir ${fo}_new
 			cd ${fo}_new
-			bash ../$f > /dev/null 2> eout
-			[[ -s eout ]] && echo "New simulation of $fo ended with errors:"; head eout
+			bash ../$f > /dev/null
+			cat *.eout >> all.eout
+			[[ -s all.eout ]] && echo "New run of $fo ended with errors:"; head all.eout
 		else
 			echo "- Found new ATLAS-files in folder ${fo}_new"
-			[[ -s ${fo}_new/eout ]] && echo "New simulation of $fo ended with errors:"; head ${fo}_new/eout
+			[[ -s ${fo}_new/all.eout ]] && echo "New run of $fo ended with errors:"; head ${fo}_new/all.eout
 			cd ${fo}_new
 		fi
 
@@ -65,6 +68,7 @@ for f in $(eval echo $shs); do
 	echo "- Elapsed time: $(($(date +%s) - $tstep)) seconds"
 	echo "------------------------------------------------------------"
 done
+echo "Total elapsed time: $(($(date +%s) - $tBegin)) seconds"
 
 if [[ $fail > 0 ]]; then
 	echo "$fail of $cnt tests failed:"

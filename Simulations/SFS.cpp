@@ -29,7 +29,7 @@ SFS::SFS(const std::string &filename) {
 	//numChr = dimensions - 1: what is given is #entries = #haplotypes + 1 
 	_numChrPerPop.resize(_dimensions.size());
 	_numChr = 0;
-	int numCells = 1;
+	size_t numCells = 1;
 	for(size_t i = 0; i < _dimensions.size(); ++i){
 		_numChrPerPop[i] = _dimensions[i] - 1;
 		_numChr += _numChrPerPop[i];

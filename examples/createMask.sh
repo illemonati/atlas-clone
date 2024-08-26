@@ -1,17 +1,21 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate
+. $(dirname $0)/simulate --fixedSeed 50
 
-$atlas --task createMask --type depth --bam ATLAS_simulations.bam --window 4567 \
-	   --fixedSeed 0 --out createMask_depth --logFile createMask_depth.out
+out="depth"
+$atlas --task createMask --type depth --bam simulate.bam --window 4567 \
+	   --fixedSeed 51 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task createMask --type nonRef --window 4567 \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-	   --fixedSeed 0 --out createMask_nonRef --logFile createMask_nonRef.out
+out="nonRef"
+$atlas --task createMask --type nonRef --window 7654 \
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --fixedSeed 52 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task createMask --type invariant --window 4567 --bam ATLAS_simulations.bam \
-	   --fixedSeed 0 --out createMask_invariant --logFile createMask_invariant.out
+out="invariant"
+$atlas --task createMask --type invariant --window 5674 --bam simulate.bam \
+	   --fixedSeed 53 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task createMask --type variant --window 4567 --bam ATLAS_simulations.bam \
-	   --fixedSeed 0 --out createMask_variant --logFile createMask_variant.out
+out="variant"
+$atlas --task createMask --type variant --window 6745 --bam simulate.bam \
+	   --fixedSeed 54 --out $out --logFile $out.out 2> $out.eout

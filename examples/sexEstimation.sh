@@ -1,8 +1,9 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate
+. $(dirname $0)/simulate --fixedSeed 222
 
+out="sexEstimation"
 $atlas --task sexEstimation --wholeGenome --window 4567 \
-	   --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta \
-	   --fixedSeed 0 --out sexEstimation --logFile sexEstimation.out
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --fixedSeed 221 --out $out --logFile $out.out 2> $out.eout

@@ -1,13 +1,18 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate
+. $(dirname $0)/simulate --fixedSeed 66
 
-$atlas --task downsample --bam ATLAS_simulations.bam --prob 0.5,0.3,0.1 \
-	   --fixedSeed 0 --out downsample_reads --logFile downsample_reads.out
+out="downsample_reads"
+$atlas --task downsample --bam simulate.bam --prob 0.5,0.3,0.1 \
+	   --fixedSeed 67 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task downsample --separateReads --bam ATLAS_simulations.bam --prob 0.5,0.3,0.1 \
-	   --fixedSeed 0 --out downsample_separate --logFile downsample_separate.out
+out="downsample_separate"
+$atlas --task downsample --separateReads \
+	   --bam simulate.bam --prob 0.5,0.3,0.1 \
+	   --fixedSeed 68 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task downsample --downsampleBases --bam ATLAS_simulations.bam --prob 0.5,0.3,0.1 \
-	   --fixedSeed 0 --out downsample_bases --logFile downsample_bases.out
+out="downsample_bases"
+$atlas --task downsample --downsampleBases \
+	   --bam simulate.bam --prob 0.5,0.3,0.1 \
+	   --fixedSeed 69 --out $out --logFile $out.out 2> $out.eout

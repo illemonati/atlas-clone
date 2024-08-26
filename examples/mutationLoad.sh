@@ -1,14 +1,14 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --writeTrueGenotypes
+. $(dirname $0)/simulate --writeTrueGenotypes --fixedSeed 162
 
-rm ATLAS_simulations.bam.bai # will automatically recreate it
+rm simulate.bam.bai # will automatically recreate it
 
 # prepare alleles file
-zcat ATLAS_simulations_trueGenotypes.vcf.gz | awk 'BEGIN{print "Chr", "Pos", "Allele1"}$1!~/#/{print $1, $2, $4}' > alleles.txt
+zcat simulate_trueGenotypes.vcf.gz | awk 'BEGIN{print "Chr", "Pos", "Allele1"}$1!~/#/{print $1, $2, $4}' > alleles.txt
 
-# estimate mutation load
-$atlas --task mutationLoad --bam ATLAS_simulations.bam \
+out="mutationLoad"
+$atlas --task mutationLoad --bam simulate.bam \
 	   --alleles alleles.txt --window 4567 \
-	   --out mutationLoad --logFile mutationLoad.out 
+	   --fixedSeed 168 --out $out --logFile $out.out 2> $out.eout

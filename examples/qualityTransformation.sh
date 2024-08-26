@@ -1,7 +1,8 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate 
+. $(dirname $0)/simulate --fixedSeed 199
 
-$atlas --task qualityTransformation --bam ATLAS_simulations.bam \
-	   --fixedSeed 0 --out qualityTransformation --logFile qualityTransformation.out
+out="qualityTransformation"
+$atlas --task qualityTransformation --bam simulate.bam \
+	   --fixedSeed 190 --out $out --logFile $out.out 2> $out.eout

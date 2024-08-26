@@ -1,13 +1,14 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate
+. $(dirname $0)/simulate --fixedSeed 277
 
-$atlas --task trimSoftClips --bam ATLAS_simulations.bam \
-	   --fixedSeed 0 --out trimSoftClips --logFile trimSoftClips.out 
+out="trimSoftClips"
+$atlas --task trimSoftClips --bam simulate.bam \
+	   --fixedSeed 270 --out $out --logFile $out.out 2> $out.eout
 
 for f in *.bam; do
-	name=${f%.bam}
+	out=${f%.bam}
 	$atlas --task assessSoftClipping --bam $f \
-		   --fixedSeed 0 --out $name --logFile assess_$name.out
+		   --fixedSeed 271 --out $out --logFile $out.out 2> $out.eout
 done

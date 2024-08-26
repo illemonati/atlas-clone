@@ -1,7 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --type HW --sampleSize 19
+. $(dirname $0)/simulate --type HW --sampleSize 19 --fixedSeed 177
 
 echo "chr1	0	4567" >> window.txt
 echo "chr1	4567	9134" >> window.txt
@@ -24,22 +24,25 @@ echo "chr1 600 777" >> bed.bed
 echo "chr1 800 999" >> bed.bed
 echo "chr1 1000 11111" >> bed.bed
 
-name="default"
-$atlas --task pileup --bam ATLAS_simulations_ind1.bam --fasta ATLAS_simulations.fasta \
-	   --fixedSeed 1 --out $name --logFile $name.out
+out="default"
+$atlas --task pileup \
+	   --bam simulate_ind1.bam --fasta simulate.fasta \
+	   --fixedSeed 171 --out $out --logFile $out.out 2> $out.eout
 
-name="printAll"
-$atlas --task pileup --bam ATLAS_simulations_ind2.bam --fasta ATLAS_simulations.fasta \
-	--window window.txt  --printAll \
-	   --histograms depth,allelicDepth,contexts,qualities --readUpToDepth 97 \
-	   --fixedSeed 2 --out $name --logFile $name.out
+out="printAll"
+$atlas --task pileup --printAll \
+	   --bam simulate_ind2.bam --fasta simulate.fasta \
+	   --window window.txt  --readUpToDepth 97 \
+	   --histograms depth,allelicDepth,contexts,qualities \
+	   --fixedSeed 173 --out $out --logFile $out.out 2> $out.eout
 
-name="regions"
-$atlas --task pileup --bam ATLAS_simulations_ind3.bam --fasta ATLAS_simulations.fasta \
-	   --regions bed.bed --histograms depth --printAll \
-	   --fixedSeed 3 --out $name --logFile $name.out
+out="regions"
+$atlas --task pileup --printAll \
+	   --bam simulate_ind3.bam --fasta simulate.fasta \
+	   --regions bed.bed --histograms depth \
+	   --fixedSeed 175 --out $out --logFile $out.out 2> $out.eout
 
-name="multiBam"
+out="multiBam"
 bams=$(ls *.bam)
 $atlas --task pileup --fields "depth,bases,sampleBases" --bam "$bams"  \
-	   --fixedSeed 4 --out $name --logFile $name.out
+	   --fixedSeed 179 --out $out --logFile $out.out 2> $out.eout

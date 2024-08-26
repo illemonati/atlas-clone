@@ -1,11 +1,14 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate_vcf
+. $(dirname $0)/simulate_vcf --fixedSeed 28
 
-$atlas --task alleleCounts --vcf ATLAS_simulations.vcf.gz  --outFormat withAlleles \
-	   --logFile alleleCounts.out --fixedSeed 0
+out="alleleCounts"
+$atlas --task alleleCounts --vcf simulate.vcf.gz --outFormat withAlleles \
+	   --fixedSeed 27 --out $out --logFile $out.out 2> $out.eout
 
-$atlas --task ancestralAlleles --alleleCounts ATLAS_simulations_alleleCounts.txt.gz \
+out="ancestralAlleles"
+$atlas --task ancestralAlleles --alleleCounts alleleCounts_alleleCounts.txt.gz \
+	   --fastaIndex simulate.fasta.fai \
 	   --minorCountMaximum 2 --totalCountMinimum 4 \
-	   --logFile ancestralAlleles.out --fixedSeed 0
+	   --fixedSeed 26 --out $out --logFile $out.out 2> $out.eout
