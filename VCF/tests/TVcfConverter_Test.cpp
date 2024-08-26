@@ -41,7 +41,7 @@ protected:
 		for (const auto &SampleName : SampleNames) { VCF << "\t" << SampleName; }
 	}
 
-	static void _writeCell(gz::ogzstream &VCF, const TSampleLikelihoods<PhredIntProbability> &SampleLikelihoods,
+	static void _writeCell(gz::ogzstream &VCF, const TSampleLikelihoods<coretools::PhredInt> &SampleLikelihoods,
 	                       size_t Depth) {
 		using BG = BiallelicGenotype;
 
@@ -81,9 +81,9 @@ public:
 			vcf << '\n' << chr << '\t' << l + 1 << "\t.\tA\tC\t50\t.\t.\tGT:GQ:PL:DP";
 			for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) {
 				// write to vcf
-				auto GTL0 = PhredIntProbability(phred_g1[linearIndex]);
-				auto GTL1 = PhredIntProbability(phred_g2[linearIndex]);
-				auto GTL2 = PhredIntProbability(phred_g3[linearIndex]);
+				auto GTL0 = coretools::PhredInt(phred_g1[linearIndex]);
+				auto GTL1 = coretools::PhredInt(phred_g2[linearIndex]);
+				auto GTL2 = coretools::PhredInt(phred_g3[linearIndex]);
 				_writeCell(vcf, {GTL0, GTL1, GTL2}, depth[linearIndex]);
 			}
 		}
@@ -124,17 +124,17 @@ TEST_F(TVCFConverterTest, beagle) {
 		EXPECT_EQ(beagle.get(1), "A");
 		EXPECT_EQ(beagle.get(2), "C");
 		for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) {
-			const double sum = static_cast<Probability>(PhredIntProbability(phred_g1[linearIndex])).get() +
-			                   (Probability)PhredIntProbability(phred_g2[linearIndex]) +
-			                   (Probability)PhredIntProbability(phred_g3[linearIndex]);
+			const double sum = static_cast<Probability>(coretools::PhredInt(phred_g1[linearIndex])).get() +
+			                   (Probability)coretools::PhredInt(phred_g2[linearIndex]) +
+			                   (Probability)coretools::PhredInt(phred_g3[linearIndex]);
 			const double gtl1 = fromString<Probability>(beagle.get(3 + i * 3));
 			const double gtl2 = fromString<Probability>(beagle.get(3 + i * 3 + 1));
 			const double gtl3 = fromString<Probability>(beagle.get(3 + i * 3 + 2));
 
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
-			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[linearIndex]) / sum, 0.00001);
-			EXPECT_NEAR(gtl2, (Probability)PhredIntProbability(phred_g2[linearIndex]) / sum, 0.00001);
-			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[linearIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl1, (Probability)coretools::PhredInt(phred_g1[linearIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl2, (Probability)coretools::PhredInt(phred_g2[linearIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl3, (Probability)coretools::PhredInt(phred_g3[linearIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
 		beagle.popFront();
@@ -168,15 +168,15 @@ TEST_F(TVCFConverterTest, beagle_withSamples) {
 		for (size_t i = 0; i < samplesToKeep.size(); ++i) {
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
-			const double sum     = ((Probability)PhredIntProbability(phred_g1[relevantIndex])).get() +
-			                   (Probability)PhredIntProbability(phred_g2[relevantIndex]) +
-			                   (Probability)PhredIntProbability(phred_g3[relevantIndex]);
+			const double sum     = ((Probability)coretools::PhredInt(phred_g1[relevantIndex])).get() +
+			                   (Probability)coretools::PhredInt(phred_g2[relevantIndex]) +
+			                   (Probability)coretools::PhredInt(phred_g3[relevantIndex]);
 			const double gtl1 = fromString<Probability>(beagle.get(3 + i * 3));
 			const double gtl2 = fromString<Probability>(beagle.get(3 + i * 3 + 1));
 			const double gtl3 = fromString<Probability>(beagle.get(3 + i * 3 + 2));
-			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[relevantIndex]) / sum, 0.00001);
-			EXPECT_NEAR(gtl2, (Probability)PhredIntProbability(phred_g2[relevantIndex]) / sum, 0.00001);
-			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[relevantIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl1, (Probability)coretools::PhredInt(phred_g1[relevantIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl2, (Probability)coretools::PhredInt(phred_g2[relevantIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl3, (Probability)coretools::PhredInt(phred_g3[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
 		beagle.popFront();
@@ -199,9 +199,9 @@ TEST_F(TVCFConverterTest, geno) {
 		for (size_t i = 0; i < numIndiv; ++i) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
@@ -229,9 +229,9 @@ TEST_F(TVCFConverterTest, geno_withSamples) {
 		for (size_t i = 0; i < samplesToKeep.size(); ++i) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
@@ -257,9 +257,9 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno) {
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
@@ -285,9 +285,9 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno_withSamples) {
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
@@ -312,9 +312,9 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno) {
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
@@ -340,9 +340,9 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
@@ -368,9 +368,9 @@ TEST_F(TVCFConverterTest, sambada) {
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + i;
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
@@ -403,9 +403,9 @@ TEST_F(TVCFConverterTest, sambada_withSamples) {
 		for (size_t l = 0; l < numLoci; ++l) {
 			// genotypes
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
-			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
-			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
-			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			auto GTL0            = coretools::PhredInt(phred_g1[relevantIndex]);
+			auto GTL1            = coretools::PhredInt(phred_g2[relevantIndex]);
+			auto GTL2            = coretools::PhredInt(phred_g3[relevantIndex]);
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 

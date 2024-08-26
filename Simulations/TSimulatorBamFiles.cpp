@@ -1,6 +1,9 @@
 #include "TSimulatorBamFiles.h"
 
+#include "TSamHeader.h"
 #include "coretools/Main/TLog.h"
+
+#include "genometools/GenomePositions/TChromosomes.h"
 
 namespace Simulations {
 

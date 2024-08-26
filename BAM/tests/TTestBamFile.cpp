@@ -8,6 +8,7 @@
 #include "TTestBamFile.h"
 #include "TOutputBamFile.h"
 #include "coretools/Main/globalConstants.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM{
 
@@ -43,8 +44,8 @@ void TTestBamFile::_initialize(const std::vector<size_t> ChrLength, size_t NumRe
 			  Base::C, Base::C, Base::A, Base::A, Base::A, Base::C, Base::C, Base::A, Base::A, Base::G, Base::G,
 	                  Base::T, Base::T, Base::G, Base::C, Base::C, Base::C, Base::G};
 	_dummySequenceStart = _dummySequence.begin();
-	for(auto p = genometools::BaseQuality::min(); p < genometools::BaseQuality::max(); ++p){
-		_dummyQualities.emplace_back(genometools::PhredIntProbability(p));
+	for(auto p = coretools::fromChar(0); p <= coretools::fromChar(-1); p = coretools::PhredInt(p + 1)){
+		_dummyQualities.emplace_back(coretools::PhredInt(p));
 	}
 	_dummyQualitiesStart = _dummyQualities.begin();
     _dummyMapQual = 0;
@@ -143,11 +144,11 @@ void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
     _bamFile->writeAlignment(alignment);
 };
 
-BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<genometools::PhredIntProbability> & qualities, const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
+BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<coretools::PhredInt> & qualities, const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
 	BAM::TAlignment alignment(position);
     alignment.setName("alignment_" + coretools::str::toString(_counter));
     alignment.setSequenceQualities(cigar, sequence, qualities);
-    alignment.setMappingQuality(genometools::PhredIntProbability(_dummyMapQual));
+    alignment.setMappingQuality(coretools::PhredInt(_dummyMapQual));
     alignment.setReadGroup(readGroup);
     if (complicatedSamFlag) {
         alignment.setSamFlags(BAM::TSamFlags(_dummyFlag));
@@ -229,12 +230,12 @@ void TTestBamFile::writeDummyAlignments(size_t numAlignments, bool complicatedSa
 }
 
 void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase,
-									   const genometools::PhredIntProbability &oneQual,
+									   const coretools::PhredInt &oneQual,
 									   const genometools::TGenomePosition &position, const BAM::TCigar &cigar,
 									   size_t readGroup, bool isReverseStrand) {
 	// expand oneBase to string
 	std::vector<genometools::Base> seq(cigar.lengthRead(), oneBase);
-	std::vector<genometools::PhredIntProbability> qual(cigar.lengthRead(), oneQual);
+	std::vector<coretools::PhredInt> qual(cigar.lengthRead(), oneQual);
 
     //write alignment
     BAM::TAlignment alignment(position);
@@ -262,14 +263,14 @@ void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase,
     */
 };
 
-void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar){
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar){
     writeDummyAlignment(oneBase, oneQual, position, cigar, _dummyReadGroup, _dummyIsReverseStrand);
 
     //iterate
     _iterateReadGroupAndReverseStrand();
 }
 
-void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition &position,
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition &position,
                                   size_t length) {
     // construct cigar
     BAM::TCigar cigar;
@@ -278,7 +279,7 @@ void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const g
     writeDummyAlignment(oneBase, oneQual, position, cigar);
 };
 
-void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const genometools::TGenomePosition &position) {
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition &position) {
     writeDummyAlignment(oneBase, oneQual, position, _dummyLength);
 
     // iterate length

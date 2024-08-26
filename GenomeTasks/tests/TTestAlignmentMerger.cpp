@@ -6,6 +6,7 @@
  */
 
 #include "TAlignmentMerger.h"
+#include "coretools/Types/probability.h"
 #include "gtest/gtest.h"
 
 using namespace GenomeTasks;
@@ -13,6 +14,9 @@ using namespace GenomeTasks;
 using namespace AlignmentMerger;
 
 using namespace BAM;
+
+using coretools::PhredInt;
+using coretools::P;
 
 //TODO:add unit test for highestQuality, check what happens when quality changes at border of overlap, anywhere in the overlap, first base etc.
 //also check for all cases
@@ -217,13 +221,13 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLengt
     vect.push_back(genometools::char2base('G'));
     vect.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -247,7 +251,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLengt
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[5] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[5] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar, vect, lowerQuality);
@@ -286,13 +290,13 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLengt
     newCigar.add('M', 4);
     newCigar.add('S', 6);
  
-    std::vector<genometools::PhredIntProbability> newHigherQuality;
+    std::vector<PhredInt> newHigherQuality;
     newHigherQuality.resize(112);
-    std::fill(newHigherQuality.begin(),newHigherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(newHigherQuality.begin(),newHigherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> newLowerQuality;
+    std::vector<PhredInt> newLowerQuality;
     newLowerQuality.resize(112);
-    std::fill(newLowerQuality.begin(),newLowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(newLowerQuality.begin(),newLowerQuality.end(),PhredInt(coretools::Probability (0.1)));
     vect.resize(112);
 
     firstRead3.setSequenceQualities(newCigar, vect, newHigherQuality);
@@ -323,13 +327,13 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){
     vect.push_back(genometools::char2base('G'));
     vect.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -372,7 +376,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){
     firstRead3.setIsReverseStrand(false);
     secondRead3.setIsReverseStrand(true);
 
-    higherQuality[5] = genometools::PhredIntProbability(coretools::Probability (0.01));
+    higherQuality[5] = PhredInt(coretools::Probability (0.01));
 
     firstRead3.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead3.setSequenceQualities(cigar, vect, higherQuality);
@@ -415,15 +419,15 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(112);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(112);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(112);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
-    lowerQuality2[12] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality2[12] = PhredInt(coretools::Probability (0.9));
     firstRead4.setSequenceQualities(cigar2, vect2, higherQuality2);
     secondRead4.setSequenceQualities(cigar2, vect2, lowerQuality2);
 
@@ -636,13 +640,13 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeMiddleOddOverlapLength){
     vect.push_back(genometools::char2base('G'));
     vect.resize(101);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(101);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(101);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -666,7 +670,7 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeMiddleOddOverlapLength){
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[50] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[50] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar, vect, lowerQuality);
@@ -709,13 +713,13 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeMiddleOddOverlapLength){
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(113);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(113);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(113);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect2, higherQuality2);
     secondRead3.setSequenceQualities(cigar2, vect2, lowerQuality2);
@@ -745,13 +749,13 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeMiddleOddOverlapLength){
     vect3.push_back(genometools::char2base('G'));
     vect3.resize(49);
 
-    std::vector<genometools::PhredIntProbability> higherQuality3;
+    std::vector<PhredInt> higherQuality3;
     higherQuality3.resize(49);
-    std::fill(higherQuality3.begin(),higherQuality3.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality3.begin(),higherQuality3.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality3;
+    std::vector<PhredInt> lowerQuality3;
     lowerQuality3.resize(49);
-    std::fill(lowerQuality3.begin(),lowerQuality3.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality3.begin(),lowerQuality3.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead4.setSequenceQualities(cigar3, vect3, lowerQuality3);
     secondRead4.setSequenceQualities(cigar3, vect3, higherQuality3);
@@ -1029,13 +1033,13 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeMiddleOddOverla
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(81);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(81);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -1058,7 +1062,7 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeMiddleOddOverla
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[40] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
@@ -1123,13 +1127,13 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeMiddleOddOverla
     vect4.push_back(genometools::char2base('G'));
     vect4.resize(81);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(81);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(112);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect3, lowerQuality2);
     secondRead3.setSequenceQualities(cigar3, vect4, higherQuality2);
@@ -1407,13 +1411,13 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddleOddOverla
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(81);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(81);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -1437,7 +1441,7 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddleOddOverla
     firstRead2.setIsReverseStrand(true);
     secondRead2.setIsReverseStrand(false);
 
-    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[40] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
@@ -1501,13 +1505,13 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddleOddOverla
     vect4.push_back(genometools::char2base('G'));
     vect4.resize(81);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(81);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(112);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect3, lowerQuality2);
     secondRead3.setSequenceQualities(cigar3, vect4, higherQuality2);
@@ -1786,13 +1790,13 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddleOddOverlapLength)
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(81);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(81);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -1816,7 +1820,7 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddleOddOverlapLength)
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[40] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
@@ -1880,13 +1884,13 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddleOddOverlapLength)
     vect4.push_back(genometools::char2base('G'));
     vect4.resize(93);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(93);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(112);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect3, lowerQuality2);
     secondRead3.setSequenceQualities(cigar3, vect4, higherQuality2);
@@ -2166,13 +2170,13 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddleOddOverlapLength)
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(81);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -2195,7 +2199,7 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddleOddOverlapLength)
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[40] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
@@ -2259,13 +2263,13 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddleOddOverlapLength)
     vect4.push_back(genometools::char2base('G'));
     vect4.resize(93);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(112);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(93);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar3, vect4, lowerQuality2);
     secondRead3.setSequenceQualities(cigar2, vect3, higherQuality2);
@@ -2545,13 +2549,13 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddleOddOverlapLength
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(89);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(89);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -2574,7 +2578,7 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddleOddOverlapLength
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[44] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[44] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
@@ -2638,13 +2642,13 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddleOddOverlapLength
     vect4.push_back(genometools::char2base('G'));
     vect4.resize(101);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(101);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(112);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect3, lowerQuality2);
     secondRead3.setSequenceQualities(cigar3, vect4, higherQuality2);
@@ -2923,13 +2927,13 @@ TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddleOddOverlapLength
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(89);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(89);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -2953,7 +2957,7 @@ TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddleOddOverlapLength
     firstRead2.setIsReverseStrand(true);
     secondRead2.setIsReverseStrand(false);
 
-    lowerQuality[44] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[44] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
@@ -3017,13 +3021,13 @@ TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddleOddOverlapLength
     vect4.push_back(genometools::char2base('G'));
     vect4.resize(101);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(101);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(112);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect3, lowerQuality2);
     secondRead3.setSequenceQualities(cigar3, vect4, higherQuality2);
@@ -3241,13 +3245,13 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddleOddOverlapLengt
     vect2.push_back(genometools::char2base('G'));
     vect2.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -3270,7 +3274,7 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddleOddOverlapLengt
     firstRead2.setIsReverseStrand(true);
     secondRead2.setIsReverseStrand(false);
 
-    lowerQuality[44] = genometools::PhredIntProbability(coretools::Probability (0.9));
+    lowerQuality[44] = PhredInt(coretools::Probability (0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, higherQuality);
     secondRead2.setSequenceQualities(cigar, vect2, lowerQuality);
@@ -3312,13 +3316,13 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddleOddOverlapLengt
     vect3.push_back(genometools::char2base('G'));
     vect3.resize(121);
 
-    std::vector<genometools::PhredIntProbability> higherQuality2;
+    std::vector<PhredInt> higherQuality2;
     higherQuality2.resize(121);
-    std::fill(higherQuality2.begin(),higherQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality2.begin(),higherQuality2.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality2;
+    std::vector<PhredInt> lowerQuality2;
     lowerQuality2.resize(121);
-    std::fill(lowerQuality2.begin(),lowerQuality2.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality2.begin(),lowerQuality2.end(),PhredInt(coretools::Probability (0.1)));
 
     firstRead3.setSequenceQualities(cigar2, vect3, lowerQuality2);
     secondRead3.setSequenceQualities(cigar2, vect3, higherQuality2);
@@ -3398,16 +3402,16 @@ TEST(TAlignmentMergerTest, bothForward_mergeHighestQuality){
     vect.push_back(genometools::char2base('G'));
     vect.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
-    higherQuality[91] = coretools::Probability (0.01);
+    higherQuality[91] = PhredInt(P(0.01));
 
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -3424,7 +3428,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeHighestQuality){
     EXPECT_EQ(secondRead.cigar().lengthMapped(), 100);
 
 
-    higherQuality[3] = coretools::Probability (0.01);
+    higherQuality[3] = PhredInt(P(0.01));
     TAlignment firstRead2(1, 10);
     TAlignment secondRead2(1, 20);
 
@@ -3485,17 +3489,17 @@ TEST(TAlignmentMergerTest, bothForward_mergeMiddleOddOverlapLength){
     vect.push_back(genometools::char2base('G'));
     vect.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
-    lowerQuality[54] = coretools::Probability (0.9);
-    lowerQuality[56] = coretools::Probability (0.9);
+    lowerQuality[54] = PhredInt(P(0.9));
+    lowerQuality[56] = PhredInt(P(0.9));
 
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -3518,7 +3522,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeMiddleOddOverlapLength){
     firstRead2.setIsReverseStrand(false);
     secondRead2.setIsReverseStrand(false);
 
-    lowerQuality[55] = coretools::Probability (0.9);
+    lowerQuality[55] = PhredInt(P(0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead2.setSequenceQualities(cigar, vect, higherQuality);
@@ -3597,16 +3601,16 @@ TEST(TAlignmentMergerTest, bothReverse_mergeHighestQuality){
     vect.push_back(genometools::char2base('G'));
     vect.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
-    higherQuality[91] = coretools::Probability (0.01);
+    higherQuality[91] = PhredInt(P(0.01));
 
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -3623,7 +3627,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeHighestQuality){
     EXPECT_EQ(secondRead.cigar().lengthMapped(), 100);
 
 
-    higherQuality[3] = coretools::Probability (0.01);
+    higherQuality[3] = PhredInt(P(0.01));
     TAlignment firstRead2(1, 10);
     TAlignment secondRead2(1, 20);
 
@@ -3684,17 +3688,17 @@ TEST(TAlignmentMergerTest, bothReverse_mergeMiddleOddOverlapLength){
     vect.push_back(genometools::char2base('G'));
     vect.resize(100);
 
-    std::vector<genometools::PhredIntProbability> higherQuality;
+    std::vector<PhredInt> higherQuality;
     higherQuality.resize(100);
-    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+    std::fill(higherQuality.begin(),higherQuality.end(),PhredInt(coretools::Probability (0.5)));
 
-    std::vector<genometools::PhredIntProbability> lowerQuality;
+    std::vector<PhredInt> lowerQuality;
     lowerQuality.resize(100);
-    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+    std::fill(lowerQuality.begin(),lowerQuality.end(),PhredInt(coretools::Probability (0.1)));
 
 
-    lowerQuality[54] = coretools::Probability (0.9);
-    lowerQuality[56] = coretools::Probability (0.9);
+    lowerQuality[54] = PhredInt(P(0.9));
+    lowerQuality[56] = PhredInt(P(0.9));
 
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
@@ -3717,7 +3721,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeMiddleOddOverlapLength){
     firstRead2.setIsReverseStrand(true);
     secondRead2.setIsReverseStrand(true);
 
-    lowerQuality[55] = coretools::Probability (0.9);
+    lowerQuality[55] = PhredInt(P(0.9));
 
     firstRead2.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead2.setSequenceQualities(cigar, vect, higherQuality);

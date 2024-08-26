@@ -16,40 +16,40 @@ public:
     coretools::TRandomGenerator randomGenerator;
     static constexpr size_t N = 5;
 
-    void fillSampleLikelihoodsOnlyDiploid(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> * SampleLikelihoods,
+    void fillSampleLikelihoodsOnlyDiploid(genometools::TSampleLikelihoods<coretools::HPPhredInt> * SampleLikelihoods,
                                           const std::vector<uint32_t> & PhredScores){
         // fill phred scores
         size_t sample = 0;
         for (size_t i = 0; i < N*3; i += 3, sample++){
-            SampleLikelihoods[sample].setDiploid(HighPrecisionPhredIntProbability(PhredScores[i]),
-                                                 HighPrecisionPhredIntProbability(PhredScores[i+1]),
-                                                 HighPrecisionPhredIntProbability(PhredScores[i+2]));
+            SampleLikelihoods[sample].setDiploid(coretools::HPPhredInt(PhredScores[i]),
+                                                 coretools::HPPhredInt(PhredScores[i+1]),
+                                                 coretools::HPPhredInt(PhredScores[i+2]));
         }
     }
 
-    void fillSampleLikelihoodsOnlyHaploid(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> * SampleLikelihoods,
+    void fillSampleLikelihoodsOnlyHaploid(genometools::TSampleLikelihoods<coretools::HPPhredInt> * SampleLikelihoods,
                                           const std::vector<uint32_t> & PhredScores){
         // fill phred scores
         size_t sample = 0;
         for (size_t i = 0; i < N*2; i += 2, sample++){
-            SampleLikelihoods[sample].setHaploid(HighPrecisionPhredIntProbability(PhredScores[i]),
-                                                 HighPrecisionPhredIntProbability(PhredScores[i+1]));
+            SampleLikelihoods[sample].setHaploid(coretools::HPPhredInt(PhredScores[i]),
+                                                 coretools::HPPhredInt(PhredScores[i+1]));
         }
     }
 
-    void fillSampleLikelihoodsHaploidDiploid(genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> * SampleLikelihoods,
+    void fillSampleLikelihoodsHaploidDiploid(genometools::TSampleLikelihoods<coretools::HPPhredInt> * SampleLikelihoods,
                                              const std::vector<uint32_t> & PhredScores,
                                              const std::vector<bool> & isDiploid){
         // fill phred scores
         size_t sample = 0;
         for (size_t i = 0; i < N*3; i += 3, sample++){
             if (isDiploid[sample]){
-                SampleLikelihoods[sample].setDiploid(HighPrecisionPhredIntProbability(PhredScores[i]),
-                                                     HighPrecisionPhredIntProbability(PhredScores[i+1]),
-                                                     HighPrecisionPhredIntProbability(PhredScores[i+2]));
+                SampleLikelihoods[sample].setDiploid(coretools::HPPhredInt(PhredScores[i]),
+                                                     coretools::HPPhredInt(PhredScores[i+1]),
+                                                     coretools::HPPhredInt(PhredScores[i+2]));
             } else {
-                SampleLikelihoods[sample].setHaploid(HighPrecisionPhredIntProbability(PhredScores[i]),
-                                                     HighPrecisionPhredIntProbability(PhredScores[i+1]));
+                SampleLikelihoods[sample].setHaploid(coretools::HPPhredInt(PhredScores[i]),
+                                                     coretools::HPPhredInt(PhredScores[i+1]));
             }
         }
     }
@@ -62,7 +62,7 @@ public:
 TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid) {
 	// simulated genotypes 2,0,0,1,1 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {1000, 1000, 0, 0, 1000, 1000, 0, 1000, 1000, 1000, 0, 1000, 1000, 0, 1000};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsOnlyDiploid(sampleLikelihoods, phredScores);
 
 	// estimate allele counts
@@ -93,7 +93,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid) {
 TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedRef) {
 	// simulated genotypes 0,0,0,0,0 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsOnlyDiploid(sampleLikelihoods, phredScores);
 
 	// estimate allele counts
@@ -128,7 +128,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedRef) {
 TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedAlt) {
 	// simulated genotypes 2,2,2,2,2 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsOnlyDiploid(sampleLikelihoods, phredScores);
 
 	// estimate allele counts
@@ -167,7 +167,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedAlt) {
 TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid) {
 	// simulated genotypes 1,0,0,0,1 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {1000, 0, 0, 1000, 0, 1000, 0, 1000, 1000, 0};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsOnlyHaploid(sampleLikelihoods, phredScores);
 
 	// estimate allele counts
@@ -193,7 +193,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid) {
 TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_refFixed) {
 	// simulated genotypes 0,0,0,0,0 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {0, 1000, 0, 1000, 0, 1000, 0, 1000, 0, 1000};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsOnlyHaploid(sampleLikelihoods, phredScores);
 
 	// estimate allele counts
@@ -218,7 +218,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_refFixed) {
 TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_altFixed) {
 	// simulated genotypes 1,1,1,1,1 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {1000, 0, 1000, 0, 1000, 0, 1000, 0, 1000, 0};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsOnlyHaploid(sampleLikelihoods, phredScores);
 
 	// estimate allele counts
@@ -248,7 +248,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid) {
 	// simulate diploid, haploid, diploid, haploid, diploid
 	// simulated genotypes 1,0,0,0,1 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {0, 1000, 1000, 0, 1000, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 1000, 0};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsHaploidDiploid(sampleLikelihoods, phredScores, {true, false, true, false, true});
 
 	// estimate allele counts
@@ -276,7 +276,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid_RefFixed) {
 	// simulate diploid, haploid, diploid, haploid, diploid
 	// simulated genotypes 0,0,0,0,0 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000, 0, 1000, 1000};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsHaploidDiploid(sampleLikelihoods, phredScores, {true, false, true, false, true});
 
 	// estimate allele counts
@@ -309,7 +309,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid_AltFixed) {
 	// simulate diploid, haploid, diploid, haploid, diploid
 	// simulated genotypes 2,1,2,1,2 in RScript Dropbox/PhD/atlas/TAlleleCountsUnitTests.R
 	std::vector<uint32_t> phredScores = {1000, 1000, 0, 1000, 0, 1000, 1000, 1000, 0, 1000, 0, 1000, 1000, 1000, 0};
-	genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> sampleLikelihoods[N];
+	genometools::TSampleLikelihoods<coretools::HPPhredInt> sampleLikelihoods[N];
 	fillSampleLikelihoodsHaploidDiploid(sampleLikelihoods, phredScores, {true, false, true, false, true});
 
 	// estimate allele counts

@@ -4,7 +4,6 @@
 #include "TBamWindowTraverser.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "tests/TTestBamFile.h"
 #include "gtest/gtest.h"
 
@@ -12,7 +11,6 @@
 using coretools::instances::parameters;
 
 using genometools::Base;
-using genometools::PhredIntProbability;
 
 //-------------------------------------------------------------
 // TBamFile - simple writing and reading
@@ -239,24 +237,24 @@ public:
         BAM::TCigar onlyMCigar;
         onlyMCigar.add('M', 20);
 
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(1), genometools::TGenomePosition(0, 0), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(2), genometools::TGenomePosition(0, 10), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(3), genometools::TGenomePosition(0, 20), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::A, coretools::PhredInt(1), genometools::TGenomePosition(0, 0), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, coretools::PhredInt(2), genometools::TGenomePosition(0, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::G, coretools::PhredInt(3), genometools::TGenomePosition(0, 20), onlyMCigar);
 
         // 2) alignments overlap 2 windows
-        outputBam->writeDummyAlignment(Base::T, PhredIntProbability(4), genometools::TGenomePosition(0, 80), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(5), genometools::TGenomePosition(0, 90), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(6), genometools::TGenomePosition(0, 95), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(7), genometools::TGenomePosition(0, 100), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::T, coretools::PhredInt(4), genometools::TGenomePosition(0, 80), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::A, coretools::PhredInt(5), genometools::TGenomePosition(0, 90), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, coretools::PhredInt(6), genometools::TGenomePosition(0, 95), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::G, coretools::PhredInt(7), genometools::TGenomePosition(0, 100), onlyMCigar);
 
         // 3) one alignment inside 1 window
-        outputBam->writeDummyAlignment(Base::T, PhredIntProbability(8), genometools::TGenomePosition(0, 220), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::T, coretools::PhredInt(8), genometools::TGenomePosition(0, 220), onlyMCigar);
 
         // 4) only 1 window per chromosome
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(9), genometools::TGenomePosition(1, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::A, coretools::PhredInt(9), genometools::TGenomePosition(1, 10), onlyMCigar);
 
         // 5) empty window
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(10), genometools::TGenomePosition(2, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, coretools::PhredInt(10), genometools::TGenomePosition(2, 10), onlyMCigar);
 
         // 6) empty chromosome
 
@@ -267,9 +265,9 @@ public:
         mixedCigar.add('D', 5);
         mixedCigar.add('I', 5);
         mixedCigar.add('S', 2);
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(1), genometools::TGenomePosition(4, 0), mixedCigar);
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(2), genometools::TGenomePosition(4, 4), mixedCigar);
-        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(3), genometools::TGenomePosition(4, 8), mixedCigar);
+        outputBam->writeDummyAlignment(Base::A, coretools::PhredInt(1), genometools::TGenomePosition(4, 0), mixedCigar);
+        outputBam->writeDummyAlignment(Base::C, coretools::PhredInt(2), genometools::TGenomePosition(4, 4), mixedCigar);
+        outputBam->writeDummyAlignment(Base::G, coretools::PhredInt(3), genometools::TGenomePosition(4, 8), mixedCigar);
 
         // 8) last window is empty
 

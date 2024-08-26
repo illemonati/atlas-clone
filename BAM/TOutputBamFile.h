@@ -3,13 +3,16 @@
 #define BAM_TOUTPUTBAMFILE_H_
 
 #include "TAlignment.h"
-#include "TBamFile.h"
 #include "TReadGroups.h"
 #include "api/BamWriter.h"
+#include "coretools/Math/TNumericRange.h"
 #include "coretools/Types/probability.h"
 #include <string>
 
 namespace BAM {
+
+class TBamFile;
+class TSamHeader;
 
 //------------------------------------------------
 // TQualityAdjusterForWriting
