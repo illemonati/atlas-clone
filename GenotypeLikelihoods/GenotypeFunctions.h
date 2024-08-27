@@ -1,7 +1,7 @@
 #ifndef GENOTYPEFUNCTIONS_H_
 #define GENOTYPEFUNCTIONS_H_
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 
 namespace GenotypeLikelihoods{
 

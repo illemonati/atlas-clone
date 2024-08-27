@@ -9,7 +9,7 @@
 
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 #include "TReadGroupInfo.h"
 
 #include "TSequencedBase.h"

@@ -12,7 +12,7 @@
 #include <vector>
 #include <zlib.h>
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 
 namespace GenotypeLikelihoods {
 class TSite;

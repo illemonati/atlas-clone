@@ -14,8 +14,8 @@
 
 #include "coretools/Containers/TStrongArray.h"
 
-#include "genometools/GenotypeTypes.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/Containers.h"
 
 #include "genometools/GLF/GLF.h"
 #include "genometools/GLF/TGLFMultiReader.h"

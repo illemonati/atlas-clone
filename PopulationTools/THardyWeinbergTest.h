@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "genometools/GenotypeTypes.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TVcfFile.h"
 

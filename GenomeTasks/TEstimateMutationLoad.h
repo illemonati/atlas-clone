@@ -8,13 +8,13 @@
 #include <vector>
 
 #include "genometools/TBed.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 #include "stattools/EM/TEMPriorIndependent.h"
 #include "stattools/EM/TLatentVariable.h"
 
 
 #include "TBamWindowTraverser.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TWindow.h"
 
 namespace GenomeTasks{

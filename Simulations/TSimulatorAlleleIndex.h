@@ -5,7 +5,7 @@
 
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/gzstream.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace Simulations {
 class TSimulatorAlleleIndex {
@@ -36,12 +36,12 @@ public:
 	}
 
 	void writeRefAltToVCF(gz::ogzstream &VCF) {
-		VCF << refBase << '\t';
+		VCF << toString(refBase) << '\t';
 		if (nextIndex == 1) // no alt
 			VCF << ".";
 		else {
-			VCF << indexToBase[1];
-			for (size_t i = 2; i < nextIndex; ++i) VCF << ',' << indexToBase[i];
+			VCF << toString(indexToBase[1]);
+			for (size_t i = 2; i < nextIndex; ++i) VCF << ',' << toString(indexToBase[i]);
 		}
 	}
 };

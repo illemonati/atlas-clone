@@ -17,8 +17,7 @@
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GLF/GLF.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/TGenotypeFrequencies.h"
+#include "genometools/Genotypes/TFrequencies.h"
 #include "genometools/VCF/TVcfWriter.h"
 
 #include "genometools/TAlleles.h"

@@ -17,7 +17,7 @@
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TAlignment.h"
 #include "TSite.h"
 

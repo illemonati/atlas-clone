@@ -2,8 +2,8 @@
 #include "TSequencedBase.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeContainers.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Containers.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace GenotypeLikelihoods::PMD {
 

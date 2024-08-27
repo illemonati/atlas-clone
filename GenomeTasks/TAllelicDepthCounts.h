@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "TBamWindowTraverser.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 
 namespace GenomeTasks{
 

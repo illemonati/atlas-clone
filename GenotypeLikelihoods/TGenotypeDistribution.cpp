@@ -12,7 +12,7 @@
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/toString.h"
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 
 #include "stattools/MLEInference/TNelderMead.h"
 

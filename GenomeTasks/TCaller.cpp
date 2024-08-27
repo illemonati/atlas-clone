@@ -10,7 +10,8 @@
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/fillContainer.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/BiallelicGenotypesWithAlleles.h"
 
 namespace GenomeTasks{
 

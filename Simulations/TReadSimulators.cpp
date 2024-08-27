@@ -7,7 +7,6 @@
 #include "coretools/Main/TLog.h"
 #include "TReadSimulators.h"
 #include "coretools/Main/globalConstants.h"
-#include "genometools/GenotypeTypes.h"
 
 namespace Simulations {
 

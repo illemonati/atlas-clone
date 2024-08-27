@@ -19,7 +19,6 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "genometools/GenotypeTypes.h"
 
 #include "genometools/VCF/TVcfWriter.h"
 #include "THaplotypeSimulator.h"

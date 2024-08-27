@@ -11,7 +11,7 @@
 #include "TSimulatorVariantInvariantBedFiles.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/progressTools.h"
-#include "genometools/TGenotypeFrequencies.h"
+#include "genometools/Genotypes/TFrequencies.h"
 
 namespace Simulations {
 using coretools::instances::logfile;

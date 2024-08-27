@@ -12,7 +12,7 @@
 
 #include "PMD/TModels.h"
 #include "SequencingError/TModels.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TReadGroupInfo.h"
 
 namespace BAM { class TReadGroups; }

@@ -12,8 +12,8 @@
 #include "coretools/Math/TSumLog.h"
 
 #include "genometools/TBed.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/Containers.h"
 
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"

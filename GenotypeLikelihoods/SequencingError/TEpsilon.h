@@ -11,9 +11,9 @@
 #include <armadillo>
 
 #include "SequencingError/TFunctions.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace RecalEstimatorTools {class TRecalDataTable;}
 

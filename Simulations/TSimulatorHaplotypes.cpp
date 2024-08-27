@@ -2,8 +2,8 @@
 
 #include "TSimulatorAlleleIndex.h"
 #include "TSimulatorReference.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Strings/toString.h"
-#include "genometools/GenotypeTypes.h"
 
 namespace Simulations {
 using genometools::Base;

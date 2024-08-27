@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "coretools/Files/TInputFile.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace PopulationTools{
 

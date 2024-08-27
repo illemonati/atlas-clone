@@ -9,9 +9,9 @@
 #define TRHO_H_
 
 #include "coretools/Containers/TStrongArray.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods::SequencingError {

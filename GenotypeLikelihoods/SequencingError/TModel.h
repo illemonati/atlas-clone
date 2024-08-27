@@ -9,7 +9,7 @@
 #define TRECALIBRATIONEMMODEL_H_
 
 #include "TEpsilon.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TReadGroupInfo.h"
 #include "TRho.h"
 

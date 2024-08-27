@@ -3,7 +3,7 @@
 #include "TBamTraverser.h"
 #include "TBamWindowTraverser.h"
 #include "coretools/Main/TParameters.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 #include "tests/TTestBamFile.h"
 #include "gtest/gtest.h"
 

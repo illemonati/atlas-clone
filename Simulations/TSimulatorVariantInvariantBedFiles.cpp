@@ -1,4 +1,5 @@
 #include "TSimulatorVariantInvariantBedFiles.h"
+#include "coretools/Main/TError.h"
 
 namespace Simulations {
 	

@@ -14,7 +14,7 @@
 #include "TBamWindowTraverser.h"
 #include "TGenotypePrior.h"
 #include "genometools/VCF/TVCFFields.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 
 
 namespace GenotypeLikelihoods { class TSite; }

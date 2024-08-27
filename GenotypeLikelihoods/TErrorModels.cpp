@@ -11,8 +11,7 @@
 #include "TSite.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/algorithms.h"
-#include "genometools/GenotypeContainers.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Containers.h"
 
 namespace GenotypeLikelihoods{
 using coretools::instances::logfile;

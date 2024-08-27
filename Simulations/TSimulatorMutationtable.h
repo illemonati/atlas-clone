@@ -2,9 +2,8 @@
 #ifndef TSIMULATORMUTATIONTABLE_H_
 #define TSIMULATORMUTATIONTABLE_H_
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "genometools/GenotypeTypes.h"
 
 namespace Simulations {
 class TSimulatorMutationtable {

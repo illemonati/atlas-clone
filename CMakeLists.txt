@@ -20,7 +20,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
   GenotypeLikelihoods/SequencingError/*.h GenotypeLikelihoods/SequencingError/*.cpp
   GenotypeLikelihoods/PMD/*.h GenotypeLikelihoods/PMD/*.cpp
-  GenotypeLikelihoods/oldPMD/*.h GenotypeLikelihoods/oldPMD/*.cpp
+  GenotypeLikelihoods/oldPMD/*.cpp
   GLF/*.h GLF/*.cpp
   PopulationTools/*.h PopulationTools/*.cpp
   Simulations/*.h Simulations/*.cpp
@@ -29,14 +29,14 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           01bd051
+  GIT_TAG           a65e31d
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
 include(FetchContent)
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           30545f2
+  GIT_TAG           f68faca
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 

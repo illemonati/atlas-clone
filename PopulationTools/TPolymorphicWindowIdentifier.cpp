@@ -9,7 +9,6 @@
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "genometools/GenotypeTypes.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 

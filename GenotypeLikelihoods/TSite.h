@@ -15,9 +15,9 @@
 #include "coretools/Math/TSubsamplePicker.h"
 
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods {

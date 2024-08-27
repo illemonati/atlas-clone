@@ -11,7 +11,8 @@
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/BaseContext.h"
 
 namespace BAM {
 

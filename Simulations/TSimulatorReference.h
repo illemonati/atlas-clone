@@ -5,7 +5,7 @@
 #include <fstream>
 #include <vector>
 
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace Simulations {
 

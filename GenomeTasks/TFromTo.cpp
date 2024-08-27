@@ -2,7 +2,7 @@
 #include "TSequencedBase.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace GenomeTasks{
 using coretools::instances::randomGenerator;

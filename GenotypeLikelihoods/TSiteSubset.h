@@ -21,7 +21,7 @@
 
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace GenotypeLikelihoods {
 

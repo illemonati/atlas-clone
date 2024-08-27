@@ -18,10 +18,9 @@
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
 
 #include "SFS.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 
 
 namespace genometools { class TChromosome; }

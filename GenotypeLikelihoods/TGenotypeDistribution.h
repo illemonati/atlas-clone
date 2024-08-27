@@ -10,8 +10,9 @@
 
 #include "coretools/Types/probability.h"
 
-#include "genometools/GenotypeContainers.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Containers.h"
+#include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/Ploidy.h"
 
 #include "stattools/MLEInference/TNelderMead.h"
 

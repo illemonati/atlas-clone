@@ -14,11 +14,11 @@
 
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/GenotypeTypes.h"
 
 #include "TCigar.h"
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace GenotypeLikelihoods {
 class TErrorModels;

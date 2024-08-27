@@ -7,7 +7,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/toString.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 #include <memory>
 
 namespace GenomeTasks {

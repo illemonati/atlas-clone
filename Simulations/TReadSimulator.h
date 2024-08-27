@@ -16,7 +16,6 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Math/TCategoricalDistribution.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
 
 #include "SequencingError/TModels.h"
 #include "TAlignment.h"

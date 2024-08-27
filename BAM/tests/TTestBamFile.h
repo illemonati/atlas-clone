@@ -11,7 +11,7 @@
 #include "TBamFile.h"
 #include "TSamFlags.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 
 
 namespace BAM { class TCigar; }

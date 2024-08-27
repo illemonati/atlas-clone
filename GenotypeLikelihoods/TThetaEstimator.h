@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "genometools/GenotypeTypes.h"
+#include "genometools/Genotypes/Base.h"
 #include "coretools/Files/TOutputFile.h"
-#include "genometools/GenotypeContainers.h"
+#include "genometools/Genotypes/Containers.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
 
