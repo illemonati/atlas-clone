@@ -53,29 +53,24 @@
 #include "TSimulator.h"
 
 void addTaks(coretools::TMain & main) {
-	//simulations
-	main.createRegularTask<Simulations::TSimulationRunner>("simulate", "Simulate bam- or vcf-file[s]");
-
 	//BAM
 	{
-	constexpr auto groupName = "BAM";
+	constexpr auto groupName = "Read";
 	main.createGroupedTask<GenomeTasks::TFilterBam>(groupName, "filterBAM", "Writing reads that pass filters to BAM file");
 	main.createGroupedTask<GenomeTasks::AlignmentMerger::TAlignmentOverlappingReadsMerger>(groupName, "mergeOverlappingReads", "Merging paired-end reads in BAM file");
-	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");
-	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
+	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");	
 	main.createGroupedTask<GenomeTasks::TBamDiagnoser>(groupName, "BAMDiagnostics", "Estimating depth and read property frequencies");
 	main.createGroupedTask<GenomeTasks::AlignmentMerger::TOverlapQuantifier>(groupName, "readOverlap", "Estimating distribution of overlap of paired reads");
 	main.createGroupedTask<GenomeTasks::TAssessSoftClipping>(groupName, "assessSoftClipping", "Assessing level of soft clipping in BAM file");
 	main.createGroupedTask<GenomeTasks::TSoftClipsTrimmer>(groupName, "trimSoftClips", "Removing soft clipped bases from reads");
 	main.createGroupedTask<GenomeTasks::TQualityTransformation>(groupName, "qualityTransformation", "Printing Quality Transformation");
 	main.createGroupedTask<GenomeTasks::TBamDownsampler>(groupName, "downsample", "Downsampling a BAM file");
-	main.createGroupedTask<GenomeTasks::TPMDSCalculator>(groupName, "PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");
-	main.createGroupedTask<GenomeTasks::TIlluminaIdentifier>(groupName, "identifyIllumina", "Reassigning read groups based on the platform unit in their name");
+	main.createGroupedTask<GenomeTasks::TPMDSCalculator>(groupName, "PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");	
 	}
 
 	//window tasks
 	{
-	constexpr auto groupName = "Window";
+	constexpr auto groupName = "Site";
 	main.createGroupedTask<GenotypeLikelihoods::TErrorEstimator>(groupName, "estimateErrors", "Estimating PMD pattern and Sequencing Errors", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TMaskCreator>(groupName, "createMask", "Creating a mask BED file");
 	main.createGroupedTask<GenomeTasks::TAllelicDepth>(groupName, "allelicDepth", "Writing genotype likelihoods to a GLF file");
@@ -83,10 +78,10 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TCall>(groupName, "call", "Calling genotypes");
 	main.createGroupedTask<GenomeTasks::TEstimateTheta>(groupName, "theta", "Estimating heterozygosity (theta)", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TEstimateThetaRatio>(groupName, "thetaRatio", "Estimate ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
-	main.createGroupedTask<GenomeTasks::TWriteGLF>(groupName, "GLF", "Writing genotype likelihoods to a GLF file");
-	main.createGroupedTask<GenomeTasks::TSexEstimator>(groupName, "sexEstimation", "Estimating depth distribution among sites and per window");
+	main.createGroupedTask<GenomeTasks::TWriteGLF>(groupName, "GLF", "Writing genotype likelihoods to a GLF file");	
 	main.createGroupedTask<GenomeTasks::TEstimateMutationLoad>(groupName, "mutationLoad", "Estimating mutation load across the genome");
 	main.createGroupedTask<GenomeTasks::TEstimateGenotypeDistribution>(groupName, "genotypeDistribution", "Estimating genotype Distribution");
+	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
 	}
 
 	//Population tools
@@ -102,9 +97,9 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<PopulationTools::TPolymorphicWindowIdentifier>(groupName, "polymorphicWindows", "Identifying windows for which samples are polymorphic");
 	main.createGroupedTask<PopulationTools::TF2Estimator>(groupName, "calculateF2", "Calculate F2 between samples, and within/between populations");
 	main.createGroupedTask<PopulationTools::TAncestralAlleleEstimator>(groupName, "ancestralAlleles", "Writing FASTA-file with ancestral alleles");
-	main.createGroupedTask<PopulationTools::TSafEstimator>(groupName, "saf", "Estimating Site Allele Frequencies");
-	main.createGroupedTask<PopulationTools::TSpearmanGWAS>(groupName, "SpearmanGWAS", "GWAS with Spearman correlation, allowing for population-specific signs");
+	main.createGroupedTask<PopulationTools::TSafEstimator>(groupName, "saf", "Estimating Site Allele Frequencies");	
 	}
+
 	//VCF
 	{
 	constexpr auto groupName = "VCF";
@@ -114,11 +109,20 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<PopulationTools::THardyWeinbergTest>(groupName, "testHardyWeinberg", "Testing for Hardy-Weinberg equilibrium across multiple populations");
 	}
 
+	//simulations
+	{
+	constexpr auto groupName = "Simulation";
+	main.createGroupedTask<Simulations::TSimulationRunner>(groupName, "simulate", "Simulate bam- or vcf-file[s]");
+	}
+
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
 	main.createDebugTask<GenomeTasks::TFromTo>("fromTo", "FromTo");
 	main.createDebugTask<GenomeTasks::TContextErrors>("contextErrors", "contextErrors");
+	main.createDebugTask<PopulationTools::TSpearmanGWAS>("SpearmanGWAS", "GWAS with Spearman correlation, allowing for population-specific signs");
+	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
+	//main.createDebugTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating depth distribution among sites and per window"); // replaced by BeXY, TODO: remove code?
 };
 
 void addTests(coretools::TMain & ){
@@ -129,7 +133,7 @@ void addTests(coretools::TMain & ){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	coretools::TMain main("ATLAS", "0.92", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
+	coretools::TMain main("ATLAS", "2.0 (Release Candidate)", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
 
 	//add existing tasks
 	addTaks(main);
