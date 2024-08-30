@@ -20,20 +20,20 @@ echo "Bed creation: $(($(date +%s) - $tstep)) seconds"
 
 probs="0.2"
 out=windows
-$atlas --task genotypeDistribution --prob "1.0,$probs"  --minDeltaLL 1 \
+$atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 \
 	   --bam simulate.bam --fasta simulate.fasta --chr chr1 \
 	   --recal $recal --pmd $pmd --window 65432 --doPMD \
 	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout
 
 probs="0.5,0.2,0.1"
 out=diploRaw
-$atlas --task genotypeDistribution --genomeWide 3 --prob "$probs" --minDeltaLL 0.1 \
+$atlas --task HKY85 --genomeWide 3 --prob "$probs" --minDeltaLL 0.1 \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --regions diplo.bed --ploidy 2 --sample bases \
 	   --fixedSeed 333 --out $out --logFile $out.out 2> $out.eout
 
 out=diploEE
-$atlas --task genotypeDistribution --minDeltaLL 0.1 --genomeWide 2 \
+$atlas --task HKY85 --minDeltaLL 0.1 --genomeWide 2 \
 	   --prob "$probs" --sample bases \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --regions diplo.bed --ploidy 2 --recal $recal --pmd $pmd \
@@ -41,7 +41,7 @@ $atlas --task genotypeDistribution --minDeltaLL 0.1 --genomeWide 2 \
 
 # no downsampling
 out=haplo
-$atlas --task genotypeDistribution --genomeWide --minDeltaLL 0.1 \
+$atlas --task HKY85 --genomeWide --minDeltaLL 0.1 \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --regions haplo.bed --ploidy 1 --recal $recal --pmd $pmd --doPMD \
 	   --fixedSeed 555 --out $out --logFile $out.out 2> $out.eout
