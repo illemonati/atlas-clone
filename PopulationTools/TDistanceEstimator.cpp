@@ -18,6 +18,8 @@ using genometools::TBaseData;
 using genometools::Genotype;
 using genometools::Base;
 using coretools::Probability;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //----------------------------------------------------
 //TDistanceClass
@@ -113,7 +115,6 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 	_distance = -1.0;
 
 	//read EM parameters
-	using namespace coretools::instances;
 	logfile().startIndent("Parameters of EM algorithm:");
 	_maxIterations = parameters().get<int>("iterations", 100);
 	logfile().list("Will run up to ", _maxIterations, " iterations.");
@@ -405,7 +406,6 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 	//prepare estimates
 	using coretools::index;
 	using genometools::Genotype;
-	using namespace coretools::instances;
 	logfile().listFlush("Estimating initial base frequencies pi ...");
 	_guessPi(genoQual1, genoQual2);
 	logfile().done();
@@ -543,7 +543,6 @@ void TDistanceEstimator::run(){
 // Estimation Genome Wide
 //--------------------------------------------
 void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object){
-	using namespace coretools::instances;
 	logfile().list("Will estimate genetic distances genome wide.");
 
 	//open output file
@@ -650,7 +649,6 @@ void TDistanceEstimator::_readCommonSites(GenotypeQualityVector & genoQual1, Gen
 
 void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out){
 	//initialize storage for two windows
-	using namespace coretools::instances;
 	logfile().listFlush("Reading common sites ...");
 	GenotypeQualityVector genoQual1, genoQual2;
 	_readCommonSites(genoQual1, genoQual2, g1, g2);
@@ -677,7 +675,6 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 // Estimation in windows
 //--------------------------------------------
 void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen){
-	using namespace coretools::instances;
 	logfile().list("Will estimate genetic distance in windows of length ", windowLen, ".");
 	if(windowLen < 100)
 		UERROR("Window size must be at least 100bp!");
@@ -728,7 +725,6 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 	int numSitesWithData = 100;
 
 	//parse GLFs in windows
-	using namespace coretools::instances;
 	logfile().startIndent("Will estimate distance in windows of size ", windowLen, ":");
 	while(!g1.empty() && !g2.empty()){
 		//move to new chromosome

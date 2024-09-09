@@ -8,12 +8,15 @@
 #include "TVcfDiagnostics.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Files/gzstream.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 
 
 namespace VCF {
 
 using coretools::str::toString;
-using namespace coretools::instances;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 
 //---------------------------------------------------
 // TAnnotator

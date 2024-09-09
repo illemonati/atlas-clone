@@ -296,7 +296,7 @@ void TAlignment::_setDistancesFromEnds() {
 };
 
 void TAlignment::_fillContext() {
-	using namespace genometools;
+	using genometools::Base;
 	assert(!_bases.empty());
 	if (_flags.isReverseStrand()) {
 		// reverse

@@ -4,10 +4,12 @@
 
 #include "TVcfConverter.h"
 #include "coretools/Files/gzstream.h"
+#include "coretools/Main/TParameters.h"
 
 namespace VCF {
 
-using namespace coretools::instances;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 
 //------------------------------------------
 // TVcfConverter

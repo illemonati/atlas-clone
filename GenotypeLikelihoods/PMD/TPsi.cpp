@@ -12,7 +12,11 @@
 namespace GenotypeLikelihoods::PMD {
 using coretools::Probability;
 using coretools::P;
-using namespace coretools::str;
+using BAM::End;
+using coretools::str::fromString;
+using coretools::str::toString;
+using coretools::str::readAfter;
+using coretools::str::readBefore;
 
 namespace impl {
 std::vector<Probability> exp(std::string_view sFunction, size_t N = 50) {
@@ -28,7 +32,7 @@ std::vector<Probability> exp(std::string_view sFunction, size_t N = 50) {
 }
 
 std::vector<Probability> empiric(std::string_view sFunction) {
-	TSplitter spl(sFunction, ',');
+	coretools::str::TSplitter spl(sFunction, ',');
 	if (spl.empty()) return {P(0.)};
 
 	std::vector<Probability> probs;
@@ -65,7 +69,7 @@ std::string toString(End end) {
 
 void TPsi::_fromString(std::string_view Psi) {
 	// CT5:0.1,0.09;GA3:0.3*exp()
-	TSplitter semi(Psi, ';');
+	coretools::str::TSplitter semi(Psi, ';');
 	for (auto s: semi) {
 		const auto sType     = readBefore(s, ':');
 		if (sType.size() != 3) UERROR(sType, " is not a recognized token!");

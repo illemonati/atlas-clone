@@ -11,6 +11,8 @@
 #include "coretools/Files/gzstream.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/Genotypes/Containers.h"
+#include "genometools/Genotypes/Genotype.h"
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
@@ -27,7 +29,9 @@ using genometools::TBaseProbabilities;
 //---------------------------------------------------------------
 
 TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &baseFrequencies) {
-	using namespace genometools;
+	using genometools::Base;
+	using genometools::Genotype;
+
 	// assumes that base frequencies are set!
 	TGenotypeLikelihoods lGeno;
 	for (Base b = Base::min; b < Base::max; ++b) {
@@ -236,13 +240,14 @@ void TThetaEstimator::add(const TWindow &window, const TErrorModels &glCalculato
 };
 
 bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
-	using namespace genometools;
 	using coretools::Probability;
 	using coretools::index;
+	using genometools::Base;
+
 	// calculate substitution probabilities
 
 	// Calculate all genotype probabilities for all sites
-	const TGenotypeData P_G = _data->P_G(pGenotype); // see paper
+	const genometools::TGenotypeData P_G = _data->P_G(pGenotype); // see paper
 
 	// prepare storage
 	arma::mat::fixed<6,6> Jacobian;
@@ -275,7 +280,7 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 
 		// ii) fill Jacobian (Note: index is zero based!)
 		Jacobian.zeros();
-		TBaseData tmp;
+		genometools::TBaseData tmp;
 		for (Base k = Base::min; k < Base::max; ++k) {
 			const auto hom = genotype(Base(k), Base(k));
 			tmp[k]         = P_G[hom] / ((baseFreq[k].get() + rho) * (baseFreq[k].get() + rho));
@@ -323,10 +328,9 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 };
 
 void TThetaEstimator::_NROnlyTheta(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
-	using namespace genometools;
-
+	using genometools::Base;
 	// Calculate all genotype probabilities for all sites
-	const TGenotypeData P_G = _data->P_G(pGenotype); // see paper
+	const genometools::TGenotypeData P_G = _data->P_G(pGenotype); // see paper
 
 	double rho = _theta.expMinusTheta / (1.0 - _theta.expMinusTheta);
 
@@ -423,7 +427,7 @@ void TThetaEstimator::_runEMForTheta() {
 }
 
 void TThetaEstimator::_estimateConfidenceInterval() {
-	using namespace genometools;
+	using genometools::Base;
 	// we estimate an approximate confidence interval for theta using the Fisher information
 	// This function assumes that EM has already been run!
 
@@ -431,7 +435,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 	const auto pGenotype = getPGenotype(_theta);
 
 	// calclate d/dtheta P(g|theta, pi)
-	TGenotypeData deriv_pGenotype;
+	genometools::TGenotypeData deriv_pGenotype;
 
 	for (Base k = Base::min; k < Base::max; ++k) {
 		// homozygous genotype
@@ -453,7 +457,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 }
 
 void TThetaEstimator::_calcExpectedHet(){
-	using namespace genometools;
+	using genometools::Base;
 	//calculating epxected heterozygosity under the Felsenstein model
 	double hom = 0.0;
 	for (Base k = Base::min; k < Base::max; ++k) {
@@ -772,11 +776,11 @@ bool TThetaEstimatorRatio::_updateTheta(TThetaEstimatorData *thisData, Theta &th
 
 bool TThetaEstimatorRatio::_updateBaseFrequencies(TThetaEstimatorData *thisData, Theta &thisTheta,
 												 double thisSdProposalKernel) {
-	using namespace genometools;
+	using genometools::Base;
 	// propose: select one frequency at random and shift this one
 	// make sure frequencies are not outside [0,1]
 	const auto thisBase = Base(randomGenerator().sample(4));
-	TBaseLikelihoods tmpBaseLik;
+	genometools::TBaseLikelihoods tmpBaseLik;
 	double tmp = thisTheta.baseFreq[thisBase].get() + randomGenerator().getNormalRandom(0.0, thisSdProposalKernel);
 	if (tmp > 1.0) {
 		tmpBaseLik[thisBase] = P(2.0 - tmp);

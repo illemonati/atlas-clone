@@ -2,17 +2,29 @@
 // Created by caduffm on 10/27/21.
 //
 #include "TVcfConverter.h"
+#include "coretools/Files/TInputFile.h"
+#include "coretools/Files/TInputRcpp.h"
 #include "coretools/Files/gzstream.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Strings/fromString.h"
+#include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
+#include "genometools/Genotypes/BiallelicGenotype.h"
 #include "gtest/gtest.h"
 
 
-using namespace testing;
-using namespace coretools::instances;
-using namespace coretools::str;
-using namespace coretools;
-using namespace genometools;
+using coretools::instances::parameters;
+using coretools::str::toString;
+using coretools::str::fromString;
+using coretools::Probability;
+using coretools::TInputFile;
+using coretools::FileType;
 
-class TVCFConverterTest : public Test {
+using genometools::BiallelicGenotype;
+using genometools::TSampleLikelihoods;
+
+
+class TVCFConverterTest : public testing::Test {
 protected:
 	std::vector<uint16_t> phred_g1         = {0, 1, 0, 0, 3, 0, 1, 2, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 3, 1,
                                       0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 2, 3, 2, 0, 3, 0, 0, 1, 0, 0, 0, 1, 2, 0};
@@ -92,7 +104,7 @@ public:
 	}
 
 	void writeSampleFile() {
-		TOutputFile sampleFile("test.samples", {"Samples"});
+		coretools::TOutputFile sampleFile("test.samples", {"Samples"});
 		for (auto &it : samplesToKeep) { sampleFile.writeln(it); }
 		// add to parameters
 		parameters().add("samples", "test.samples");

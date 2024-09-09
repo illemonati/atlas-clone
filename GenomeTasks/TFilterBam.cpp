@@ -2,7 +2,6 @@
 #include "TWaitingListBamTraverser.h"
 
 namespace GenomeTasks {
-using namespace coretools::str;
 
 void TFilterBam::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 	if (!lhs.alignment.isProperPair()) {

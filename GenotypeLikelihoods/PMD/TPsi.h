@@ -17,7 +17,7 @@
 namespace GenotypeLikelihoods::PMD {
 
 enum class Type : size_t {min, CT=min, GA, max};
-enum class End : size_t {min, from5=min, from3, max};
+
 using TBaseBaseProbabilities =
 	coretools::TStrongArray<coretools::TStrongArray<coretools::Probability, genometools::Base>, genometools::Base>;
 
@@ -43,8 +43,8 @@ class TPsi {
 		};
 	};
 
-	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, Type>, End> _tables;
-	coretools::TStrongArray<coretools::TStrongArray<std::vector<SumType>, Type>, End> _tableSums;
+	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, Type>, BAM::End> _tables;
+	coretools::TStrongArray<coretools::TStrongArray<std::vector<SumType>, Type>, BAM::End> _tableSums;
 
 	void _fromString(std::string_view Psi);
 	void _parse(const BAM::RGInfo::TInfo & info);
@@ -53,6 +53,8 @@ class TPsi {
 	void _add(const BAM::TSequencedBase &data, coretools::Probability &P_g_I_di,
 			  const TBaseBaseProbabilities &P_b_bbar_I_gdij) {
 		using genometools::Base;
+		using BAM::End;
+
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
 
@@ -70,6 +72,8 @@ class TPsi {
 	template<Type From_To>
 	void _add(const BAM::TSequencedBase &data, genometools::Base ref) {
 		using genometools::Base;
+		using BAM::End;
+
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
 
@@ -101,6 +105,7 @@ public:
 
 	template<Type From_To>
 	coretools::Probability prob(const BAM::TSequencedBase &data) const noexcept {
+		using BAM::End;
 		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
 		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
 		const auto pos      = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
@@ -130,11 +135,11 @@ public:
 
 	void log() const noexcept;
 
-	Type type(End E) const noexcept {
+	Type type(BAM::End E) const noexcept {
 		return _tables[E][Type::CT].size() > _tables[E][Type::GA].size() ? Type::CT : Type::GA;
 	}
 
-	const std::vector<coretools::Probability>& vals(End E) const noexcept {
+	const std::vector<coretools::Probability>& vals(BAM::End E) const noexcept {
 		return _tables[E][type(E)];
 	}
 };

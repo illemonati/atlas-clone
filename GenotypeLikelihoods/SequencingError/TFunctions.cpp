@@ -5,11 +5,19 @@
 #include "SequencingError/TNoFunction.h"
 #include "SequencingError/TPolynomial.h"
 #include "SequencingError/TProbit.h"
+#include "coretools/Strings/fromString.h"
+#include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/stringProperties.h"
 
 namespace GenotypeLikelihoods::SequencingError {
-using namespace coretools::str;
+using coretools::str::stringStartsWith;
+using coretools::str::readBefore;
+using coretools::str::readAfter;
+using coretools::str::strip;
+using coretools::str::TSplitter;
+using coretools::str::fromString;
+
 namespace impl {
 
 auto parseFunctions(std::string_view Defs) {
@@ -122,8 +130,6 @@ inline auto parseFunction(std::string_view str) {
 }
 
 template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t index) {
-	using namespace coretools::str;
-
 	if (Function.empty()) return new TNoFunction;
 
 	auto [type, Spl] = parseFunction(Function);

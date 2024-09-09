@@ -5,10 +5,13 @@
 #include "TF2Estimator.h"
 
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 
 namespace PopulationTools {
 using coretools::TOutputFile;
-using namespace coretools::instances;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //------------------------------------------------
 // TF2Estimator

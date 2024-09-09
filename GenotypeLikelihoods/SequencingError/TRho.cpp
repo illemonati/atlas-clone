@@ -1,13 +1,16 @@
 #include "TRho.h"
 
 #include "coretools/Main/TLog.h"
+#include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
 
 namespace GenotypeLikelihoods::SequencingError {
-using namespace coretools::str;
+
 using genometools::Base;
-using namespace std::literals;
+
 using genometools::TBaseProbabilities;
+using coretools::str::TSplitter;
+using coretools::str::strip;
 
 TRho::TRho(std::string_view Def) {
 	using coretools::str::toString;

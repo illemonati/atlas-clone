@@ -16,7 +16,9 @@
 
 namespace BAM {
 
+enum class End : size_t {min, from5=min, from3, max};
 enum class Mate : size_t {min, first=min, second, max};
+
 inline std::string toString(Mate m) {
 	constexpr coretools::TStrongArray<std::string_view, Mate> mates{{"Mate1", "Mate2"}};
 	return std::string(mates[m]);
@@ -26,8 +28,7 @@ inline std::string toString(Mate m) {
 // TSequencedBase
 //---------------------------------------------------------------
 // data container with minimal footprint, also used in recal
-class TSequencedBase {
-public:
+struct TSequencedBase {
 	genometools::Base base         = genometools::Base::N;
 	genometools::Base previousBase = genometools::Base::N;
 
@@ -40,7 +41,6 @@ public:
 
 	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
 
-	// Do we need it if we also store fragment length?
 	uint16_t fragmentLength = 0;
 	uint16_t distFrom5Prime = -1; // zero based!
 	uint16_t distFrom3Prime = -1; // zero based!

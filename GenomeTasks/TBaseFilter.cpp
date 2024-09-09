@@ -3,6 +3,8 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
+#include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/BaseContext.h"
 #include <sys/types.h>
 namespace GenomeTasks {
 
@@ -26,7 +28,9 @@ TQualityFilter::TQualityFilter() {
 // TContextFilter
 //-------------------------------------
 TContextFilter::TContextFilter(){
-	using namespace genometools;
+	using genometools::Base;
+	using genometools::BaseContext;
+	using genometools::char2base;
 
 	_keptContexts.fill(true);
 	_filter = false;
