@@ -244,8 +244,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d3':   456789       : d3 = pos + fragmentLenght - lengthSequenced  - softClippedLeft = 5 + 10 - 6 - 2  = 7
 			const int f_ml_ms = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5Prime = l_m1_ps - pos;
-				_bases[pos].distFrom3Prime = pos + f_ml_ms;
+				_bases[pos].distFrom5 = l_m1_ps - pos;
+				_bases[pos].distFrom3 = pos + f_ml_ms;
 			}
 		} else {
 			// Paired-end forward
@@ -259,8 +259,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d3':   987654       : d3 = fragmentLength - 1 - pos + softClippedLeft  = 10 - 1 - 5 + 2 = 6
 			const int f_m1_ps = _fragmentLength - 1 + _cigar.lengthSoftClippedLeft();
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
-				_bases[pos].distFrom3Prime = f_m1_ps - pos;
+				_bases[pos].distFrom5 = pos - _cigar.lengthSoftClippedLeft();
+				_bases[pos].distFrom3 = f_m1_ps - pos;
 			}
 		}
 	} else {
@@ -275,8 +275,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			// d3':   012345       : d3 = pos - softClippedLeft                       = 5 - 2         = 3
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5Prime = l_m1_ps - pos;
-				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft();
+				_bases[pos].distFrom5 = l_m1_ps - pos;
+				_bases[pos].distFrom3 = pos - _cigar.lengthSoftClippedLeft();
 			}
 		} else {
 			// Single-end forward
@@ -288,8 +288,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2         = 3
 			// d3':   543210       : d3 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
-				_bases[pos].distFrom3Prime = l_m1_ps - pos;
+				_bases[pos].distFrom5 = pos - _cigar.lengthSoftClippedLeft();
+				_bases[pos].distFrom3 = l_m1_ps - pos;
 			}
 		}
 	}
@@ -414,7 +414,7 @@ std::string TAlignment::qualities() const {
 
 void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 	for (auto &b : _bases) {
-		if (b.distFrom3Prime < trimmingLength3Prime || b.distFrom5Prime < trimmingLength5Prime) {
+		if (b.distFrom3 < trimmingLength3Prime || b.distFrom5 < trimmingLength5Prime) {
 			b.base                          = genometools::Base::N;
 			b.recalQuality = PhredInt::highest();
 		}

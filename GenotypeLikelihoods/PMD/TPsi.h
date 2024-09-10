@@ -58,12 +58,12 @@ class TPsi {
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
 
-		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
+		const auto end      = data.end();
 		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
 		auto &tSum          = _tableSums[end][realType];
 		if (tSum.empty()) return; // wrong pattern
 
-		const auto pos  = std::min<size_t>(tSum.size() - 1, end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime);
+		const auto pos  = std::min<size_t>(tSum.size() - 1, data.dist(end));
 
 		tSum[pos].numDenom.num   += P_b_bbar_I_gdij[From][To] * P_g_I_di;
 		tSum[pos].numDenom.denom += (P_b_bbar_I_gdij[From][To] + P_b_bbar_I_gdij[From][From]) * P_g_I_di;
@@ -77,8 +77,8 @@ class TPsi {
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
 
-		const auto end  = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
-		const auto pos  = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
+		const auto end  = data.end();
+		const auto pos  = data.dist(end);
 		const auto base = data.base;
 
 		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
@@ -107,8 +107,8 @@ public:
 	coretools::Probability prob(const BAM::TSequencedBase &data) const noexcept {
 		using BAM::End;
 		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
-		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
-		const auto pos      = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
+		const auto end      = data.end();
+		const auto pos      = data.dist(end);
 
 		const auto &table = _tables[end][realType];
 		if (pos >= table.size()) return table.back();

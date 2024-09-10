@@ -69,7 +69,7 @@ struct TCovariate_position {
 
 	static constexpr size_t NMax = 1024;
 
-	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5Prime; }
+	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5; }
 
 	static size_t N(const std::vector<size_t>& positions) noexcept {
 		return std::min(NMax, positions.size());

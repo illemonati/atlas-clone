@@ -42,16 +42,20 @@ struct TSequencedBase {
 	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
 
 	uint16_t fragmentLength = 0;
-	uint16_t distFrom5Prime = -1; // zero based!
-	uint16_t distFrom3Prime = -1; // zero based!
+	uint16_t distFrom5      = -1; // zero based!
+	uint16_t distFrom3      = -1; // zero based!
+
 	uint16_t readGroupID    = -1;
 	uint16_t bamID          = -1;
 
 	// set and get flags
 	bool isReverseStrand() const noexcept { return flags.get<0>(); }
 	bool isSecondMate() const noexcept { return flags.get<1>(); }
-	Mate mate() const noexcept {return static_cast<Mate>(flags.get<1>());}
 	bool isAligned() const noexcept { return flags.get<2>(); }
+
+	Mate mate() const noexcept {return static_cast<Mate>(flags.get<1>());}
+	End end() const noexcept {return distFrom5 < distFrom3 ? End::from5 : End::from3;}
+	uint16_t dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 
 	void setReverseStrand(bool status) noexcept  { flags.set<0>(status); }
 	void setSecondMate(bool status) noexcept  { flags.set<1>(status); }
