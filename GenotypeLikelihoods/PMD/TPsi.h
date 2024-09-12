@@ -63,7 +63,7 @@ class TPsi {
 		auto &tSum          = _tableSums[end][realType];
 		if (tSum.empty()) return; // wrong pattern
 
-		const auto pos  = std::min<size_t>(tSum.size() - 1, data.dist(end));
+		const auto pos  = std::min<size_t>(tSum.size() - 1, data.dist(end).pseudo());
 
 		tSum[pos].numDenom.num   += P_b_bbar_I_gdij[From][To] * P_g_I_di;
 		tSum[pos].numDenom.denom += (P_b_bbar_I_gdij[From][To] + P_b_bbar_I_gdij[From][From]) * P_g_I_di;
@@ -78,7 +78,7 @@ class TPsi {
 		constexpr auto To   = _to[From_To];
 
 		const auto end  = data.end();
-		const auto pos  = data.dist(end);
+		const auto pos  = data.dist(end).pseudo();
 		const auto base = data.base;
 
 		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
@@ -108,7 +108,7 @@ public:
 		using BAM::End;
 		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 		const auto end      = data.end();
-		const auto pos      = data.dist(end);
+		const auto pos      = data.dist(end).pseudo();
 
 		const auto &table = _tables[end][realType];
 		if (pos >= table.size()) return table.back();

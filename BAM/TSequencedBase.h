@@ -10,6 +10,8 @@
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Types/TLogInt.h"
+#include "coretools/Types/TPseudoInt.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/BaseContext.h"
@@ -42,16 +44,18 @@ struct TSequencedBase {
 
 	coretools::TStrongBitSet<Flags> properties{0}; // initialized as 0,0,0,0
 
-	uint16_t fragmentLength = 0;
-	uint16_t distFrom5      = 0; // zero based!
-	uint16_t distFrom3      = 0; // zero based!
+	coretools::TLogInt fragmentLength = coretools::TLogInt::max();
+
+	// distances are 0-based
+	coretools::TPseudoInt distFrom5 = coretools::TPseudoInt::max();
+	coretools::TPseudoInt distFrom3 = coretools::TPseudoInt::max();
 
 	uint16_t readGroupID    = -1;
 	uint16_t bamID          = -1;
 
 	constexpr Mate mate() const noexcept {return static_cast<Mate>(get<Flags::SecondMate>());}
 	constexpr End end() const noexcept {return distFrom5 < distFrom3 ? End::from5 : End::from3;}
-	constexpr uint16_t dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
+	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
 
 	template<Flags F>
