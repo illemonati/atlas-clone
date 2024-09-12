@@ -21,7 +21,7 @@
 #include "TReadGroupInfo.h"
 
 
-namespace BAM {class TSequencedBase;}
+namespace BAM {struct TSequencedBase;}
 namespace RecalEstimatorTools {class TRecalDataTable;}
 
 namespace GenotypeLikelihoods::SequencingError {

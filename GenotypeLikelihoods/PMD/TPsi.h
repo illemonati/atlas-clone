@@ -59,7 +59,7 @@ class TPsi {
 		constexpr auto To   = _to[From_To];
 
 		const auto end      = data.end();
-		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
+		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 		auto &tSum          = _tableSums[end][realType];
 		if (tSum.empty()) return; // wrong pattern
 
@@ -81,7 +81,7 @@ class TPsi {
 		const auto pos  = data.dist(end);
 		const auto base = data.base;
 
-		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
+		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 		auto &tSum          = _tableSums[end][realType];
 		if (tSum.size() <= pos) tSum.resize(pos + 1, {{{0,0,0,0}}});
 
@@ -106,7 +106,7 @@ public:
 	template<Type From_To>
 	coretools::Probability prob(const BAM::TSequencedBase &data) const noexcept {
 		using BAM::End;
-		const auto realType = data.isReverseStrand() ? _flip[From_To] : From_To;
+		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 		const auto end      = data.end();
 		const auto pos      = data.dist(end);
 

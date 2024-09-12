@@ -18,6 +18,7 @@ namespace BAM {
 
 enum class End : size_t {min, from5=min, from3, max};
 enum class Mate : size_t {min, first=min, second, max};
+enum class Flags: size_t {min, ReversedStrand = min, SecondMate, Aligned, SoftClipped, max};
 
 inline std::string toString(Mate m) {
 	constexpr coretools::TStrongArray<std::string_view, Mate> mates{{"Mate1", "Mate2"}};
@@ -39,34 +40,24 @@ struct TSequencedBase {
 
 	coretools::PhredInt mappingQuality = coretools::PhredInt::highest();
 
-	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
+	coretools::TStrongBitSet<Flags> properties{0}; // initialized as 0,0,0,0
 
 	uint16_t fragmentLength = 0;
-	uint16_t distFrom5      = -1; // zero based!
-	uint16_t distFrom3      = -1; // zero based!
+	uint16_t distFrom5      = 0; // zero based!
+	uint16_t distFrom3      = 0; // zero based!
 
 	uint16_t readGroupID    = -1;
 	uint16_t bamID          = -1;
 
-	// set and get flags
-	bool isReverseStrand() const noexcept { return flags.get<0>(); }
-	bool isSecondMate() const noexcept { return flags.get<1>(); }
-	bool isAligned() const noexcept { return flags.get<2>(); }
-
-	Mate mate() const noexcept {return static_cast<Mate>(flags.get<1>());}
-	End end() const noexcept {return distFrom5 < distFrom3 ? End::from5 : End::from3;}
-	uint16_t dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
-
-	void setReverseStrand(bool status) noexcept  { flags.set<0>(status); }
-	void setSecondMate(bool status) noexcept  { flags.set<1>(status); }
-	void setAligned(bool status) noexcept  { flags.set<2>(status); }
-
-	bool operator==(genometools::Base b) const noexcept { return base == b; }
-	bool operator!=(genometools::Base b) const noexcept { return base != b; }
-	void operator=(genometools::Base b) noexcept { base = b; }
-	operator bool() const noexcept {return base != genometools::Base::N;}
-
+	constexpr Mate mate() const noexcept {return static_cast<Mate>(get<Flags::SecondMate>());}
+	constexpr End end() const noexcept {return distFrom5 < distFrom3 ? End::from5 : End::from3;}
+	constexpr uint16_t dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
+
+	template<Flags F>
+	constexpr bool get() const noexcept {return properties.get<F>();}
+	template<Flags F>
+	constexpr void set(bool B) noexcept {return properties.set<F>(B);}
 };
 }; // namespace BAM
 

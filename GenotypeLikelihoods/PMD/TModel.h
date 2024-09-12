@@ -9,8 +9,10 @@
 #include "TAlignment.h"
 #include "genometools/Genotypes/Containers.h"
 
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
+namespace BAM {
+class TReadGroups;
+struct TSequencedBase;
+} // namespace BAM
 
 namespace GenotypeLikelihoods::PMD {
 

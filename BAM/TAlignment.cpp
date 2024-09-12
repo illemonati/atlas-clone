@@ -8,6 +8,7 @@
 
 #include "SequencingError/TModels.h"
 #include "TErrorModels.h"
+#include "TSequencedBase.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include "genometools/TFastaReader.h"
@@ -16,6 +17,7 @@
 namespace BAM {
 
 using coretools::PhredInt;
+using coretools::fromChar;
 
 PhredInt makeIllumina(PhredInt value) noexcept {
 	if (value < 35)
@@ -37,7 +39,7 @@ PhredInt makeIllumina(PhredInt value) noexcept {
 }
 
 char makeIllumina(char Quality) noexcept {
-	const auto phr = coretools::fromChar(Quality);
+	const auto phr    = fromChar(Quality);
 	const auto phrIll = makeIllumina(phr);
 	return coretools::toChar(phrIll);
 }
@@ -136,8 +138,8 @@ void TAlignment::_parseBasesQualities() {
 		b.bamID          = _bamID;
 		b.mappingQuality = _mappingQuality;
 		b.fragmentLength = _fragmentLength;
-		b.setSecondMate(_flags.isSecondMate());
-		b.setReverseStrand(_flags.isReverseStrand());
+		b.set<Flags::SecondMate>(_flags.isSecondMate());
+		b.set<Flags::ReversedStrand>(_flags.isReverseStrand());
 		return b;
 	}();
 	assert(common.isReverseStrand() == _flags.isReverseStrand());
@@ -158,9 +160,10 @@ void TAlignment::_parseBasesQualities() {
 		case ('X'):
 			// soft-clipped bases on left are before bamAlignment.Position
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d, ++p) {
-				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality = coretools::fromChar(_qualities[d]);
-				_bases[d].setAligned(true);
+				_bases[d].base            = char2base(_sequence[d]);
+				_bases[d].originalQuality = fromChar(_qualities[d]);
+				_bases[d].set<Flags::Aligned>(true);
+				_bases[d].set<Flags::SoftClipped>(false);
 				_alignedPosition.push_back(p);
 			}
 			_lastAlignedPos = d - 1; // Note: for loop ends with d one too large
@@ -172,9 +175,10 @@ void TAlignment::_parseBasesQualities() {
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
 				// soft-clipped bases on 5' are before bamAlignment.Position
 				// need to initialize quality for quality filter and bases for context
-				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality = coretools::fromChar(_qualities[d]);
-				_bases[d].setAligned(false);
+				_bases[d].base            = char2base(_sequence[d]);
+				_bases[d].originalQuality = fromChar(_qualities[d]);
+				_bases[d].set<Flags::Aligned>(false);
+				_bases[d].set<Flags::SoftClipped>(true);
 				_alignedPosition.push_back(-1);
 			}
 			break;
@@ -182,9 +186,10 @@ void TAlignment::_parseBasesQualities() {
 		// for 'I' - insertion: copy bases, but put aligned  = false
 		case ('I'):
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
-				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality = coretools::fromChar(_qualities[d]);
-				_bases[d].setAligned(false);
+				_bases[d].base            = char2base(_sequence[d]);
+				_bases[d].originalQuality = fromChar(_qualities[d]);
+				_bases[d].set<Flags::Aligned>(false);
+				_bases[d].set<Flags::SoftClipped>(false);
 				_alignedPosition.push_back(-1);
 			}
 			break;

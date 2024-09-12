@@ -15,9 +15,11 @@
 #include "genometools/Genotypes/Containers.h"
 #include "TReadGroupInfo.h"
 
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
-namespace BAM { class TAlignment; }
+namespace BAM {
+class TReadGroups;
+struct TSequencedBase;
+class TAlignment;
+} // namespace BAM
 
 namespace GenotypeLikelihoods{
 class TSite;

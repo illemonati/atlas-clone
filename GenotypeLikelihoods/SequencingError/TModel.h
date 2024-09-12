@@ -14,7 +14,7 @@
 #include "TRho.h"
 
 namespace BAM {
-class TSequencedBase;
+struct TSequencedBase;
 class TAlignment;
 }
 

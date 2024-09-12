@@ -79,7 +79,7 @@ private:
 		// p is at first position of read in window
 		auto it = thesePos.begin();
 		for (; p < alignment.parsedLength(); ++p) {
-			if (alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::Base::N) {
+			if (alignment.isAlignedAtInternalPos(p) && alignment[p].base != genometools::Base::N) {
 				size_t internalPos = alignment.positionInRef(p) - from();
 
 				// if read extends past window length
