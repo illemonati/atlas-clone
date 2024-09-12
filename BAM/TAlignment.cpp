@@ -10,6 +10,8 @@
 #include "TErrorModels.h"
 #include "TSequencedBase.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/TLogInt.h"
+#include "coretools/Types/TPseudoInt.h"
 #include "coretools/Types/probability.h"
 #include "genometools/TFastaReader.h"
 #include <cstdint>
@@ -127,6 +129,7 @@ void TAlignment::_setCigar(const TCigar &Cigar){
 
 void TAlignment::_parseBasesQualities() {
 	using genometools::char2base;
+	using coretools::TLogInt;
 	if (_sequence.size() != _qualities.size()) {
 		DEVERROR("Sequence and Qualities are of different legth!");
 	}
@@ -137,12 +140,11 @@ void TAlignment::_parseBasesQualities() {
 		b.readGroupID    = _readGroupID;
 		b.bamID          = _bamID;
 		b.mappingQuality = _mappingQuality;
-		b.fragmentLength = _fragmentLength;
+		b.fragmentLength = TLogInt::fromLinear(_fragmentLength);
 		b.set<Flags::SecondMate>(_flags.isSecondMate());
 		b.set<Flags::ReversedStrand>(_flags.isReverseStrand());
 		return b;
 	}();
-	assert(common.isReverseStrand() == _flags.isReverseStrand());
 	_bases.assign(_cigar.lengthRead(), common);
 	//_alignedPosition.resize(_cigar.lengthRead());
 	_alignedPosition.clear();
@@ -231,6 +233,7 @@ void TAlignment::_setQualitiesNoRecal() {
 };
 
 void TAlignment::_setDistancesFromEnds() {
+	using coretools::TPseudoInt;
 	// Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	const int length  = _cigar.lengthSequenced();
 	const int l_m1_ps = length - 1 + _cigar.lengthSoftClippedLeft();
@@ -249,8 +252,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d3':   456789       : d3 = pos + fragmentLenght - lengthSequenced  - softClippedLeft = 5 + 10 - 6 - 2  = 7
 			const int f_ml_ms = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5 = l_m1_ps - pos;
-				_bases[pos].distFrom3 = pos + f_ml_ms;
+				_bases[pos].distFrom5 = TPseudoInt::fromLinear(l_m1_ps - pos);
+				_bases[pos].distFrom3 = TPseudoInt::fromLinear(pos + f_ml_ms);
 			}
 		} else {
 			// Paired-end forward
@@ -264,8 +267,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d3':   987654       : d3 = fragmentLength - 1 - pos + softClippedLeft  = 10 - 1 - 5 + 2 = 6
 			const int f_m1_ps = _fragmentLength - 1 + _cigar.lengthSoftClippedLeft();
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5 = pos - _cigar.lengthSoftClippedLeft();
-				_bases[pos].distFrom3 = f_m1_ps - pos;
+				_bases[pos].distFrom5 = TPseudoInt::fromLinear(pos - _cigar.lengthSoftClippedLeft());
+				_bases[pos].distFrom3 = TPseudoInt::fromLinear(f_m1_ps - pos);
 			}
 		}
 	} else {
@@ -280,8 +283,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			// d3':   012345       : d3 = pos - softClippedLeft                       = 5 - 2         = 3
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5 = l_m1_ps - pos;
-				_bases[pos].distFrom3 = pos - _cigar.lengthSoftClippedLeft();
+				_bases[pos].distFrom5 = TPseudoInt::fromLinear(l_m1_ps - pos);
+				_bases[pos].distFrom3 = TPseudoInt::fromLinear(pos - _cigar.lengthSoftClippedLeft());
 			}
 		} else {
 			// Single-end forward
@@ -293,8 +296,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2         = 3
 			// d3':   543210       : d3 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
-				_bases[pos].distFrom5 = pos - _cigar.lengthSoftClippedLeft();
-				_bases[pos].distFrom3 = l_m1_ps - pos;
+				_bases[pos].distFrom5 = TPseudoInt::fromLinear(pos - _cigar.lengthSoftClippedLeft());
+				_bases[pos].distFrom3 = TPseudoInt::fromLinear(l_m1_ps - pos);
 			}
 		}
 	}
@@ -417,9 +420,9 @@ std::string TAlignment::qualities() const {
 // filters and other functions to modify data
 //--------------------------------------------
 
-void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
+void TAlignment::trimRead(uint64_t trimmingLength3Prime, uint64_t trimmingLength5Prime) {
 	for (auto &b : _bases) {
-		if (b.distFrom3 < trimmingLength3Prime || b.distFrom5 < trimmingLength5Prime) {
+		if (b.distFrom3.linear() < trimmingLength3Prime || b.distFrom5.linear() < trimmingLength5Prime) {
 			b.base                          = genometools::Base::N;
 			b.recalQuality = PhredInt::highest();
 		}
