@@ -23,10 +23,10 @@ using TRecalDataTableOneReadGroup = coretools::TStrongArray<TRecalDataTable, BAM
 
 class TRecalDataTables{
 private:
-	const BAM::TReadGroupMap* _readGroupMap = nullptr;
+	const BAM::TReadGroupMap *_readGroupMap = nullptr;
 	std::vector<TRecalDataTableOneReadGroup> _tables; //tables[readGroup][first/second mate]
-	size_t _size = 0;
-	size_t _N_g1 = 0;
+	size_t _size         = 0;
+	size_t _N_g1         = 0;
 
 public:
 	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)

@@ -6,6 +6,7 @@
 #include "SequencingError/TRecalDataTable.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/TPseudoInt.h"
 
 namespace GenotypeLikelihoods::SequencingError {
 
@@ -82,7 +83,15 @@ public:
 	void addInfo(BAM::RGInfo::TInfo &info) const override {
 		BAM::RGInfo::TInfo ar = nlohmann::json::array();
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i])) ar += {i, _betas[i]};
+			if (!std::isnan(_betas[i])) {
+				if constexpr (std::is_same_v<Covariate, TCovariate_position>) {
+					ar += {coretools::TPseudoInt::fromPseudo(i).linear(), _betas[i]};
+				} else if constexpr (std::is_same_v<Covariate, TCovariate_fragmentLength>) {
+					ar += {coretools::TLogInt::fromLog(i).linear(), _betas[i]};
+				} else {
+					ar += {i, _betas[i]};
+				}
+			}
 		}
 		info[Covariate::name] = {{name, ar}};
 	}

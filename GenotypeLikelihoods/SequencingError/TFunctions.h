@@ -28,8 +28,7 @@ namespace GenotypeLikelihoods::SequencingError {
 
 class TFunctions {
 	TIntercept _intercept;
-	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates{
-		{nullptr, nullptr, nullptr, nullptr, nullptr}};
+	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates;
 	std::vector<double> _oldBetas;
 
 public:
