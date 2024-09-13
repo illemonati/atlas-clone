@@ -34,7 +34,7 @@ InfoType argument2InfoType(std::string_view Argument) {
 //------------------------------------------------
 // TReadGroupInfo
 //------------------------------------------------
-void TReadGroupInfo::_setAllReadGroups(InfoType Info, std::string_view Val) {
+void TReadGroupInfo::_setAllReadGroups(InfoType Info, TInfo Val) {
 	for (auto &i : _info) { i[Info] = Val; }
 }
 
@@ -47,8 +47,8 @@ void TReadGroupInfo::_setDefault(InfoType Info) {
 
 void TReadGroupInfo::_setFromCommandLine(InfoType Info) {
 	// read from command line
-	const std::string &key = infos[Info].argument;
-	const auto arg         = parameters().get(key, "");
+	const auto &key = infos[Info].argument;
+	const auto arg  = parameters().get(key, "");
 
 	if (arg.empty()) {
 		logfile().write("using default for all read groups. (parameter '", key, "')");
@@ -153,33 +153,36 @@ TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups &ReadGroups, std::string_v
 }
 
 // or: read info and fill TReadGroups (used for simulations)
-BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileName) {
+BAM::TReadGroups TReadGroupInfo::createReadGroups() {
+	if (!_info.empty()) { DEVERROR("Read group info already read!"); }
+
+	const auto numRG = parameters().get<coretools::StrictlyPositiveInt>(numRGArgument, 1);
+	if (numRG == 1) {
+		logfile().list("Initializing one read group from arguments. (parameter '", numRGArgument, "')");
+	} else {
+		logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", numRGArgument,
+					   "').");
+	}
+
+	// create identical read groups from command line
+	BAM::TReadGroups readGroups;
+	for (int i = 0; i < numRG; ++i) { readGroups.add("SimReadGroup" + coretools::str::toString(i + 1)); }
+
+	_createReadGroupInfoEntries(readGroups);
+	return readGroups;
+}
+
+BAM::TReadGroups TReadGroupInfo::readReadGroups(std::string_view FileName) {
 	if (!_info.empty()) { DEVERROR("Read group info already read!"); }
 
 	// create empty read groups
+	_readFile(FileName);
+
+	// create RGs from RG info file
 	BAM::TReadGroups readGroups;
+	for (auto it = _json.begin(); it != _json.end(); ++it) { readGroups.add(it.key()); }
 
-	// Info is provided as a) a RG info file OR b) as the number of read groups and default arguments
-	if (!RgInfoFileName.empty()) {
-		_readFile(RgInfoFileName);
-
-		// create RGs from RG info file
-		for (auto it = _json.begin(); it != _json.end(); ++it) { readGroups.add(it.key()); }
-	} else {
-		// create identical read groups from command line
-		const auto numRG = parameters().get<coretools::StrictlyPositiveInt>(numRGArgument, 1);
-		if (numRG == 1) {
-			logfile().list("Initializing one read group from arguments. (parameter '", numRGArgument, "')");
-		} else {
-			logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", numRGArgument,
-			               "').");
-		}
-
-		// create read groups
-		for (int i = 0; i < numRG; ++i) { readGroups.add("SimReadGroup" + coretools::str::toString(i + 1)); }
-	}
 	_createReadGroupInfoEntries(readGroups);
-
 	return readGroups;
 }
 
@@ -257,7 +260,7 @@ void TReadGroupInfoTest::run() {
 	std::string filename = parameters().get("json");
 
 	TReadGroupInfo r;
-	r.createReadGroups(filename);
+	r.createReadGroups();
 
 	r[0][InfoType::cycles] = "200,200";
 	r.write("new.json");

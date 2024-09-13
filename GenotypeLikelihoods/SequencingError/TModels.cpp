@@ -54,9 +54,10 @@ void TModels::initialize(size_t NReadGroups, std::string_view RecalString, const
 	_pool(rgMap);
 }
 
-void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
+void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 	std::vector<coretools::TStrongArray<int, Mate>> iis(RgInfo.size(), {{-1, -1}});
+	bool reFormat = false;
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		const auto &Info = RgInfo[rg];
 
@@ -68,6 +69,7 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 				if (info.empty()) {
 					iis[rg].front() = -1;
 				} else if (info.is_string()) {
+					reFormat = true;
 					const auto sinfo = info.get<std::string_view>();
 					if (sinfo.empty() || sinfo == "-" || sinfo == "default") {
 						iis[rg].front() = -1;
@@ -85,6 +87,7 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 					if (info.empty()) {
 						iis[rg].back() = -1;
 					} else if (info.is_string()) {
+						reFormat = true;
 						const auto sinfo = info.get<std::string_view>();
 						if (sinfo.empty() || sinfo == "-" || sinfo == "default") {
 							iis[rg].back() = -1;
@@ -105,6 +108,7 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 				if (json.empty()) {
 					iis[rg].front() = -1;
 				} else if (json.is_string()) {
+					reFormat = true;
 					const auto sinfo = json.get<std::string_view>();
 					if (sinfo.empty() || sinfo == "-" || sinfo == "default") {
 						iis[rg].front() = -1;
@@ -130,6 +134,7 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 			else _pModels[rg][m] = &_withRecal[iis[rg][m]];
 		}
 	}
+	if (reFormat) addToRGInfo(RgInfo);
 }
 
 void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {

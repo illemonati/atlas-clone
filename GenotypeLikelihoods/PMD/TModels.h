@@ -28,7 +28,7 @@ private:
 
 public:
 	void initialize(size_t NReadGroups, const BAM::TReadGroupMap& rgMap);
-	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
+	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 
 	void reset(size_t rgID) noexcept {
 		_pModels[rgID] = &_noPMD;
