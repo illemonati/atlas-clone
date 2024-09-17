@@ -145,7 +145,6 @@ void TAlignment::_parseBasesQualities() {
 		b.set<Flags::ReversedStrand>(_flags.isReverseStrand());
 		return b;
 	}();
-	assert(common.isReverseStrand() == _flags.isReverseStrand());
 	_bases.assign(_cigar.lengthRead(), common);
 	//_alignedPosition.resize(_cigar.lengthRead());
 	_alignedPosition.clear();

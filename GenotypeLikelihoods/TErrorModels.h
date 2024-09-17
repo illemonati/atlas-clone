@@ -30,7 +30,7 @@ private:
 	SequencingError::TModels _recal;
 
 public:
-	TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo);
+	TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo);
 
 	const SequencingError::TModels& sequencingErrorModels() const { return _recal; };
 	SequencingError::TModels& sequencingErrorModels() { return _recal; };

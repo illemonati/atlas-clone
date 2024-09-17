@@ -18,7 +18,7 @@ using coretools::instances::logfile;
 using genometools::TBaseLikelihoods;
 using genometools::TGenotypeLikelihoods;
 
-TErrorModels::TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
+TErrorModels::TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo) {
 		_pmd.initialize(RGInfo);
 		_recal.initialize(RGInfo);
 		logfile().startIndent("Using the following error Models:");

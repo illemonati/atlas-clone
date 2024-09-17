@@ -14,15 +14,17 @@ void TModels::initialize(size_t NReadGroups, const BAM::TReadGroupMap &rgMap) {
 	_pool(rgMap);
 }
 
-void TModels::initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo) {
+void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RgInfo) {
 	using BAM::RGInfo::InfoType;
 	std::vector<int> iis(RgInfo.size(), -1);
+	bool reFormat = false;
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		const auto &Info = RgInfo[rg];
 		if (Info.has(InfoType::pmd)) {
 			const auto &json = Info[InfoType::pmd];
 			if (json.empty()) continue;
 			if (json.is_string()) {
+				reFormat = true;
 				const auto sinfo = json.get<std::string_view>();
 				if (sinfo.empty() || sinfo == "-" || sinfo == "default") continue;
 				_withPMD.emplace_back(sinfo);
@@ -38,6 +40,7 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo) {
 		if (iis[rg] == -1) _pModels[rg] = &_noPMD;
 		else _pModels[rg] = &_withPMD[iis[rg]];
 	}
+	if (reFormat) addToRGInfo(RgInfo);
 }
 
 void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {

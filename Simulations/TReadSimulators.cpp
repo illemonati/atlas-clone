@@ -68,10 +68,12 @@ void TReadSimulators::_determineMaxFragmentLength(){
 	}
 }
 
-TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
+TReadSimulators::TReadSimulators(std::string_view FileName, bool read){
 	// Read sequencing parameters from RG Info / Command line
 	TReadGroupInfo RGinfo;
-	_readGroups = RGinfo.createReadGroups(RgInfoFileName);
+	if (read) _readGroups = RGinfo.readReadGroups(FileName);
+	else _readGroups = RGinfo.createReadGroups();
+
 	using BAM::RGInfo::InfoType;
 	logfile().addIndent();
 	RGinfo.parse(InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::pmd, InfoType::recal, InfoType::RGFrequency, InfoType::duplicationRate);
@@ -110,6 +112,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	//prepare simulations
 	_determineMaxFragmentLength();
+	RGinfo.write(FileName);
 }
 
 TReadSimulators::TSimStat TReadSimulators::simulate(const genometools::TGenomePosition &Position, const std::vector<Base> &Haplotype,
