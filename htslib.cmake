@@ -17,7 +17,7 @@ find_program(AUTORECONF NAMES autoreconf)
 include(ExternalProject)
 ExternalProject_Add(htslib
   GIT_REPOSITORY     "https://github.com/samtools/htslib.git"
-  GIT_TAG            "master"
+  GIT_TAG            "1.20"
   UPDATE_DISCONNECTED true
   CONFIGURE_HANDLED_BY_BUILD true
   PREFIX             ${INSTALL_DIR}
