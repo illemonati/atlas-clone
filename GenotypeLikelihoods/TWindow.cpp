@@ -81,7 +81,7 @@ void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &s
 	// position in window where first one = 0
 	// p is at first position of read in window
 	for (size_t p = _findFirstPositionWithinWindow(alignment); p < alignment.parsedLength(); ++p) {
-		if (alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::Base::N) {
+		if (alignment.isAlignedAtInternalPos(p) && alignment[p].base != genometools::Base::N) {
 			size_t internalPos = alignment.positionInRef(p) - from();
 
 			// if read extends past window length

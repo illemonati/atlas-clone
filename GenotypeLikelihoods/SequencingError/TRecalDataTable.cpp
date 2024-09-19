@@ -21,9 +21,7 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	impl::addUsed(_tables[Covariates::Context], coretools::index(base.previousBase));
 	impl::addUsed(_tables[Covariates::MappingQuality], base.mappingQuality.get());
 	impl::addUsed(_tables[Covariates::Quality], base.originalQuality.get());
-
-	// remain reasonable
-	impl::addUsed(_tables[Covariates::FragmentLength], std::min<size_t>(SequencingError::TCovariate_fragmentLength::NMax - 1,base.fragmentLength));
-	impl::addUsed(_tables[Covariates::Position], std::min<size_t>(SequencingError::TCovariate_position::NMax - 1, base.distFrom5Prime));
+	impl::addUsed(_tables[Covariates::Position], base.distFrom5.pseudo());
+	impl::addUsed(_tables[Covariates::FragmentLength], base.fragmentLength.log());
 }
 }

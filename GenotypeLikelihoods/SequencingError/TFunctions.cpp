@@ -5,11 +5,20 @@
 #include "SequencingError/TNoFunction.h"
 #include "SequencingError/TPolynomial.h"
 #include "SequencingError/TProbit.h"
+#include "coretools/Strings/fromString.h"
+#include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/stringProperties.h"
+#include "coretools/Types/TPseudoInt.h"
 
 namespace GenotypeLikelihoods::SequencingError {
-using namespace coretools::str;
+using coretools::str::stringStartsWith;
+using coretools::str::readBefore;
+using coretools::str::readAfter;
+using coretools::str::strip;
+using coretools::str::TSplitter;
+using coretools::str::fromString;
+
 namespace impl {
 
 auto parseFunctions(std::string_view Defs) {
@@ -87,21 +96,27 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 	if (info.contains(TEmpiric<Covariate>::name)) {
 		auto fn           = new TEmpiric<Covariate>(index);
 		const auto &betas = info[TEmpiric<Covariate>::name];
-		size_t size       = 0;
-		double back       = 0.;
 		for (const std::vector<double> &b : betas) {
-			const size_t i = b.front();
+			size_t i;
+			if constexpr (std::is_same_v<Covariate, TCovariate_position>) {
+				i = coretools::TPseudoInt::fromLinear(b.front()).pseudo();
+			} else if constexpr (std::is_same_v<Covariate, TCovariate_fragmentLength>) {
+				i = coretools::TLogInt::fromLinear(b.front()).log();
+			} else {
+				i = b.front();
+			}
 			const auto v   = b.back();
-			if (size == 0) { // fill first i positions with v
-				for (size_t j = 0; j <= i; ++j) { fn->push_back(v); }
-			} else {                              // interpolate
-				const auto di   = i - (size - 1); // 1
-				const auto dv   = v - back;       // v
+
+			if (fn->numParameters() == 0) {
+				for (size_t j = 0; j <= i; ++j) fn->push_back(v);
+			}
+			else if (i >= fn->numParameters()) {
+				const auto back = *(fn->end() - 1);
+				const auto di   = i - (fn->numParameters() - 1);
+				const auto dv   = v - back;
 				const auto dvdi = dv / di;
 				for (size_t j = 1; j <= di; ++j) fn->push_back(back + j * dvdi);
 			}
-			back = v;
-			size = i + 1;
 		}
 		return fn;
 	}
@@ -122,8 +137,6 @@ inline auto parseFunction(std::string_view str) {
 }
 
 template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t index) {
-	using namespace coretools::str;
-
 	if (Function.empty()) return new TNoFunction;
 
 	auto [type, Spl] = parseFunction(Function);

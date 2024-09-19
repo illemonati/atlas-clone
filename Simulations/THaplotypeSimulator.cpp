@@ -38,7 +38,6 @@ std::string toString(const TBaseProbabilities &probs) {
 }
 
 Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulProbs) {
-	using namespace genometools;
 	using coretools::index;
 	constexpr auto iMax = index(Base::max);
 	const auto iBase    = index(base);

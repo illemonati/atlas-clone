@@ -25,16 +25,17 @@ echo "SimReadGroup2 SimReadGroup1" >> recal.pool
 echo "readGroup poolWith" > pmd.pool
 echo "SimReadGroup3 SimReadGroup1" >> pmd.pool
 
-recalModel="intercept;quality;position:polynomial1;fragmentLength:polynomial2;mappingQuality;context"
 out="estimateErrors"
+$atlas --task estimateErrors --minDeltaLL $delta \
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --poolRecal "all" --poolPMD "all" \
+	   --fixedSeed 81 --out $out --logFile $out.out 2> $out.eout
+
+recalModel="intercept;quality;position:polynomial1;fragmentLength:polynomial2;mappingQuality;context"
+out="specificModel"
 $atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --regions bed1.bed,bed2.bed --ploidy 2,1 --window 45672 --writeRestart \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
-	   --fixedSeed 81 --out $out --logFile $out.out 2> $out.eout
-
-out="onlyIntercept"
-$atlas --task estimateErrors --minDeltaLL $delta --recalModel "intercept;" \
-	   --bam simulate.bam --fasta simulate.fasta \
-	   --poolRecal "all" --poolPMD "all" \
 	   --fixedSeed 82 --out $out --logFile $out.out 2> $out.eout
+

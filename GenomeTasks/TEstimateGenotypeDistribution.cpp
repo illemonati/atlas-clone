@@ -180,7 +180,7 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 }
 
 void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
-	using GenotypeLikelihoods::PMD::End;
+	using BAM::End;
 	// full P
 
 	logfile().list("Using full data.");
@@ -233,7 +233,7 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 }
 
 void TEstimateGenotypeDistribution::run() {
-	using GenotypeLikelihoods::PMD::End;
+	using BAM::End;
 	_traverseBAMWindows();
 	if (_genomeWide) {
 		_openFile();

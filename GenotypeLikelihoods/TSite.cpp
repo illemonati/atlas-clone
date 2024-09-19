@@ -7,6 +7,7 @@
 
 #include "TSite.h"
 
+#include "TSequencedBase.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Containers.h"
@@ -111,7 +112,7 @@ coretools::TStrongArray<size_t, BAM::Mate> TSite::countMates() const {
 
 std::array<int, 2> TSite::countFwdRev() const {
 	std::array<int, 2> frCounts{};
-	for (const auto &b : _bases) { ++frCounts[b.isReverseStrand()]; }
+	for (const auto &b : _bases) { ++frCounts[b.get<BAM::Flags::ReversedStrand>()]; }
 	return frCounts;
 }
 

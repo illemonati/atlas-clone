@@ -17,8 +17,10 @@
 #include "TAlignment.h"
 #include "TReadGroupInfo.h"
 
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
+namespace BAM {
+class TReadGroups;
+struct TSequencedBase;
+} // namespace BAM
 
 namespace GenotypeLikelihoods::SequencingError  {
 
@@ -36,7 +38,7 @@ private:
 
 public:
 	void initialize(size_t NReadGroups, std::string_view RecalString, const BAM::TReadGroupMap& rgMap);
-	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
+	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 
 	void reset(size_t rgID, BAM::Mate mate) noexcept { _pModels[rgID][mate] = &_noRecal; }
 

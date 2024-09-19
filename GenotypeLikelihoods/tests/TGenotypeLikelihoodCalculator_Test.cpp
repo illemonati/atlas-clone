@@ -7,9 +7,10 @@
 #include "TSite.h"
 #include "coretools/Types/probability.h"
 
-using namespace GenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
+using GenotypeLikelihoods::TSite;
+using GenotypeLikelihoods::TErrorModels;
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;

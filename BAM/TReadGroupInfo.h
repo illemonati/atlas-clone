@@ -39,9 +39,10 @@ enum class InfoType : size_t {min=0, RGName=0, RGFrequency, seqType, cycles, fra
 struct TInfoArgument {
 	std::string argument;
 	std::string description;
-	std::string defaults;
+	TInfo defaults;
+	
 	TInfoArgument() = default;
-	TInfoArgument(std::string_view Argument, std::string_view Description, std::string_view Defaults)
+	TInfoArgument(std::string_view Argument, std::string_view Description, TInfo Defaults)
 		: argument(Argument), description(Description), defaults(Defaults) {}
 };
 
@@ -123,7 +124,7 @@ private:
 	std::string _filename;
 	coretools::TStrongBitSet<InfoType> _parsed;
 
-	void _setAllReadGroups(InfoType Info, std::string_view Val);
+	void _setAllReadGroups(InfoType Info, TInfo Val);
 	void _setDefault(InfoType Info);
 	void _setFromCommandLine(InfoType Info);
 	void _setFromRGInfoFile(InfoType Info);
@@ -141,7 +142,8 @@ public:
 	TReadGroupInfo(const BAM::TReadGroups & ReadGroups, std::string_view Filename);
 
 	// or: read info and fill TReadGroups (used for simulations)
-	BAM::TReadGroups createReadGroups(std::string_view RgInfoFileName = "");
+	BAM::TReadGroups createReadGroups();
+	BAM::TReadGroups readReadGroups(std::string_view FileName);
 
 	// getters
 	auto begin() const noexcept {

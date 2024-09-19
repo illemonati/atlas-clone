@@ -21,15 +21,14 @@
 #include "TReadGroupInfo.h"
 
 
-namespace BAM {class TSequencedBase;}
+namespace BAM {struct TSequencedBase;}
 namespace RecalEstimatorTools {class TRecalDataTable;}
 
 namespace GenotypeLikelihoods::SequencingError {
 
 class TFunctions {
 	TIntercept _intercept;
-	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates{
-		{nullptr, nullptr, nullptr, nullptr, nullptr}};
+	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates;
 	std::vector<double> _oldBetas;
 
 public:

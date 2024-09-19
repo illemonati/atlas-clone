@@ -26,7 +26,7 @@ THWHetProb::THWHetProb(){
 };
 
 THWHetProb::THWHetProb(size_t numInd_N, size_t alleleFreq_n_A){
-	using namespace coretools::TFactorial;
+	using coretools::TFactorial::factorialLog;
 	if(alleleFreq_n_A > 0 && alleleFreq_n_A < 2*numInd_N){
 		//max num het
 		_maxNumHetPlusOne = std::min(alleleFreq_n_A, 2*numInd_N - alleleFreq_n_A) + 1;
@@ -213,7 +213,6 @@ void THWGenotypes::clear(){
 };
 
 void THWGenotypes::add(const genometools::BiallelicGenotype & genotype){
-	using namespace genometools;
 	//ToDo: extend test to haploid
 	if(!isMissing(genotype) && isDiploid(genotype)){
 		++_genoCounts[coretools::index(genotype)];

@@ -143,16 +143,19 @@ TBaseLikelihoods TWithPMD::P_dij(const TSequencedBase &data, const TBaseLikeliho
 void TWithPMD::simulate(BAM::TAlignment &aln) const {
 	using coretools::instances::randomGenerator;
 	using genometools::Base;
-	for (auto &d : aln) {
-			auto &base = d.base;
 
-			if (base == Base::C) {
-				const auto pCT = _psi.prob<Type::CT>(d);
-				if (randomGenerator().getRand() < pCT) base = Base::T;
-			} else if (base == Base::G) {
-				const auto pGA = _psi.prob<Type::GA>(d);
-				if (randomGenerator().getRand() < pGA) base = Base::A;
-			}
+	for (auto &d : aln) {
+		if (d.get<BAM::Flags::SoftClipped>()) continue;
+
+		auto &base = d.base;
+
+		if (base == Base::C) {
+			const auto pCT = _psi.prob<Type::CT>(d);
+			if (randomGenerator().getRand() < pCT) base = Base::T;
+		} else if (base == Base::G) {
+			const auto pGA = _psi.prob<Type::GA>(d);
+			if (randomGenerator().getRand() < pGA) base = Base::A;
+		}
 	}
 }
 

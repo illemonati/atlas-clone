@@ -10,9 +10,7 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-using namespace coretools::str;
-
-	TEpsilon::TEpsilon(std::string_view Def) : _functions(Def) {
+TEpsilon::TEpsilon(std::string_view Def) : _functions(Def) {
 	const size_t numParameters = _functions.numParameters();
 
 	// prepare Newton-Raphson variables

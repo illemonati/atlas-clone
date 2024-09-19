@@ -176,7 +176,7 @@ public:
 			}
 		}
 	}
-	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
+	void trimRead(uint64_t trimmingLength3Prime, uint64_t trimmingLength5Prime);
 	void trimSoftClips();
 	void trimSoftClips(size_t maxNumberOfSoftClippedBases);
 	void binQualityScoresIllumina();

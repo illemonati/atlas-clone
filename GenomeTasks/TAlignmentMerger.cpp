@@ -11,6 +11,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/fillContainer.h"
+#include "coretools/Strings/fromString.h"
 #include "coretools/Strings/stringProperties.h"
 #include "coretools/Types/probability.h"
 
@@ -23,7 +24,10 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using coretools::PhredInt;
-using namespace coretools::str;
+using coretools::str::fillContainerFromString;
+using coretools::str::stringContainsOnlyNumbers;
+using coretools::str::fromString;
+using coretools::str::toString;
 
 
 namespace impl{
