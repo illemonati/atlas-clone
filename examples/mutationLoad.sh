@@ -6,7 +6,7 @@
 rm simulate.bam.bai # will automatically recreate it
 
 # prepare alleles file
-zcat simulate_trueGenotypes.vcf.gz | awk 'BEGIN{print "Chr", "Pos", "Allele1"}$1!~/#/{print $1, $2, $4}' > alleles.txt
+gunzip -c simulate_trueGenotypes.vcf.gz | awk 'BEGIN{print "Chr", "Pos", "Allele1"}$1!~/#/{print $1, $2, $4}' > alleles.txt
 
 out="mutationLoad"
 $atlas --task mutationLoad --bam simulate.bam \
