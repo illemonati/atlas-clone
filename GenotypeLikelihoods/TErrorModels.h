@@ -15,9 +15,11 @@
 #include "genometools/Genotypes/Containers.h"
 #include "TReadGroupInfo.h"
 
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
-namespace BAM { class TAlignment; }
+namespace BAM {
+class TReadGroups;
+struct TSequencedBase;
+class TAlignment;
+} // namespace BAM
 
 namespace GenotypeLikelihoods{
 class TSite;
@@ -28,7 +30,7 @@ private:
 	SequencingError::TModels _recal;
 
 public:
-	TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo);
+	TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo);
 
 	const SequencingError::TModels& sequencingErrorModels() const { return _recal; };
 	SequencingError::TModels& sequencingErrorModels() { return _recal; };

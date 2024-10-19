@@ -3,6 +3,8 @@
 //
 
 #include "TInbreedingEstimator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "stattools/MCMC/TMCMC.h"
 
 
@@ -12,7 +14,8 @@
 
 namespace PopulationTools {
 
-using namespace coretools::instances;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 using coretools::P;
 
 //------------------------------------------

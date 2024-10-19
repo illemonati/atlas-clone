@@ -4,16 +4,22 @@
 
 #include "TVcfDiagnostics.h"
 #include "coretools/Files/TInputFile.h"
+#include "coretools/Files/TInputRcpp.h"
 #include "coretools/Files/gzstream.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Strings/toString.h"
+#include "genometools/Genotypes/BiallelicGenotype.h"
 #include "gtest/gtest.h"
 
-using namespace testing;
-using namespace coretools::instances;
-using namespace coretools::str;
-using namespace coretools;
-using namespace genometools;
+using coretools::instances::parameters;
+using coretools::TInputFile;
+using coretools::FileType;
+using coretools::str::toString;
 
-class TVCFDiagnosticsTest : public Test {
+using genometools::BiallelicGenotype;
+
+
+class TVCFDiagnosticsTest : public testing::Test {
 protected:
 	std::vector<std::string> sampleNames = {"Indiv1", "Indiv2", "Indiv3", "Indiv4", "Indiv5"};
 

@@ -5,15 +5,18 @@
  *      Author: Raphael
  */
 
+#include "TAlignment.h"
 #include "TAlignmentMerger.h"
 #include "coretools/Types/probability.h"
 #include "gtest/gtest.h"
 
-using namespace GenomeTasks;
+using GenomeTasks::AlignmentMerger::TAlignmentMerger_firstMate;
+using GenomeTasks::AlignmentMerger::TAlignmentMerger_secondMate;
+using GenomeTasks::AlignmentMerger::TAlignmentMerger_middle;
+using GenomeTasks::AlignmentMerger::TAlignmentMerger_highestQuality;
 
-using namespace AlignmentMerger;
-
-using namespace BAM;
+using BAM::TAlignment;
+using BAM::TCigar;
 
 using coretools::PhredInt;
 using coretools::P;

@@ -9,8 +9,10 @@
 #include "TAlignment.h"
 #include "genometools/Genotypes/Containers.h"
 
-namespace BAM { class TReadGroups; }
-namespace BAM { class TSequencedBase; }
+namespace BAM {
+class TReadGroups;
+struct TSequencedBase;
+} // namespace BAM
 
 namespace GenotypeLikelihoods::PMD {
 
@@ -42,7 +44,7 @@ struct TNoPMD final : public TModel {
 	void simulate(BAM::TAlignment &) const override{};
 	TPsi *psi() noexcept override {return nullptr;}
 	bool hasPMD() const noexcept override {return false;}
-	BAM::RGInfo::TInfo info() const override {return {};}
+	BAM::RGInfo::TInfo info() const override {return {"-"};}
 };
 
 class TWithPMD final: public TModel {

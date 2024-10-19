@@ -6,12 +6,10 @@
 #include "gtest/gtest.h"
 
 
-using namespace testing;
-using namespace genometools;
-using namespace PopulationTools;
 using coretools::logP;
+using PopulationTools::TSiteAlleleFrequencyLikelihoods;
 
-class TSiteAlleleFrequencyLikelihoods_Test : public Test {
+class TSiteAlleleFrequencyLikelihoods_Test : public testing::Test {
 public:
     coretools::TRandomGenerator randomGenerator;
     static constexpr size_t N = 5;

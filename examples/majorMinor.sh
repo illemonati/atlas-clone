@@ -38,7 +38,7 @@ $atlas --task majorMinor --method MLE --minSamplesWithData 83 \
 	   --fixedSeed 135 --out $out --logFile $out.out 2> $out.eout
 
 echo "chr pos ref alt" > alleles.txt
-zcat Skotte_fasta.vcf.gz | tail -n +10 | awk '{if (NR % 3 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
+gunzip -c Skotte_fasta.vcf.gz | tail -n +10 | awk '{if (NR % 3 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
 
 out="alleles"
 $atlas --task majorMinor --method Skotte --minSamplesWithData 83 \

@@ -228,20 +228,19 @@ TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
 void TBAMSimulator::_initializeReadSimulator(){
 	logfile().startIndent("Parameters regarding sequencing:");
 	//read RGInfo files from command line
-	std::vector<std::string> filenames;
-	if(parameters().exists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)){
-		parameters().fill(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, filenames);
-	} else {
-		filenames.push_back("");
-	}
+	std::vector<std::string> filenames = parameters().get<std::vector<std::string>>(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, {});
 
 	//create read simulators
 	_readSimulators.reserve(filenames.size());
-	if(filenames.size() == 1){
+	if(filenames.size() <= 1){
 		if(_haploSimulator->sampleSize() > 1){
 			logfile().startIndent("Using one set of sequencing parameters for all ", _haploSimulator->sampleSize(), " individuals:");
 		}
-		_readSimulators.emplace_back(filenames.front());
+		if (filenames.empty()) {
+			_readSimulators.emplace_back(_outname + "_RGInfo.json", false);
+		} else {
+			_readSimulators.emplace_back(filenames.front(), true);
+		}
 		if(_haploSimulator->sampleSize() > 1){
 			logfile().endIndent();
 		}
@@ -254,7 +253,7 @@ void TBAMSimulator::_initializeReadSimulator(){
 
 		for(auto& s : filenames){
 			logfile().numberWithIndent("Sequencing parameters for individual 1");
-			_readSimulators.emplace_back(s);
+			_readSimulators.emplace_back(s, true);
 		}
 		logfile().endNumbering();
 		logfile().endIndent();

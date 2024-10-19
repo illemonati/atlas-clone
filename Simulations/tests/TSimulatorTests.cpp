@@ -3,11 +3,11 @@
 //
 #include "TSimulator.h"
 #include "genometools/VCF/TVcfFile.h"
+#include "genometools/VCF/TVcfWriter.h"
 #include "gtest/gtest.h"
 
-using namespace testing;
-using namespace genometools;
-using namespace Simulations;
+using genometools::Base;
+using genometools::TVcfWriter;
 
 //-------------------------------------------
 // TVCFSimulator
@@ -17,11 +17,11 @@ TEST(TVCFSimulator, findMajorMinorAllele_1) {
 	TVcfWriter vcfSimulator;
 
 	// 1) ref is unique major allele, and there is a unique minor allele
-	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({10, 20, 5, 15});
-	auto ref            = genometools::Base::C;
+	coretools::TStrongArray<size_t, Base, 4> alleleCounts({10, 20, 5, 15});
+	auto ref            = Base::C;
 	auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
 	EXPECT_EQ(major, ref);
-	EXPECT_EQ(minor, genometools::Base::T);
+	EXPECT_EQ(minor, Base::T);
 }
 
 TEST(TVCFSimulator, findMajorMinorAllele_2) {
@@ -29,20 +29,20 @@ TEST(TVCFSimulator, findMajorMinorAllele_2) {
 
 	// 2) ref is unique major allele, and there are multiple minor alleles
 	//    -> chose randomly among minor alleles
-	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({0, 0, 10, 0});
-	auto ref = genometools::Base::G;
+	coretools::TStrongArray<size_t, Base, 4> alleleCounts({0, 0, 10, 0});
+	auto ref = Base::G;
 
 	size_t N = 1e04;
-	coretools::TStrongArray<size_t, genometools::Base, 4> counter{};
+	coretools::TStrongArray<size_t, Base, 4> counter{};
 	for (size_t i = 0; i < N; ++i) {
 		auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
 		EXPECT_EQ(major, ref);
 		counter[minor]++;
 	}
-	EXPECT_EQ(counter[genometools::Base::A] + counter[genometools::Base::C] + counter[genometools::Base::T], N);
-	EXPECT_TRUE(counter[genometools::Base::A] > 0);
-	EXPECT_TRUE(counter[genometools::Base::C] > 0);
-	EXPECT_TRUE(counter[genometools::Base::T] > 0);
+	EXPECT_EQ(counter[Base::A] + counter[Base::C] + counter[Base::T], N);
+	EXPECT_TRUE(counter[Base::A] > 0);
+	EXPECT_TRUE(counter[Base::C] > 0);
+	EXPECT_TRUE(counter[Base::T] > 0);
 }
 
 TEST(TVCFSimulator, findMajorMinorAllele_3) {
@@ -50,8 +50,8 @@ TEST(TVCFSimulator, findMajorMinorAllele_3) {
 
 	// 3) there are multiple major alleles, but ref is none of them
 	//    -> this should never happen for bi-allelic simulators!
-	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({10, 0, 10, 0});
-	auto ref = genometools::Base::C;
+	coretools::TStrongArray<size_t, Base, 4> alleleCounts({10, 0, 10, 0});
+	auto ref = Base::C;
 	EXPECT_ANY_THROW(vcfSimulator.findMajorMinorAllele(alleleCounts, ref));
 }
 
@@ -60,12 +60,12 @@ TEST(TVCFSimulator, findMajorMinorAllele_4) {
 
 	// 4) there are multiple major alleles, one of them is ref
 	//    -> chose randomly among major alleles; if ref is not major allele, then it must be the minor allele
-	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({10, 10, 10, 0});
-	auto ref = genometools::Base::G;
+	coretools::TStrongArray<size_t, Base, 4> alleleCounts({10, 10, 10, 0});
+	auto ref = Base::G;
 
 	size_t N = 1e04;
-	coretools::TStrongArray<size_t, genometools::Base, 4> counterMajor{};
-	coretools::TStrongArray<size_t, genometools::Base, 4> counterMinor{};
+	coretools::TStrongArray<size_t, Base, 4> counterMajor{};
+	coretools::TStrongArray<size_t, Base, 4> counterMinor{};
 	for (size_t i = 0; i < N; ++i) {
 		auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
 		EXPECT_TRUE((major == ref || minor == ref));  // must be either major or minor
@@ -73,23 +73,23 @@ TEST(TVCFSimulator, findMajorMinorAllele_4) {
 		counterMajor[major]++;
 		counterMinor[minor]++;
 	}
-	EXPECT_EQ(counterMajor[genometools::Base::A] + counterMajor[genometools::Base::C] +
-	              counterMajor[genometools::Base::G],
+	EXPECT_EQ(counterMajor[Base::A] + counterMajor[Base::C] +
+	              counterMajor[Base::G],
 	          N);
-	EXPECT_EQ(counterMinor[genometools::Base::A] + counterMinor[genometools::Base::C] +
-	              counterMinor[genometools::Base::G],
+	EXPECT_EQ(counterMinor[Base::A] + counterMinor[Base::C] +
+	              counterMinor[Base::G],
 	          N);
 
-	EXPECT_TRUE(counterMajor[genometools::Base::A] > 0);
-	EXPECT_TRUE(counterMajor[genometools::Base::G] > 0);
-	EXPECT_TRUE(counterMajor[genometools::Base::C] > 0);
-	EXPECT_TRUE(counterMinor[genometools::Base::A] > 0);
-	EXPECT_TRUE(counterMinor[genometools::Base::G] > 0);
-	EXPECT_TRUE(counterMinor[genometools::Base::C] > 0);
+	EXPECT_TRUE(counterMajor[Base::A] > 0);
+	EXPECT_TRUE(counterMajor[Base::G] > 0);
+	EXPECT_TRUE(counterMajor[Base::C] > 0);
+	EXPECT_TRUE(counterMinor[Base::A] > 0);
+	EXPECT_TRUE(counterMinor[Base::G] > 0);
+	EXPECT_TRUE(counterMinor[Base::C] > 0);
 }
 
 void simulate(){
-	TVCFSimulator vcfSimulator("HW");
+	Simulations::TVCFSimulator vcfSimulator("HW");
 	vcfSimulator.runSimulations();
 }
 

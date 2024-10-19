@@ -7,25 +7,31 @@
 
 #include "TCaller.h"
 #include "GenotypeFunctions.h"
+#include "TSite.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/fillContainer.h"
+#include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/BiallelicGenotypesWithAlleles.h"
 
 namespace GenomeTasks{
 
-using namespace GenotypeLikelihoods;
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using coretools::Probability;
 using coretools::P;
+using coretools::str::fillContainerFromStringAny;
+using coretools::str::toString;
+
 using genometools::Base;
-using namespace coretools::str;
 using genometools::TGenotypeLikelihoods;
 using genometools::TBaseCounts;
 using genometools::TGenotypeProbabilities;
+
+using GenotypeLikelihoods::TSite;
+using GenotypeLikelihoods::posterior;
 
 namespace impl {
 template<template<typename, typename, size_t, typename...> typename Container, typename Type, typename Index, size_t N, typename... Args>
@@ -765,7 +771,6 @@ void TCallerDiploid::_clearAfterCall(){
 };
 
 void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metric){
-	using namespace genometools;
 	std::tie(_genotypeAtMax, _genotypeAtSecond) = impl::sampleFirstSecond(metric);
 
 	//decide on alternative alleles
@@ -1197,7 +1202,7 @@ TCall::TCall() {
 	if(_caller->usesPrior()){
 		_initializeGenotypePrior();
 	} else {
-		_prior = std::make_unique<TGenotypePriorUniform>();
+		_prior = std::make_unique<GenotypeLikelihoods::TGenotypePriorUniform>();
 	}
 	_caller->setPrior(_prior->getPointerToPrior());
 
@@ -1227,7 +1232,7 @@ void TCall::_initializeGenotypePrior(){
 	//read prior from parameters
 	std::string priorMethod = parameters().get<std::string>("prior", "theta");
 	if(priorMethod == "unif"){
-		_prior = std::make_unique<TGenotypePriorUniform>();
+		_prior = std::make_unique<GenotypeLikelihoods::TGenotypePriorUniform>();
 		logfile().list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
 		if(parameters().exists("fixedTheta")){
@@ -1238,16 +1243,16 @@ void TCall::_initializeGenotypePrior(){
 				logfile().list("Will use equal base frequencies.");
 			else
 				logfile().list("Will estimate base frequencies individually for each window.");
-			_prior = std::make_unique<TGenotypePriorFixedTheta>(theta, equalBaseFreq);
+			_prior = std::make_unique<GenotypeLikelihoods::TGenotypePriorFixedTheta>(theta, equalBaseFreq);
 		} else {
 			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _genome.outputName() + "_theta_estimates.txt.gz";
 			if(parameters().exists("defaultTheta")){
 				double defaultTheta = parameters().get<double>("defaultTheta");
 				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-				_prior = std::make_unique<TGenotypePriorTheta>(thetaOuputName, defaultTheta);
+				_prior = std::make_unique<GenotypeLikelihoods::TGenotypePriorTheta>(thetaOuputName, defaultTheta);
 			} else
-				_prior = std::make_unique<TGenotypePriorTheta>(thetaOuputName);
+				_prior = std::make_unique<GenotypeLikelihoods::TGenotypePriorTheta>(thetaOuputName);
 		}
 	} else UERROR("Unknown prior type '", priorMethod, "'!");
 	logfile().endIndent();

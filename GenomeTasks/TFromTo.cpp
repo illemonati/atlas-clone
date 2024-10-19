@@ -17,6 +17,7 @@ void TFromTo::run() { _traverseBAMWindows(); }
 
 
 void TFromTo::_handleWindow(GenotypeLikelihoods::TWindow& window) {
+	using BAM::Flags;
 	for (size_t i = 0; i < window.size(); ++i) {
 		const auto & site = window[i];
 		if (site.empty()) continue;
@@ -35,8 +36,9 @@ void TFromTo::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		auto i2       = i1;
 		while (i2 == i1) i2 = randomGenerator().getRand(size_t{}, bases.size());
 
-		_out.writeln(window.chrName(), pos.position(), site.depth(), bases[i1].distFrom5Prime, bases[i1].distFrom3Prime,
-					 bases[i2].distFrom5Prime, bases[i2].distFrom3Prime, bases[i1].isReverseStrand(), bases[i2].isReverseStrand());
+		_out.writeln(window.chrName(), pos.position(), site.depth(), bases[i1].distFrom5.linear(), bases[i1].distFrom3.linear(),
+					 bases[i2].distFrom5.linear(), bases[i2].distFrom3.linear(), bases[i1].get<Flags::ReversedStrand>(),
+					 bases[i2].get<Flags::ReversedStrand>());
 	}
 }
 } // namespace GenomeTasks
