@@ -24,12 +24,27 @@ inline bool operator<(const TWaitingAlignment& lhs, const TWaitingAlignment& rhs
 	return lhs.alignment < rhs.alignment;
 }
 
-class TWaitingListBamTraverser {
+
+class TBamReadMask{
 private:
 	bool _doMasking       = false;
 	bool _considerRegions = false;
+	bool _maskIsPorous = false;
+	coretools::Probability _porousProb = coretools::Probability(0.0);
 	genometools::TBed _mask;
-	void _setMasks(const genometools::TChromosomes& Chromosomes);
+
+	bool _applyPorosity(bool keep) const;
+
+public:
+	TBamReadMask(){};
+	void setMasks(const genometools::TChromosomes& Chromosomes);
+	[[nondiscard]] bool keepSingle(const genometools::TGenomeWindow aln) const;
+	[[nondiscard]] bool keepPaired(const genometools::TGenomeWindow aln, const genometools::TGenomeWindow mate) const;
+};
+
+class TWaitingListBamTraverser {
+private:
+	TBamReadMask _masks;
 
 protected:
 	TGenome _genome;

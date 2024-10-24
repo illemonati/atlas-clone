@@ -6,12 +6,17 @@
   --alpha 2.0 --beta 2.0 --seqType paired --seqCycles 101
 
 echo "chr1	0	1000" > bed.bed
-echo "chr2	0	1000" >> bed.bed
-echo "chr3	0	1000" >> bed.bed
+echo "chr2	100	800" >> bed.bed
+echo "chr3	600	760" >> bed.bed
+
+out="filterBAM_0"
+$atlas --task filterBAM --dryRun \
+           --bam simulate_ind1.bam --regions bed.bed \
+           --fixedSeed 91 --out $out --logFile $out.out 2> $out.eout
 
 out="filterBAM_1"
 $atlas --task filterBAM --dryRun \
-	   --bam simulate_ind1.bam --regions bed.bed \
+	   --bam simulate_ind1.bam --mask bed.bed --maskPorosity 0.1 \
 	   --fixedSeed 91 --out $out --logFile $out.out 2> $out.eout
 
 for i in {2..19}; do
