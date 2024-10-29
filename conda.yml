@@ -1,0 +1,23 @@
+# conda env create -f conda.yml
+# conda activate atlas 
+# mkdir build; cd build
+# cmake .. -GNinja -DCONDA=ON -DCMAKE_C_COMPILER=$(which gcc) -DCMAKE_CXX_COMPILER=$(which g++) -DCMAKE_LIBRARY_PATH=$CONDA_PREFIX/lib -DCMAKE_INCLUDE_PATH=$CONDA_PREFIX/include
+# ninja
+
+name: atlas
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - cmake
+  - ninja
+  - gcc
+  - gxx
+  - armadillo
+  - fmt
+  - htslib
+  - nlohmann_json
+  - openmp 
+  - sysroot_linux-64=2.17 [linux]
+  - zlib
