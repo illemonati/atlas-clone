@@ -57,7 +57,7 @@ FetchContent_MakeAvailable(coretools genometools stattools bamtools)
 
 # htslib
 if(CONDA)
-  find_library(HTSLIB NAMES hts htslib)
+  find_library(HTSLIB NAMES hts)
 else()
   include(htslib.cmake)
 endif()
@@ -107,7 +107,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
   Simulations
   VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main htslib)
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main hts)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Library
-add_library(htslib SHARED IMPORTED GLOBAL)
+add_library(hts SHARED IMPORTED GLOBAL)
 
 set(HTSLIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/htslib")
 set(INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/htslib")
@@ -53,7 +53,7 @@ ExternalProject_Add(htslib-ext
   BUILD_BYPRODUCTS ${LIB}
   )
 
-add_dependencies(htslib htslib-ext)
-set_target_properties(htslib PROPERTIES IMPORTED_LOCATION ${LIB})
-target_include_directories(htslib INTERFACE "${HTSLIB_DIR}")
-target_link_libraries(htslib INTERFACE "${LIB}")
+add_dependencies(hts htslib-ext)
+set_target_properties(hts PROPERTIES IMPORTED_LOCATION ${LIB})
+target_include_directories(hts INTERFACE "${HTSLIB_DIR}")
+target_link_libraries(hts INTERFACE "${LIB}")
