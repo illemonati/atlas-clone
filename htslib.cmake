@@ -15,6 +15,7 @@ endif()
 #inspired by https://gist.github.com/cauliyang/c6d69c43a8a05266c6d05bc2c5324f45:
 set(flags --disable-gcs --disable-s3 --disable-plugins)
 
+find_package(ZLIB REQUIRED)
 find_package(LibLZMA)
   if(LIBLZMA_FOUND)
     include_directories(SYSTEM ${LIBLZMA_INCLUDE_DIRS})
@@ -52,7 +53,6 @@ ExternalProject_Add(htslib-ext
   BUILD_BYPRODUCTS ${LIB}
   )
 
-add_dependencies(htslib-ext zlib)
 add_dependencies(htslib htslib-ext)
 set_target_properties(htslib PROPERTIES IMPORTED_LOCATION ${LIB})
 target_include_directories(htslib INTERFACE "${HTSLIB_DIR}")

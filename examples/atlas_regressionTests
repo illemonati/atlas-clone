@@ -14,6 +14,11 @@ compare() {
 				echo "Files $a_ref and $a_new differ"
 				differs=true
 			fi
+		elif [[ $a_ref == *.gz ]]; then
+			if ! diff -q <(gunzip -c $a_ref) <(gunzip -c  $a_new) > /dev/null; then
+				echo "Files $a_ref and $a_new differ"
+				differs=true
+			fi
 		else
 			! diff -q $a_ref $a_new &&  differs=true
 		fi
