@@ -29,7 +29,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           c2b1583
+  GIT_TAG           acb213c
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -56,7 +56,11 @@ FetchContent_Declare(bamtools
 FetchContent_MakeAvailable(coretools genometools stattools bamtools)
 
 # htslib
-include(htslib.cmake)
+if(CONDA)
+  find_library(HTSLIB NAMES hts)
+else()
+  include(htslib.cmake)
+endif()
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
@@ -74,7 +78,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools htslib)
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools hts)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
@@ -103,7 +107,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
   Simulations
   VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main htslib)
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main hts)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)

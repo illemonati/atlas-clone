@@ -29,17 +29,16 @@ class TBamReadMask{
 private:
 	bool _doMasking       = false;
 	bool _considerRegions = false;
-	bool _maskIsPorous = false;
-	coretools::Probability _porousProb = coretools::Probability(0.0);
+	bool _maskIsPorous    = false;
+	coretools::Probability _porousProb{0.0};
 	genometools::TBed _mask;
 
 	bool _applyPorosity(bool keep) const;
 
 public:
-	TBamReadMask(){};
 	void setMasks(const genometools::TChromosomes& Chromosomes);
-	[[nondiscard]] bool keepSingle(const genometools::TGenomeWindow aln) const;
-	[[nondiscard]] bool keepPaired(const genometools::TGenomeWindow aln, const genometools::TGenomeWindow mate) const;
+	[[nodiscard]] bool keepSingle(const genometools::TGenomeWindow& aln) const;
+	[[nodiscard]] bool keepPaired(const genometools::TGenomeWindow& aln, const genometools::TGenomeWindow& mate) const;
 };
 
 class TWaitingListBamTraverser {

@@ -91,13 +91,13 @@ bool TBamReadMask::_applyPorosity(bool keep) const{
 	}
 }
 
-bool TBamReadMask::keepSingle(const genometools::TGenomeWindow aln) const { 
+bool TBamReadMask::keepSingle(const genometools::TGenomeWindow& aln) const { 
 	return _applyPorosity(
 		(_doMasking && !_mask.overlaps(aln)) || (_considerRegions && _mask.overlaps(aln))
 	);	
 }
 
-bool TBamReadMask::keepPaired(const genometools::TGenomeWindow aln, const genometools::TGenomeWindow mate) const {
+bool TBamReadMask::keepPaired(const genometools::TGenomeWindow& aln, const genometools::TGenomeWindow& mate) const {
 	// if masking: neither of both can overlap
 	// if regions: at least one overlaps
 	return _applyPorosity(
