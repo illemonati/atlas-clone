@@ -5,7 +5,6 @@
 #include "TContextErrors.h"
 #include "TEstimateGenotypeDistribution.h"
 #include "TFromTo.h"
-#include "TGLFIndexer.h"
 #include "TGLFPrinter.h"
 #include "TIlluminaIdentifier.h"
 #include "TSafEstimator.h"
@@ -86,7 +85,6 @@ void addTaks(coretools::TMain & main) {
 	//Population tools
 	{
 	constexpr auto groupName = "Population";
-	main.createGroupedTask<PopulationTools::TGLFIndexer>(groupName, "indexGLF", "Indexing a GLF file");
 	main.createGroupedTask<PopulationTools::TGLFPrinter>(groupName, "printGLF", "Printing a GLF file to screen");
 	main.createGroupedTask<PopulationTools::TMajorMinor>(groupName, "majorMinor", "Estimating major and minor alles", "Skotte et al. (2012) Genetic Epidemiology");
 	main.createGroupedTask<PopulationTools::TDistanceEstimator>(groupName, "geneticDist", "Estimating the genetic distance between individuals");

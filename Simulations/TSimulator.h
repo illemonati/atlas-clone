@@ -20,7 +20,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
-#include "genometools/VCF/TVcfWriter.h"
+#include "genometools/VCF/TVCFWriter.h"
 #include "THaplotypeSimulator.h"
 #include "TReadSimulators.h"
 
@@ -87,7 +87,7 @@ public:
 class TVCFSimulator : public TSimulator {
 private:
 	coretools::Probability _error{0.05};
-	std::unique_ptr<genometools::TVcfWriter> _vcf;
+	std::unique_ptr<genometools::TVCFWriter> _vcf;
 
 protected:
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;

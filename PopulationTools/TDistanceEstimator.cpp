@@ -641,8 +641,8 @@ void TDistanceEstimator::_readCommonSites(GenotypeQualityVector & genoQual1, Gen
 	for(; !g1.empty() && !g2.empty(); _advance(g1, g2)) {
 		if(g2.position() == g1.position()){
 			//add data
-			genoQual1.push_back(g1.front().glf);
-			genoQual2.push_back(g2.front().glf);
+			genoQual1.push_back(g1.front().values);
+			genoQual2.push_back(g2.front().values);
 		}
 	}
 };

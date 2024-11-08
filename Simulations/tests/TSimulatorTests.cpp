@@ -3,39 +3,31 @@
 //
 #include "TSimulator.h"
 #include "genometools/VCF/TVcfFile.h"
-#include "genometools/VCF/TVcfWriter.h"
 #include "gtest/gtest.h"
 
 using genometools::Base;
-using genometools::TVcfWriter;
 
 //-------------------------------------------
 // TVCFSimulator
 //-------------------------------------------
 
-TEST(TVCFSimulator, findMajorMinorAllele_1) {
-	TVcfWriter vcfSimulator;
-
+TEST(TVCFSimulator, findMajorMinorAllele) {
 	// 1) ref is unique major allele, and there is a unique minor allele
 	coretools::TStrongArray<size_t, Base, 4> alleleCounts({10, 20, 5, 15});
 	auto ref            = Base::C;
-	auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
+	auto [major, minor] = findMajorMinorAllele(alleleCounts, ref);
 	EXPECT_EQ(major, ref);
 	EXPECT_EQ(minor, Base::T);
-}
-
-TEST(TVCFSimulator, findMajorMinorAllele_2) {
-	TVcfWriter vcfSimulator;
 
 	// 2) ref is unique major allele, and there are multiple minor alleles
 	//    -> chose randomly among minor alleles
-	coretools::TStrongArray<size_t, Base, 4> alleleCounts({0, 0, 10, 0});
-	auto ref = Base::G;
+	alleleCounts = {{0, 0, 10, 0}};
+	ref = Base::G;
 
 	size_t N = 1e04;
 	coretools::TStrongArray<size_t, Base, 4> counter{};
 	for (size_t i = 0; i < N; ++i) {
-		auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
+		auto [major, minor] = findMajorMinorAllele(alleleCounts, ref);
 		EXPECT_EQ(major, ref);
 		counter[minor]++;
 	}
@@ -43,31 +35,23 @@ TEST(TVCFSimulator, findMajorMinorAllele_2) {
 	EXPECT_TRUE(counter[Base::A] > 0);
 	EXPECT_TRUE(counter[Base::C] > 0);
 	EXPECT_TRUE(counter[Base::T] > 0);
-}
-
-TEST(TVCFSimulator, findMajorMinorAllele_3) {
-	TVcfWriter vcfSimulator;
 
 	// 3) there are multiple major alleles, but ref is none of them
 	//    -> this should never happen for bi-allelic simulators!
-	coretools::TStrongArray<size_t, Base, 4> alleleCounts({10, 0, 10, 0});
-	auto ref = Base::C;
-	EXPECT_ANY_THROW(vcfSimulator.findMajorMinorAllele(alleleCounts, ref));
-}
-
-TEST(TVCFSimulator, findMajorMinorAllele_4) {
-	TVcfWriter vcfSimulator;
+	alleleCounts = {{10, 0, 10, 0}};
+	ref = Base::C;
+	EXPECT_ANY_THROW(findMajorMinorAllele(alleleCounts, ref));
 
 	// 4) there are multiple major alleles, one of them is ref
 	//    -> chose randomly among major alleles; if ref is not major allele, then it must be the minor allele
-	coretools::TStrongArray<size_t, Base, 4> alleleCounts({10, 10, 10, 0});
-	auto ref = Base::G;
+	alleleCounts = {{10, 10, 10, 0}};
+	ref = Base::G;
 
-	size_t N = 1e04;
+	N = 1e04;
 	coretools::TStrongArray<size_t, Base, 4> counterMajor{};
 	coretools::TStrongArray<size_t, Base, 4> counterMinor{};
 	for (size_t i = 0; i < N; ++i) {
-		auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
+		auto [major, minor] = findMajorMinorAllele(alleleCounts, ref);
 		EXPECT_TRUE((major == ref || minor == ref));  // must be either major or minor
 		EXPECT_FALSE((major == ref && minor == ref)); // can not be both at once
 		counterMajor[major]++;

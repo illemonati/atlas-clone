@@ -18,7 +18,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GLF/GLF.h"
 #include "genometools/Genotypes/TFrequencies.h"
-#include "genometools/VCF/TVcfWriter.h"
+#include "genometools/VCF/TVCFWriter.h"
 
 #include "genometools/TAlleles.h"
 #include "TBgzWriter.h"
@@ -547,13 +547,12 @@ template<typename Estimator> void iterate(double maxF) {
 #endif
 
 	// open vcf file
-	genometools::TVcfWriter vcf;
-	if (coretools::instances::parameters().exists("bgz")) {
-		vcf = genometools::TVcfWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller", glfReader.sampleNames(),
-									  usePhredLikelihoods);
-	} else {
-		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNames(), usePhredLikelihoods);
-	}
+	genometools::TVCFWriter vcf =
+		coretools::instances::parameters().exists("bgz")
+			? genometools::TVCFWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller",
+									  glfReader.sampleNames(), glfReader.chromosomes(), usePhredLikelihoods)
+			: genometools::TVCFWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNames(),
+									  glfReader.chromosomes(), usePhredLikelihoods);
 
 	// vars
 	logfile().startIndent("Parsing through glf files:");
@@ -611,8 +610,8 @@ template<typename Estimator> void iterate(double maxF) {
 			}
 
 			// write to VCF
-			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.variantQuality, glfReader.data(iW), di.major,
-						  di.minor);
+			vcf.writeSite(glfReader.curChrName(), glfReader.position(iW).position(), di.major,
+						  di.minor, di.variantQuality, glfReader.data(iW));
 		}
 		counter  += ids.size();
 		counterF += (glfReader.curWindow().size() - ids.size());
