@@ -98,6 +98,7 @@ private:
 
 	template<typename SiteSubsetType>
 	void _fillSitesSubset(std::vector<TSite> &sites, SiteSubsetType &subset, size_t readUpToDepth){
+		sites.clear();
 		sites.resize(size());
 
 		auto thesePositions = subset.getPositionInWindow(*this);

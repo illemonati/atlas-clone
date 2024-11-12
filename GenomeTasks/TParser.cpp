@@ -14,8 +14,8 @@ TParser::TParser() {
 		_trim5 = parameters().get<int>("trim5", 0);
 		if (_trim5 < 0) UERROR("trimming distance trim5 must be >= 0!");
 		if (_trim3 > 0 || _trim5 > 0) {
-			logfile().list("Will trim first ", _trim3, " and ", _trim5,
-						   " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
+			logfile().list("Will trim first ", _trim3, " bases from the 3' end and the first ", _trim5,
+						   " bases from the 5' end. (parameters 'trim3', 'trim5', respectively)");
 		}
 		_trimReads = true;
 	} else {
