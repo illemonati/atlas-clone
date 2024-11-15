@@ -3,7 +3,7 @@
  */
 
 #include "TContextErrors.h"
-#include "TEstimateGenotypeDistribution.h"
+#include "TEstimateHKY85.h"
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
 #include "TIlluminaIdentifier.h"
@@ -78,7 +78,7 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TEstimateThetaRatio>(groupName, "thetaRatio", "Estimate ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TWriteGLF>(groupName, "GLF", "Writing genotype likelihoods to a GLF file");	
 	main.createGroupedTask<GenomeTasks::TEstimateMutationLoad>(groupName, "mutationLoad", "Estimating mutation load across the genome");
-	main.createGroupedTask<GenomeTasks::TEstimateGenotypeDistribution>(groupName, "HKY85", "Estimating HKY85 genotype Distribution");
+	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating HKY85 genotype Distribution");
 	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
 	}
 

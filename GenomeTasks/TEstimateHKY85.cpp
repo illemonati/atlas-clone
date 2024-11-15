@@ -1,4 +1,4 @@
-#include "TEstimateGenotypeDistribution.h"
+#include "TEstimateHKY85.h"
 
 #include "PMD/TPsi.h"
 #include "TGenotypeDistribution.h"
@@ -7,6 +7,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 #include <memory>
 
@@ -18,7 +19,7 @@ using genometools::TGenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
 
-double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites) {
+double TEstimateHKY85::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites) {
 	const auto isInvariant = _genoDist->isInvariant();
 
 	const auto PgI_init = [isInvariant]() {
@@ -85,7 +86,7 @@ double TEstimateGenotypeDistribution::_LL(const std::vector<GenotypeLikelihoods:
 	return LL.getSum();
 }
 
-double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
+double TEstimateHKY85::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
 	using coretools::str::toString;
 	// run EM
 	_genoDist->reset();
@@ -140,7 +141,7 @@ double TEstimateGenotypeDistribution::_runEM(const std::vector<GenotypeLikelihoo
 	return oldLL;
 }
 
-void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
+void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 	_totSites += window.size();
 	_totMaskedSites += window.numMaskedSites();
 
@@ -158,7 +159,7 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 	if (_sample == Sample::reads) {
 		for (size_t r = 0; r < _nRounds; ++r) {
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-				const auto p = _probs[i];
+				const auto p = P(_depthOrProbs[i]);
 				auto &sites  = _sites_P[r][i];
 				auto &stat   = _stats_P[r][i];
 
@@ -179,7 +180,7 @@ void TEstimateGenotypeDistribution::_handleGenomeWide(GenotypeLikelihoods::TWind
 	}
 }
 
-void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
+void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 	using BAM::End;
 	// full P
 
@@ -192,12 +193,13 @@ void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindo
 
 	// downsample
 	const auto nIT = _numEMIterations;
-	for (const auto p : _probs) {
-		logfile().list("Downsampling reads to probability ", p, ".");
+	for (const auto dOrP : _depthOrProbs) {
 
-		_numEMIterations = std::min<size_t>(10 * nIT, nIT / p); // may need a bit longer
+		_numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
 
 		if (_sample == Sample::reads) {
+			const coretools::Probability p = P(dOrP);
+			logfile().list("Downsampling reads to probability ", p, ".");
 			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
 			_windows.filter(downsampled);
 
@@ -209,7 +211,15 @@ void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindo
 			size_t depth    = 0;
 			size_t withData = 0;
 			for (auto &site : sites) {
-				site.downsample(p);
+				if (_sample == Sample::sites) {
+					const coretools::Probability p = P(dOrP);
+					logfile().list("Downsampling sites to probability ", p, ".");
+					site.downsample(p);
+				} else /* _sample == Sample::upTo */ {
+					const int d = int(dOrP);
+					logfile().list("Downsampling sites a maximum depth of", d, ".");
+					site.downsample(d);
+				}
 				depth += site.depth();
 				if (!site.empty()) ++withData;
 			}
@@ -224,7 +234,7 @@ void TEstimateGenotypeDistribution::_handlePerWindow(GenotypeLikelihoods::TWindo
 	_out.endln();
 }
 
-void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
+void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	if (_genomeWide) {
 		_handleGenomeWide(window);
 	} else {
@@ -232,7 +242,7 @@ void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& 
 	}
 }
 
-void TEstimateGenotypeDistribution::run() {
+void TEstimateHKY85::run() {
 	using BAM::End;
 	_traverseBAMWindows();
 	if (_genomeWide) {
@@ -258,10 +268,15 @@ void TEstimateGenotypeDistribution::run() {
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-				_numEMIterations = std::min<size_t>(10*nIT, nIT/_probs[i]); // may need a bit longer
+				if (_sample == Sample::upToDepth) {
+					_numEMIterations = std::min<size_t>(10*nIT, nIT*_depthOrProbs[0]/_depthOrProbs[i]); // may need a bit longer
+				} else {
+					_numEMIterations = std::min<size_t>(10*nIT, nIT/_depthOrProbs[i]); // may need a bit longer
+				}
 
 				if (_sample == Sample::reads) {
-					logfile().list("Using downsampled reads at probability ", _probs[i], ".");
+					const auto p = P(_depthOrProbs[i]);
+					logfile().list("Downsampling reads to probability ", p, ".");
 					const auto &sites = _sites_P[r][i];
 					const auto &stat  = _stats_P[r][i];
 
@@ -269,12 +284,19 @@ void TEstimateGenotypeDistribution::run() {
 					_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
 					           double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
 				} else {
-					logfile().list("Using downsampled bases at probability ", _probs[i], ".");
 					auto sites      = _sites_full;
 					size_t depth    = 0;
 					size_t withData = 0;
 					for (auto &site : sites) {
-						site.downsample(_probs[i]);
+						if (_sample == Sample::sites) {
+							const auto p = P(_depthOrProbs[i]);
+							logfile().list("Downsampling sites to probability ", p, ".");
+							site.downsample(p);
+						}else /* _sample == Sample::upTo */ {
+							const int d = int(_depthOrProbs[i]);
+							logfile().list("Downsampling sites a maximum depth of", d, ".");
+							site.downsample(d);
+						}
 						depth += site.depth();
 						if (!site.empty()) ++withData;
 					}
@@ -288,7 +310,7 @@ void TEstimateGenotypeDistribution::run() {
 	}
 }
 
-TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
+TEstimateHKY85::TEstimateHKY85() {
 	using BAM::RGInfo::InfoType;
 	_windows.requireReference();
 
@@ -318,21 +340,31 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
 
 	// Downsample?
+	const auto type = parameters().get("sample", "reads");
 	if (parameters().exists("prob")) {
-		parameters().fill("prob", _probs);
-		if (_probs.front() == 1.) {
+		parameters().fill("prob", _depthOrProbs);
+		if (_depthOrProbs.front() == 1.) {
 			// we will do the full probability anyway
-			_probs.erase(_probs.begin());
+			_depthOrProbs.erase(_depthOrProbs.begin());
 		}
-		const auto type = parameters().get("sample", "reads");
 		if (type == "reads") {
 			_sample = Sample::reads;
-		} else if (type == "bases") {
-			_sample = Sample::bases;
+		} else if (type == "sites") {
+			_sample = Sample::sites;
+		} else if (type == "upToDepth") {
+			UERROR("Cannot combine ", type, " with prob");
 		} else {
 			UERROR("Downsampling type ", type, " does not exist");
 		}
-		logfile().list("Will do downsampling experiment using all data, and downsampling ", type, " with probabilities ", _probs, ". (parameter 'prob')");
+		logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
+					   " with probabilities ", _depthOrProbs, ". (parameter 'prob')");
+	} else if (type == "upToDepth") {
+		const auto depths = parameters().get<std::vector<int>>("depth");
+		for (const auto depth : depths) {
+			if (depth < 1) UERROR("Must sample at least depth=1");
+			_depthOrProbs.push_back(double(depth));
+		}
+		_sample = Sample::upToDepth;
 	} else {
 		logfile().list("Will not do downsampling. (use parameter 'prob')");
 	}
@@ -343,11 +375,11 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
 		if (parameters().get("genomeWide").empty()) {
 			_nRounds = 1;
-			if (!_probs.empty()) {
+			if (!_depthOrProbs.empty()) {
 				logfile().list("Will do one round of downsampling. (use 'genomeWide' to specify the number)");
 			}
 		} else {
-			if (_probs.empty()) {
+			if (_depthOrProbs.empty()) {
 				UERROR("Cannot du several rounds of downsampling without downsampling probabilities! Use 'prob' to specify.");
 			}
 			parameters().fill("genomeWide", _nRounds);
@@ -356,24 +388,24 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 		for (size_t r = 0; r < _nRounds; ++r) {
 			_sites_P.emplace_back();
 			_stats_P.emplace_back();
-			_sites_P.back().resize(_probs.size());
-			_stats_P.back().resize(_probs.size());
+			_sites_P.back().resize(_depthOrProbs.size());
+			_stats_P.back().resize(_depthOrProbs.size());
 		}
 	} else {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
 		_openFile(); // will be written every Window
 	}
 }
-void TEstimateGenotypeDistribution::_openFile() {
+void TEstimateHKY85::_openFile() {
 	using coretools::str::toString;
 	std::vector<std::string> header{"Chr", "Start", "End"};
-	const auto sp = _probs.empty() ? "": "p1.0_";
+	const auto sp = _depthOrProbs.empty() || _sample == Sample::upToDepth ? "": "p1.0_";
 	header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"), toString(sp, "fracMissing")});
 	_genoDist->addHeader(header, sp); //, sp);
 	header.push_back(toString(sp, "LL"));
 	if (_pmd) header.insert(header.end(), {"PMD5", "PMD3"});
 
-	for (const auto p : _probs) {
+	for (const auto p : _depthOrProbs) {
 		const auto sp = toString("p", p, "_");
 		header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"),
 									 toString(sp, "fracMissing")});

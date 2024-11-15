@@ -146,9 +146,7 @@ void TAlignment::_parseBasesQualities() {
 		return b;
 	}();
 	_bases.assign(_cigar.lengthRead(), common);
-	//_alignedPosition.resize(_cigar.lengthRead());
-	_alignedPosition.clear();
-	_alignedPosition.reserve(_cigar.lengthRead());
+	_alignedPosition.resize(_cigar.lengthRead());
 	int d = 0; // index regarding data structures and inside read
 	int p = 0; // index regarding reference position (!= d for soft clipping & indels)
 
@@ -166,7 +164,7 @@ void TAlignment::_parseBasesQualities() {
 				_bases[d].originalQuality = fromChar(_qualities[d]);
 				_bases[d].set<Flags::Aligned>(true);
 				_bases[d].set<Flags::SoftClipped>(false);
-				_alignedPosition.push_back(p);
+				_alignedPosition[d] = p;
 			}
 			_lastAlignedPos = d - 1; // Note: for loop ends with d one too large
 			break;
@@ -181,7 +179,7 @@ void TAlignment::_parseBasesQualities() {
 				_bases[d].originalQuality = fromChar(_qualities[d]);
 				_bases[d].set<Flags::Aligned>(false);
 				_bases[d].set<Flags::SoftClipped>(true);
-				_alignedPosition.push_back(-1);
+				_alignedPosition[d] = -1;
 			}
 			break;
 
@@ -192,7 +190,7 @@ void TAlignment::_parseBasesQualities() {
 				_bases[d].originalQuality = fromChar(_qualities[d]);
 				_bases[d].set<Flags::Aligned>(false);
 				_bases[d].set<Flags::SoftClipped>(false);
-				_alignedPosition.push_back(-1);
+				_alignedPosition[d] = -1;
 			}
 			break;
 

@@ -66,6 +66,16 @@ void TSite::downsample(coretools::Probability p) {
 	}
 }
 
+
+void TSite::shuffle() {
+	using coretools::instances::randomGenerator;
+	randomGenerator().shuffle(_bases);
+}
+
+void TSite::downsample(size_t UpToDepth) {
+	if (UpToDepth < _bases.size()) _bases.resize(UpToDepth);
+}
+
 std::string TSite::getBases() const {
 	if (empty()) return "-";
 	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""),

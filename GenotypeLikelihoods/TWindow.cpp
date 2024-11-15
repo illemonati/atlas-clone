@@ -84,19 +84,21 @@ void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &s
 	for (size_t p = _findFirstPositionWithinWindow(alignment); p < alignment.parsedLength(); ++p) {
 		if (!alignment.isAlignedAtInternalPos(p)) continue;
 		if (alignment[p].base == genometools::Base::N) continue;
-		if (alignment[p].get<BAM::Flags::SoftClipped>()) continue;
 
-		const size_t internalPos = alignment.positionInRef(p) - from();
+		assert(!alignment[p].get<BAM::Flags::SoftClipped>());
+
+		const size_t posInWindow = alignment.positionInRef(p) - from();
 
 		// if read extends past window length
-		if (internalPos >= size()) break; // since part of the read maps to next window
+		if (posInWindow >= size()) break; // since part of the read maps to next window
 
-		if (sites[internalPos].depth() < readUpToDepth) { sites[internalPos].add(alignment[p]); }
+		if (sites[posInWindow].depth() < readUpToDepth) { sites[posInWindow].add(alignment[p]); }
 	}
 };
 
 void TWindow::_fillSites(std::vector<TSite> &sites, size_t readUpToDepth) {
-	sites.clear();
+	// _sites may have a size, but all sites are empty!
+	assert(std::all_of(_sites.begin(), _sites.end(), [](const auto& site){return site.empty();}));
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
@@ -107,7 +109,6 @@ void TWindow::_fillSites(std::vector<TSite> &sites, size_t readUpToDepth) {
 }
 
 int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const Probability & downsamplingProb) const {
-	sites.clear();
 	sites.resize(size());
 	for (size_t i = 0; i < size(); ++i) sites[i].refBase = _sites[i].refBase;
 
