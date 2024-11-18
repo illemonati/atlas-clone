@@ -3,7 +3,6 @@
 #include "TOutputBamFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 #include <memory>
 
@@ -20,95 +19,6 @@ void insert_sorted(Container &Vec, const typename Container::value_type &Item) {
 }
 } // namespace impl
 
-
-
-
-//--------------------------------------------
-// TBamReadMask
-//--------------------------------------------
-
-void TBamReadMask::setMasks(const genometools::TChromosomes &Chromosomes){
-	// normal mask
-	if (parameters().exists("mask") || parameters().exists("regions")) {
-		std::string filename;
-
-		if (parameters().exists("mask")) {
-			logfile().startIndent("Will apply BED mask:");
-			if (parameters().exists("regions")) UERROR("Cannot use mask and regions at the same time.");
-
-			filename = parameters().get<std::string>("mask");
-			logfile().list("Will ignore reads overlapping with windows listed in BED file '" + filename + "'. (parameter 'mask')");
-			_doMasking       = true;
-			_considerRegions = false;			
-		} else {
-			filename = parameters().get<std::string>("regions");
-			logfile().startIndent("Will limit to BED regions:");
-			logfile().list("Will limit analysis to reads overlapping with windows listed in BED file '" + filename +
-								  "' (parameter 'regions'):");
-			_doMasking       = false;
-			_considerRegions = true;
-		}
-
-		// read file
-		logfile().listFlush("Reading file ...");
-		_mask.parse(filename, Chromosomes);
-		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");		
-
-		// read porosity		
-		_porousProb = parameters().get("maskPorosity", coretools::Probability(0.0));
-		if(_porousProb > 0.0){
-			_maskIsPorous = true;
-			if(_doMasking){			
-				logfile().list("Mask will be porous: overlapping reads will be kept with probability ", _porousProb, ". (parameter 'maskPorosity')");
-			} else {
-				logfile().list("Regions will be porous: non-overlapping reads will be kept with probability ", _porousProb, ". (parameter 'maskPorosity')");
-			}
-
-		} else {
-			_maskIsPorous = false;
-			if(_doMasking){
-				logfile().list("Mask will be strict: no overlapping reads will be kept. (use 'maskPorosity' to make it porous)");
-			} else {
-				logfile().list("Regions will be strict: only overlapping reads will be kept. (use 'maskPorosity' to make it porous)");
-			}
-		}
-		logfile().endIndent();
-	} else {
-		logfile().list("Will use reads of the entire genome. (limit with 'mask' or 'regions')");
-		_doMasking       = false;
-		_considerRegions = false;
-		_maskIsPorous = false;
-		_porousProb = coretools::Probability(0.0);
-	}
-}
-
-bool TBamReadMask::_applyPorosity(bool keep) const{
-	if(keep || !_maskIsPorous){
-		return keep;
-	} else {
-		return coretools::instances::randomGenerator().getRand() < _porousProb;
-	}
-}
-
-bool TBamReadMask::keepSingle(const genometools::TGenomeWindow& aln) const { 
-	return _applyPorosity(
-		(_doMasking && !_mask.overlaps(aln)) || (_considerRegions && _mask.overlaps(aln))
-	);	
-}
-
-bool TBamReadMask::keepPaired(const genometools::TGenomeWindow& aln, const genometools::TGenomeWindow& mate) const {
-	// if masking: neither of both can overlap
-	// if regions: at least one overlaps
-	return _applyPorosity(
-		(_doMasking && !_mask.overlaps(aln) && !_mask.overlaps(mate))
-			|| (_considerRegions && (_mask.overlaps(aln) || _mask.overlaps(mate)))
-	);			
-}
-
-//--------------------------------------------
-// TWaitingListBamTraverser
-//--------------------------------------------
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
 	if (WAlignment.status == AlignmentStatus::ready) {
 		if (_outBam) _outBam->writeAlignment(WAlignment.alignment);
