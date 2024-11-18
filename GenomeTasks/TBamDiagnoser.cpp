@@ -242,8 +242,8 @@ void TBamDiagnoser::run() {
 		_allReadStart.add(rID, 0, chr.length() - _allReadStart[rID].counts());
 	}
 
-	if (!parameters().exists("splitMergeInput")) {
-		logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
+	if (!parameters().exists("mergeInput")) {
+		logfile().list("Will not create input file for mergeOverlappingReads. (use 'mergeInput' to do so).");
 	}
 	if (!parameters().exists("printReferenceLength")) {
 		logfile().list(
@@ -359,9 +359,9 @@ void TBamDiagnoser::run() {
 	out.close();
 	logfile().done();
 
-	if (parameters().exists("splitMergeInput")) {
+	if (parameters().exists("mergeInput")) {
 		// write file used by split merge
-		std::string splitmergename = _genome.outputName() + "_splitMergeInput.txt";
+		std::string splitmergename = _genome.outputName() + "_mergeInput.txt";
 		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
 		coretools::TOutputFile splitm(splitmergename, {"readGroup", "seqType", "seqCycles"});
 		for (size_t rg = 0; rg < numRG; ++rg) {

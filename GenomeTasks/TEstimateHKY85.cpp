@@ -2,6 +2,7 @@
 
 #include "PMD/TPsi.h"
 #include "TGenotypeDistribution.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -194,12 +195,13 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 	// downsample
 	const auto nIT = _numEMIterations;
 	for (const auto dOrP : _depthOrProbs) {
+		constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{{"probability", "probability", "maximum depth"}};
+		logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ".");
 
 		_numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
 
 		if (_sample == Sample::reads) {
 			const coretools::Probability p = P(dOrP);
-			logfile().list("Downsampling reads to probability ", p, ".");
 			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
 			_windows.filter(downsampled);
 
@@ -213,11 +215,9 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 			for (auto &site : sites) {
 				if (_sample == Sample::sites) {
 					const coretools::Probability p = P(dOrP);
-					logfile().list("Downsampling sites to probability ", p, ".");
 					site.downsample(p);
 				} else /* _sample == Sample::upTo */ {
 					const int d = int(dOrP);
-					logfile().list("Downsampling sites a maximum depth of", d, ".");
 					site.downsample(d);
 				}
 				depth += site.depth();
@@ -268,6 +268,8 @@ void TEstimateHKY85::run() {
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
+				constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{{"probability", "probability", "maximum depth"}};
+				logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[i], ".");
 				if (_sample == Sample::upToDepth) {
 					_numEMIterations = std::min<size_t>(10*nIT, nIT*_depthOrProbs[0]/_depthOrProbs[i]); // may need a bit longer
 				} else {
@@ -275,8 +277,6 @@ void TEstimateHKY85::run() {
 				}
 
 				if (_sample == Sample::reads) {
-					const auto p = P(_depthOrProbs[i]);
-					logfile().list("Downsampling reads to probability ", p, ".");
 					const auto &sites = _sites_P[r][i];
 					const auto &stat  = _stats_P[r][i];
 
@@ -290,11 +290,9 @@ void TEstimateHKY85::run() {
 					for (auto &site : sites) {
 						if (_sample == Sample::sites) {
 							const auto p = P(_depthOrProbs[i]);
-							logfile().list("Downsampling sites to probability ", p, ".");
 							site.downsample(p);
 						}else /* _sample == Sample::upTo */ {
 							const int d = int(_depthOrProbs[i]);
-							logfile().list("Downsampling sites a maximum depth of", d, ".");
 							site.downsample(d);
 						}
 						depth += site.depth();
