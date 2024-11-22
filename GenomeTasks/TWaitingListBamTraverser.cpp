@@ -209,7 +209,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 			} else {
 				// both mates available
 				if (alignment.readGroupId() != mate->alignment.readGroupId()) {
-					UERROR("Mates '", alignment.name(), "' are in different read groups!");
+					UERROR("Alignment '", alignment.name(), "' with read group ID ", alignment.readGroupId(), " and mate '", mate->alignment.name(), "' with read group ID ", mate->alignment.readGroupId(), " do not match!");
 				}
 				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
 				if(!_masks.keepPaired(alnWin, mateWin)){
