@@ -26,6 +26,7 @@ class TBamWindows {
 
 	bool _applyDepthFilter;
 	bool _filterCpG;
+	bool _shuffleSites = false;
 
 	coretools::TNumericRange<size_t> _depthFilter;
 	std::unique_ptr<coretools::TSubsamplePicker> _subsamplePicker;

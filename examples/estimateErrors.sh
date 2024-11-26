@@ -26,7 +26,7 @@ echo "readGroup poolWith" > pmd.pool
 echo "SimReadGroup3 SimReadGroup1" >> pmd.pool
 
 out="estimateErrors"
-$atlas --task estimateErrors --minDeltaLL $delta \
+$atlas --task estimateErrors --minDeltaLL $delta --shuffleSites \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --poolRecal "all" --poolPMD "all" \
 	   --fixedSeed 81 --out $out --logFile $out.out 2> $out.eout

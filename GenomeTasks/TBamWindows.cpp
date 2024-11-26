@@ -100,6 +100,13 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 			}
 		}
 	}
+	if (parameters().exists("shuffleSites")) {
+		logfile().list("Will shuffle bases at sites. (parameter 'shuffleSites')");
+		_shuffleSites = true;
+	} else {
+		logfile().list("Will not shuffle bases at sites. (use 'shuffleSites')");
+		_shuffleSites = false;
+	}
 	logfile().conclude("Will traverse ", nTot, " windows with cumulative length of ", lTot,
 						   " bp on ", nUsed, " chromosomes.");
 }
@@ -262,6 +269,11 @@ void TBamWindows::fillSites(GenotypeLikelihoods::TWindow &Window) {
 	} else {
 		Window.fillSites(_upToDepth);
 		Window.addReferenceBaseToSites(_parser.reference());
+	}
+	if (_shuffleSites) {
+		for (auto& site: Window) {
+			site.shuffle();
+		}
 	}
 }
 
