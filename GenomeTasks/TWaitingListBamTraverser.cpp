@@ -3,6 +3,7 @@
 #include "TOutputBamFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 #include <memory>
 
@@ -209,7 +210,12 @@ void TWaitingListBamTraverser::traverseBAM() {
 			} else {
 				// both mates available
 				if (alignment.readGroupId() != mate->alignment.readGroupId()) {
-					UERROR("Alignment '", alignment.name(), "' with read group ID ", alignment.readGroupId(), " and mate '", mate->alignment.name(), "' with read group ID ", mate->alignment.readGroupId(), " do not match!");
+					constexpr std::array fise{"first", "second"};
+					UERROR("Alignment '", alignment.name(), "' with read group = ", _genome.bamFile().readGroups()[alignment.readGroupId()].name_ID,
+						   ", CIGAR = ", alignment.cigar().compileString(), ", starting position = ", genometools::TGenomePosition(alignment), ", and ",
+						   fise[alignment.isSecondMate()], " mate '", mate->alignment.name(),
+						   "' with read group = ", _genome.bamFile().readGroups()[mate->alignment.readGroupId()].name_ID,
+						   ", CIGAR = ", mate->alignment.cigar().compileString(), ", starting position = ", genometools::TGenomePosition(mate->alignment), " do not match!");
 				}
 				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
 				if(!_masks.keepPaired(alnWin, mateWin)){
