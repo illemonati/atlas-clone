@@ -66,7 +66,8 @@ void TBamReadMask::setMasks(const genometools::TChromosomes &Chromosomes){
 }
 
 bool TBamReadMask::keepSingle(const genometools::TGenomeWindow& aln) const { 
-	bool discard = (_doMasking && _mask.overlaps(aln)) || (_considerRegions && !_mask.overlaps(aln));
+	const bool discard = (_doMasking && _mask.overlaps(aln)) || (_considerRegions && !_mask.overlaps(aln));
+
 	if (discard) {
 		return _maskIsPorous && coretools::instances::randomGenerator().getRand() < _porousProb;
 	} 
@@ -76,7 +77,8 @@ bool TBamReadMask::keepSingle(const genometools::TGenomeWindow& aln) const {
 bool TBamReadMask::keepPaired(const genometools::TGenomeWindow& aln, const genometools::TGenomeWindow& mate) const {
 	// if masking: neither of both can overlap
 	// if regions: at least one overlaps
-	bool discard = (_doMasking && (_mask.overlaps(aln) || _mask.overlaps(mate))) || (_considerRegions && !_mask.overlaps(aln) && !_mask.overlaps(mate));
+	const bool discard = (_doMasking && (_mask.overlaps(aln) || _mask.overlaps(mate))) || (_considerRegions && !_mask.overlaps(aln) && !_mask.overlaps(mate));
+
 	if (discard) {
 		return _maskIsPorous && coretools::instances::randomGenerator().getRand() < _porousProb;
 	} 

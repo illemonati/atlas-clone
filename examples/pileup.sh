@@ -29,6 +29,11 @@ $atlas --task pileup \
 	   --bam simulate_ind1.bam --fasta simulate.fasta \
 	   --fixedSeed 171 --out $out --logFile $out.out 2> $out.eout
 
+out="bases"
+$atlas --task pileup --shuffleSites --fields "bases" \
+	   --bam simulate_ind2.bam --fasta simulate.fasta \
+	   --fixedSeed 172 --out $out --logFile $out.out 2> $out.eout
+
 out="printAll"
 $atlas --task pileup --printAll \
 	   --bam simulate_ind2.bam --fasta simulate.fasta \
@@ -44,5 +49,5 @@ $atlas --task pileup --printAll \
 
 out="multiBam"
 bams=$(ls *.bam)
-$atlas --task pileup --fields "depth,bases,sampleBases" --bam "$bams"  \
+$atlas --task pileup --fields "depth,bases,sampleBases" --bam "$bams" \
 	   --fixedSeed 179 --out $out --logFile $out.out 2> $out.eout
