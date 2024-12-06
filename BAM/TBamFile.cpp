@@ -324,6 +324,7 @@ bool TBamFile::readNextAlignment(){
 
 	//check if chromosome changed
 	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){
+		_chrChanged = true;
 		//advance chromosome
 		if(_curChromosome == _chromosomes.end()){
 			_curChromosome = _chromosomes.begin();
@@ -353,12 +354,9 @@ bool TBamFile::readNextAlignment(){
 			}
 
 			//jump reader and read first alignment
-			jump(_curChromosome->from());
-			if(!_bamReader.GetNextAlignment(_curBamAlignment)){
-				return false;
-			}
+			if (!jump(_curChromosome->from())) return false;
+			return readNextAlignment();
 		}
-		_chrChanged = true;
 	} else {
 		_chrChanged = false;
 	}
