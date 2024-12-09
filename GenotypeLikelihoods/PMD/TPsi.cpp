@@ -148,7 +148,9 @@ void TPsi::estimate() noexcept {
 		auto &tSum   = _tableSums[e][t];
 
 		table.clear();
-		for (auto &ts : tSum) {
+		//for (auto &ts : tSum) {
+		for (size_t i = 0; i < tSum.size(); ++i) {
+			auto& ts = tSum[i];
 			const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
 			table.emplace_back(PMD);
 			ts.numDenom.num   = 0.;
@@ -174,53 +176,89 @@ void TPsi::_printTable(std::string_view FName) {
 	}
 }
 
-void TPsi::estimateInit(std::string_view OutputName) noexcept {
-	_printTable(toString(OutputName, "_PsiTable.txt.gz"));
+void TPsi::_initEnd(End e) {
 	constexpr int Nmin      = 100;
 	constexpr double PMDmin = 1e-9;
-	for (auto e = End::min; e < End::max; ++e) {
-		coretools::TStrongArray<double, Type> sums{};
-		for (auto t = Type::min; t < Type::max; ++t) {
-			auto &table = _tables[e][t];
-			table.clear();
 
-			auto &tSum = _tableSums[e][t];
-			if (tSum.empty()) continue;
+	coretools::TStrongArray<double, Type> sums{};
+	for (auto t = Type::min; t < Type::max; ++t) {
+		auto &table = _tables[e][t];
+		table.clear();
 
-			while (tSum.size() > 1) {
-				const auto &ts = tSum.back();
-				auto &ts_m     = *(tSum.end() - 2);
+		auto &tSum = _tableSums[e][t];
+		if (tSum.empty()) continue;
 
-				if (ts.fromTo.fromSum < Nmin || ts.fromTo.toSum < Nmin) {
-					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
-					ts_m.fromTo.fromTo += ts.fromTo.fromTo;
-					ts_m.fromTo.toSum += ts.fromTo.toSum;
-					ts_m.fromTo.toFrom += ts.fromTo.toFrom;
-					tSum.pop_back();
-				} else {
-					break;
-				}
-			}
+		while (tSum.size() > 1) {
+			const auto &ts = tSum.back();
+			auto &ts_m     = *(tSum.end() - 2);
 
-			for (auto &ts : tSum) {
-				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
-				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				const auto PMD    = std::max(PMDmin, (fromTo - toFrom) / (1.0 - toFrom));
-				// once 0, always 0, so add something small
-
-				table.emplace_back(PMD);
-				sums[t] += table.back();
-
-				// Prepare ts for probabilistic sum
-				ts.numDenom.num   = 0.;
-				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+			if (ts.fromTo.fromSum < Nmin || ts.fromTo.toSum < Nmin) {
+				ts_m.fromTo.fromSum += ts.fromTo.fromSum;
+				ts_m.fromTo.fromTo += ts.fromTo.fromTo;
+				ts_m.fromTo.toSum += ts.fromTo.toSum;
+				ts_m.fromTo.toFrom += ts.fromTo.toFrom;
+				tSum.pop_back();
+			} else {
+				break;
 			}
 		}
-		// Either CT or GA
-		const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
-		_tableSums[e][worseType].clear();
-		_tables[e][worseType] = {P(0.)};
+
+		for (auto &ts : tSum) {
+			const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
+			const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
+			const auto PMD    = std::max(PMDmin, (fromTo - toFrom) / (1.0 - toFrom));
+			// once 0, always 0, so add something small
+
+			table.emplace_back(PMD);
+			sums[t] += table.back();
+
+			// Prepare ts for probabilistic sum
+			ts.numDenom.num   = 0.;
+			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+		}
 	}
+	// Either CT or GA
+	const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
+	_tableSums[e][worseType].clear();
+	_tables[e][worseType] = {P(0.)};
+}
+
+void TPsi::_joinTables() noexcept {
+	for (auto t = Type::min; t < Type::max; ++t) {
+		const auto &ts3 = _tableSums[End::from3][t];
+		auto &ts5       = _tableSums[End::from5][t];
+
+		if (ts3.size() > ts5.size())
+			ts5.resize(ts3.size());
+
+		for (size_t i = 0; i < ts3.size(); ++i) {
+			// if ts5.size() > ts3.size(), we only go to ts3.size()
+			ts5[i].fromTo.fromTo += ts3[i].fromTo.fromTo;
+			ts5[i].fromTo.fromSum += ts3[i].fromTo.fromSum;
+			ts5[i].fromTo.toFrom += ts3[i].fromTo.toFrom;
+			ts5[i].fromTo.toSum += ts3[i].fromTo.toSum;
+		}
+	}
+}
+
+void TPsi::estimateInit(std::string_view OutputName) noexcept {
+	using coretools::instances::logfile;
+	const auto fn = toString(OutputName, "_PsiTable.txt.gz");
+	logfile().list("Writing countTable '", fn, "'.");
+	_printTable(toString(OutputName, "_PsiTable.txt.gz"));
+
+	if (paired()) {
+		logfile().list("Assuming paired-ended read.");
+
+		// only 5' end
+		_joinTables();
+		_tables[End::from3][Type::CT] = {P(0.)};
+		_tables[End::from3][Type::GA] = {P(0.)};
+	} else {
+		logfile().list("Assuming single-ended read.");
+		_initEnd(End::from3);
+	}
+	_initEnd(End::from5);
 }
 
 void TPsi::log() const noexcept {
@@ -229,6 +267,8 @@ void TPsi::log() const noexcept {
 
 	bool hasAny = false;
 	for (auto e = End::min; e < End::max; ++e) {
+		if (paired() && e == End::from3) continue;
+
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {

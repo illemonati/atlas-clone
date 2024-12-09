@@ -141,6 +141,7 @@ void TAlignment::_parseBasesQualities() {
 		b.bamID          = _bamID;
 		b.mappingQuality = _mappingQuality;
 		b.fragmentLength = TLogInt::fromLinear(_fragmentLength);
+		b.set<Flags::Paired>(_flags.isPaired());
 		b.set<Flags::SecondMate>(_flags.isSecondMate());
 		b.set<Flags::ReversedStrand>(_flags.isReverseStrand());
 		return b;

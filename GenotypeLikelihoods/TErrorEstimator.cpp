@@ -163,6 +163,7 @@ void TErrorEstimator::_identifyModels() {
 			}
 		}
 		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+		else logfile().list("Assuming paired-ended read.");
 		logfile().endIndent();
 	}
 	logfile().endIndent();
@@ -434,7 +435,9 @@ void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 
 	_regionSites[Region].emplace_back(Site);
 	_dataTables.add(Site);
-	for (const auto &data : Site) _pmd.model(data).psi()->add(data, Site.refBase);
+	for (const auto &data : Site) {
+		_pmd.model(data).psi()->add(data, Site.refBase);
+	}
 }
 
 void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {

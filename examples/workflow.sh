@@ -34,11 +34,11 @@ echo '{
 		[0.4, 0.25, 0.35, 0.0]]
       }
     },
-    "pmd": "CT5:0.27*exp(-0.3*p)+0.01;GA3:0.27*exp(-0.3*p)+0.01"
+    "pmd": "CT5:0.27*exp(-0.3*p)+0.01"
   }
 }' > workflow.json
 
-delta=0.1
+delta=0.001
 
 N=50
 if [[ "$#" -eq 1 ]]; then
@@ -50,7 +50,7 @@ L="${N}$k"
 out="simulate"
 $atlas --task simulate --RGInfo "workflow.json" \
 	   --type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.015 \
-	   --chrLength $L,$L --depth 10 --ploidy 2,1 \
+	   --chrLength $L --depth 10 --ploidy 2 \
 	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
 out="BAMDiagnostics"
@@ -64,7 +64,7 @@ $atlas --task mergeOverlappingReads  \
 
 bam=merge_merged.bam
 
-depth="10,5,3,2"
+depth="10,5,3,2,1"
 out=HK85upTo_raw
 $atlas --task HKY85 --minDeltaLL $delta --genomeWide \
 	   --depth $depth --sample upToDepth \
@@ -78,7 +78,7 @@ $atlas --task HKY85 --minDeltaLL $delta --genomeWide \
 	   --RGInfo workflow.json \
 	   --fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
-probs="0.5,0.2,0.1,0.05,0.02"
+probs="0.5,0.2,0.1,0.05,0.02,0.01"
 out=HK85reads_raw
 $atlas --task HKY85 --minDeltaLL $delta --genomeWide \
 	   --prob $probs --sample reads \
@@ -92,9 +92,22 @@ $atlas --task HKY85 --minDeltaLL $delta --genomeWide \
 	   --RGInfo workflow.json \
 	   --fixedSeed 6 --out $out --logFile $out.out 2> $out.eout
 
+out=HK85sites_raw
+$atlas --task HKY85 --minDeltaLL $delta --genomeWide \
+	   --prob $probs --sample sites \
+	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
+	   --fixedSeed 6 --out $out --logFile $out.out 2> $out.eout
+
+out=HK85sites_truth
+$atlas --task HKY85 --minDeltaLL $delta --genomeWide \
+	   --prob $probs --sample sites \
+	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
+	   --RGInfo workflow.json \
+	   --fixedSeed 6 --out $out --logFile $out.out 2> $out.eout
+
 out=ee
 $atlas --task estimateErrors --minDeltaLL $delta \
-	   --bam $bam --fasta simulate.fasta  --chr "chr1,chr2" \
+	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
 	   --poolRecal "all" --poolPMD "all" \
 	   --fixedSeed 7 --out $out --logFile $out.out 2> $out.eout
 
@@ -113,3 +126,10 @@ $atlas --task HKY85 --minDeltaLL $delta --genomeWide \
 	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
 	   --RGInfo $ee \
 	   --fixedSeed 9 --out $out --logFile $out.out 2> $out.eout
+
+out=HK85sites_ee
+$atlas --task HKY85 --minDeltaLL $delta --genomeWide \
+	   --prob $probs --sample sites \
+	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
+	   --RGInfo $ee \
+	   --fixedSeed 6 --out $out --logFile $out.out 2> $out.eout

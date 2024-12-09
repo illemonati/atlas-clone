@@ -20,7 +20,7 @@ namespace BAM {
 
 enum class End : size_t {min, from5=min, from3, max};
 enum class Mate : size_t {min, first=min, second, max};
-enum class Flags: size_t {min, ReversedStrand = min, SecondMate, Aligned, SoftClipped, max};
+enum class Flags: size_t {min, ReversedStrand = min, Paired, SecondMate, Aligned, SoftClipped, max};
 
 inline std::string toString(Mate m) {
 	constexpr coretools::TStrongArray<std::string_view, Mate> mates{{"Mate1", "Mate2"}};
@@ -54,7 +54,7 @@ struct TSequencedBase {
 	uint16_t bamID          = -1;
 
 	constexpr Mate mate() const noexcept {return static_cast<Mate>(get<Flags::SecondMate>());}
-	constexpr End end() const noexcept {return distFrom5 < distFrom3 ? End::from5 : End::from3;}
+	constexpr End end() const noexcept {return distFrom3 < distFrom5 ? End::from3 : End::from5;}
 	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
 
