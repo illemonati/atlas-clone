@@ -1,6 +1,7 @@
 #include "TPsi.h"
 
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
@@ -63,6 +64,7 @@ std::string toString(End end) {
 	if (end == End::from5) return "5";
 	else return "3";
 }
+
 
 
 } // namespace impl
@@ -155,7 +157,25 @@ void TPsi::estimate() noexcept {
 	}
 }
 
-void TPsi::estimateInit() noexcept {
+void TPsi::_printTable(std::string_view FName) {
+	coretools::TOutputFile oFile(FName);
+	for (auto e = End::min; e < End::max; ++e) {
+		for (auto t = Type::min; t < Type::max; ++t) {
+			oFile.write(impl::toString(t) + impl::toString(e));
+			auto &tSum = _tableSums[e][t];
+			for (const auto ts: tSum) {
+				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
+				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
+				const auto PMD    = std::max(0., (fromTo - toFrom) / (1.0 - toFrom));
+				oFile.writeNoDelim(ts.fromTo.fromTo, "/", ts.fromTo.fromSum, ";", ts.fromTo.toFrom, "/", ts.fromTo.toSum, ":", PMD).writeDelim();
+			}
+			oFile.endln();
+		}
+	}
+}
+
+void TPsi::estimateInit(std::string_view OutputName) noexcept {
+	_printTable(toString(OutputName, "_PsiTable.txt.gz"));
 	constexpr int Nmin      = 100;
 	constexpr double PMDmin = 1e-9;
 	for (auto e = End::min; e < End::max; ++e) {

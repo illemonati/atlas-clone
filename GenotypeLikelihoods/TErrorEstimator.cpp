@@ -185,7 +185,7 @@ void TErrorEstimator::_identifyModels() {
 		else logfile().write(".");
 
 		_psis.push_back(pmd.psi());
-		_psis.back()->estimateInit();
+		_psis.back()->estimateInit(_genome.outputName());
 	}
 	logfile().endIndent();
 }

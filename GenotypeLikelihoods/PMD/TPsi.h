@@ -46,6 +46,7 @@ class TPsi {
 	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, Type>, BAM::End> _tables;
 	coretools::TStrongArray<coretools::TStrongArray<std::vector<SumType>, Type>, BAM::End> _tableSums;
 
+	void _printTable(std::string_view FName);
 	void _fromString(std::string_view Psi);
 	void _parse(const BAM::RGInfo::TInfo & info);
 
@@ -131,7 +132,7 @@ public:
 	}
 
 	void estimate() noexcept;
-	void estimateInit() noexcept;
+	void estimateInit(std::string_view OutputName) noexcept;
 
 	void log() const noexcept;
 
