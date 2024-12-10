@@ -5,16 +5,15 @@
 echo '{
   "RG1": {
   "readGroup": "RG1",
-  "frequency": "1.0",
   "seqType": "paired",
   "seqCycles": "100",
-  "fragmentLength": "normal(50,10)[30,101]",
+  "fragmentLength": "normal(200,10)[30,101]",
   "baseQuality": "categorical(12:1237,22:845,27:1912,32:21069,37:34246,41:339557)",
   "mappingQuality": "normal(70,10)[30,60]",
   "softClipping": "poisson(0.5)[0,20]",
   "recal": {
     "Mate1": {
-	  "intercept": 0.0,
+	  "intercept": -1.0,
 	  "position": {"polynomial": [0.02]},
 	  "quality": {"polynomial": [0.95,0.01]},
 	  "rho": [
@@ -24,9 +23,10 @@ echo '{
 		[0.275, 0.45, 0.275, 0.0]]
       },
     "Mate2": {
-	  "intercept": 2.0,
-	  "position": {"polynomial": [0.02]},
-	  "quality": {"polynomial": [0.95,0.01]},
+	  "intercept": -5.0,
+	  "position": {"polynomial": [0.01]},
+	  "quality": {"polynomial": [1.05,-0.01]},
+      "fragmentLength": {"polynomial": [0.05]},
 	  "rho": [
 		[0.0, 0.35, 0.25, 0.4],
 		[0.16, 0.0, 0.01, 0.81],
@@ -35,10 +35,41 @@ echo '{
       }
     },
     "pmd": "CT5:0.27*exp(-0.3*p)+0.01"
+  },
+  "RG2": {
+  "readGroup": "RG2",
+  "seqType": "paired",
+  "seqCycles": "150",
+  "fragmentLength": "normal(200,10)[30,101]",
+  "baseQuality": "categorical(12:1237,22:845,27:1912,32:21069,37:34246,41:339557)",
+  "mappingQuality": "normal(60,10)[30,60]",
+  "softClipping": "poisson(0.2)[0,5]",
+  "recal": {
+    "Mate1": {
+	  "intercept": 0.0,
+	  "quality": {"polynomial": [0.95,0.01]},
+	  "rho": [
+		[0.0, 0.2, 0.2, 0.6],
+		[0.2, 0.0, 0.6, 0.2],
+		[0.6, 0.2, 0.0, 0.2],
+		[0.333, 0.333, 0.333, 0.0]]
+      },
+    "Mate2": {
+	  "intercept": -5.0,
+	  "position": {"polynomial": [0.01]},
+      "fragmentLength": {"polynomial": [0.05]},
+	  "rho": [
+		[0.0, 0.3, 0.3, 0.4],
+		[0.3, 0.0, 0.4, 0.3],
+		[0.333, 0.333, 0.0, 0.333],
+		[0.4, 0.3, 0.3, 0.0]]
+      }
+    },
+    "pmd": "CT5:0.12*exp(-0.3*p)+0.01"
   }
 }' > workflow.json
 
-delta=0.001
+delta=0.0001
 
 N=50
 if [[ "$#" -eq 1 ]]; then
@@ -110,6 +141,8 @@ $atlas --task estimateErrors --minDeltaLL $delta \
 	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
 	   --poolRecal "all" --poolPMD "all" \
 	   --fixedSeed 7 --out $out --logFile $out.out 2> $out.eout
+
+exit
 
 ee=ee_RGInfo.json
 

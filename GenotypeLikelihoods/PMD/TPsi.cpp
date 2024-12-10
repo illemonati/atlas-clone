@@ -225,8 +225,8 @@ void TPsi::_initEnd(End e) {
 
 void TPsi::_joinTables() noexcept {
 	for (auto t = Type::min; t < Type::max; ++t) {
-		const auto &ts3 = _tableSums[End::from3][t];
-		auto &ts5       = _tableSums[End::from5][t];
+		auto &ts3 = _tableSums[End::from3][t];
+		auto &ts5 = _tableSums[End::from5][t];
 
 		if (ts3.size() > ts5.size())
 			ts5.resize(ts3.size());
@@ -238,6 +238,7 @@ void TPsi::_joinTables() noexcept {
 			ts5[i].fromTo.toFrom += ts3[i].fromTo.toFrom;
 			ts5[i].fromTo.toSum += ts3[i].fromTo.toSum;
 		}
+		ts3.clear();
 	}
 }
 
