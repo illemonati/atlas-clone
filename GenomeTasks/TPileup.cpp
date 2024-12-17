@@ -10,7 +10,10 @@
 #include <algorithm>
 #include <vector>
 
+#include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Containers/TView.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
@@ -156,6 +159,7 @@ TPileup::TPileup() {
 		_histSettings.set<Hist::Quality>(impl::parseField(histograms, "qualities", "Base qualities"));
 		_histSettings.set<Hist::Contexts>(impl::parseField(histograms, "contexts", "Base contexts"));
 		_histSettings.set<Hist::AllelicDepth>(impl::parseField(histograms, "allelicDepth", "Allelic depth"));
+		_histSettings.set<Hist::Transitions>(impl::parseField(histograms, "transitions", "ref to base transition"));
 		logfile().endIndent();
 
 		// check if unknown fields were given
@@ -191,6 +195,15 @@ TPileup::TPileup() {
 				logfile().list("Will only print cells with non-zero counts. (use 'includeZero' to print all cells)");
 			}
 		}
+
+		if (_histSettings.get<Hist::Transitions>()) {
+			if (!_windows.parser().reference()) {
+				logfile().warning("Cannot count reference to base transitions without reference!");
+				_histSettings.set<Hist::Transitions>(false);
+			} else {
+				logfile().list("Will create count table of reference-base to data-base transitions.");
+			}
+		}
 	} else {
 		logfile().list("Will not output histograms (use 'histograms' to do so).");
 	}
@@ -198,6 +211,7 @@ TPileup::TPileup() {
 
 void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	using genometools::Base;
+	using BAM::End;
 	logfile().list("Writing pileup ...");
 
 	if (_histSettings.get<Hist::AllelicDepth>()) { logfile().list("Adding sites to allelic depth table ..."); }
@@ -226,9 +240,18 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			for (auto &b : site) { _contextDist.add(b.recalQuality.get(), coretools::index(b.context())); }
 		}
 
+		if (_histSettings.get<Hist::Transitions>()) {
+			for (auto &b : site) {
+				const auto p = b.dist(b.end()).pseudo();
+				if (_transitionsPerPos[b.end()][site.refBase][b.base].size() <= p) {
+					_transitionsPerPos[b.end()][site.refBase][b.base].resize(p + 1);
+				}
+				++_transitionsPerPos[b.end()][site.refBase][b.base][p];
+			}
+		}
+
 		if ((_printSettings.get<Print::OnlySitesWithData>() && site.empty()) || _onlySummary) continue;
-		_out.write(window.chrName(),
-		           window.positionOnChr(pos) + 1); // positions are zero-based internally
+		_out.write(window.chrName(), window.positionOnChr(pos) + 1); // positions are zero-based internally
 
 		if (_windows.parser().reference()) { _out.write(site.refBase); }
 		if (_printSettings.get<Print::Depth>()) {
@@ -295,6 +318,9 @@ void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
 }
 
 void TPileup::run() {
+	using genometools::Base;
+	using genometools::base2char;
+	using BAM::End;
 	_traverseBAMWindows();
 
 	if (_histSettings.get<Hist::Depths>()) {
@@ -307,7 +333,7 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Quality>()) {
 		// print distribution
-		std::string outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
+		const auto outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
 		logfile().list("Writing quality distribution to '", outputFileName, "'.");
 		coretools::TOutputFile out(outputFileName, {"readGroup", "quality", "counts"});
 
@@ -322,7 +348,7 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Contexts>()) {
 		// write counts
-		std::string outputFileName = _genome.front().outputName() + "_contextInformation.txt.gz";
+		const auto outputFileName = _genome.front().outputName() + "_contextInformation.txt.gz";
 		logfile().list("Writing context information to file '", outputFileName, "'.");
 
 		std::vector<std::string> contextLabels;
@@ -337,10 +363,55 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::AllelicDepth>()) {
 		// write to file
-		std::string outputFileName = _genome.front().outputName() + "_allelicDepth.txt.gz";
+		const auto outputFileName = _genome.front().outputName() + "_allelicDepth.txt.gz";
 		logfile().list("Writing allelic depth table to '", outputFileName, "' ...");
 		_counts.write(outputFileName, _writeEmpty);
 		logfile().done();
+	}
+
+	if (_histSettings.get<Hist::Transitions>()) {
+		coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5> rho{};
+		coretools::TStrongArray<size_t, End> max{{0,0}};
+		std::vector<std::string> header{"FromE"};
+		for (auto ref = Base::A; ref <= Base::N; ++ref) {
+			for (auto b = Base::A; b <= Base::N; ++b) {
+				max[End::from5] = std::max(max[End::from5], _transitionsPerPos[End::from5][ref][b].size());
+				max[End::from3] = std::max(max[End::from3], _transitionsPerPos[End::from3][ref][b].size());
+				header.push_back(coretools::str::toString(toString(ref), "-", toString(b)));
+			}
+		}
+		for (auto end = End::min; end < End::max; ++end) {
+			const auto E  = end == End::from5 ? "5" : "3";
+			const auto fn = _genome.front().outputName() + "_transitions" + E + ".txt.gz";
+			logfile().list("Writing transition table of ", E, "'-end to '", fn, "' ...");
+			header.front().back() = E[0];
+			coretools::TOutputFile out(fn, header);
+
+			for (size_t i = 0; i < max[end]; ++i) {
+				out.write(i);
+				for (auto ref = Base::A; ref <= Base::N; ++ref) {
+					for (auto b = Base::A; b <= Base::N; ++b) {
+						if (i < _transitionsPerPos[end][ref][b].size()) {
+							out.write(_transitionsPerPos[end][ref][b][i]);
+							rho[ref][b] += _transitionsPerPos[end][ref][b][i];
+						} else {
+							out.write(0);
+						}
+					}
+				}
+				out.endln();
+			}
+		}
+		const auto fn = _genome.front().outputName() + "_transitionTable.txt.gz";
+		coretools::TOutputFile out(fn, {"ref", "A", "C", "G", "T", "N"});
+		logfile().list("Writing combined transition table ", fn, "' ...");
+		for (auto ref = Base::A; ref <= Base::N; ++ref) {
+			out.write(ref);
+			for (auto b = Base::A; b <= Base::N; ++b) {
+				out.write(rho[ref][b]);
+			}
+			out.endln();
+		}
 	}
 }
 

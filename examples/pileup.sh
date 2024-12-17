@@ -38,7 +38,7 @@ out="printAll"
 $atlas --task pileup --printAll \
 	   --bam simulate_ind2.bam --fasta simulate.fasta \
 	   --window window.txt  --readUpToDepth 97 \
-	   --histograms depth,allelicDepth,contexts,qualities \
+	   --histograms depth,allelicDepth,contexts,qualities,transitions \
 	   --fixedSeed 173 --out $out --logFile $out.out 2> $out.eout
 
 out="regions"

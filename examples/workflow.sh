@@ -88,6 +88,11 @@ out="BAMDiagnostics"
 $atlas --task BAMDiagnostics --bam simulate.bam --mergeInput \
 	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
+out="pileup"
+$atlas --task pileup --onlySummaries --histograms depth,transitions \
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
+
 out="merge"
 $atlas --task mergeOverlappingReads  \
 	   --bam simulate.bam --readGroupSettings BAMDiagnostics_mergeInput.txt \

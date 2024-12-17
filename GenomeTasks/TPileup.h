@@ -8,6 +8,7 @@
 #ifndef GENOMETASKS_TPILEUP_H_
 #define GENOMETASKS_TPILEUP_H_
 
+#include "TSequencedBase.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TBamWindowTraverser.h"
@@ -28,11 +29,12 @@ private:
 	coretools::TCountDistribution<> _depthPerSitePerChromosome;
 	coretools::TCountDistributionVector<> _qualDist;
 	coretools::TCountDistributionVector<> _contextDist;
+	coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<size_t>, genometools::Base, 5>, genometools::Base, 5>, BAM::End> _transitionsPerPos;
 
 	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
 	coretools::TStrongBitSet<Print> _printSettings;
 
-	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, max};
+	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, max};
 	coretools::TStrongBitSet<Hist> _histSettings;
 
 	TAllelicDepthCounts _counts;
