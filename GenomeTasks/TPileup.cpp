@@ -201,7 +201,18 @@ TPileup::TPileup() {
 				logfile().warning("Cannot count reference to base transitions without reference!");
 				_histSettings.set<Hist::Transitions>(false);
 			} else {
+				using genometools::Base;
 				logfile().list("Will create count table of reference-base to data-base transitions.");
+
+				std::vector<std::string> header{"Chr", "Mate", "Strand", "End", "Pos"};
+				for (auto ref = Base::min; ref < Base::max; ++ref) {
+					for (auto b = Base::min; b < Base::max; ++b) {
+						header.push_back(coretools::str::toString(toString(ref), "-", toString(b)));
+					}
+				}
+				_outTransitions.open(_genome.front().outputName() + "_transitions.txt.gz", header);
+				_outTransitionsRel.open(_genome.front().outputName() + "_transitionsRel.txt.gz", header);
+				_outRho.open(_genome.front().outputName() + "_rho.txt.gz", {"Chr", "Mate", "Strand", "End", "ref", "A", "C", "G", "T", "A_rel", "C_rel", "G_rel", "T_rel"});
 			}
 		}
 	} else {
@@ -242,11 +253,14 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 
 		if (_histSettings.get<Hist::Transitions>()) {
 			for (auto &b : site) {
+				if (b.base == Base::N) continue;
+
 				const auto p = b.dist(b.end()).pseudo();
-				if (_transitionsPerPos[b.end()][site.refBase][b.base].size() <= p) {
-					_transitionsPerPos[b.end()][site.refBase][b.base].resize(p + 1);
+				auto& trans = _transitionsChr[b.mate()][b.strand()][b.end()];
+				if (trans.size() <= p) {
+					trans.resize(p + 1);
 				}
-				++_transitionsPerPos[b.end()][site.refBase][b.base][p];
+				++trans[p][site.refBase][b.base];
 			}
 		}
 
@@ -266,7 +280,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			} else {
 				coretools::TStrongArray<size_t, Base> counts{};
 				size_t tot = 0;
-				for (auto b : sBases) {
+				for (const auto b : sBases) {
 					_out.writeNoDelim(b);
 					++counts[b];
 					++tot;
@@ -291,7 +305,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		}
 		if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
 			const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
-			auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
+			const auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
 			if (_printSettings.get<Print::Likelihoods>()) { _out.write(genoLik, genometools::toString(g)); }
 			if (_printSettings.get<Print::HML>()) { _out.write(genometools::isHeterozygous(g)); }
 		}
@@ -311,16 +325,38 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 }
 
 void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
+	using genometools::Base;
+	using BAM::End;
+	using BAM::Strand;
+	using BAM::Mate;
 	if (_histSettings.get<Hist::Depths>()) {
 		_outDepthPerChromosome.writeln(Chr.name(), _depthPerSitePerChromosome.mean());
 		_depthPerSitePerChromosome.clear();
+	}
+	if (_histSettings.get<Hist::Transitions>()) {
+		_writeTransitions(_transitionsChr, Chr.name());
+		for (auto mate = Mate::min; mate < Mate::max; ++mate) {
+			for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+				for (auto end = End::min; end < End::max; ++end) {
+					auto &chr = _transitionsChr[mate][strand][end];
+					auto &tot = _transitionsTot[mate][strand][end];
+					if (tot.size() < chr.size()) { tot.resize(chr.size(), {}); }
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						for (auto b = Base::min; b < Base::max; ++b) {
+							for (size_t i = 0; i < chr.size(); ++i) {
+								tot[i][ref][b] += chr[i][ref][b];
+							}
+						}
+					}
+					chr.clear();
+				}
+			}
+		}
 	}
 }
 
 void TPileup::run() {
 	using genometools::Base;
-	using genometools::base2char;
-	using BAM::End;
 	_traverseBAMWindows();
 
 	if (_histSettings.get<Hist::Depths>()) {
@@ -370,49 +406,78 @@ void TPileup::run() {
 	}
 
 	if (_histSettings.get<Hist::Transitions>()) {
-		coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5> rho{};
-		coretools::TStrongArray<size_t, End> max{{0,0}};
-		std::vector<std::string> header{"FromE"};
-		for (auto ref = Base::A; ref <= Base::N; ++ref) {
-			for (auto b = Base::A; b <= Base::N; ++b) {
-				max[End::from5] = std::max(max[End::from5], _transitionsPerPos[End::from5][ref][b].size());
-				max[End::from3] = std::max(max[End::from3], _transitionsPerPos[End::from3][ref][b].size());
-				header.push_back(coretools::str::toString(toString(ref), "-", toString(b)));
+		_writeTransitions(_transitionsTot, "All");
+	}
+}
+
+void TPileup::_writeRho(const Rho& rho, std::string_view mate, std::string_view strand, std::string_view end, std::string_view Chr) {
+	using genometools::Base;
+	using BAM::End;
+	using BAM::Strand;
+	using BAM::Mate;
+	for (auto ref = Base::min; ref < Base::max; ++ref) {
+		_outRho.write(Chr, mate, strand, end, ref);
+		size_t tot = 0;
+		for (auto b = Base::min; b < Base::max; ++b) {
+			tot += rho[ref][b];
+			_outRho.write(rho[ref][b]);
+		}
+		tot -= rho[ref][ref];
+		for (auto b = Base::min; b < Base::max; ++b) {
+			if (ref == b) {
+				_outRho.write("  -  ");
+			}
+			else if (tot == 0) {
+				_outRho.write("0.000");
+			} else {
+				_outRho.write(fmt::format("{:.3f}",double(rho[ref][b])/tot));
 			}
 		}
-		for (auto end = End::min; end < End::max; ++end) {
-			const auto E  = end == End::from5 ? "5" : "3";
-			const auto fn = _genome.front().outputName() + "_transitions" + E + ".txt.gz";
-			logfile().list("Writing transition table of ", E, "'-end to '", fn, "' ...");
-			header.front().back() = E[0];
-			coretools::TOutputFile out(fn, header);
+		_outRho.endln();
+	}
+}
 
-			for (size_t i = 0; i < max[end]; ++i) {
-				out.write(i);
-				for (auto ref = Base::A; ref <= Base::N; ++ref) {
-					for (auto b = Base::A; b <= Base::N; ++b) {
-						if (i < _transitionsPerPos[end][ref][b].size()) {
-							out.write(_transitionsPerPos[end][ref][b][i]);
-							rho[ref][b] += _transitionsPerPos[end][ref][b][i];
-						} else {
-							out.write(0);
+void TPileup::_writeTransitions(const Transitions &transitions, std::string_view Chr) {
+	using genometools::base2char;
+	using genometools::Base;
+	using BAM::End;
+	using BAM::Strand;
+	using BAM::Mate;
+	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> rhoAll{};
+	for (auto mate = Mate::min; mate < Mate::max; ++mate) {
+		for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+			for (auto end = End::min; end < End::max; ++end) {
+				coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> rho{};
+				auto &tr = transitions[mate][strand][end];
+				for (size_t i = 0; i < tr.size(); ++i) {
+					_outTransitions.write(Chr, mate, strand, end, i);
+					_outTransitionsRel.write(Chr, mate, strand, end, i);
+
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						size_t tot = 0;
+						for (auto b = Base::min; b < Base::max; ++b) {
+							_outTransitions.write(tr[i][ref][b]);
+							tot += tr[i][ref][b];
+							rho[ref][b] += tr[i][ref][b];
+							rhoAll[ref][b] += tr[i][ref][b];
+						}
+						for (auto b = Base::min; b < Base::max; ++b) {
+							if (tot == 0) {
+								_outTransitionsRel.write("0.000");
+							} else {
+								_outTransitionsRel.write(fmt::format("{:.3f}", double(tr[i][ref][b]) / tot));
+								tot += tr[i][ref][b];
+							}
 						}
 					}
+					_outTransitions.endln();
+					_outTransitionsRel.endln();
 				}
-				out.endln();
+				if (!tr.empty()) _writeRho(rho, toString(mate), toString(strand), toString(end), Chr);
 			}
-		}
-		const auto fn = _genome.front().outputName() + "_transitionTable.txt.gz";
-		coretools::TOutputFile out(fn, {"ref", "A", "C", "G", "T", "N"});
-		logfile().list("Writing combined transition table ", fn, "' ...");
-		for (auto ref = Base::A; ref <= Base::N; ++ref) {
-			out.write(ref);
-			for (auto b = Base::A; b <= Base::N; ++b) {
-				out.write(rho[ref][b]);
-			}
-			out.endln();
 		}
 	}
+	_writeRho(rhoAll, "Both", "Both", "Both", Chr);
 }
 
 } // namespace GenomeTasks

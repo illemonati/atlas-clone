@@ -19,12 +19,23 @@
 namespace BAM {
 
 enum class End : size_t {min, from5=min, from3, max};
+enum class Strand : size_t {min, Fwd=min, Rev, max};
 enum class Mate : size_t {min, first=min, second, max};
 enum class Flags: size_t {min, ReversedStrand = min, Paired, SecondMate, Aligned, SoftClipped, max};
 
 inline std::string toString(Mate m) {
 	constexpr coretools::TStrongArray<std::string_view, Mate> mates{{"Mate1", "Mate2"}};
 	return std::string(mates[m]);
+}
+
+inline std::string toString(End e) {
+	constexpr coretools::TStrongArray<std::string_view, End> ends{{"5", "3"}};
+	return std::string(ends[e]);
+}
+
+inline std::string toString(Strand e) {
+	constexpr coretools::TStrongArray<std::string_view, Strand> strands{{"Fwd", "Rev"}};
+	return std::string(strands[e]);
 }
 
 //---------------------------------------------------------------
@@ -55,6 +66,7 @@ struct TSequencedBase {
 
 	constexpr Mate mate() const noexcept {return static_cast<Mate>(get<Flags::SecondMate>());}
 	constexpr End end() const noexcept {return distFrom3 < distFrom5 ? End::from3 : End::from5;}
+	constexpr Strand strand() const noexcept {return get<Flags::ReversedStrand>() ? Strand::Rev : Strand::Fwd;}
 	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
 

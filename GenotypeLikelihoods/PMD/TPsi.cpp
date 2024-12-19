@@ -60,13 +60,6 @@ std::string toString(Type type) {
 	else return "GA";
 }
 
-std::string toString(End end) {
-	if (end == End::from5) return "5";
-	else return "3";
-}
-
-
-
 } // namespace impl
 
 void TPsi::_fromString(std::string_view Psi) {
@@ -103,7 +96,7 @@ void TPsi::_parse(const BAM::RGInfo::TInfo & Info) {
 		for (auto e = End::min; e < End::max; ++e) {
 			for (auto t = Type::min; t < Type::max; ++t) {
 				auto &v        = _tables[e][t];
-				const auto key = impl::toString(t) + impl::toString(e);
+				const auto key = impl::toString(t) + toString(e);
 				if (!Info.contains(key) || Info[key].empty()) {
 					v = {P(0.)};
 				} else {
@@ -132,7 +125,7 @@ BAM::RGInfo::TInfo TPsi::info() const {
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {
-				const auto key = impl::toString(t) + impl::toString(e);
+				const auto key = impl::toString(t) + toString(e);
 				for (auto p : v) info[key].push_back(p.get()); // explicit conversion from probability to double
 			}
 		}
@@ -163,7 +156,7 @@ void TPsi::_printTable(std::string_view FName) {
 	coretools::TOutputFile oFile(FName);
 	for (auto e = End::min; e < End::max; ++e) {
 		for (auto t = Type::min; t < Type::max; ++t) {
-			oFile.write(impl::toString(t) + impl::toString(e));
+			oFile.write(impl::toString(t) + toString(e));
 			auto &tSum = _tableSums[e][t];
 			for (const auto ts: tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
@@ -274,7 +267,7 @@ void TPsi::log() const noexcept {
 			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {
 				hasAny = true;
-				auto ret = impl::toString(t) + impl::toString(e) + ": [";
+				auto ret = impl::toString(t) + toString(e) + ": [";
 				if (v.size() <= Nmax*2) {
 					for (auto p : v) ret.append(toString(p, ", "));
 				} else {
