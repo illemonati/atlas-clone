@@ -478,6 +478,11 @@ void TPileup::_writeTransitions(const Transitions &transitions, std::string_view
 		}
 	}
 	_writeRho(rhoAll, "Both", "Both", "Both", Chr);
+
+	// Flush once per chromosome
+	_outTransitions.flush();
+	_outTransitionsRel.flush();
+	_outRho.flush();
 }
 
 } // namespace GenomeTasks
