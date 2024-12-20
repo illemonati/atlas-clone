@@ -480,7 +480,7 @@ void TPileup::_writeTransitions(const Transitions &transitions, std::string_view
 					for (auto ref = Base::min; ref < Base::max; ++ref) {
 						for (auto b = Base::min; b < Base::max; ++b) {
 							if (ref == b) {
-								_outTransitionsRho.write("0.000");
+								_outTransitionsPsi.write("0.000");
 							} else {
 								const auto fromTo = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
 								const auto toFrom = tot[b] ? double(tr[i][b][ref]) / tot[b] : 0;
