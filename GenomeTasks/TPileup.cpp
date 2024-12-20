@@ -211,7 +211,8 @@ TPileup::TPileup() {
 					}
 				}
 				_outTransitions.open(_genome.front().outputName() + "_transitions.txt.gz", header);
-				_outTransitionsRel.open(_genome.front().outputName() + "_transitionsRel.txt.gz", header);
+				_outTransitionsPsi.open(_genome.front().outputName() + "_transitionsPsi.txt.gz", header);
+				_outTransitionsRho.open(_genome.front().outputName() + "_transitionsRho.txt.gz", header);
 				_outRho.open(_genome.front().outputName() + "_rho.txt.gz", {"Chr", "Mate", "Strand", "End", "ref", "A", "C", "G", "T", "A_rel", "C_rel", "G_rel", "T_rel"});
 			}
 		}
@@ -451,27 +452,46 @@ void TPileup::_writeTransitions(const Transitions &transitions, std::string_view
 				auto &tr = transitions[mate][strand][end];
 				for (size_t i = 0; i < tr.size(); ++i) {
 					_outTransitions.write(Chr, mate, strand, end, i);
-					_outTransitionsRel.write(Chr, mate, strand, end, i);
-
+					_outTransitionsPsi.write(Chr, mate, strand, end, i);
+					_outTransitionsRho.write(Chr, mate, strand, end, i);
+					coretools::TStrongArray<size_t, genometools::Base> tot{};
 					for (auto ref = Base::min; ref < Base::max; ++ref) {
-						size_t tot = 0;
+						// counts
 						for (auto b = Base::min; b < Base::max; ++b) {
 							_outTransitions.write(tr[i][ref][b]);
-							tot += tr[i][ref][b];
-							rho[ref][b] += tr[i][ref][b];
+							tot[ref]       += tr[i][ref][b];
+							rho[ref][b]    += tr[i][ref][b];
 							rhoAll[ref][b] += tr[i][ref][b];
 						}
+						const auto totRho = tot[ref] - tr[i][ref][ref];
+						// Rho
 						for (auto b = Base::min; b < Base::max; ++b) {
-							if (tot == 0) {
-								_outTransitionsRel.write("0.000");
+							if (ref == b) {
+								_outTransitionsRho.write("  -  ");
+							}
+							else if (totRho == 0) {
+								_outTransitionsRho.write("0.000");
 							} else {
-								_outTransitionsRel.write(fmt::format("{:.3f}", double(tr[i][ref][b]) / tot));
-								tot += tr[i][ref][b];
+								_outTransitionsRho.write(fmt::format("{:.3f}", double(tr[i][ref][b])/totRho));
+							}
+						}
+					}
+					// Psi
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						for (auto b = Base::min; b < Base::max; ++b) {
+							if (ref == b) {
+								_outTransitionsRho.write("0.000");
+							} else {
+								const auto fromTo = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
+								const auto toFrom = tot[b] ? double(tr[i][b][ref]) / tot[b] : 0;
+								const auto Psi    = (fromTo - toFrom) / (1.0 - toFrom);
+								_outTransitionsPsi.write(fmt::format("{:.3f}", Psi));
 							}
 						}
 					}
 					_outTransitions.endln();
-					_outTransitionsRel.endln();
+					_outTransitionsRho.endln();
+					_outTransitionsPsi.endln();
 				}
 				if (!tr.empty()) _writeRho(rho, toString(mate), toString(strand), toString(end), Chr);
 			}
@@ -481,7 +501,8 @@ void TPileup::_writeTransitions(const Transitions &transitions, std::string_view
 
 	// Flush once per chromosome
 	_outTransitions.flush();
-	_outTransitionsRel.flush();
+	_outTransitionsRho.flush();
+	_outTransitionsPsi.flush();
 	_outRho.flush();
 }
 
