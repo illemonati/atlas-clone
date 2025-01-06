@@ -25,6 +25,7 @@ private:
 	coretools::TOutputFile _outDepthHistogram;
 	coretools::TOutputFile _outDepthPerChromosome;
 	coretools::TOutputFile _outTransitions;
+	coretools::TOutputFile _outTransitionsRel;
 	coretools::TOutputFile _outTransitionsPsi;
 	coretools::TOutputFile _outTransitionsRho;
 	coretools::TOutputFile _outRho;
