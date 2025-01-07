@@ -30,9 +30,9 @@ public:
 
 	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
-		_betas.assign(Covariate::N(dataTable[Covariate::index]), NAN);
+		_betas.assign(dataTable[Covariate::index].size(), NAN);
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (Covariate::isUsed(dataTable[Covariate::index], i)) {
+			if (dataTable[Covariate::index][i]) {
 				if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
 					const coretools::Probability p = coretools::Probability(coretools::PhredInt(i));
 					_betas[i] = coretools::logit(p);
