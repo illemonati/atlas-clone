@@ -183,6 +183,7 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 
 void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 	using BAM::End;
+	using GenotypeLikelihoods::PMD::Type;
 	// full P
 
 	logfile().list("Using full data.");
@@ -190,7 +191,10 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 
 	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
 			   window.numSitesWithData(), window.fracMissing(), _genoDist->pis(), LL);
-	if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
+	if (_pmd) {
+		_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
+				   _pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
+	}
 
 	// downsample
 	const auto nIT = _numEMIterations;
@@ -227,7 +231,10 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 			_out.write(double(depth)/window.numSites(), window.numSites(), withData, double(window.numSites() - withData) / window.numSites(),
 					   _genoDist->pis(), LL_p);
 		}
-		if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
+		if (_pmd) {
+			_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
+					   _pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
+		}
 	}
 	_numEMIterations = nIT;
 
@@ -244,6 +251,7 @@ void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 
 void TEstimateHKY85::run() {
 	using BAM::End;
+	using GenotypeLikelihoods::PMD::Type;
 	_traverseBAMWindows();
 	if (_genomeWide) {
 		_openFile();
@@ -264,7 +272,11 @@ void TEstimateHKY85::run() {
 			}
 			_out.write(_stats_full.NData / NSites, NSites, _totSites - _stats_full.NMissing,
 					   double(_stats_full.NMissing - _totMaskedSites) / NSites, pis, LL);
-			if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
+			if (_pmd) {
+				_out.write(
+					_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
+					_pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
+			}
 
 			// downsampled
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
@@ -301,7 +313,12 @@ void TEstimateHKY85::run() {
 					const auto LL_p = _runEM(sites);
 					_out.write(double(depth)/NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(), LL_p);
 				}
-				if (_pmd) _out.write(_pmd->psi()->vals(End::from5).front(), _pmd->psi()->vals(End::from3).front());
+				if (_pmd) {
+					_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(),
+							   _pmd->psi()->vals(End::from5, Type::GA).front(),
+							   _pmd->psi()->vals(End::from3, Type::CT).front(),
+							   _pmd->psi()->vals(End::from3, Type::GA).front());
+				}
 			}
 			_out.endln();
 		}
@@ -401,7 +418,7 @@ void TEstimateHKY85::_openFile() {
 	header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"), toString(sp, "fracMissing")});
 	_genoDist->addHeader(header, sp); //, sp);
 	header.push_back(toString(sp, "LL"));
-	if (_pmd) header.insert(header.end(), {"PMD5", "PMD3"});
+	if (_pmd) header.insert(header.end(), {"CT5", "GA5", "CT3", "GA3"});
 
 	for (const auto p : _depthOrProbs) {
 		const auto sp = toString("p", p, "_");
@@ -409,7 +426,7 @@ void TEstimateHKY85::_openFile() {
 									 toString(sp, "fracMissing")});
 		_genoDist->addHeader(header, sp); //, sp);
 		header.push_back(toString(sp, "LL"));
-		if (_pmd) header.insert(header.end(), {toString(sp, "PMD5"), toString(sp, "PMD3")});
+		if (_pmd) header.insert(header.end(), {toString(sp, "CT5"), toString(sp, "GA5"), toString(sp, "CT3"), toString(sp, "GA3")});
 	}
 
 	_out.open(_genome.outputName() + ".txt.gz");

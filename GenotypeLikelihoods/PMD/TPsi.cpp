@@ -136,18 +136,20 @@ BAM::RGInfo::TInfo TPsi::info() const {
 void TPsi::estimate() noexcept {
 	constexpr double PMDmin = 1e-9;
 	for (auto e = End::min; e < End::max; ++e) {
-		const auto t = type(e);
-		auto &table  = _tables[e][t];
-		auto &tSum   = _tableSums[e][t];
+		//const auto t = type(e);
+		for (auto t = Type::min; t < Type::max; ++t) {
+			auto &table  = _tables[e][t];
+			auto &tSum   = _tableSums[e][t];
 
-		table.clear();
-		//for (auto &ts : tSum) {
-		for (size_t i = 0; i < tSum.size(); ++i) {
-			auto& ts = tSum[i];
-			const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
-			table.emplace_back(PMD);
-			ts.numDenom.num   = 0.;
-			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+			table.clear();
+			// for (auto &ts : tSum) {
+			for (size_t i = 0; i < tSum.size(); ++i) {
+				auto &ts       = tSum[i];
+				const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
+				table.emplace_back(PMD);
+				ts.numDenom.num   = 0.;
+				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+			}
 		}
 	}
 }
@@ -211,9 +213,9 @@ void TPsi::_initEnd(End e) {
 		}
 	}
 	// Either CT or GA
-	const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
+	/*const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
 	_tableSums[e][worseType].clear();
-	_tables[e][worseType] = {P(0.)};
+	_tables[e][worseType] = {P(0.)};*/
 }
 
 void TPsi::_joinTables() noexcept {
@@ -301,10 +303,8 @@ void TPsi::reset(const BAM::RGInfo::TInfo &info) {
 	}();
 
 	for (auto e = End::min; e < End::max; ++e) {
-		if ((_tables[e][Type::CT].size() > _tables[e][Type::GA].size())) {
-			_tableSums[e][Type::CT].assign(_tables[e][Type::CT].size(), stInit);
-		} else {
-			_tableSums[e][Type::GA].assign(_tables[e][Type::GA].size(), stInit);
+		for (auto t = Type::min; t < Type::max; ++t) {
+			_tableSums[e][t].assign(_tables[e][t].size(), stInit);
 		}
 	}
 }

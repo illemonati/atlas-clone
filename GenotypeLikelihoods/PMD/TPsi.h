@@ -143,14 +143,14 @@ public:
 
 	void log() const noexcept;
 
-	Type type(BAM::End E) const noexcept {
+	/*Type type(BAM::End E) const noexcept {
 		return _tables[E][Type::CT].size() > _tables[E][Type::GA].size() ? Type::CT : Type::GA;
-	}
+		}*/
 
 	bool paired() const noexcept {return _nPaired > _nSingle;}
 
-	const std::vector<coretools::Probability>& vals(BAM::End E) const noexcept {
-		return _tables[E][type(E)];
+	const std::vector<coretools::Probability>& vals(BAM::End E, Type T) const noexcept {
+		return _tables[E][T];
 	}
 };
 } // namespace GenotypeLikelihoods::PMD
