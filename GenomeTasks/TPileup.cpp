@@ -8,6 +8,7 @@
 #include "TPileup.h"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 #include "TSequencedBase.h"
@@ -26,6 +27,7 @@ namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::TOutputFile;
 
 namespace impl {
 
@@ -42,6 +44,79 @@ bool parseField(std::set<std::string> &fields, const std::string &tag, const std
 	}
 	return false;
 }
+
+template<typename Transitions>
+void writeTransitions(const Transitions &transitions, std::string_view Chr, TOutputFile& _outTransitions,
+					   TOutputFile& _outTransitionsRel, TOutputFile& _outTransitionsPsi, TOutputFile& _outTransitionsRho) {
+	using BAM::End;
+	using BAM::Mate;
+	using BAM::Strand;
+	using genometools::Base;
+	using genometools::base2char;
+	for (auto mate = Mate::min; mate < Mate::max; ++mate) {
+		for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+			for (auto end = End::min; end < End::max; ++end) {
+				coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> rho{};
+				auto &tr = transitions[mate][strand][end];
+				for (size_t i = 0; i < tr.size(); ++i) {
+					_outTransitions.write(Chr, mate, strand, end, i);
+					_outTransitionsRel.write(Chr, mate, strand, end, i);
+					_outTransitionsPsi.write(Chr, mate, strand, end, i);
+					_outTransitionsRho.write(Chr, mate, strand, end, i);
+					coretools::TStrongArray<size_t, genometools::Base> tot{};
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						// counts
+						for (auto b = Base::min; b < Base::max; ++b) {
+							_outTransitions.write(tr[i][ref][b]);
+							tot[ref]       += tr[i][ref][b];
+							rho[ref][b]    += tr[i][ref][b];
+						}
+						const auto totRho = tot[ref] - tr[i][ref][ref];
+
+						for (auto b = Base::min; b < Base::max; ++b) {
+							//Rel
+							const auto rel = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
+							_outTransitionsRel.write(fmt::format("{:.3f}", rel));
+
+							//Rho
+							if (ref == b) {
+								_outTransitionsRho.write("  -  ");
+							}
+							else {
+								const auto rho = totRho ? double(tr[i][ref][b])/totRho : 0;
+								_outTransitionsRho.write(fmt::format("{:.3f}", rho));
+							}
+						}
+					}
+					// Psi
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						for (auto b = Base::min; b < Base::max; ++b) {
+							if (ref == b) {
+								_outTransitionsPsi.write("0.000");
+							} else {
+								const auto fromTo = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
+								const auto toFrom = tot[b] ? double(tr[i][b][ref]) / tot[b] : 0;
+								const auto Psi    = (fromTo - toFrom) / (1.0 - toFrom);
+								_outTransitionsPsi.write(fmt::format("{:.3f}", Psi));
+							}
+						}
+					}
+					_outTransitions.endln();
+					_outTransitionsRel.endln();
+					_outTransitionsRho.endln();
+					_outTransitionsPsi.endln();
+				}
+			}
+		}
+	}
+
+	// Flush once per chromosome
+	_outTransitions.flush();
+	_outTransitionsRel.flush();
+	_outTransitionsRho.flush();
+	_outTransitionsPsi.flush();
+}
+
 
 } // namespace impl
 
@@ -214,7 +289,6 @@ TPileup::TPileup() {
 				_outTransitionsRel.open(_genome.front().outputName() + "_transitionsRel.txt.gz", header);
 				_outTransitionsPsi.open(_genome.front().outputName() + "_transitionsPsi.txt.gz", header);
 				_outTransitionsRho.open(_genome.front().outputName() + "_transitionsRho.txt.gz", header);
-				_outRho.open(_genome.front().outputName() + "_rho.txt.gz", {"Chr", "Mate", "Strand", "End", "ref", "A", "C", "G", "T", "A_rel", "C_rel", "G_rel", "T_rel"});
 			}
 		}
 	} else {
@@ -336,7 +410,8 @@ void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
 		_depthPerSitePerChromosome.clear();
 	}
 	if (_histSettings.get<Hist::Transitions>()) {
-		_writeTransitions(_transitionsChr, Chr.name());
+		impl::writeTransitions(_transitionsChr, Chr.name(), _outTransitions, _outTransitionsRel, _outTransitionsPsi,
+						  _outTransitionsRho);
 		for (auto mate = Mate::min; mate < Mate::max; ++mate) {
 			for (auto strand = Strand::min; strand < Strand::max; ++strand) {
 				for (auto end = End::min; end < End::max; ++end) {
@@ -408,110 +483,10 @@ void TPileup::run() {
 	}
 
 	if (_histSettings.get<Hist::Transitions>()) {
-		_writeTransitions(_transitionsTot, "All");
+		impl::writeTransitions(_transitionsTot, "All", _outTransitions, _outTransitionsRel, _outTransitionsPsi,
+							   _outTransitionsRho);
 	}
 }
 
-void TPileup::_writeRho(const Rho& rho, std::string_view mate, std::string_view strand, std::string_view end, std::string_view Chr) {
-	using genometools::Base;
-	using BAM::End;
-	using BAM::Strand;
-	using BAM::Mate;
-	for (auto ref = Base::min; ref < Base::max; ++ref) {
-		_outRho.write(Chr, mate, strand, end, ref);
-		size_t tot = 0;
-		for (auto b = Base::min; b < Base::max; ++b) {
-			tot += rho[ref][b];
-			_outRho.write(rho[ref][b]);
-		}
-		tot -= rho[ref][ref];
-		for (auto b = Base::min; b < Base::max; ++b) {
-			if (ref == b) {
-				_outRho.write("  -  ");
-			}
-			else if (tot == 0) {
-				_outRho.write("0.000");
-			} else {
-				_outRho.write(fmt::format("{:.3f}",double(rho[ref][b])/tot));
-			}
-		}
-		_outRho.endln();
-	}
-}
-
-void TPileup::_writeTransitions(const Transitions &transitions, std::string_view Chr) {
-	using genometools::base2char;
-	using genometools::Base;
-	using BAM::End;
-	using BAM::Strand;
-	using BAM::Mate;
-	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> rhoAll{};
-	for (auto mate = Mate::min; mate < Mate::max; ++mate) {
-		for (auto strand = Strand::min; strand < Strand::max; ++strand) {
-			for (auto end = End::min; end < End::max; ++end) {
-				coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> rho{};
-				auto &tr = transitions[mate][strand][end];
-				for (size_t i = 0; i < tr.size(); ++i) {
-					_outTransitions.write(Chr, mate, strand, end, i);
-					_outTransitionsRel.write(Chr, mate, strand, end, i);
-					_outTransitionsPsi.write(Chr, mate, strand, end, i);
-					_outTransitionsRho.write(Chr, mate, strand, end, i);
-					coretools::TStrongArray<size_t, genometools::Base> tot{};
-					for (auto ref = Base::min; ref < Base::max; ++ref) {
-						// counts
-						for (auto b = Base::min; b < Base::max; ++b) {
-							_outTransitions.write(tr[i][ref][b]);
-							tot[ref]       += tr[i][ref][b];
-							rho[ref][b]    += tr[i][ref][b];
-							rhoAll[ref][b] += tr[i][ref][b];
-						}
-						const auto totRho = tot[ref] - tr[i][ref][ref];
-
-						for (auto b = Base::min; b < Base::max; ++b) {
-							//Rel
-							const auto rel = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
-							_outTransitionsRel.write(fmt::format("{:.3f}", rel));
-
-							//Rho
-							if (ref == b) {
-								_outTransitionsRho.write("  -  ");
-							}
-							else {
-								const auto rho = totRho ? double(tr[i][ref][b])/totRho : 0;
-								_outTransitionsRho.write(fmt::format("{:.3f}", rho));
-							}
-						}
-					}
-					// Psi
-					for (auto ref = Base::min; ref < Base::max; ++ref) {
-						for (auto b = Base::min; b < Base::max; ++b) {
-							if (ref == b) {
-								_outTransitionsPsi.write("0.000");
-							} else {
-								const auto fromTo = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
-								const auto toFrom = tot[b] ? double(tr[i][b][ref]) / tot[b] : 0;
-								const auto Psi    = (fromTo - toFrom) / (1.0 - toFrom);
-								_outTransitionsPsi.write(fmt::format("{:.3f}", Psi));
-							}
-						}
-					}
-					_outTransitions.endln();
-					_outTransitionsRel.endln();
-					_outTransitionsRho.endln();
-					_outTransitionsPsi.endln();
-				}
-				if (!tr.empty()) _writeRho(rho, toString(mate), toString(strand), toString(end), Chr);
-			}
-		}
-	}
-	_writeRho(rhoAll, "Both", "Both", "Both", Chr);
-
-	// Flush once per chromosome
-	_outTransitions.flush();
-	_outTransitionsRel.flush();
-	_outTransitionsRho.flush();
-	_outTransitionsPsi.flush();
-	_outRho.flush();
-}
 
 } // namespace GenomeTasks
