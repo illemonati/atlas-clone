@@ -35,7 +35,7 @@ recalModel="intercept;quality;position:polynomial1;fragmentLength:polynomial2;ma
 out="specificModel"
 $atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
 	   --bam simulate.bam --fasta simulate.fasta \
-	   --regions bed1.bed,bed2.bed --ploidy 2,1 --window 45672 --writeRestart \
+	   --regions bed1.bed,bed2.bed --ploidy 2,1 --window 45672 --filePerIteration \
 	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
 	   --fixedSeed 82 --out $out --logFile $out.out 2> $out.eout
 

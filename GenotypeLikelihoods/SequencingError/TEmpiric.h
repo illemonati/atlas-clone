@@ -65,7 +65,6 @@ public:
 		}
 	}
 
-
 	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_vals.clear();
 		_iis.fill(_nope);

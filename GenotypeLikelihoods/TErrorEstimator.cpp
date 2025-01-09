@@ -3,6 +3,7 @@
  *
  */
 #include "TErrorEstimator.h"
+#include "coretools/Strings/toString.h"
 
 namespace GenotypeLikelihoods {
 
@@ -101,7 +102,7 @@ TErrorEstimator::TErrorEstimator()
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ". (parameter maxF)");
 
 	// booleans
-	_writeRestart = parameters().exists("writeRestart");
+	_writeIts = parameters().exists("filePerIteration");
 
 	logfile().endIndent();
 }
@@ -336,6 +337,9 @@ void TErrorEstimator::_runEM() {
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
 	_writeModels("Initial");
+	_recal.addToRGInfo(_genome.rgInfo());
+	_pmd.addToRGInfo(_genome.rgInfo());
+	_genome.rgInfo().write(_genome.outputName() + "_init.json");
 
 	// calculate initial LL
 	double oldLL   = _calculateLL_updatePg();
@@ -375,11 +379,13 @@ void TErrorEstimator::_runEM() {
 		deltaLL         = LL - oldLL;
 		_writeModels("Current");
 
-		if (_writeRestart) {
-			logfile().list("Writing restart file");
-			_recal.addToRGInfo(_genome.rgInfo());
-			_pmd.addToRGInfo(_genome.rgInfo());
-			_genome.rgInfo().write(_genome.outputName() + "_restart.json");
+		// remain up to date!
+		_recal.addToRGInfo(_genome.rgInfo());
+		_pmd.addToRGInfo(_genome.rgInfo());
+		if (_writeIts) {
+			_genome.rgInfo().write(toString(_genome.outputName(), "_",  i,  ".json"));
+		} else {
+			_genome.rgInfo().write(_genome.outputName() + "_current.json");
 		}
 
 		logfile().conclude("Current Log Likelihood = ", LL);
