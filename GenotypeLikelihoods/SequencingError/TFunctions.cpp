@@ -96,6 +96,7 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 	if (info.contains(TEmpiric<Covariate>::name)) {
 		auto fn           = new TEmpiric<Covariate>(index);
 		const auto &betas = info[TEmpiric<Covariate>::name];
+		std::vector<std::pair<size_t, double>> data;
 		for (const std::vector<double> &b : betas) {
 			size_t i;
 			if constexpr (std::is_same_v<Covariate, TCovariate_position>) {
@@ -106,18 +107,9 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 				i = b.front();
 			}
 			const auto v   = b.back();
-
-			if (fn->numParameters() == 0) {
-				for (size_t j = 0; j <= i; ++j) fn->push_back(v);
-			}
-			else if (i >= fn->numParameters()) {
-				const auto back = *(fn->end() - 1);
-				const auto di   = i - (fn->numParameters() - 1);
-				const auto dv   = v - back;
-				const auto dvdi = dv / di;
-				for (size_t j = 1; j <= di; ++j) fn->push_back(back + j * dvdi);
-			}
+			data.emplace_back(i, v);
 		}
+		fn->setData(data);
 		return fn;
 	}
 	return new TNoFunction;
@@ -202,26 +194,23 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 	}
 	if (type == TEmpiric<Covariate>::name) {
 		auto fn     = new TEmpiric<Covariate>(index);
-		size_t size = 0;
-		double back = 0.;
-		if (Spl.empty()) fn->push_back(0.); // Initialize with at least 1 value
+		std::vector<std::pair<size_t, double>> data;
+		if (Spl.empty()) data.emplace_back(0, 0);
 		for (auto s : Spl) {
 			TSplitter ss(s, ':');
 			const auto i = fromString<size_t, true>(strip(ss.front()));
 			ss.popFront();
 			const auto v = fromString<double, true>(strip(ss.front()));
 
-			if (size == 0) { // fill first i positions with v
-				for (size_t j = 0; j <= i; ++j) { fn->push_back(v); }
-			} else {                              // interpolate
-				const auto di   = i - (size - 1); // 1
-				const auto dv   = v - back;       // v
-				const auto dvdi = dv / di;
-				for (size_t j = 1; j <= di; ++j) fn->push_back(back + j * dvdi);
+			if constexpr (std::is_same_v<Covariate, TCovariate_position>) {
+				data.emplace_back(coretools::TPseudoInt::fromLinear(i).pseudo(), v);
+			} else if constexpr (std::is_same_v<Covariate, TCovariate_fragmentLength>) {
+				data.emplace_back(coretools::TLogInt::fromLinear(i).log(), v);
+			} else {
+				data.emplace_back(i, v);
 			}
-			back = v;
-			size = i + 1;
 		}
+		fn->setData(data);
 		return fn;
 	}
 	UERROR("Function '", type, "' does not exist!");
