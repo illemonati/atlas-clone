@@ -114,7 +114,7 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 	}
 
 	_setCigar(Cigar);
-};
+}
 
 void TAlignment::_setCigar(const TCigar &Cigar){
 	_cigar = Cigar;
@@ -125,7 +125,7 @@ void TAlignment::_setCigar(const TCigar &Cigar){
 	} else {
 		_fragmentLength = _cigar.lengthSequenced();
 	}
-};
+}
 
 void TAlignment::_parseBasesQualities() {
 	using genometools::char2base;
@@ -146,9 +146,7 @@ void TAlignment::_parseBasesQualities() {
 		return b;
 	}();
 	_bases.assign(_cigar.lengthRead(), common);
-	//_alignedPosition.resize(_cigar.lengthRead());
-	_alignedPosition.clear();
-	_alignedPosition.reserve(_cigar.lengthRead());
+	_alignedPosition.resize(_cigar.lengthRead());
 	int d = 0; // index regarding data structures and inside read
 	int p = 0; // index regarding reference position (!= d for soft clipping & indels)
 
@@ -166,7 +164,7 @@ void TAlignment::_parseBasesQualities() {
 				_bases[d].originalQuality = fromChar(_qualities[d]);
 				_bases[d].set<Flags::Aligned>(true);
 				_bases[d].set<Flags::SoftClipped>(false);
-				_alignedPosition.push_back(p);
+				_alignedPosition[d] = p;
 			}
 			_lastAlignedPos = d - 1; // Note: for loop ends with d one too large
 			break;
@@ -181,7 +179,7 @@ void TAlignment::_parseBasesQualities() {
 				_bases[d].originalQuality = fromChar(_qualities[d]);
 				_bases[d].set<Flags::Aligned>(false);
 				_bases[d].set<Flags::SoftClipped>(true);
-				_alignedPosition.push_back(-1);
+				_alignedPosition[d] = -1;
 			}
 			break;
 
@@ -192,7 +190,7 @@ void TAlignment::_parseBasesQualities() {
 				_bases[d].originalQuality = fromChar(_qualities[d]);
 				_bases[d].set<Flags::Aligned>(false);
 				_bases[d].set<Flags::SoftClipped>(false);
-				_alignedPosition.push_back(-1);
+				_alignedPosition[d] = -1;
 			}
 			break;
 
@@ -225,12 +223,12 @@ void TAlignment::_parseBasesQualities() {
 
 	_parsed                      = true;
 	_sequenceAndQualitiesChanged = false;
-};
+}
 
 void TAlignment::_setQualitiesNoRecal() {
 	// No recal: set recalibrated quality = original quality
 	for (auto &b : _bases) { b.recalQuality = b.originalQuality; }
-};
+}
 
 void TAlignment::_setDistancesFromEnds() {
 	using coretools::TPseudoInt;
@@ -301,7 +299,7 @@ void TAlignment::_setDistancesFromEnds() {
 			}
 		}
 	}
-};
+}
 
 void TAlignment::_fillContext() {
 	using genometools::Base;
@@ -318,12 +316,12 @@ void TAlignment::_fillContext() {
 		for (size_t d = 1; d < _bases.size(); ++d)
 			_bases[d].previousBase = _bases[d - 1].base;
 	}
-};
+}
 
 void TAlignment::parse() {
 	_parseBasesQualities();
 	_setQualitiesNoRecal();
-};
+}
 
 void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels) {
 	_parseBasesQualities();
@@ -331,7 +329,7 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 	// recalibrate
 	seqErrorModels.recalibrate(*this);
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrates();
-};
+}
 
 void TAlignment::addReference(const genometools::TFastaReader &fasta) {
 	const auto view = fasta.view(refID(), position(), _refSize);
@@ -358,11 +356,12 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 	_parseBasesQualities();
 	_setQualitiesNoRecal();
 	_sequenceAndQualitiesChanged = true; // will trigger that the strings are read form the bases
-};
+}
 
 void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
-};
+}
+
 //get overlap length from previous function and pass it on to cigar constructor
 void TAlignment::merge(uint16_t overlapLength, size_t &mappedBasesClipped) {
 	_setCigar(TCigar(cigar(), overlapLength, !isReverseStrand(), mappedBasesClipped));
@@ -374,7 +373,7 @@ void TAlignment::merge(uint16_t overlapLength, size_t &mappedBasesClipped) {
 bool TAlignment::isAlignedAtInternalPos(size_t internalPosition) const {
 	assert(internalPosition < _alignedPosition.size());
 	return _alignedPosition[internalPosition] >= 0;
-};
+}
 
 uint32_t TAlignment::getLastInternalPos() const {
 	return (_alignedPosition.size()-1);
@@ -384,12 +383,12 @@ genometools::Base TAlignment::referenceAtInternalPos(size_t internalPosition) co
 	assert(isAlignedAtInternalPos(internalPosition));
 	assert((size_t)_alignedPosition[internalPosition] < _referenceSequence.size());
 	return _referenceSequence[_alignedPosition[internalPosition]];
-};
+}
 
 genometools::TGenomePosition TAlignment::positionInRef(size_t internalPosition) const {
 	assert(isAlignedAtInternalPos(internalPosition));
 	return *this + _alignedPosition[internalPosition];
-};
+}
 
 void TAlignment::_updateSequenceAndQualities() const {
 	if (_sequenceAndQualitiesChanged) {
@@ -404,17 +403,17 @@ void TAlignment::_updateSequenceAndQualities() const {
 
 		_sequenceAndQualitiesChanged = false;
 	}
-};
+}
 
 std::string TAlignment::sequence() const {
 	_updateSequenceAndQualities();
 	return _sequence;
-};
+}
 
 std::string TAlignment::qualities() const {
 	_updateSequenceAndQualities();
 	return _qualities;
-};
+}
 
 //--------------------------------------------
 // filters and other functions to modify data
@@ -423,13 +422,13 @@ std::string TAlignment::qualities() const {
 void TAlignment::trimRead(uint64_t trimmingLength3Prime, uint64_t trimmingLength5Prime) {
 	for (auto &b : _bases) {
 		if (b.distFrom3.linear() < trimmingLength3Prime || b.distFrom5.linear() < trimmingLength5Prime) {
-			b.base                          = genometools::Base::N;
+			b.base         = genometools::Base::N;
 			b.recalQuality = PhredInt::highest();
 		}
 	}
 
 	_sequenceAndQualitiesChanged = true;
-};
+}
 
 void TAlignment::trimSoftClips() {
 	// make sure read is parsed
@@ -444,7 +443,7 @@ void TAlignment::trimSoftClips() {
 		_sequenceAndQualitiesChanged = true;
 	}
 	_cigar.removeSoftClips();
-};
+}
 
 void TAlignment::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 	// make sure read is parsed

@@ -13,9 +13,9 @@
 #include <memory>
 
 namespace GenomeTasks {
-class TEstimateGenotypeDistribution final : public TBamWindowTraverser<WindowType::SingleBam> {
+class TEstimateHKY85 final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
-	enum class Sample {min, reads=min, bases, max};
+	enum class Sample : int {min = 0, reads=min, sites, upToDepth, max};
 
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 	std::unique_ptr<GenotypeLikelihoods::PMD::TWithPMD> _pmd;
@@ -27,8 +27,8 @@ private:
 	size_t _totSites       = 0;
 
 	coretools::TOutputFile _out;
-	std::vector<coretools::Probability> _probs;
-	bool _genomeWide       = false;
+	std::vector<double> _depthOrProbs;
+	bool _genomeWide = false;
 	Sample _sample;
 
 	// genomeWide data
@@ -56,7 +56,7 @@ private:
 	void _openFile();
 
 public:
-	TEstimateGenotypeDistribution();
+	TEstimateHKY85();
 	void run();
 };
 

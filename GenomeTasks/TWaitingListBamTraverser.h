@@ -2,12 +2,12 @@
 #define TWAITINGLISTBAMTRAVERSER_H_
 
 #include <memory>
-#include "genometools/TBed.h"
 
 #include "TAlignment.h"
 #include "TGenome.h"
 #include "TOutputBamFile.h"
 #include "TParser.h"
+#include "TBamReadMask.h"
 
 namespace GenomeTasks {
 
@@ -23,23 +23,6 @@ struct TWaitingAlignment{
 inline bool operator<(const TWaitingAlignment& lhs, const TWaitingAlignment& rhs) {
 	return lhs.alignment < rhs.alignment;
 }
-
-
-class TBamReadMask{
-private:
-	bool _doMasking       = false;
-	bool _considerRegions = false;
-	bool _maskIsPorous    = false;
-	coretools::Probability _porousProb{0.0};
-	genometools::TBed _mask;
-
-	bool _applyPorosity(bool keep) const;
-
-public:
-	void setMasks(const genometools::TChromosomes& Chromosomes);
-	[[nodiscard]] bool keepSingle(const genometools::TGenomeWindow& aln) const;
-	[[nodiscard]] bool keepPaired(const genometools::TGenomeWindow& aln, const genometools::TGenomeWindow& mate) const;
-};
 
 class TWaitingListBamTraverser {
 private:

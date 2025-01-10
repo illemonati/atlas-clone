@@ -6,6 +6,7 @@
  */
 
 #include "TWindow.h"
+#include "TSequencedBase.h"
 #include "genometools/TBed.h"
 #include "genometools/TFastaReader.h"
 #include "coretools/Math/TNumericRange.h"
@@ -81,18 +82,23 @@ void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &s
 	// position in window where first one = 0
 	// p is at first position of read in window
 	for (size_t p = _findFirstPositionWithinWindow(alignment); p < alignment.parsedLength(); ++p) {
-		if (alignment.isAlignedAtInternalPos(p) && alignment[p].base != genometools::Base::N) {
-			size_t internalPos = alignment.positionInRef(p) - from();
+		if (!alignment.isAlignedAtInternalPos(p)) continue;
+		if (alignment[p].base == genometools::Base::N) continue;
 
-			// if read extends past window length
-			if (internalPos >= size()) break; // since part of the read maps to next window
+		assert(!alignment[p].get<BAM::Flags::SoftClipped>());
 
-			if (sites[internalPos].depth() < readUpToDepth) { sites[internalPos].add(alignment[p]); }
-		}
+		const size_t posInWindow = alignment.positionInRef(p) - from();
+
+		// if read extends past window length
+		if (posInWindow >= size()) break; // since part of the read maps to next window
+
+		if (sites[posInWindow].depth() < readUpToDepth) { sites[posInWindow].add(alignment[p]); }
 	}
 };
 
 void TWindow::_fillSites(std::vector<TSite> &sites, size_t readUpToDepth) {
+	// _sites may have a size, but all sites are empty!
+	assert(std::all_of(_sites.begin(), _sites.end(), [](const auto& site){return site.empty();}));
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
