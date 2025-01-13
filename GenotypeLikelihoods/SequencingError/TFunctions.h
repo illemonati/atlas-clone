@@ -35,7 +35,7 @@ public:
 	TFunctions(const BAM::RGInfo::TInfo& info);
 	TFunctions(std::string_view Def); 
 
-	void init(const RecalEstimatorTools::TRecalDataTable &DataTable);
+	void init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData);
 	size_t numParameters() const noexcept;
 
 	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const noexcept;

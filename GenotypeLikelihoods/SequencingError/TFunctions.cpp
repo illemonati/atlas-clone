@@ -280,10 +280,10 @@ TFunctions::TFunctions(std::string_view Def) {
 	index += _covariates[T4::index]->numParameters();
 }
 
-void TFunctions::init(const RecalEstimatorTools::TRecalDataTable &DataTable) {
+void TFunctions::init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData) {
 	size_t index = _intercept.numParameters();
 	for (auto &cov : _covariates) {
-		cov->init(DataTable, index);
+		cov->init(DataTable, index, MinData);
 		index             += cov->numParameters();
 		_intercept.beta() += cov->adjust();
 	}

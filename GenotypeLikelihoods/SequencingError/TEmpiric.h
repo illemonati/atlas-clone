@@ -65,24 +65,62 @@ public:
 		}
 	}
 
-	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
+	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex, size_t MinData) override {
 		_vals.clear();
 		_iis.fill(_nope);
 
 		_firstParameterIndex = FirstParameterIndex;
 
-		for (size_t i = 0; i < dataTable[Covariate::index].size(); ++i) {
-			if (dataTable[Covariate::index][i]) {
-				if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+		if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+			// don't pool qualities
+			const auto& table = dataTable[TCovariate_quality::index];
+			for (size_t i = 0; i < table.size(); ++i) {
+				if (table[i]) {
 					const coretools::Probability p = coretools::Probability(coretools::PhredInt(i));
 					_vals.push_back(coretools::logit(p));
-				} else {
-					_vals.push_back(0.);
+					_iis[i] = _vals.size() - 1;
 				}
+			}
+		} else if constexpr (std::is_same_v<Covariate, TCovariate_context>) {
+			// don't pool context
+			const auto& table = dataTable[TCovariate_context::index];
+			for (size_t i = 0; i < table.size(); ++i) {
+				if (table[i]) {
+					_vals.push_back(0.);
+					_iis[i] = _vals.size() - 1;
+				}
+			}
+		} else {
+			const auto& table = dataTable[Covariate::index];
+			// find last index
+			size_t iLast = table.size() - 1;
+			size_t N = 0;
+			for (; iLast > 0; --iLast) {
+				N += table[iLast];
+				if (N >= MinData) break;
+			}
+
+			N = MinData;
+			for (size_t i = 0; i < iLast; ++i) {
+				if (table[i] == 0) continue;
+
+				if (N >= MinData) {
+					_vals.push_back(0.);
+					N = 0;
+				}
+				_iis[i] = _vals.size() - 1;
+				N += table[i];
+			}
+
+			// last positions
+			if (N >= MinData) {
+				_vals.push_back(0.);
+			}
+			for (size_t i = iLast; i < table.size(); ++i) {
 				_iis[i] = _vals.size() - 1;
 			}
 		}
-		assert(_vals.size() <= _nope);
+		assert(_vals.size() <= size_t(_nope));
 	}
 
 	double adjust() noexcept override {

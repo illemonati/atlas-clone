@@ -18,7 +18,7 @@ public:
 	virtual size_t numParameters() const noexcept override {return 0;}
 
 	// check value range: to ensure that data can be recalibrated
-	void init(const RecalEstimatorTools::TRecalDataTable &, size_t) override {}
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t, size_t) override {}
 
 	// estimation
 	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}

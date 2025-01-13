@@ -22,7 +22,6 @@ TErrorEstimator::TErrorEstimator()
 
 	_windows.requireReference();
 
-
 	// regions
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
@@ -88,11 +87,13 @@ TErrorEstimator::TErrorEstimator()
 	_nRho            = parameters().get("NRho", _numEMIterations);
 	_nPsi            = parameters().get("NPsi", _numEMIterations);
 	_nEpsilon        = parameters().get("NEpsilon", _numEMIterations);
+	_minData         = parameters().get("minData", 10000);
 	logfile().list("Will perform at max ", _numEMIterations, " EM iterations. (parameter 'iterations')");
 	logfile().list("Will perform at max ", _nPi, " pi estimations. (parameter 'NPi')");
 	logfile().list("Will perform at max ", _nRho, " rho estimations. (parameter 'NRho')");
 	logfile().list("Will perform at max ", _nPsi, " psi estimations. (parameter 'NPsi')");
 	logfile().list("Will perform at max ", _nEpsilon, " epsilon estimations. (parameter 'NEpsilon')");
+	logfile().list("Will pool data with less than ", _minData, " data Points. (parameter 'minData')");
 
 	_minDeltaLL                 = parameters().get("minDeltaLL", 1e-6);
 	_NewtonRaphsonNumIterations = parameters().get("NRiterations", 20);
@@ -154,7 +155,7 @@ void TErrorEstimator::_identifyModels() {
 				auto &recal = _recal.RGModel(rg)[mate];
 				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
 
-				recal->epsilon()->init(table);
+				recal->epsilon()->init(table, _minData);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
 			} else {
@@ -187,7 +188,7 @@ void TErrorEstimator::_identifyModels() {
 		else logfile().write(".");
 
 		_psis.push_back(pmd.psi());
-		_psis.back()->estimateInit(_genome.outputName());
+		_psis.back()->estimateInit(_genome.outputName(), _minData);
 	}
 	logfile().endIndent();
 }

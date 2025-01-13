@@ -5,6 +5,7 @@
 #ifndef GENOTYPELIKELIHOODS_PMD_TPSI_H_
 #define GENOTYPELIKELIHOODS_PMD_TPSI_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "coretools/Containers/TStrongArray.h"
@@ -50,7 +51,7 @@ class TPsi {
 	size_t _nPaired = 0;
 
 	void _printTable(std::string_view FName);
-	void _initEnd(BAM::End e);
+	void _initEnd(BAM::End e, int32_t MinData);
 	void _joinTables() noexcept;
 	void _fromString(std::string_view Psi);
 	void _parse(const BAM::RGInfo::TInfo & info);
@@ -139,13 +140,9 @@ public:
 	}
 
 	void estimate() noexcept;
-	void estimateInit(std::string_view OutputName) noexcept;
+	void estimateInit(std::string_view OutputName, size_t MinData) noexcept;
 
 	void log() const noexcept;
-
-	/*Type type(BAM::End E) const noexcept {
-		return _tables[E][Type::CT].size() > _tables[E][Type::GA].size() ? Type::CT : Type::GA;
-		}*/
 
 	bool paired() const noexcept {return _nPaired > _nSingle;}
 

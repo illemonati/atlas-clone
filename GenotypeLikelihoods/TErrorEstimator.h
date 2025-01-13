@@ -57,6 +57,7 @@ private:
 	double _minDeltaLL;
 	size_t _NewtonRaphsonNumIterations;
 	double _NewtonRaphsonMaxF;
+	size_t _minData;
 
 	bool _writeIts = false;
 	bool _onlyLL   = false;

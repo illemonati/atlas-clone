@@ -142,7 +142,6 @@ void TPsi::estimate() noexcept {
 			auto &tSum   = _tableSums[e][t];
 
 			table.clear();
-			// for (auto &ts : tSum) {
 			for (size_t i = 0; i < tSum.size(); ++i) {
 				auto &ts       = tSum[i];
 				const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
@@ -171,8 +170,7 @@ void TPsi::_printTable(std::string_view FName) {
 	}
 }
 
-void TPsi::_initEnd(End e) {
-	constexpr int Nmin      = 100;
+void TPsi::_initEnd(End e, int32_t MinData) {
 	constexpr double PMDmin = 1e-9;
 
 	coretools::TStrongArray<double, Type> sums{};
@@ -187,7 +185,9 @@ void TPsi::_initEnd(End e) {
 			const auto &ts = tSum.back();
 			auto &ts_m     = *(tSum.end() - 2);
 
-			if (ts.fromTo.fromSum < Nmin || ts.fromTo.toSum < Nmin) {
+			if ((ts.fromTo.fromSum < MinData || ts.fromTo.toSum < MinData) ||
+				(ts_m.fromTo.fromSum < MinData || ts_m.fromTo.toSum < MinData))
+			{
 				ts_m.fromTo.fromSum += ts.fromTo.fromSum;
 				ts_m.fromTo.fromTo += ts.fromTo.fromTo;
 				ts_m.fromTo.toSum += ts.fromTo.toSum;
@@ -212,10 +212,6 @@ void TPsi::_initEnd(End e) {
 			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
 		}
 	}
-	// Either CT or GA
-	/*const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
-	_tableSums[e][worseType].clear();
-	_tables[e][worseType] = {P(0.)};*/
 }
 
 void TPsi::_joinTables() noexcept {
@@ -237,7 +233,7 @@ void TPsi::_joinTables() noexcept {
 	}
 }
 
-void TPsi::estimateInit(std::string_view OutputName) noexcept {
+void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
 	using coretools::instances::logfile;
 	const auto fn = toString(OutputName, "_PsiTable.txt.gz");
 	logfile().list("Writing countTable '", fn, "'.");
@@ -252,9 +248,9 @@ void TPsi::estimateInit(std::string_view OutputName) noexcept {
 		_tables[End::from3][Type::GA] = {P(0.)};
 	} else {
 		logfile().list("Assuming single-ended read.");
-		_initEnd(End::from3);
+		_initEnd(End::from3, MinData);
 	}
-	_initEnd(End::from5);
+	_initEnd(End::from5, MinData);
 }
 
 void TPsi::log() const noexcept {

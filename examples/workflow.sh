@@ -151,7 +151,7 @@ $atlas --task HKY85 --minDeltaLL $delta --genomeWide \
 out=ee
 $atlas --task estimateErrors --minDeltaLL $delta \
 	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
-	   --poolRecal "all" --poolPMD "all" \
+	   --poolRecal "all" --poolPMD "all" --minData 1000 \
 	   --fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
 ee=ee_RGInfo.json

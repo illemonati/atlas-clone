@@ -42,7 +42,7 @@ public:
 	virtual size_t numParameters() const noexcept = 0;
 
 	// check value range: to ensure that data can be recalibrated
-	virtual void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) = 0;
+	virtual void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex, size_t MinData) = 0;
 
 	// estimation
 	virtual double getEta(const BAM::TSequencedBase &base) const noexcept   = 0;
