@@ -15,13 +15,18 @@ void addUsed(std::vector<size_t> &counts, size_t value) {
 //--------------------------------------------------------------------
 void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	using SequencingError::Covariates;
+	using SequencingError::TCovariate_context;
+	using SequencingError::TCovariate_fragmentLength;
+	using SequencingError::TCovariate_mappingQuality;
+	using SequencingError::TCovariate_position;
+	using SequencingError::TCovariate_quality;
 	++_counts;
 
 	//add quality
-	impl::addUsed(_tables[Covariates::Context], coretools::index(base.previousBase));
-	impl::addUsed(_tables[Covariates::MappingQuality], base.mappingQuality.get());
-	impl::addUsed(_tables[Covariates::Quality], base.originalQuality.get());
-	impl::addUsed(_tables[Covariates::Position], base.distFrom5.pseudo());
-	impl::addUsed(_tables[Covariates::FragmentLength], base.fragmentLength.log());
+	impl::addUsed(_tables[Covariates::Context], TCovariate_context::extract(base));
+	impl::addUsed(_tables[Covariates::FragmentLength], TCovariate_fragmentLength::extract(base));
+	impl::addUsed(_tables[Covariates::MappingQuality], TCovariate_mappingQuality::extract(base));
+	impl::addUsed(_tables[Covariates::Position], TCovariate_position::extract(base));
+	impl::addUsed(_tables[Covariates::Quality], TCovariate_quality::extract(base));
 }
 }

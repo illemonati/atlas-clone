@@ -209,8 +209,6 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal) {
 
-	_alignment.setSamFlags(_flags);
-
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
 	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
@@ -306,19 +304,16 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 		UERROR(errRange);
 	}
 
-	// set SAM flags
-	_flags.setIsPaired(true);
-	_flags.setIsProperPair(true);
-	_flags.setIsRead1(true);
-	_flags.setMateIsReverseStrand(false);
-	_alignment.setSamFlags(_flags);
+	// set initial flags
+	_alignment.setIsPaired(true);
+	_alignment.setIsProperPair(true);
+	_alignment.setIsRead1(true);
+	_alignment.setIsReverseStrand(false);
 
-	// set SAM flags of second mate
-	_mateFlags.setIsPaired(true);
-	_mateFlags.setIsProperPair(true);
-	_mateFlags.setIsRead2(true);
-	_mateFlags.setIsReverseStrand(true);
-	_secondMate.setSamFlags(_mateFlags);
+	_secondMate.setIsPaired(true);
+	_secondMate.setIsProperPair(true);
+	_secondMate.setIsRead2(true);
+	_secondMate.setIsReverseStrand(true);
 }
 
 double TReadSimulatorPairedEnd::meanReadLength() const {
@@ -341,14 +336,13 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition & Position, const 
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
 
-	// Fill FIRST mate
-
-	// prepare alignment
+	// first mate
 	_simulateAlignmentDetails(Position);
+	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-	// Fill SECOND mate
-
+	// second mate
 	// identify position
 	_secondMate.move(_alignment);
 	if(fragmentLength > _numCycles[1]){
@@ -359,13 +353,13 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition & Position, const 
 	_secondMate.setReadGroup(_readGroup->id);
 	_secondMate.setName(_alignment.name());
 	_secondMate.setMappingQuality(_alignment.mappingQuality());
+	_secondMate.setIsReverseStrand(!_alignment.isReverseStrand());
+	assert(_alignment.isReverseStrand() != _secondMate.isReverseStrand());
 
 	// simulated bases and qualities
 	_simulateBasesQualities(_secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// WRITE ALIGNMENTS
-	//-----------------
-	//set mate positions
 	_alignment.setMateGenomicPosition(_secondMate);
 	_secondMate.setMateGenomicPosition(_alignment);
 }

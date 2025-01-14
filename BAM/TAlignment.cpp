@@ -479,9 +479,7 @@ void TAlignment::binQualityScoresIllumina() {
 void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator) {
 	GLCalculator.recalibrateWithPMD(*this);
 	_sequenceAndQualitiesChanged = true;
-};
-
-void TAlignment::setIsProperPair(bool ok) { _flags.setIsProperPair(ok); };
+}
 
 void TAlignment::downsampleAlignment(coretools::Probability fractionToKeep) {
 	for (auto &b : _bases) {

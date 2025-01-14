@@ -9,6 +9,7 @@
 #define GENOMETASKS_TPILEUP_H_
 
 #include "TSequencedBase.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TBamWindowTraverser.h"
@@ -24,7 +25,7 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	using Transitions = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<Rho>, BAM::End>, BAM::Strand>, BAM::Mate>;
 
 	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
-	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, max};
+	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, StrandMate, max};
 
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -33,6 +34,7 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	coretools::TOutputFile _outTransitionsRel;
 	coretools::TOutputFile _outTransitionsPsi;
 	coretools::TOutputFile _outTransitionsRho;
+	coretools::TOutputFile _outStrandMate;
 
 	coretools::TCountDistribution<> _depthPerSite;
 	coretools::TCountDistribution<> _depthPerSitePerChromosome;
@@ -41,6 +43,8 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 
 	Transitions _transitionsChr;
 	Transitions _transitionsTot;
+
+	std::vector<coretools::TStrongArray<coretools::TStrongArray<size_t, BAM::Strand>, BAM::Mate>> _strandMate;
 
 	coretools::TStrongBitSet<Print> _printSettings;
 	coretools::TStrongBitSet<Hist> _histSettings;

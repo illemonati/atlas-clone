@@ -96,7 +96,7 @@ $atlas --task BAMDiagnostics --bam simulate.bam --mergeInput \
 	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
 out="pileup"
-$atlas --task pileup --onlySummaries --histograms depth,transitions \
+$atlas --task pileup --onlySummaries --histograms depth,transitions,strandMate \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 

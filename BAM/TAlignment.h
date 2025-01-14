@@ -108,10 +108,12 @@ public:
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 							  const std::vector<coretools::PhredInt> &Quals);
 	void setReadGroup(uint16_t readGroupId);
-	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
-	void setIsRead1(bool IsRead1) { _flags.setIsRead1(IsRead1); };
-	void setIsRead2(bool IsRead2) { _flags.setIsRead2(IsRead2); };
-	void setSamFlags(BAM::TSamFlags Flags) { _flags = std::move(Flags); };
+	void setIsPaired(bool ok) { _flags.setIsPaired(ok); }
+	void setIsProperPair(bool ok) { _flags.setIsProperPair(ok); }
+	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); }
+	void setIsRead1(bool IsRead1) { _flags.setIsRead1(IsRead1); }
+	void setIsRead2(bool IsRead2) { _flags.setIsRead2(IsRead2); }
+	void setSamFlags(BAM::TSamFlags Flags) { _flags = std::move(Flags); }
 	void setCigarForUnitTest(const TCigar &Cigar) {_cigar = Cigar;}
 
 	// getters: position
@@ -181,7 +183,6 @@ public:
 	void trimSoftClips(size_t maxNumberOfSoftClippedBases);
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
-	void setIsProperPair(bool ok);
 	void downsampleAlignment(coretools::Probability fraction);
 	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
 };
