@@ -7,8 +7,10 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Types/TPseudoInt.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <iterator>
 
 namespace GenotypeLikelihoods::SequencingError {
 
@@ -92,32 +94,48 @@ public:
 			}
 		} else {
 			const auto& table = dataTable[Covariate::index];
-			// find last index
-			size_t iLast = table.size() - 1;
-			size_t N = 0;
-			for (; iLast > 0; --iLast) {
-				N += table[iLast];
-				if (N >= MinData) break;
-			}
-
-			N = MinData;
-			for (size_t i = 0; i < iLast; ++i) {
-				if (table[i] == 0) continue;
-
-				if (N >= MinData) {
-					_vals.push_back(0.);
-					N = 0;
+			std::vector<std::vector<size_t>> pool;
+			for (size_t i = 0; i < table.size(); ++i) {
+				if (table[i]) {
+					_vals.push_back(table[i]);
+					pool.push_back({i});
 				}
-				_iis[i] = _vals.size() - 1;
-				N += table[i];
+			}
+			assert(_vals.size() == pool.size());
+
+			// Lower
+			while (_vals.size() > 2 && _vals.front() < MinData) {
+				_vals[1] += _vals[0];
+				pool[1].insert(pool[1].end(), pool[0].begin(), pool[0].end());
+				_vals.erase(_vals.begin());
+				pool.erase(pool.begin());
+			}
+			// Upper
+			while (_vals.size() > 2 && _vals.back() < MinData) {
+				const auto i = _vals.size() - 1;
+				_vals[i - 1] += _vals[i];
+				pool[i - 1].insert(pool[i - 1].end(), pool[i].begin(), pool[i].end());
+				_vals.pop_back();
+				pool.pop_back();
 			}
 
-			// last positions
-			if (N >= MinData) {
-				_vals.push_back(0.);
+			// Middle
+			size_t iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
+			while (_vals[iMin] < MinData) {
+				size_t dir = _vals[iMin - 1] < _vals[iMin + 1] ? -1 : 1;
+				_vals[iMin + dir] += _vals[iMin];
+				pool[iMin + dir].insert(pool[iMin + dir].end(), pool[iMin].begin(), pool[iMin].end());
+				_vals.erase(_vals.begin() + iMin);
+				pool.erase(pool.begin() + iMin);
+				iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
 			}
-			for (size_t i = iLast; i < table.size(); ++i) {
-				_iis[i] = _vals.size() - 1;
+
+			for (size_t i = 0; i < pool.size(); ++i) {
+				assert(!pool[i].empty());
+				for (auto j: pool[i]) {
+					_iis[j] = i;
+				}
+				_vals[i] = 0;
 			}
 		}
 		assert(_vals.size() <= size_t(_nope));
