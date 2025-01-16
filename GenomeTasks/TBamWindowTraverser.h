@@ -113,7 +113,16 @@ protected:
 
 		for (const auto &chr : _chromosomes(_genome)) {
 			_startChromosome(chr);
-			if (!chr.inUse()) {
+
+			bool emptyChr = false;
+			if constexpr (isSingle) {
+				emptyChr = _genome.bamFile().curPosition().refID() > chr.refID();
+			} else {
+				emptyChr = _genome.size() == 1 && _genome.front().bamFile().curPosition().refID() > chr.refID();
+			}
+
+			if (!chr.inUse() || emptyChr) {
+				logfile().list("Chromosome '" + chr.name() + "' is empty.");
 				_endChromosome(chr);
 				continue;
 			}

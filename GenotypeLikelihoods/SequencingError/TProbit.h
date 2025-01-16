@@ -38,7 +38,7 @@ public:
 	const double *begin() const noexcept override { return _betas.data(); }
 	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
 
-	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex, size_t) noexcept override {
 		_firstParameterIndex = FirstParameterIndex;
 	}
 

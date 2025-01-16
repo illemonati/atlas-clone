@@ -8,9 +8,13 @@
 #include "TPileup.h"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
+#include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Containers/TView.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
@@ -23,6 +27,7 @@ namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::TOutputFile;
 
 namespace impl {
 
@@ -39,6 +44,79 @@ bool parseField(std::set<std::string> &fields, const std::string &tag, const std
 	}
 	return false;
 }
+
+template<typename Transitions>
+void writeTransitions(const Transitions &transitions, std::string_view Chr, TOutputFile& _outTransitions,
+					   TOutputFile& _outTransitionsRel, TOutputFile& _outTransitionsPsi, TOutputFile& _outTransitionsRho) {
+	using BAM::End;
+	using BAM::Mate;
+	using BAM::Strand;
+	using genometools::Base;
+	using genometools::base2char;
+	for (auto mate = Mate::min; mate < Mate::max; ++mate) {
+		for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+			for (auto end = End::min; end < End::max; ++end) {
+				coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> rho{};
+				auto &tr = transitions[mate][strand][end];
+				for (size_t i = 0; i < tr.size(); ++i) {
+					_outTransitions.write(Chr, mate, strand, end, i);
+					_outTransitionsRel.write(Chr, mate, strand, end, i);
+					_outTransitionsPsi.write(Chr, mate, strand, end, i);
+					_outTransitionsRho.write(Chr, mate, strand, end, i);
+					coretools::TStrongArray<size_t, genometools::Base> tot{};
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						// counts
+						for (auto b = Base::min; b < Base::max; ++b) {
+							_outTransitions.write(tr[i][ref][b]);
+							tot[ref]       += tr[i][ref][b];
+							rho[ref][b]    += tr[i][ref][b];
+						}
+						const auto totRho = tot[ref] - tr[i][ref][ref];
+
+						for (auto b = Base::min; b < Base::max; ++b) {
+							//Rel
+							const auto rel = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
+							_outTransitionsRel.write(fmt::format("{:.3f}", rel));
+
+							//Rho
+							if (ref == b) {
+								_outTransitionsRho.write("  -  ");
+							}
+							else {
+								const auto rho = totRho ? double(tr[i][ref][b])/totRho : 0;
+								_outTransitionsRho.write(fmt::format("{:.3f}", rho));
+							}
+						}
+					}
+					// Psi
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						for (auto b = Base::min; b < Base::max; ++b) {
+							if (ref == b) {
+								_outTransitionsPsi.write("0.000");
+							} else {
+								const auto fromTo = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
+								const auto toFrom = tot[b] ? double(tr[i][b][ref]) / tot[b] : 0;
+								const auto Psi    = (fromTo - toFrom) / (1.0 - toFrom);
+								_outTransitionsPsi.write(fmt::format("{:.3f}", Psi));
+							}
+						}
+					}
+					_outTransitions.endln();
+					_outTransitionsRel.endln();
+					_outTransitionsRho.endln();
+					_outTransitionsPsi.endln();
+				}
+			}
+		}
+	}
+
+	// Flush once per chromosome
+	_outTransitions.flush();
+	_outTransitionsRel.flush();
+	_outTransitionsRho.flush();
+	_outTransitionsPsi.flush();
+}
+
 
 } // namespace impl
 
@@ -156,6 +234,7 @@ TPileup::TPileup() {
 		_histSettings.set<Hist::Quality>(impl::parseField(histograms, "qualities", "Base qualities"));
 		_histSettings.set<Hist::Contexts>(impl::parseField(histograms, "contexts", "Base contexts"));
 		_histSettings.set<Hist::AllelicDepth>(impl::parseField(histograms, "allelicDepth", "Allelic depth"));
+		_histSettings.set<Hist::Transitions>(impl::parseField(histograms, "transitions", "ref to base transition"));
 		logfile().endIndent();
 
 		// check if unknown fields were given
@@ -191,6 +270,27 @@ TPileup::TPileup() {
 				logfile().list("Will only print cells with non-zero counts. (use 'includeZero' to print all cells)");
 			}
 		}
+
+		if (_histSettings.get<Hist::Transitions>()) {
+			if (!_windows.parser().reference()) {
+				logfile().warning("Cannot count reference to base transitions without reference!");
+				_histSettings.set<Hist::Transitions>(false);
+			} else {
+				using genometools::Base;
+				logfile().list("Will create count table of reference-base to data-base transitions.");
+
+				std::vector<std::string> header{"Chr", "Mate", "Strand", "End", "Pos"};
+				for (auto ref = Base::min; ref < Base::max; ++ref) {
+					for (auto b = Base::min; b < Base::max; ++b) {
+						header.push_back(coretools::str::toString(toString(ref), "-", toString(b)));
+					}
+				}
+				_outTransitions.open(_genome.front().outputName() + "_transitions.txt.gz", header);
+				_outTransitionsRel.open(_genome.front().outputName() + "_transitionsRel.txt.gz", header);
+				_outTransitionsPsi.open(_genome.front().outputName() + "_transitionsPsi.txt.gz", header);
+				_outTransitionsRho.open(_genome.front().outputName() + "_transitionsRho.txt.gz", header);
+			}
+		}
 	} else {
 		logfile().list("Will not output histograms (use 'histograms' to do so).");
 	}
@@ -198,6 +298,7 @@ TPileup::TPileup() {
 
 void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	using genometools::Base;
+	using BAM::End;
 	logfile().list("Writing pileup ...");
 
 	if (_histSettings.get<Hist::AllelicDepth>()) { logfile().list("Adding sites to allelic depth table ..."); }
@@ -226,9 +327,21 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			for (auto &b : site) { _contextDist.add(b.recalQuality.get(), coretools::index(b.context())); }
 		}
 
+		if (_histSettings.get<Hist::Transitions>()) {
+			for (auto &b : site) {
+				if (b.base == Base::N) continue;
+
+				const auto p = b.dist(b.end()).pseudo();
+				auto& trans = _transitionsChr[b.mate()][b.strand()][b.end()];
+				if (trans.size() <= p) {
+					trans.resize(p + 1);
+				}
+				++trans[p][site.refBase][b.base];
+			}
+		}
+
 		if ((_printSettings.get<Print::OnlySitesWithData>() && site.empty()) || _onlySummary) continue;
-		_out.write(window.chrName(),
-		           window.positionOnChr(pos) + 1); // positions are zero-based internally
+		_out.write(window.chrName(), window.positionOnChr(pos) + 1); // positions are zero-based internally
 
 		if (_windows.parser().reference()) { _out.write(site.refBase); }
 		if (_printSettings.get<Print::Depth>()) {
@@ -243,7 +356,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			} else {
 				coretools::TStrongArray<size_t, Base> counts{};
 				size_t tot = 0;
-				for (auto b : sBases) {
+				for (const auto b : sBases) {
 					_out.writeNoDelim(b);
 					++counts[b];
 					++tot;
@@ -268,7 +381,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		}
 		if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
 			const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
-			auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
+			const auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
 			if (_printSettings.get<Print::Likelihoods>()) { _out.write(genoLik, genometools::toString(g)); }
 			if (_printSettings.get<Print::HML>()) { _out.write(genometools::isHeterozygous(g)); }
 		}
@@ -288,13 +401,39 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 }
 
 void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
+	using genometools::Base;
+	using BAM::End;
+	using BAM::Strand;
+	using BAM::Mate;
 	if (_histSettings.get<Hist::Depths>()) {
 		_outDepthPerChromosome.writeln(Chr.name(), _depthPerSitePerChromosome.mean());
 		_depthPerSitePerChromosome.clear();
 	}
+	if (_histSettings.get<Hist::Transitions>()) {
+		impl::writeTransitions(_transitionsChr, Chr.name(), _outTransitions, _outTransitionsRel, _outTransitionsPsi,
+						  _outTransitionsRho);
+		for (auto mate = Mate::min; mate < Mate::max; ++mate) {
+			for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+				for (auto end = End::min; end < End::max; ++end) {
+					auto &chr = _transitionsChr[mate][strand][end];
+					auto &tot = _transitionsTot[mate][strand][end];
+					if (tot.size() < chr.size()) { tot.resize(chr.size(), {}); }
+					for (auto ref = Base::min; ref < Base::max; ++ref) {
+						for (auto b = Base::min; b < Base::max; ++b) {
+							for (size_t i = 0; i < chr.size(); ++i) {
+								tot[i][ref][b] += chr[i][ref][b];
+							}
+						}
+					}
+					chr.clear();
+				}
+			}
+		}
+	}
 }
 
 void TPileup::run() {
+	using genometools::Base;
 	_traverseBAMWindows();
 
 	if (_histSettings.get<Hist::Depths>()) {
@@ -307,7 +446,7 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Quality>()) {
 		// print distribution
-		std::string outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
+		const auto outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
 		logfile().list("Writing quality distribution to '", outputFileName, "'.");
 		coretools::TOutputFile out(outputFileName, {"readGroup", "quality", "counts"});
 
@@ -322,7 +461,7 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Contexts>()) {
 		// write counts
-		std::string outputFileName = _genome.front().outputName() + "_contextInformation.txt.gz";
+		const auto outputFileName = _genome.front().outputName() + "_contextInformation.txt.gz";
 		logfile().list("Writing context information to file '", outputFileName, "'.");
 
 		std::vector<std::string> contextLabels;
@@ -337,11 +476,17 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::AllelicDepth>()) {
 		// write to file
-		std::string outputFileName = _genome.front().outputName() + "_allelicDepth.txt.gz";
+		const auto outputFileName = _genome.front().outputName() + "_allelicDepth.txt.gz";
 		logfile().list("Writing allelic depth table to '", outputFileName, "' ...");
 		_counts.write(outputFileName, _writeEmpty);
 		logfile().done();
 	}
+
+	if (_histSettings.get<Hist::Transitions>()) {
+		impl::writeTransitions(_transitionsTot, "All", _outTransitions, _outTransitionsRel, _outTransitionsPsi,
+							   _outTransitionsRho);
+	}
 }
+
 
 } // namespace GenomeTasks

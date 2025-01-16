@@ -23,13 +23,6 @@ struct TCovariate_context {
 	static uint8_t extract(const BAM::TSequencedBase &base) noexcept {
 		return coretools::index(base.previousBase);
 	}
-
-	static size_t N(const std::vector<size_t> &) noexcept {
-		return coretools::index(genometools::Base::N) + 1;
-	}
-	static bool isUsed(const std::vector<size_t> &, size_t) noexcept {
-		return true;
-	}
 };
 
 struct TCovariate_fragmentLength {
@@ -37,14 +30,6 @@ struct TCovariate_fragmentLength {
 	static constexpr Covariates index      = Covariates::FragmentLength;
 
 	static uint8_t extract(const BAM::TSequencedBase &base) noexcept { return base.fragmentLength.log(); }
-
-	static size_t N(const std::vector<size_t> &fragmentLengths) noexcept {
-		return fragmentLengths.size();
-	}
-
-	static bool isUsed(const std::vector<size_t> &fragmentLengths, size_t i) noexcept {
-		return fragmentLengths[i];
-	}
 };
 
 struct TCovariate_mappingQuality {
@@ -52,14 +37,6 @@ struct TCovariate_mappingQuality {
 	static constexpr Covariates index      = Covariates::MappingQuality;
 
 	static uint8_t extract(const BAM::TSequencedBase &base) noexcept { return base.mappingQuality.get(); }
-
-	static size_t N(const std::vector<size_t>& mappingQualities) noexcept {
-		return mappingQualities.size();
-	}
-
-	static bool isUsed(const std::vector<size_t>& mappingQualities, size_t i) noexcept {
-		return mappingQualities[i];
-	}
 };
 
 struct TCovariate_position {
@@ -67,14 +44,6 @@ struct TCovariate_position {
 	static constexpr Covariates index      = Covariates::Position;
 
 	static uint8_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5.pseudo(); }
-
-	static size_t N(const std::vector<size_t>& positions) noexcept {
-		return positions.size();
-	}
-
-	static bool isUsed(const std::vector<size_t>& positions, size_t i) noexcept {
-		return positions[i];
-	}
 };
 
 struct TCovariate_quality {
@@ -83,14 +52,6 @@ struct TCovariate_quality {
 
 	static uint8_t extract(const BAM::TSequencedBase &base) noexcept {
 		return base.originalQuality.get();
-	}
-
-	static size_t N(const std::vector<size_t>& qualities) noexcept {
-		return qualities.size();
-	}
-
-	static bool isUsed(const std::vector<size_t>& qualities, size_t i) noexcept {
-		return qualities[i];
 	}
 };
 

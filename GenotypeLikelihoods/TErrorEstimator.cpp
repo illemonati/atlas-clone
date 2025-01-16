@@ -3,6 +3,7 @@
  *
  */
 #include "TErrorEstimator.h"
+#include "coretools/Strings/toString.h"
 
 namespace GenotypeLikelihoods {
 
@@ -20,7 +21,6 @@ TErrorEstimator::TErrorEstimator()
 	  _dataTables(_recalMap), _onlyLL(parameters().exists("onlyLL")) {
 
 	_windows.requireReference();
-
 
 	// regions
 	std::vector<size_t> ploidies;
@@ -87,11 +87,13 @@ TErrorEstimator::TErrorEstimator()
 	_nRho            = parameters().get("NRho", _numEMIterations);
 	_nPsi            = parameters().get("NPsi", _numEMIterations);
 	_nEpsilon        = parameters().get("NEpsilon", _numEMIterations);
+	_minData         = parameters().get("minData", 10000);
 	logfile().list("Will perform at max ", _numEMIterations, " EM iterations. (parameter 'iterations')");
 	logfile().list("Will perform at max ", _nPi, " pi estimations. (parameter 'NPi')");
 	logfile().list("Will perform at max ", _nRho, " rho estimations. (parameter 'NRho')");
 	logfile().list("Will perform at max ", _nPsi, " psi estimations. (parameter 'NPsi')");
 	logfile().list("Will perform at max ", _nEpsilon, " epsilon estimations. (parameter 'NEpsilon')");
+	logfile().list("Will pool data with less than ", _minData, " data Points. (parameter 'minData')");
 
 	_minDeltaLL                 = parameters().get("minDeltaLL", 1e-6);
 	_NewtonRaphsonNumIterations = parameters().get("NRiterations", 20);
@@ -101,7 +103,7 @@ TErrorEstimator::TErrorEstimator()
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ". (parameter maxF)");
 
 	// booleans
-	_writeRestart = parameters().exists("writeRestart");
+	_writeIts = parameters().exists("filePerIteration");
 
 	logfile().endIndent();
 }
@@ -153,7 +155,7 @@ void TErrorEstimator::_identifyModels() {
 				auto &recal = _recal.RGModel(rg)[mate];
 				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
 
-				recal->epsilon()->init(table);
+				recal->epsilon()->init(table, _minData);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
 			} else {
@@ -163,6 +165,7 @@ void TErrorEstimator::_identifyModels() {
 			}
 		}
 		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+		else logfile().list("Assuming paired-ended read.");
 		logfile().endIndent();
 	}
 	logfile().endIndent();
@@ -185,7 +188,7 @@ void TErrorEstimator::_identifyModels() {
 		else logfile().write(".");
 
 		_psis.push_back(pmd.psi());
-		_psis.back()->estimateInit();
+		_psis.back()->estimateInit(_genome.outputName(), _minData);
 	}
 	logfile().endIndent();
 }
@@ -335,6 +338,9 @@ void TErrorEstimator::_runEM() {
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
 	_writeModels("Initial");
+	_recal.addToRGInfo(_genome.rgInfo());
+	_pmd.addToRGInfo(_genome.rgInfo());
+	_genome.rgInfo().write(_genome.outputName() + "_init.json");
 
 	// calculate initial LL
 	double oldLL   = _calculateLL_updatePg();
@@ -374,11 +380,13 @@ void TErrorEstimator::_runEM() {
 		deltaLL         = LL - oldLL;
 		_writeModels("Current");
 
-		if (_writeRestart) {
-			logfile().list("Writing restart file");
-			_recal.addToRGInfo(_genome.rgInfo());
-			_pmd.addToRGInfo(_genome.rgInfo());
-			_genome.rgInfo().write(_genome.outputName() + "_restart.json");
+		// remain up to date!
+		_recal.addToRGInfo(_genome.rgInfo());
+		_pmd.addToRGInfo(_genome.rgInfo());
+		if (_writeIts) {
+			_genome.rgInfo().write(toString(_genome.outputName(), "_",  i,  ".json"));
+		} else {
+			_genome.rgInfo().write(_genome.outputName() + "_current.json");
 		}
 
 		logfile().conclude("Current Log Likelihood = ", LL);
@@ -434,7 +442,9 @@ void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 
 	_regionSites[Region].emplace_back(Site);
 	_dataTables.add(Site);
-	for (const auto &data : Site) _pmd.model(data).psi()->add(data, Site.refBase);
+	for (const auto &data : Site) {
+		_pmd.model(data).psi()->add(data, Site.refBase);
+	}
 }
 
 void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {

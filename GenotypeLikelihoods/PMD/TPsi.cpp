@@ -1,6 +1,7 @@
 #include "TPsi.h"
 
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
@@ -59,12 +60,6 @@ std::string toString(Type type) {
 	else return "GA";
 }
 
-std::string toString(End end) {
-	if (end == End::from5) return "5";
-	else return "3";
-}
-
-
 } // namespace impl
 
 void TPsi::_fromString(std::string_view Psi) {
@@ -101,7 +96,7 @@ void TPsi::_parse(const BAM::RGInfo::TInfo & Info) {
 		for (auto e = End::min; e < End::max; ++e) {
 			for (auto t = Type::min; t < Type::max; ++t) {
 				auto &v        = _tables[e][t];
-				const auto key = impl::toString(t) + impl::toString(e);
+				const auto key = impl::toString(t) + toString(e);
 				if (!Info.contains(key) || Info[key].empty()) {
 					v = {P(0.)};
 				} else {
@@ -130,7 +125,7 @@ BAM::RGInfo::TInfo TPsi::info() const {
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {
-				const auto key = impl::toString(t) + impl::toString(e);
+				const auto key = impl::toString(t) + toString(e);
 				for (auto p : v) info[key].push_back(p.get()); // explicit conversion from probability to double
 			}
 		}
@@ -141,66 +136,121 @@ BAM::RGInfo::TInfo TPsi::info() const {
 void TPsi::estimate() noexcept {
 	constexpr double PMDmin = 1e-9;
 	for (auto e = End::min; e < End::max; ++e) {
-		const auto t = type(e);
-		auto &table  = _tables[e][t];
-		auto &tSum   = _tableSums[e][t];
+		//const auto t = type(e);
+		for (auto t = Type::min; t < Type::max; ++t) {
+			auto &table  = _tables[e][t];
+			auto &tSum   = _tableSums[e][t];
 
+			table.clear();
+			for (size_t i = 0; i < tSum.size(); ++i) {
+				auto &ts       = tSum[i];
+				const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
+				table.emplace_back(PMD);
+				ts.numDenom.num   = 0.;
+				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
+			}
+		}
+	}
+}
+
+void TPsi::_printTable(std::string_view FName) {
+	coretools::TOutputFile oFile(FName);
+	for (auto e = End::min; e < End::max; ++e) {
+		for (auto t = Type::min; t < Type::max; ++t) {
+			oFile.write(impl::toString(t) + toString(e));
+			auto &tSum = _tableSums[e][t];
+			for (const auto ts: tSum) {
+				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
+				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
+				const auto PMD    = std::max(0., (fromTo - toFrom) / (1.0 - toFrom));
+				oFile.writeNoDelim(ts.fromTo.fromTo, "/", ts.fromTo.fromSum, ";", ts.fromTo.toFrom, "/", ts.fromTo.toSum, ":", PMD).writeDelim();
+			}
+			oFile.endln();
+		}
+	}
+}
+
+void TPsi::_initEnd(End e, int32_t MinData) {
+	constexpr double PMDmin = 1e-9;
+
+	coretools::TStrongArray<double, Type> sums{};
+	for (auto t = Type::min; t < Type::max; ++t) {
+		auto &table = _tables[e][t];
 		table.clear();
+
+		auto &tSum = _tableSums[e][t];
+		if (tSum.empty()) continue;
+
+		while (tSum.size() > 1) {
+			const auto &ts = tSum.back();
+			auto &ts_m     = *(tSum.end() - 2);
+
+			if ((ts.fromTo.fromSum < MinData || ts.fromTo.toSum < MinData) ||
+				(ts_m.fromTo.fromSum < MinData || ts_m.fromTo.toSum < MinData))
+			{
+				ts_m.fromTo.fromSum += ts.fromTo.fromSum;
+				ts_m.fromTo.fromTo += ts.fromTo.fromTo;
+				ts_m.fromTo.toSum += ts.fromTo.toSum;
+				ts_m.fromTo.toFrom += ts.fromTo.toFrom;
+				tSum.pop_back();
+			} else {
+				break;
+			}
+		}
+
 		for (auto &ts : tSum) {
-			const auto PMD = std::max(PMDmin, ts.numDenom.num / ts.numDenom.denom);
+			const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
+			const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
+			const auto PMD    = std::max(PMDmin, (fromTo - toFrom) / (1.0 - toFrom));
+			// once 0, always 0, so add something small
+
 			table.emplace_back(PMD);
+			sums[t] += table.back();
+
+			// Prepare ts for probabilistic sum
 			ts.numDenom.num   = 0.;
 			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
 		}
 	}
 }
 
-void TPsi::estimateInit() noexcept {
-	constexpr int Nmin      = 100;
-	constexpr double PMDmin = 1e-9;
-	for (auto e = End::min; e < End::max; ++e) {
-		coretools::TStrongArray<double, Type> sums{};
-		for (auto t = Type::min; t < Type::max; ++t) {
-			auto &table = _tables[e][t];
-			table.clear();
+void TPsi::_joinTables() noexcept {
+	for (auto t = Type::min; t < Type::max; ++t) {
+		auto &ts3 = _tableSums[End::from3][t];
+		auto &ts5 = _tableSums[End::from5][t];
 
-			auto &tSum = _tableSums[e][t];
-			if (tSum.empty()) continue;
+		if (ts3.size() > ts5.size())
+			ts5.resize(ts3.size());
 
-			while (tSum.size() > 1) {
-				const auto &ts = tSum.back();
-				auto &ts_m     = *(tSum.end() - 2);
-
-				if (ts.fromTo.fromSum < Nmin || ts.fromTo.toSum < Nmin) {
-					ts_m.fromTo.fromSum += ts.fromTo.fromSum;
-					ts_m.fromTo.fromTo += ts.fromTo.fromTo;
-					ts_m.fromTo.toSum += ts.fromTo.toSum;
-					ts_m.fromTo.toFrom += ts.fromTo.toFrom;
-					tSum.pop_back();
-				} else {
-					break;
-				}
-			}
-
-			for (auto &ts : tSum) {
-				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
-				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				const auto PMD    = std::max(PMDmin, (fromTo - toFrom) / (1.0 - toFrom));
-				// once 0, always 0, so add something small
-
-				table.emplace_back(PMD);
-				sums[t] += table.back();
-
-				// Prepare ts for probabilistic sum
-				ts.numDenom.num   = 0.;
-				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
-			}
+		for (size_t i = 0; i < ts3.size(); ++i) {
+			// if ts5.size() > ts3.size(), we only go to ts3.size()
+			ts5[i].fromTo.fromTo += ts3[i].fromTo.fromTo;
+			ts5[i].fromTo.fromSum += ts3[i].fromTo.fromSum;
+			ts5[i].fromTo.toFrom += ts3[i].fromTo.toFrom;
+			ts5[i].fromTo.toSum += ts3[i].fromTo.toSum;
 		}
-		// Either CT or GA
-		const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
-		_tableSums[e][worseType].clear();
-		_tables[e][worseType] = {P(0.)};
+		ts3.clear();
 	}
+}
+
+void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
+	using coretools::instances::logfile;
+	const auto fn = toString(OutputName, "_PsiTable.txt.gz");
+	logfile().list("Writing countTable '", fn, "'.");
+	_printTable(toString(OutputName, "_PsiTable.txt.gz"));
+
+	if (paired()) {
+		logfile().list("Assuming paired-ended read.");
+
+		// only 5' end
+		_joinTables();
+		_tables[End::from3][Type::CT] = {P(0.)};
+		_tables[End::from3][Type::GA] = {P(0.)};
+	} else {
+		logfile().list("Assuming single-ended read.");
+		_initEnd(End::from3, MinData);
+	}
+	_initEnd(End::from5, MinData);
 }
 
 void TPsi::log() const noexcept {
@@ -209,11 +259,13 @@ void TPsi::log() const noexcept {
 
 	bool hasAny = false;
 	for (auto e = End::min; e < End::max; ++e) {
+		if (paired() && e == End::from3) continue;
+
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {
 				hasAny = true;
-				auto ret = impl::toString(t) + impl::toString(e) + ": [";
+				auto ret = impl::toString(t) + toString(e) + ": [";
 				if (v.size() <= Nmax*2) {
 					for (auto p : v) ret.append(toString(p, ", "));
 				} else {
@@ -247,10 +299,8 @@ void TPsi::reset(const BAM::RGInfo::TInfo &info) {
 	}();
 
 	for (auto e = End::min; e < End::max; ++e) {
-		if ((_tables[e][Type::CT].size() > _tables[e][Type::GA].size())) {
-			_tableSums[e][Type::CT].assign(_tables[e][Type::CT].size(), stInit);
-		} else {
-			_tableSums[e][Type::GA].assign(_tables[e][Type::GA].size(), stInit);
+		for (auto t = Type::min; t < Type::max; ++t) {
+			_tableSums[e][t].assign(_tables[e][t].size(), stInit);
 		}
 	}
 }

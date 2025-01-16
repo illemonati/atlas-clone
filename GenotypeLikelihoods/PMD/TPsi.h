@@ -5,6 +5,7 @@
 #ifndef GENOTYPELIKELIHOODS_PMD_TPSI_H_
 #define GENOTYPELIKELIHOODS_PMD_TPSI_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "coretools/Containers/TStrongArray.h"
@@ -46,6 +47,12 @@ class TPsi {
 	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, Type>, BAM::End> _tables;
 	coretools::TStrongArray<coretools::TStrongArray<std::vector<SumType>, Type>, BAM::End> _tableSums;
 
+	size_t _nSingle = 0;
+	size_t _nPaired = 0;
+
+	void _printTable(std::string_view FName);
+	void _initEnd(BAM::End e, int32_t MinData);
+	void _joinTables() noexcept;
 	void _fromString(std::string_view Psi);
 	void _parse(const BAM::RGInfo::TInfo & info);
 
@@ -58,7 +65,7 @@ class TPsi {
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
 
-		const auto end      = data.end();
+		const auto end      = paired() ? End::from5 : data.end();
 		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 		auto &tSum          = _tableSums[end][realType];
 		if (tSum.empty()) return; // wrong pattern
@@ -107,7 +114,7 @@ public:
 	coretools::Probability prob(const BAM::TSequencedBase &data) const noexcept {
 		using BAM::End;
 		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
-		const auto end      = data.end();
+		const auto end      = data.get<BAM::Flags::Paired>() ? End::from5 : data.end();
 		const auto pos      = data.dist(end).pseudo();
 
 		const auto &table = _tables[end][realType];
@@ -126,21 +133,21 @@ public:
 	}
 
 	void add(const BAM::TSequencedBase &data, genometools::Base ref) noexcept {
+		if (data.get<BAM::Flags::Paired>()) ++_nPaired;
+		else ++_nSingle;
 		_add<Type::CT>(data, ref);
 		_add<Type::GA>(data, ref);
 	}
 
 	void estimate() noexcept;
-	void estimateInit() noexcept;
+	void estimateInit(std::string_view OutputName, size_t MinData) noexcept;
 
 	void log() const noexcept;
 
-	Type type(BAM::End E) const noexcept {
-		return _tables[E][Type::CT].size() > _tables[E][Type::GA].size() ? Type::CT : Type::GA;
-	}
+	bool paired() const noexcept {return _nPaired > _nSingle;}
 
-	const std::vector<coretools::Probability>& vals(BAM::End E) const noexcept {
-		return _tables[E][type(E)];
+	const std::vector<coretools::Probability>& vals(BAM::End E, Type T) const noexcept {
+		return _tables[E][T];
 	}
 };
 } // namespace GenotypeLikelihoods::PMD
