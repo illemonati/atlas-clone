@@ -8,142 +8,63 @@
 #ifndef GENOMETASKS_TALIGNMENTMERGER_H_
 #define GENOMETASKS_TALIGNMENTMERGER_H_
 
-#include <memory>
-#include <set>
 
-#include "TWaitingListBamTraverser.h"
-
+#include <cstddef>
+#include <utility>
 namespace BAM { class TAlignment; }
 namespace BAM { class TReadGroups; }
 
-namespace GenomeTasks{
-
-namespace AlignmentMerger {
+namespace GenomeTasks::AlignmentMerger {
 
 
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
-	enum class ReadGroupType : uint8_t { min=0, unchanged=min, single, mixed, paired, max};
-
-struct TAlignmentMergerReadGroupSetting{
-	size_t readGroupId;
-	size_t altReadGroupId;
-	ReadGroupType type;
-	size_t maxCycles;
-
-	constexpr TAlignmentMergerReadGroupSetting(size_t ReadGroupId, const ReadGroupType Type, size_t MaxCycles)
-		: readGroupId(ReadGroupId), altReadGroupId(ReadGroupId), type(Type), maxCycles(MaxCycles){};
-
-	constexpr TAlignmentMergerReadGroupSetting(size_t ReadGroupId, size_t AltReadGroupId, const ReadGroupType Type, size_t MaxCycles)
-		: readGroupId(ReadGroupId), altReadGroupId(AltReadGroupId), type(Type), maxCycles(MaxCycles){};
-
-	constexpr bool operator<(const TAlignmentMergerReadGroupSetting & right) const noexcept { return readGroupId < right.readGroupId; };
-	constexpr bool operator<(size_t right) const noexcept { return readGroupId < right; };
-};
-
-constexpr bool operator<(size_t left, const TAlignmentMergerReadGroupSetting & right) noexcept {
-	return left < right.readGroupId;
-};
-
-class TAlignmentMergerReadGroupSettings{
+class TBase{
 private:
-	std::set<TAlignmentMergerReadGroupSetting, std::less<> > _settings;
-
-	void _printSummary();
+	size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+protected:
+	size_t _merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 public:
-	void initialize(BAM::TReadGroups & readGroups);
-	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
-	bool needTruncation() const;
-	bool needsMerging() const;
-	ReadGroupType getType(size_t readGroupId) const;
-	size_t getMaxCycles(size_t readGroupId) const;
-	const TAlignmentMergerReadGroupSetting& getSettings(size_t readGroupId) const;
+	virtual ~TBase() = default;
+	virtual size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) = 0;
+	static size_t determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
 };
 
-//-----------------------------------------
-// TAlignmentMergerType
-// base class does not merge
-//-----------------------------------------
-class TAlignmentMerger{
+class TRandomRead final : public TBase {
 public:
-	TAlignmentMerger(){};
-	virtual ~TAlignmentMerger(){};
-	virtual size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	size_t determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
-	virtual size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	TRandomRead();
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
-class TAlignmentMerger_randomRead final : public TAlignmentMerger {
+class TMiddle final :public TBase{
 public:
-	TAlignmentMerger_randomRead();
-	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-};
-
-class TAlignmentMerger_middle final :public TAlignmentMerger{
-public:
-	TAlignmentMerger_middle();
-	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	TMiddle();
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 	std::pair<size_t,bool> determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
 	void sameDirectionMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<size_t,bool> overlapLength);
 };
 
-class TAlignmentMerger_firstMate final : public TAlignmentMerger {
+class TFirstMate final : public TBase {
 public:
-	TAlignmentMerger_firstMate();
+	TFirstMate();
 	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
-class TAlignmentMerger_secondMate final : public TAlignmentMerger {
+class TSecondMate final : public TBase {
 public:
-	TAlignmentMerger_secondMate();
+	TSecondMate();
 	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
-class TAlignmentMerger_highestQuality final : public TAlignmentMerger {
-public:
-	TAlignmentMerger_highestQuality();
-	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
-	size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
-};
-
-//-----------------------------------------
-// TAlignmentOverlappingReadsMerger
-//-----------------------------------------
-class TAlignmentOverlappingReadsMerger final
-	: public TWaitingListBamTraverser {
+class THighestQuality final : public TBase {
 private:
-	std::unique_ptr<TAlignmentMerger> _merger;
-	TAlignmentMergerReadGroupSettings _rgSettings;
-
-	void _initializeMerger();
-	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
-	void _handleSingle(TWaitingAlignment &lhs) override;
-	bool _alignmentCanBeWrittenUnchanged() override;
-
+	size_t _overlapLengthAndMergeBetterQuality(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 public:
-	TAlignmentOverlappingReadsMerger();
-	void run() {
-		traverseBAM();
-	}
+	THighestQuality();
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
-//-----------------------------------------
-// TOverlapQuantifier
-//-----------------------------------------
-class TOverlapQuantifier{
-private:
-	TGenome _genome;
-	TAlignmentMerger _merger;
-	std::vector<TWaitingAlignment> _alignmentStorage;
-
-public:
-	TOverlapQuantifier();
-	void run();
-};
-
-} //end namespace AlignmentMerger
-} //end namespace GenomeTasks
-
+} // namespace GenomeTasks::AlignmentMerger
 
 #endif /* GENOMETASKS_TALIGNMENTMERGER_H_ */

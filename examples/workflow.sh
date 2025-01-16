@@ -89,10 +89,6 @@ out="simulate"
 $atlas --task simulate --RGInfo "workflow.json" \
 	   --type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.015 \
 	   --chrLength $L --depth 10 --ploidy 2 \
-	   --fixedSeed 0 --out $out --logFile $out.out 2> $out.eout
-
-out="BAMDiagnostics"
-$atlas --task BAMDiagnostics --bam simulate.bam --mergeInput \
 	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
 out="pileup"
@@ -101,8 +97,7 @@ $atlas --task pileup --onlySummaries --histograms depth,transitions \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 out="merge"
-$atlas --task mergeOverlappingReads  \
-	   --bam simulate.bam --readGroupSettings BAMDiagnostics_mergeInput.txt \
+$atlas --task mergeOverlappingReads --bam simulate.bam  \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
 bam=merge_merged.bam

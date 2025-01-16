@@ -259,4 +259,12 @@ void TWaitingListBamTraverser::traverseBAM() {
 	bamFile.printSummary(_genome.outputName());
 }
 
+bool TWaitingListBamTraverser::_alignmentCanBeWrittenUnchanged() {
+	return !_recalibrate && !_genome.bamFile().curIsPaired() && _waitingList.empty() &&
+		   (_removeSoftClippedBases
+				? (_genome.bamFile().curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases &&
+				   _genome.bamFile().curCIGAR().lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases)
+				: true);
+}
+
 } // namespace GenomeTasks

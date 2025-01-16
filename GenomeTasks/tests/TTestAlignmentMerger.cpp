@@ -10,10 +10,10 @@
 #include "coretools/Types/probability.h"
 #include "gtest/gtest.h"
 
-using GenomeTasks::AlignmentMerger::TAlignmentMerger_firstMate;
-using GenomeTasks::AlignmentMerger::TAlignmentMerger_secondMate;
-using GenomeTasks::AlignmentMerger::TAlignmentMerger_middle;
-using GenomeTasks::AlignmentMerger::TAlignmentMerger_highestQuality;
+using GenomeTasks::AlignmentMerger::TFirstMate;
+using GenomeTasks::AlignmentMerger::TSecondMate;
+using GenomeTasks::AlignmentMerger::TMiddle;
+using GenomeTasks::AlignmentMerger::THighestQuality;
 
 using BAM::TAlignment;
 using BAM::TCigar;
