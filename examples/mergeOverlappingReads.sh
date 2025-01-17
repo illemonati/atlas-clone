@@ -9,20 +9,21 @@ out="simulate"
 $atlas --task simulate --RGInfo sim.json \
 	   --fixedSeed 140 --out $out --logFile $out.out 2> $out.eout
 
-out="simulate_bd"
-$atlas --task BAMDiagnostics --bam simulate.bam \
-	   --fixedSeed 140 --logFile $out.out 2> $out.eout
-
 echo "RG1 RG2" > rgs.txt
 
 out="mergeRG"
 $atlas --task mergeRG --bam simulate.bam --readGroups rgs.txt \
 	   --fixedSeed 141 --out $out --logFile $out.out 2> $out.eout
 
+bam=mergeRG_mergedRG.bam
+
+out="simulate_bd"
+$atlas --task BAMDiagnostics --bam $bam \
+	   --fixedSeed 141 --logFile $out.out 2> $out.eout
 
 for name in "middle" "firstMate" "secondMate" "highestQuality" "randomRead"; do
 	out="$name"
-	$atlas --task mergeOverlappingReads  --mergingMethod $name --bam mergeRG_mergedRG.bam  \
+	$atlas --task mergeOverlappingReads  --mergingMethod $name --bam $bam  \
 		   --fixedSeed 142 --out $out --logFile $out.out 2> $out.eout
 
 	out="${name}_bd"
@@ -32,7 +33,6 @@ for name in "middle" "firstMate" "secondMate" "highestQuality" "randomRead"; do
 	out="${name}_2nd"
 	$atlas --task mergeOverlappingReads --mergingMethod $name --bam ${name}_merged.bam \
 		   --fixedSeed 144 --out $out --logFile $out.out 2> $out.eout
-
 
 	if ! diff -q <(samtools view ${name}_merged.bam) <(samtools view ${name}_2nd_merged.bam) > /dev/null; then
 		samtools view ${name}_merged.bam > ${name}_merged.sam

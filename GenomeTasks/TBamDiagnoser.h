@@ -49,6 +49,7 @@ private:
     std::vector<coretools::TCountDistributionVector<>> _fragmentLength;
     std::vector<coretools::TCountDistributionVector<>> _readStart;
     coretools::TCountDistributionVector<> _allReadStart;
+	std::vector<std::vector<std::array<size_t, 2>>> _paired;
 
     void _handleAlignment() override;
 

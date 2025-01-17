@@ -40,7 +40,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+	TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 10);
@@ -101,7 +101,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -162,7 +162,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 5);
@@ -236,7 +236,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLengt
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar, vect, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 5);
@@ -342,7 +342,7 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar, vect, lowerQuality);
 
-    TAlignmentMerger_highestQuality mergeQual;
+    THighestQuality mergeQual;
     mergeQual.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -458,7 +458,7 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -519,7 +519,7 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -580,7 +580,7 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 50);
@@ -655,7 +655,7 @@ TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeMiddleOddOverlapLength){
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar, vect, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 50);
@@ -789,7 +789,7 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
@@ -870,7 +870,7 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -951,7 +951,7 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 50);
@@ -1048,7 +1048,7 @@ TEST(TAlignmentMergerTest, forwardStrandStartsFirstEndsLast_mergeMiddleOddOverla
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 50);
@@ -1168,7 +1168,7 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 90);
     EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
@@ -1248,7 +1248,7 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -1328,7 +1328,7 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 50);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -1426,7 +1426,7 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddleOddOverla
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 49);
@@ -1546,7 +1546,7 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
@@ -1626,7 +1626,7 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -1707,7 +1707,7 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 60);
@@ -1805,7 +1805,7 @@ TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddleOddOverlapLength)
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 59);
@@ -1925,7 +1925,7 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 80);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -2006,7 +2006,7 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -2087,7 +2087,7 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 40);
@@ -2185,7 +2185,7 @@ TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddleOddOverlapLength)
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 40);
@@ -2304,7 +2304,7 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
@@ -2385,7 +2385,7 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -2466,7 +2466,7 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 45);
@@ -2564,7 +2564,7 @@ TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddleOddOverlapLength
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 44);
@@ -2683,7 +2683,7 @@ TEST(TAlignmentMergerTest,reverseStartsFirstSameEnd_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
@@ -2764,7 +2764,7 @@ TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -2845,7 +2845,7 @@ TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar1);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -2942,7 +2942,7 @@ TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddleOddOverlapLength
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -3060,7 +3060,7 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -3121,7 +3121,7 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3182,7 +3182,7 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -3260,7 +3260,7 @@ TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddleOddOverlapLengt
     firstRead.setSequenceQualities(cigar, vect, higherQuality);
     secondRead.setSequenceQualities(cigar, vect2, lowerQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
@@ -3354,7 +3354,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3379,7 +3379,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3419,7 +3419,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeHighestQuality){
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
 
-    TAlignmentMerger_highestQuality mergeHighestQuality;
+    THighestQuality mergeHighestQuality;
     mergeHighestQuality.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3466,7 +3466,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 45);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3507,7 +3507,7 @@ TEST(TAlignmentMergerTest, bothForward_mergeMiddleOddOverlapLength){
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 45);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3554,7 +3554,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeFirst){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
+    TFirstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3578,7 +3578,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeSecond){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
+    TSecondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3618,7 +3618,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeHighestQuality){
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
 
-    TAlignmentMerger_highestQuality mergeHighestQuality;
+    THighestQuality mergeHighestQuality;
     mergeHighestQuality.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3665,7 +3665,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeMiddle){
     firstRead.setCigarForUnitTest(cigar);
     secondRead.setCigarForUnitTest(cigar);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 45);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
@@ -3706,7 +3706,7 @@ TEST(TAlignmentMergerTest, bothReverse_mergeMiddleOddOverlapLength){
     firstRead.setSequenceQualities(cigar, vect, lowerQuality);
     secondRead.setSequenceQualities(cigar, vect, higherQuality);
 
-    TAlignmentMerger_middle mergeMiddle;
+    TMiddle mergeMiddle;
     mergeMiddle.merge(firstRead, secondRead);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 45);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
