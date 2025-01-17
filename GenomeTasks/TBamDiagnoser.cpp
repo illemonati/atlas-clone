@@ -124,6 +124,28 @@ size_t countsLargerZeroForChromosome(const std::vector<coretools::TCountDistribu
 	return counts;
 }
 
+size_t count(const std::vector<std::array<size_t, 2>> &Vals, bool Paired) {
+	size_t counts = 0;
+	for (const auto &v : Vals) { counts += v[Paired]; }
+	return counts;
+}
+
+size_t count(const std::vector<std::vector<std::array<size_t, 2>>> &Vals, bool Paired) {
+	size_t counts = 0;
+	for (const auto &vv : Vals) {
+		for (const auto &v : vv) { counts += v[Paired]; }
+	}
+	return counts;
+}
+
+size_t countChr(const std::vector<std::vector<std::array<size_t, 2>>> &Vals, size_t RefID, bool Paired) {
+	size_t counts = 0;
+	for (const auto &vv : Vals) {
+		 counts += vv[RefID][Paired]; 
+	}
+	return counts;
+}
+
 } // namespace impl
 
 void TBamDiagnoser::_handleAlignment() {
@@ -177,6 +199,7 @@ void TBamDiagnoser::_handleAlignment() {
 	_usableLength[readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
 	_softClippedLength[readGroup].add(chromosome, bamFile.curCIGAR().lengthSoftClipped());
 	_mappingQuality[readGroup].add(chromosome, bamFile.curMappingQuality());
+	++_paired[readGroup][chromosome][bamFile.curIsPaired()];
 
 	// fragment length: only for proper pairs and only once
 	if (bamFile.curIsProperPair() && !bamFile.curIsReverseStrand())
@@ -211,6 +234,7 @@ void TBamDiagnoser::run() {
 	_mappingQuality.resize(numRG);
 	_fragmentLength.resize(numRG);
 	_readStart.resize(numRG);
+	_paired.resize(numRG);
 	for (size_t i = 0; i < numRG; i++) {
 		_readLength[i].resize(numChrom);
 		_readDist[i].resize(numChrom);
@@ -219,6 +243,7 @@ void TBamDiagnoser::run() {
 		_mappingQuality[i].resize(numChrom);
 		_fragmentLength[i].resize(numChrom);
 		_readStart[i].resize(numChrom);
+		_paired[i].resize(numChrom);
 	}
 	_allReadDist.resize(numChrom);
 	_allReadStart.resize(numChrom);
@@ -262,120 +287,120 @@ void TBamDiagnoser::run() {
 
 	std::vector<std::string_view> header{"readGroup"};
 	if (_chromStats) header.push_back("chromosome");
-	header.insert(header.end(), {"totalReads", "passedQC", "duplicates", "avgReadLength", "seqCycles", "avgReadDist", "avgReadStart",
-								 "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength",
-								 "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
+	header.insert(header.end(),
+				  {"totalReads", "passedQC", "duplicates", "avgReadLength", "seqCycles", "avgReadDist", "avgReadStart",
+				   "singleEnd", "pairedEnd", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength",
+				   "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
 	out.writeHeader(header);
 
-	// determine sequencing type of BAM file
-	size_t paired_count = 0;
-	size_t single_count = 0;
-	for (size_t rg = 0; rg < numRG; ++rg) {
-		if (_fragmentLength[rg].counts() == 0) {
-			++single_count;
-		} else {
-			++paired_count;
-		}
-	}
 	// write for all read groups and all chromosomes
 	out.write("allReadGroups");
+	const auto singlesAll = impl::count(_paired, false);
+	const auto pairsAll   = impl::count(_paired, true);
 	if (_chromStats) { out.write("allChromosomes"); }
 	out.write(_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome().counts(), _passedQC.counts(),
 			  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCombinedCounts(),
-			  impl::meanOverAllReadGroups(_readLength), impl::maxOverAllReadGroups(_readLength), _allReadDist.mean(), _allReadStart.mean(),
+			  impl::meanOverAllReadGroups(_readLength), impl::maxOverAllReadGroups(_readLength), _allReadDist.mean(),
+			  _allReadStart.mean(), singlesAll, pairsAll,
 			  impl::countsOverAllReadGroups(_fragmentLength), impl::meanOverAllReadGroups(_fragmentLength),
 			  impl::countsLargerZeroOverAllReadGroups(_softClippedLength),
 			  impl::meanOverAllReadGroups(_softClippedLength), impl::meanOverAllReadGroups(_usableLength),
 			  (double)impl::sumOverAllReadGroups(_usableLength) / totLengthOfGenome,
 			  impl::meanOverAllReadGroups(_mappingQuality));
-	if (numRG == single_count) {
+	if (singlesAll > 0 && pairsAll > 0) {
+		out.writeln("mixed");
+	} else if (singlesAll > 0) {
 		out.writeln("single");
-	} else if (numRG == paired_count) {
+	} else if (pairsAll > 0) {
 		out.writeln("paired");
 	} else {
-		out.writeln("mixed");
+		out.writeln("empty");
 	}
 
 	// write for all read groups per chromosome
 	if (_chromStats) {
-		for (const auto& chr: _genome.bamFile().chromosomes()) {
-			size_t refID = chr.refID();
+		for (const auto &chr : _genome.bamFile().chromosomes()) {
+			size_t refID       = chr.refID();
+			const auto singles = impl::countChr(_paired, refID, false);
+			const auto pairs   = impl::countChr(_paired, refID, true);
 			out.write("allReadGroups", chr.name(),
 					  (_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID),
 					  _passedQC.horizontalCounts(refID),
 					  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsPerChromosome(refID),
 					  impl::meanForChromosome(_readLength, refID), impl::maxForChromosome(_readLength, refID),
-					  _allReadDist[refID].mean(), _allReadStart[refID].mean(), impl::countsForChromosome(_fragmentLength, refID),
+					  _allReadDist[refID].mean(), _allReadStart[refID].mean(), singles, pairs,
+					  impl::countsForChromosome(_fragmentLength, refID),
 					  impl::meanForChromosome(_fragmentLength, refID),
 					  impl::countsLargerZeroForChromosome(_softClippedLength, refID),
 					  impl::meanForChromosome(_softClippedLength, refID), impl::meanForChromosome(_usableLength, refID),
 					  (double)impl::sumForChromosome(_usableLength, refID) / (double)chr.length(),
 					  impl::meanForChromosome(_mappingQuality, refID));
-			if (numRG == single_count) {
+			if (singles > 0 && pairs > 0) {
+				out.writeln("mixed");
+			} else if (singles > 0) {
 				out.writeln("single");
-			} else if (numRG == paired_count) {
+			} else if (pairs > 0) {
 				out.writeln("paired");
 			} else {
-				out.writeln("mixed");
+				out.writeln("empty");
 			}
 		}
 	}
 
 	// write per read group for all chromosomes
 	for (size_t rg = 0; rg < numRG; ++rg) {
+		const auto singles = impl::count(_paired[rg], false);
+		const auto pairs   = impl::count(_paired[rg], true);
+
 		out.write(_genome.bamFile().readGroups().getName(rg));
 		if (_chromStats) out.write("allChromosomes");
 		out.write((_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg].counts(), _passedQC[rg].counts(),
-				  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCounts(rg), _readLength[rg].mean(),
-				  _readLength[rg].max(), _readDist[rg].mean(), _readStart[rg].mean(), _fragmentLength[rg].counts(), _fragmentLength[rg].mean(),
-				  _softClippedLength[rg].countsLargerZero(), _softClippedLength[rg].mean(), _usableLength[rg].mean(),
-				  (double)_usableLength[rg].sum() / (double)totLengthOfGenome, _mappingQuality[rg].mean());
-		if (_fragmentLength[rg].counts() == 0) {
+		          _genome.bamFile().filter(BAM::FilterType::Duplicate).getCounts(rg), _readLength[rg].mean(),
+				  _readLength[rg].max(), _readDist[rg].mean(), _readStart[rg].mean(), singles, pairs,
+		          _fragmentLength[rg].counts(), _fragmentLength[rg].mean(), _softClippedLength[rg].countsLargerZero(),
+		          _softClippedLength[rg].mean(), _usableLength[rg].mean(),
+		          (double)_usableLength[rg].sum() / (double)totLengthOfGenome, _mappingQuality[rg].mean());
+
+		if (singles > 0 && pairs > 0) {
+			out.writeln("mixed");
+		} else if (singles > 0) {
 			out.writeln("single");
-		} else {
+		} else if (pairs > 0) {
 			out.writeln("paired");
+		} else {
+			out.writeln("empty");
 		}
 		if (_chromStats) {
 			// write per read group per chromosome
 			for (const auto& chr: _genome.bamFile().chromosomes()) {
-				size_t refID = chr.refID();
+				size_t refID       = chr.refID();
+				const auto singles = _paired[rg][refID][false];
+				const auto pairs   = _paired[rg][refID][true];
 				out.write(
-					_genome.bamFile().readGroups().getName(rg), chr.name(),
-					(_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID],
-					_genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsAtReadGroupAndChromosome(rg, refID),
-					_readLength[rg][refID].mean(), _readLength[rg][refID].max(), _readDist[rg][refID].mean(), _readStart[rg][refID].mean(),
-					_fragmentLength[rg][refID].counts(), _fragmentLength[rg][refID].mean(),
-					_softClippedLength[rg][refID].countsLargerZero(), _softClippedLength[rg][refID].mean(),
-					_usableLength[rg][refID].mean(), (double)_usableLength[rg][refID].sum() / (double)chr.length(),
-					_mappingQuality[rg][refID].mean());
-				if (_fragmentLength[rg][refID].counts() == 0) {
+				    _genome.bamFile().readGroups().getName(rg), chr.name(),
+				    (_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID],
+				    _genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsAtReadGroupAndChromosome(rg, refID),
+				    _readLength[rg][refID].mean(), _readLength[rg][refID].max(), _readDist[rg][refID].mean(),
+				    _readStart[rg][refID].mean(), singles, pairs,
+				    _fragmentLength[rg][refID].counts(), _fragmentLength[rg][refID].mean(),
+				    _softClippedLength[rg][refID].countsLargerZero(), _softClippedLength[rg][refID].mean(),
+				    _usableLength[rg][refID].mean(), (double)_usableLength[rg][refID].sum() / (double)chr.length(),
+				    _mappingQuality[rg][refID].mean());
+
+				if (singles > 0 && pairs > 0) {
+					out.writeln("mixed");
+				} else if (singles > 0) {
 					out.writeln("single");
-				} else {
+				} else if (pairs > 0) {
 					out.writeln("paired");
+				} else {
+					out.writeln("empty");
 				}
 			}
 		}
 	}
 	out.close();
 	logfile().done();
-
-	if (parameters().exists("mergeInput")) {
-		// write file used by split merge
-		std::string splitmergename = _genome.outputName() + "_mergeInput.txt";
-		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-		coretools::TOutputFile splitm(splitmergename, {"readGroup", "seqType", "seqCycles"});
-		for (size_t rg = 0; rg < numRG; ++rg) {
-			splitm << _genome.bamFile().readGroups().getName(rg);
-			if (_fragmentLength[rg].counts() == 0) {
-				splitm << "single";
-			} else {
-				splitm << "paired";
-			}
-			splitm.writeln(impl::maxOverAllReadGroups(_readLength));
-		}
-		splitm.close();
-		logfile().done();
-	}
 
 	if (parameters().exists("printReferenceLength")) {
 		// write file with length of all contigs

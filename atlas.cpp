@@ -7,12 +7,13 @@
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
 #include "TIlluminaIdentifier.h"
+#include "TOverlapQuantifier.h"
+#include "TOverlappingReadsMerger.h"
 #include "TSafEstimator.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
 #include "TFilterBam.h"
-#include "TAlignmentMerger.h"
 #include "TBamDiagnoser.h"
 #include "TPMDSCalculator.h"
 #include "TPileup.h"
@@ -55,10 +56,10 @@ void addTaks(coretools::TMain & main) {
 	{
 	constexpr auto groupName = "Read";
 	main.createGroupedTask<GenomeTasks::TFilterBam>(groupName, "filterBAM", "Writing reads that pass filters to BAM file");
-	main.createGroupedTask<GenomeTasks::AlignmentMerger::TAlignmentOverlappingReadsMerger>(groupName, "mergeOverlappingReads", "Merging paired-end reads in BAM file");
+	main.createGroupedTask<GenomeTasks::TOverlappingReadsMerger>(groupName, "mergeOverlappingReads", "Merging paired-end reads in BAM file");
 	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");	
 	main.createGroupedTask<GenomeTasks::TBamDiagnoser>(groupName, "BAMDiagnostics", "Estimating depth and read property frequencies");
-	main.createGroupedTask<GenomeTasks::AlignmentMerger::TOverlapQuantifier>(groupName, "readOverlap", "Estimating distribution of overlap of paired reads");
+	main.createGroupedTask<GenomeTasks::TOverlapQuantifier>(groupName, "readOverlap", "Estimating distribution of overlap of paired reads");
 	main.createGroupedTask<GenomeTasks::TAssessSoftClipping>(groupName, "assessSoftClipping", "Assessing level of soft clipping in BAM file");
 	main.createGroupedTask<GenomeTasks::TSoftClipsTrimmer>(groupName, "trimSoftClips", "Removing soft clipped bases from reads");
 	main.createGroupedTask<GenomeTasks::TQualityTransformation>(groupName, "qualityTransformation", "Printing Quality Transformation");
