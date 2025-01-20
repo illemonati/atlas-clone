@@ -7,7 +7,7 @@
 
 #include "TSite.h"
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Containers.h"
@@ -27,7 +27,7 @@ void TSite::clear() noexcept {
 	genotype = genometools::Genotype::NN;
 }
 
-void TSite::add(const BAM::TSequencedBase &base) { _bases.push_back(base); }
+void TSite::add(const BAM::TSequencedData &base) { _bases.push_back(base); }
 
 TBaseData TSite::baseFrequencies() const noexcept {
 	TBaseData bd{};
@@ -45,7 +45,7 @@ void TSite::downsample(size_t maxDepth, const coretools::TSubsamplePicker &picke
 		const auto &subsample = picker.pick(_bases.size(), maxDepth);
 
 		// copy bases to new vector
-		std::vector<BAM::TSequencedBase> newBases;
+		std::vector<BAM::TSequencedData> newBases;
 		newBases.reserve(subsample.size());
 		for (auto i : subsample) { newBases.push_back(_bases[i]); }
 

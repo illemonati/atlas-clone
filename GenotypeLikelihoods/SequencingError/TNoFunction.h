@@ -21,8 +21,8 @@ public:
 	void init(const RecalEstimatorTools::TRecalDataTable &, size_t, size_t) override {}
 
 	// estimation
-	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}
-	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &,
+	double getEta(const BAM::TSequencedData &) const noexcept override {return 0.;}
+	double getEta(const BAM::TSequencedData &, std::vector<T1stDerivative> &,
 						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
 	double adjust() noexcept override {return 0.;}
 	std::string typeString() const noexcept override {return "";}

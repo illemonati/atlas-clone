@@ -18,7 +18,7 @@
 #include "genometools/Genotypes/Base.h"
 
 #include "genometools/Genotypes/Containers.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 
 namespace GenotypeLikelihoods {
 
@@ -29,7 +29,7 @@ namespace GenotypeLikelihoods {
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
 private:
-	std::vector<BAM::TSequencedBase> _bases;
+	std::vector<BAM::TSequencedData> _bases;
 public:
 	genometools::TGenotypeLikelihoods genotypeLikelihoods;
 	genometools::Base refBase      = genometools::Base::N;
@@ -38,11 +38,11 @@ public:
 	void clear() noexcept;
 
 	// access
-	BAM::TSequencedBase &operator[](size_t i) noexcept { return _bases[i]; };
-	const BAM::TSequencedBase &operator[](size_t i) const noexcept{ return _bases[i]; };
+	BAM::TSequencedData &operator[](size_t i) noexcept { return _bases[i]; };
+	const BAM::TSequencedData &operator[](size_t i) const noexcept{ return _bases[i]; };
 
 	// add
-	void add(const BAM::TSequencedBase &base);
+	void add(const BAM::TSequencedData &base);
 	genometools::TBaseData baseFrequencies() const noexcept;
 	void shuffle();
 
@@ -63,8 +63,8 @@ public:
 	std::array<int, 2> countFwdRev() const;
 
 	// loop
-	using iterator       = std::vector<BAM::TSequencedBase>::iterator;
-	using const_iterator = std::vector<BAM::TSequencedBase>::const_iterator;
+	using iterator       = std::vector<BAM::TSequencedData>::iterator;
+	using const_iterator = std::vector<BAM::TSequencedData>::const_iterator;
 
 	iterator begin() noexcept { return _bases.begin(); };
 	iterator end() noexcept{ return _bases.end(); };

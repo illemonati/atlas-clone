@@ -13,7 +13,7 @@ void addUsed(std::vector<size_t> &counts, size_t value) {
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
 //--------------------------------------------------------------------
-void TRecalDataTable::add(const BAM::TSequencedBase & base){
+void TRecalDataTable::add(const BAM::TSequencedData & base){
 	using SequencingError::Covariates;
 	using SequencingError::TCovariate_context;
 	using SequencingError::TCovariate_fragmentLength;

@@ -3,7 +3,7 @@
 
 #include "coretools/Math/TNumericRange.h"
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 
 namespace GenomeTasks {
 
@@ -17,7 +17,7 @@ private:
 public:
 	TQualityFilter();
 
-	bool pass(const BAM::TSequencedBase & base) const {
+	bool pass(const BAM::TSequencedData & base) const {
 		return _range.within(base.originalQuality);
 	};
 };
@@ -33,7 +33,7 @@ private:
 
 public:
 	explicit TContextFilter();
-	bool pass(const BAM::TSequencedBase & base) const noexcept {
+	bool pass(const BAM::TSequencedData & base) const noexcept {
 		return _keptContexts[base.context()];
 	}
 	constexpr operator bool() const noexcept {

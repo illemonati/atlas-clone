@@ -21,7 +21,7 @@
 #include "TReadGroupInfo.h"
 
 
-namespace BAM {struct TSequencedBase;}
+namespace BAM {struct TSequencedData;}
 namespace RecalEstimatorTools {class TRecalDataTable;}
 
 namespace GenotypeLikelihoods::SequencingError {
@@ -38,8 +38,8 @@ public:
 	void init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData);
 	size_t numParameters() const noexcept;
 
-	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const noexcept;
-	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+	coretools::Probability getEpsilon(const BAM::TSequencedData &base) const noexcept;
+	coretools::Probability getEpsilon(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
 									  std::vector<T2ndDerivative> &der2) const noexcept;
 	void reject() noexcept;
 	void propose(double lambda, const arma::mat &_JxF) noexcept;

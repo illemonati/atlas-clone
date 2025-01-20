@@ -17,7 +17,7 @@
 
 namespace BAM {
 class TReadGroups;
-struct TSequencedBase;
+struct TSequencedData;
 class TAlignment;
 } // namespace BAM
 
@@ -37,12 +37,12 @@ public:
 	const PMD::TModels& postMortemDamageModels() const { return _pmd; };
 	PMD::TModels& postMortemDamageModels() { return _pmd; };
 
-	coretools::Probability errorWithPMD(const BAM::TSequencedBase & base) const;
-	coretools::PhredInt phredIntWithPMD(const BAM::TSequencedBase & base) const;
-	void recalibrateWithPMD(BAM::TSequencedBase & base) const;
+	coretools::Probability errorWithPMD(const BAM::TSequencedData & base) const;
+	coretools::PhredInt phredIntWithPMD(const BAM::TSequencedData & base) const;
+	void recalibrateWithPMD(BAM::TSequencedData & base) const;
 
 	void recalibrateWithPMD(BAM::TAlignment& aln) const;
-	double calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
+	double calculateLogPMDS(const BAM::TSequencedData & base, const genometools::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
 
 	//functions performed on sites
 	genometools::TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite & site) const;

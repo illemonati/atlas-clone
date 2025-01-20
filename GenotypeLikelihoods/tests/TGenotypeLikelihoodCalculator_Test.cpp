@@ -38,7 +38,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
 	BAM::RGInfo::TReadGroupInfo rgi(rg);
     TErrorModels calculator(rgi);
 
-    BAM::TSequencedBase base;
+    BAM::TSequencedData base;
     base.originalQuality = coretools::PhredInt(20);
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;

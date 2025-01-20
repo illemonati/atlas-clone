@@ -8,7 +8,7 @@
 #ifndef GENOMETASKS_TPILEUP_H_
 #define GENOMETASKS_TPILEUP_H_
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 

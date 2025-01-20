@@ -295,13 +295,13 @@ size_t TFunctions::numParameters() const noexcept {
 	return numParameters;
 }
 
-coretools::Probability TFunctions::getEpsilon(const BAM::TSequencedBase &base) const noexcept {
+coretools::Probability TFunctions::getEpsilon(const BAM::TSequencedData &base) const noexcept {
 	double eta = _intercept.getEta();
 	for (const auto &cov : _covariates) eta += cov->getEta(base);
 	return impl::calcEpsilon(eta);
 }
 
-coretools::Probability TFunctions::getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+coretools::Probability TFunctions::getEpsilon(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
 											  std::vector<T2ndDerivative> &der2) const noexcept {
 	double eta = _intercept.getEta(der1);
 	for (const auto &cov : _covariates) eta += cov->getEta(base, der1, der2);

@@ -32,7 +32,7 @@ class TEpsilon {
 	arma::mat _JxF;
 	size_t _numSitesAdded = 0;
 
-	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+	coretools::Probability _calcErrorRate(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
 												   std::vector<T2ndDerivative> &der2) const noexcept;
 
 	template<bool isInvariant> static constexpr auto _makeGenotype() {
@@ -57,7 +57,7 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQ(const BAM::TSequencedBase &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQ(const BAM::TSequencedData &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
 				const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
 
@@ -74,7 +74,7 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQJF(const BAM::TSequencedBase &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQJF(const BAM::TSequencedData &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
 				   const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
 		static std::vector<T1stDerivative> der1st;
@@ -123,12 +123,12 @@ public:
 
 	void init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData);
 
-	coretools::Probability calcErrorRate(const BAM::TSequencedBase &base) const noexcept; 
+	coretools::Probability calcErrorRate(const BAM::TSequencedData &base) const noexcept; 
 	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
 
 	template<bool updateJF, bool isInvariant>
-	void add(const BAM::TSequencedBase &base, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
+	void add(const BAM::TSequencedData &base, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
 		if constexpr (updateJF) _addToQJF<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 	}

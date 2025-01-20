@@ -40,7 +40,7 @@ void callMergeFunction(BAM::TAlignment &alignment, BAM::TAlignment &mate, size_t
 std::pair<PhredInt, PhredInt> minQual(const BAM::TAlignment &firstRead, const BAM::TAlignment &secondRead) {
 	// base iterator starts at first position of the reverse strand, then increments until it reaches either the last
 	// aligned position of itself or the forward read
-	std::vector<BAM::TSequencedBase>::const_iterator baseIterator = secondRead.begin();
+	std::vector<BAM::TSequencedData>::const_iterator baseIterator = secondRead.begin();
 	size_t internalPos                                            = 0;
 	// use the recalibrated quality
 	PhredInt secondReadMinQual                                    = baseIterator->recalQuality;
@@ -61,7 +61,7 @@ std::pair<PhredInt, PhredInt> minQual(const BAM::TAlignment &firstRead, const BA
 	}
 	// base iterator starts at last position of the forward strand, then decrements until it reaches either the first
 	// aligned position of itself or the forward read
-	std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
+	std::vector<BAM::TSequencedData>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
 	internalPos                                                                  = firstRead.getLastInternalPos();
 	PhredInt firstReadMinQual                                                    = baseIteratorReverse->recalQuality;
 	while (!firstRead.isAlignedAtInternalPos(internalPos) ||
@@ -94,11 +94,11 @@ PhredInt determineQualAtSingleBase(const BAM::TAlignment &alignment, size_t numB
 	// for the first read, we start at the last base of the read and go to the base at the center of the overlap and
 	// return its quality-value
 	if (isFirst) {
-		std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIterator = alignment.rbegin() + numBasesFromEnd;
+		std::vector<BAM::TSequencedData>::const_reverse_iterator baseIterator = alignment.rbegin() + numBasesFromEnd;
 		return baseIterator->recalQuality;
 	} else {
 		// for the second read, we start at the first base of the read
-		std::vector<BAM::TSequencedBase>::const_iterator baseIterator = alignment.begin() + numBasesFromEnd;
+		std::vector<BAM::TSequencedData>::const_iterator baseIterator = alignment.begin() + numBasesFromEnd;
 		return baseIterator->recalQuality;
 	}
 }

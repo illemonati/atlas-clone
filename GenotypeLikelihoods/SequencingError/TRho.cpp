@@ -1,6 +1,6 @@
 #include "TRho.h"
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
@@ -76,7 +76,7 @@ BAM::RGInfo::TInfo TRho::info() const {
 	};
 }
 
-void TRho::add(const BAM::TSequencedBase& data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
+void TRho::add(const BAM::TSequencedData& data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
 	using genometools::flipped;
 	const auto l = data.base;
 	for (auto k = Base::min; k < Base::max; ++k) {

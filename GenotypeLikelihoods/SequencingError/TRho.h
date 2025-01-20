@@ -8,7 +8,7 @@
 #ifndef TRHO_H_
 #define TRHO_H_
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/Genotypes/Base.h"
 
@@ -38,7 +38,7 @@ public:
 	}
 
 	// functions used to estimate
-	void add(const BAM::TSequencedBase& data, coretools::Probability P_g_I_d, const genometools::TBaseProbabilities &P_bbar_I_d) noexcept;
+	void add(const BAM::TSequencedData& data, coretools::Probability P_g_I_d, const genometools::TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 
 	void log() const;

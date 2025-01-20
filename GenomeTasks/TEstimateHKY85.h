@@ -15,7 +15,7 @@
 namespace GenomeTasks {
 class TEstimateHKY85 final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
-	enum class Sample : int {min = 0, reads=min, sites, upToDepth, max};
+	enum class Sample : size_t {min = 0, reads=min, sites, upToDepth, max};
 
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 	std::unique_ptr<GenotypeLikelihoods::PMD::TWithPMD> _pmd;

@@ -31,14 +31,14 @@ TErrorModels::TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo) {
 		logfile().endIndent();
 };
 
-coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedBase &base) const {
+coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedData &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
 	return _pmd.P_dij(base, _recal.P_dij(base))[base.base].complement();
 };
 
-coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedBase & base) const{
+coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedData & base) const{
 	if(base.base == genometools::Base::N){
 		return coretools::PhredInt::highest();
 	} else {
@@ -46,7 +46,7 @@ coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedBase & ba
 	}
 };
 
-void TErrorModels::recalibrateWithPMD(BAM::TSequencedBase & base) const{
+void TErrorModels::recalibrateWithPMD(BAM::TSequencedData & base) const{
 	base.recalQuality = phredIntWithPMD(base);
 };
 
@@ -56,7 +56,7 @@ void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
 	}
 };
 
-double TErrorModels::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
+double TErrorModels::calculateLogPMDS(const BAM::TSequencedData & base, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
 	const TBaseLikelihoods baseLikelihoodsNoPMD = _recal.P_dij(base);
 

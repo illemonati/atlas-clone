@@ -13,7 +13,7 @@
 #include "genometools/Genotypes/Base.h"
 #include "TReadGroupInfo.h"
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 
 namespace GenotypeLikelihoods::PMD {
 
@@ -57,7 +57,7 @@ class TPsi {
 	void _parse(const BAM::RGInfo::TInfo & info);
 
 	template<Type From_To>
-	void _add(const BAM::TSequencedBase &data, coretools::Probability &P_g_I_di,
+	void _add(const BAM::TSequencedData &data, coretools::Probability &P_g_I_di,
 			  const TBaseBaseProbabilities &P_b_bbar_I_gdij) {
 		using genometools::Base;
 		using BAM::End;
@@ -77,7 +77,7 @@ class TPsi {
 	}
 
 	template<Type From_To>
-	void _add(const BAM::TSequencedBase &data, genometools::Base ref) {
+	void _add(const BAM::TSequencedData &data, genometools::Base ref) {
 		using genometools::Base;
 		using BAM::End;
 
@@ -111,7 +111,7 @@ public:
 	void reset(const BAM::RGInfo::TInfo & info);
 
 	template<Type From_To>
-	coretools::Probability prob(const BAM::TSequencedBase &data) const noexcept {
+	coretools::Probability prob(const BAM::TSequencedData &data) const noexcept {
 		using BAM::End;
 		const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 		const auto end      = data.get<BAM::Flags::Paired>() ? End::from5 : data.end();
@@ -122,17 +122,17 @@ public:
 		return table[pos];
 	}
 
-	void addGA(const BAM::TSequencedBase &data, coretools::Probability P_g_I_di,
+	void addGA(const BAM::TSequencedData &data, coretools::Probability P_g_I_di,
 			 const TBaseBaseProbabilities& bbProbs) noexcept {
 		_add<Type::GA>(data, P_g_I_di, bbProbs);
 	}
 
-	void addCT(const BAM::TSequencedBase &data, coretools::Probability P_g_I_di,
+	void addCT(const BAM::TSequencedData &data, coretools::Probability P_g_I_di,
 			 const TBaseBaseProbabilities& bbProbs) noexcept {
 		_add<Type::CT>(data, P_g_I_di, bbProbs);
 	}
 
-	void add(const BAM::TSequencedBase &data, genometools::Base ref) noexcept {
+	void add(const BAM::TSequencedData &data, genometools::Base ref) noexcept {
 		if (data.get<BAM::Flags::Paired>()) ++_nPaired;
 		else ++_nSingle;
 		_add<Type::CT>(data, ref);

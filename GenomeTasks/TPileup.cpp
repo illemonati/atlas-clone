@@ -11,7 +11,7 @@
 #include <cmath>
 #include <vector>
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Containers/TView.h"
 #include "coretools/Files/TOutputFile.h"

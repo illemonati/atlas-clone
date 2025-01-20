@@ -12,7 +12,7 @@
 #include "genometools/Genotypes/Base.h"
 
 #include "genometools/Genotypes/Containers.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "TModel.h"
 
 namespace BAM::RGInfo {class TReadGroupInfo;}
@@ -38,30 +38,30 @@ public:
 	TModel &model(size_t rgID) noexcept { return *_pModels[rgID]; }
 	const TModel &model(size_t rgID) const noexcept { return *_pModels[rgID]; }
 
-	TModel& model(const BAM::TSequencedBase &data) noexcept {
+	TModel& model(const BAM::TSequencedData &data) noexcept {
 		return model(data.readGroupID);
 	}
-	const TModel& model(const BAM::TSequencedBase &data) const noexcept {
+	const TModel& model(const BAM::TSequencedData &data) const noexcept {
 		return model(data.readGroupID);
 	}
 
 	bool hasPMD() const noexcept { return !_withPMD.empty(); }
 
-	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
+	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data, const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_dij(data, P_dij_bbar);
 	}
 
-	genometools::TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+	genometools::TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedData &data,
 							  const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_bbar(b, data, P_dij_bbar);
 	}
 
-	genometools::TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+	genometools::TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedData &data,
 							  const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_bbar(g, data, P_dij_bbar);
 	}
 
-	TBaseBaseProbabilities P_b_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+	TBaseBaseProbabilities P_b_bbar(genometools::Genotype g, const BAM::TSequencedData &data,
 										   const genometools::TBaseLikelihoods &P_dij_bbar) const noexcept {
 		return model(data).P_b_bbar(g, data, P_dij_bbar);
 	}

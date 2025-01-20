@@ -1,5 +1,5 @@
 #include "TFromTo.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "genometools/Genotypes/Base.h"
@@ -26,9 +26,9 @@ void TFromTo::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		if (r == Base::C || r == Base::G) continue;
 
 		const auto pos = window.position(i);
-		std::vector<BAM::TSequencedBase> bases;
-		for (const auto& b: site) {
-			if (b.base != r) bases.push_back(b);
+		std::vector<BAM::TSequencedData> bases;
+		for (const auto& d: site) {
+			if (d.base != r) bases.push_back(d);
 		}
 		if (bases.size() < 2 || bases.size() > site.depth()/2) continue;
 

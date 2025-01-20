@@ -2,7 +2,6 @@
  * atlas.cpp
  */
 
-#include "TContextErrors.h"
 #include "TEstimateHKY85.h"
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
@@ -117,7 +116,6 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
 	main.createDebugTask<GenomeTasks::TFromTo>("fromTo", "FromTo");
-	main.createDebugTask<GenomeTasks::TContextErrors>("contextErrors", "contextErrors");
 	main.createDebugTask<PopulationTools::TSpearmanGWAS>("SpearmanGWAS", "GWAS with Spearman correlation, allowing for population-specific signs");
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
 	//main.createDebugTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating depth distribution among sites and per window"); // replaced by BeXY, TODO: remove code?

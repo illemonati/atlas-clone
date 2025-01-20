@@ -20,12 +20,12 @@ using genometools::TBaseLikelihoods;
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-coretools::PhredInt TNoRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+coretools::PhredInt TNoRecal::phredInt(const BAM::TSequencedData &data) const noexcept {
 	if (data.base == Base::N) return coretools::PhredInt::highest();
 	return data.originalQuality;
 }
 
-TBaseLikelihoods TNoRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
+TBaseLikelihoods TNoRecal::P_dij(const BAM::TSequencedData &data) const noexcept {
 	if (data.base == Base::N) { return TBaseLikelihoods{P(1.)}; }
 	const auto eps = static_cast<Probability>(data.originalQuality);
 	TBaseLikelihoods baseLikelihoods{P(1. / 3) * eps};
@@ -53,12 +53,12 @@ void TNoRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
 // TModelRecal
 //*********************************************************
 
-coretools::PhredInt TWithRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+coretools::PhredInt TWithRecal::phredInt(const BAM::TSequencedData &data) const noexcept {
 	if (data.base == Base::N) return coretools::PhredInt::highest();
 	return coretools::PhredInt(_epsilon.calcErrorRate(data));
 }
 
-TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
+TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedData &data) const noexcept {
 	if (data.base == Base::N) { return TBaseLikelihoods{P(1.)}; }
 	const auto e = _epsilon.calcErrorRate(data);
 	const auto l = data.base;
@@ -79,16 +79,16 @@ void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
 				 {Base::A, Base::C, Base::T},
 				 {Base::A, Base::C, Base::G}});
 
-			const auto k  = d.sequencerBase();
+			const auto k  = d.sequenced();
 			const auto ls = lss[k];
 
 			const double r = randomGenerator().getRand();
 			if (r < _rho[k][ls[0]]) {
-				d.sequencerBase(ls[0]);
+				d.sequenced(ls[0]);
 			} else if (r < _rho[k][ls[0]] + _rho[k][ls[1]]) {
-				d.sequencerBase(ls[1]);
+				d.sequenced(ls[1]);
 			} else {
-				d.sequencerBase(ls[2]);
+				d.sequenced(ls[2]);
 			}
 		}
 	}

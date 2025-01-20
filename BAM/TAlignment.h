@@ -17,7 +17,7 @@
 
 #include "TCigar.h"
 #include "TSamFlags.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "genometools/Genotypes/Base.h"
 
 namespace GenotypeLikelihoods {
@@ -66,7 +66,7 @@ private:
 	mutable bool _sequenceAndQualitiesChanged = false;
 
 	// per base data
-	std::vector<TSequencedBase> _bases;
+	std::vector<TSequencedData> _data;
 	std::vector<int> _alignedPosition;
 
 	// reference
@@ -137,13 +137,13 @@ public:
 	uint16_t flags() const { return _flags.asInt(); };
 	const TCigar &cigar() const { return _cigar; };
 
-	TSequencedBase &operator[](size_t internalPos) noexcept {
+	TSequencedData &operator[](size_t internalPos) noexcept {
 		assert(internalPos < _bases.size());
-		return _bases[internalPos];
+		return _data[internalPos];
 	};
-	const TSequencedBase &operator[](size_t internalPos) const noexcept {
+	const TSequencedData &operator[](size_t internalPos) const noexcept {
 		assert(internalPos < _bases.size());
-		return _bases[internalPos];
+		return _data[internalPos];
 	};
 
 	std::string sequence() const;
@@ -157,21 +157,21 @@ public:
 	Mate mate() const noexcept {return static_cast<Mate>(_flags.isSecondMate());}
 
 	// looping
-	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };
-	std::vector<TSequencedBase>::iterator end() noexcept { return _bases.end(); };
-	std::vector<TSequencedBase>::reverse_iterator rbegin() noexcept { return _bases.rbegin(); };
-	std::vector<TSequencedBase>::reverse_iterator rend() noexcept { return _bases.rend(); };
-	std::vector<TSequencedBase>::const_iterator begin() const noexcept { return _bases.begin(); };
-	std::vector<TSequencedBase>::const_iterator end() const noexcept { return _bases.end(); };
-	std::vector<TSequencedBase>::const_reverse_iterator rbegin() const noexcept { return _bases.rbegin(); };
-	std::vector<TSequencedBase>::const_reverse_iterator rend() const noexcept { return _bases.rend(); };
+	std::vector<TSequencedData>::iterator begin() noexcept { return _data.begin(); };
+	std::vector<TSequencedData>::iterator end() noexcept { return _data.end(); };
+	std::vector<TSequencedData>::reverse_iterator rbegin() noexcept { return _data.rbegin(); };
+	std::vector<TSequencedData>::reverse_iterator rend() noexcept { return _data.rend(); };
+	std::vector<TSequencedData>::const_iterator begin() const noexcept { return _data.begin(); };
+	std::vector<TSequencedData>::const_iterator end() const noexcept { return _data.end(); };
+	std::vector<TSequencedData>::const_reverse_iterator rbegin() const noexcept { return _data.rbegin(); };
+	std::vector<TSequencedData>::const_reverse_iterator rend() const noexcept { return _data.rend(); };
 	
-	size_t size() const noexcept { return _bases.size(); }
+	size_t size() const noexcept { return _data.size(); }
 
 	// filters and other functions to modify data
 	template<typename Filter> void filter(const Filter &F) {
 		// set quality = 0 and base = N if outside quality filter
-		for (auto &b : _bases) {
+		for (auto &b : _data) {
 			if (!F.pass(b)) {
 				b.base         = genometools::Base::N;
 				b.recalQuality = coretools::PhredInt::highest();

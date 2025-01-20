@@ -155,12 +155,12 @@ public:
 		return mean;
 	}
 
-	double getEta(const BAM::TSequencedBase &base) const noexcept override {
+	double getEta(const BAM::TSequencedData &base) const noexcept override {
 		const auto val = Covariate::extract(base);
 		return _beta(val);
 	}
 
-	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+	double getEta(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
 
