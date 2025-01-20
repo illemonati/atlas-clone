@@ -9,7 +9,6 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 
 #include "TSequencedBase.h"
-#include "genometools/Genotypes/Base.h"
 #include <cstdint>
 
 namespace GenotypeLikelihoods {
@@ -22,10 +21,7 @@ struct TCovariate_context {
 	static constexpr Covariates index      = Covariates::Context;
 
 	static uint8_t extract(const BAM::TSequencedBase &base) noexcept {
-		const auto prevBase = base.get<BAM::Flags::ReversedStrand>()
-			? genometools::flipped(base.previousBase)
-			: base.previousBase;
-		return coretools::index(prevBase);
+		return coretools::index(base.sequencerPrevious());
 	}
 };
 

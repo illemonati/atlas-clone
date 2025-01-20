@@ -79,16 +79,16 @@ void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
 				 {Base::A, Base::C, Base::T},
 				 {Base::A, Base::C, Base::G}});
 
-			const auto k  = d.base;
+			const auto k  = d.sequencerBase();
 			const auto ls = lss[k];
 
 			const double r = randomGenerator().getRand();
 			if (r < _rho[k][ls[0]]) {
-				d.base = ls[0];
+				d.sequencerBase(ls[0]);
 			} else if (r < _rho[k][ls[0]] + _rho[k][ls[1]]) {
-				d.base = ls[1];
+				d.sequencerBase(ls[1]);
 			} else {
-				d.base = ls[2];
+				d.sequencerBase(ls[2]);
 			}
 		}
 	}

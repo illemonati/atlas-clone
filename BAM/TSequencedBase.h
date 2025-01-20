@@ -70,6 +70,17 @@ struct TSequencedBase {
 	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
 
+	// As sequenced by Machine
+	constexpr genometools::Base sequencerBase() const noexcept {
+		return get<Flags::ReversedStrand>() ? genometools::flipped(base) : base;
+	}
+	constexpr genometools::Base sequencerPrevious() const noexcept {
+		return get<Flags::ReversedStrand>() ? genometools::flipped(previousBase) : previousBase;
+	}
+	constexpr void sequencerBase(genometools::Base SBase) noexcept {
+		base = get<Flags::ReversedStrand>() ? genometools::flipped(SBase) : SBase;
+	}
+
 	template<Flags F>
 	constexpr bool get() const noexcept {return properties.get<F>();}
 	template<Flags F>
