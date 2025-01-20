@@ -224,14 +224,14 @@ void TErrorEstimator::_updatePbbar() {
 					const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
 					P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-					_recal.model(d_ij).rho()->add(d_ij.base, P_g_I_di[aa], P_bbar_I_aa_dij);
+					_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[aa], P_bbar_I_aa_dij);
 
 					if (!isInvariant) for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
 						const auto P_bbar_I_ab_dij = _pmd.P_bbar(ab, d_ij, P_dij_I_bbar);
 						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_recal.model(d_ij).rho()->add(d_ij.base, P_g_I_di[ab], P_bbar_I_ab_dij);
+						_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[ab], P_bbar_I_ab_dij);
 					}
 				}
 			}
