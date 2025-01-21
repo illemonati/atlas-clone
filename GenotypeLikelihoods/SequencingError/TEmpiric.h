@@ -72,59 +72,56 @@ public:
 
 		_firstParameterIndex = FirstParameterIndex;
 
-		if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
-			// don't pool qualities
-			const auto& table = dataTable[TCovariate_quality::index];
-			for (size_t i = 0; i < table.size(); ++i) {
-				if (table[i]) {
-					const coretools::Probability p = coretools::Probability(coretools::PhredInt(i));
-					_vals.push_back(coretools::logit(p));
-					_iis[i] = _vals.size() - 1;
-				}
+		const auto &table = dataTable[Covariate::index];
+		std::vector<std::vector<size_t>> pool;
+		for (size_t i = 0; i < table.size(); ++i) {
+			if (table[i]) {
+				_vals.push_back(table[i]);
+				pool.push_back({i});
 			}
-		}  else {
-			const auto& table = dataTable[Covariate::index];
-			std::vector<std::vector<size_t>> pool;
-			for (size_t i = 0; i < table.size(); ++i) {
-				if (table[i]) {
-					_vals.push_back(table[i]);
-					pool.push_back({i});
-				}
-			}
-			assert(_vals.size() == pool.size());
+		}
+		assert(_vals.size() == pool.size());
 
-			// Lower
-			while (_vals.size() > 2 && _vals.front() < MinData) {
-				_vals[1] += _vals[0];
-				pool[1].insert(pool[1].end(), pool[0].begin(), pool[0].end());
-				_vals.erase(_vals.begin());
-				pool.erase(pool.begin());
-			}
-			// Upper
-			while (_vals.size() > 2 && _vals.back() < MinData) {
-				const auto i = _vals.size() - 1;
-				_vals[i - 1] += _vals[i];
-				pool[i - 1].insert(pool[i - 1].end(), pool[i].begin(), pool[i].end());
-				_vals.pop_back();
-				pool.pop_back();
-			}
+		// Lower
+		while (_vals.size() > 2 && _vals.front() < MinData) {
+			_vals[1] += _vals[0];
+			pool[1].insert(pool[1].end(), pool[0].begin(), pool[0].end());
+			_vals.erase(_vals.begin());
+			pool.erase(pool.begin());
+		}
+		// Upper
+		while (_vals.size() > 2 && _vals.back() < MinData) {
+			const auto i = _vals.size() - 1;
+			_vals[i - 1] += _vals[i];
+			pool[i - 1].insert(pool[i - 1].end(), pool[i].begin(), pool[i].end());
+			_vals.pop_back();
+			pool.pop_back();
+		}
 
-			// Middle
-			size_t iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
-			while (_vals[iMin] < MinData) {
-				size_t dir = _vals[iMin - 1] < _vals[iMin + 1] ? -1 : 1;
-				_vals[iMin + dir] += _vals[iMin];
-				pool[iMin + dir].insert(pool[iMin + dir].end(), pool[iMin].begin(), pool[iMin].end());
-				_vals.erase(_vals.begin() + iMin);
-				pool.erase(pool.begin() + iMin);
-				iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
-			}
+		// Middle
+		size_t iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
+		while (_vals[iMin] < MinData) {
+			size_t dir = _vals[iMin - 1] < _vals[iMin + 1] ? -1 : 1;
+			_vals[iMin + dir] += _vals[iMin];
+			pool[iMin + dir].insert(pool[iMin + dir].end(), pool[iMin].begin(), pool[iMin].end());
+			_vals.erase(_vals.begin() + iMin);
+			pool.erase(pool.begin() + iMin);
+			iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
+		}
 
-			for (size_t i = 0; i < pool.size(); ++i) {
-				assert(!pool[i].empty());
-				for (auto j: pool[i]) {
+		for (size_t i = 0; i < pool.size(); ++i) {
+			assert(!pool[i].empty());
+			if constexpr (std::is_same_v<Covariate, TCovariate_quality>) {
+				size_t iTot = 0;
+				for (auto j : pool[i]) {
 					_iis[j] = i;
+					iTot += j;
 				}
+				iTot /= pool[i].size(); // take the mean as initial value
+				const auto p = coretools::Probability(coretools::PhredInt(iTot));
+				_vals[i]     = coretools::logit(p);
+			} else {
+				for (auto j : pool[i]) { _iis[j] = i; }
 				_vals[i] = 0;
 			}
 		}
