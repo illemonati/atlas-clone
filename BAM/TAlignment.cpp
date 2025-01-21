@@ -304,7 +304,7 @@ void TAlignment::_setDistancesFromEnds() {
 
 void TAlignment::_fillContext() {
 	using genometools::Base;
-	assert(!_bases.empty());
+	assert(!_data.empty());
 	if (_flags.isReverseStrand()) {
 		// reverse
 		for (size_t d = 0; d < _data.size() - 1; ++d) {

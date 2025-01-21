@@ -26,19 +26,19 @@ void TFromTo::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		if (r == Base::C || r == Base::G) continue;
 
 		const auto pos = window.position(i);
-		std::vector<BAM::TSequencedData> bases;
+		std::vector<BAM::TSequencedData> data;
 		for (const auto& d: site) {
-			if (d.base != r) bases.push_back(d);
+			if (d.base != r) data.push_back(d);
 		}
-		if (bases.size() < 2 || bases.size() > site.depth()/2) continue;
+		if (data.size() < 2 || data.size() > site.depth()/2) continue;
 
-		const auto i1 = randomGenerator().getRand(size_t{}, bases.size());
+		const auto i1 = randomGenerator().getRand(size_t{}, data.size());
 		auto i2       = i1;
-		while (i2 == i1) i2 = randomGenerator().getRand(size_t{}, bases.size());
+		while (i2 == i1) i2 = randomGenerator().getRand(size_t{}, data.size());
 
-		_out.writeln(window.chrName(), pos.position(), site.depth(), bases[i1].distFrom5.linear(), bases[i1].distFrom3.linear(),
-					 bases[i2].distFrom5.linear(), bases[i2].distFrom3.linear(), bases[i1].get<Flags::ReversedStrand>(),
-					 bases[i2].get<Flags::ReversedStrand>());
+		_out.writeln(window.chrName(), pos.position(), site.depth(), data[i1].distFrom5.linear(), data[i1].distFrom3.linear(),
+					 data[i2].distFrom5.linear(), data[i2].distFrom3.linear(), data[i1].get<Flags::ReversedStrand>(),
+					 data[i2].get<Flags::ReversedStrand>());
 	}
 }
 } // namespace GenomeTasks

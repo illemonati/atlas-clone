@@ -45,8 +45,8 @@ public:
 	virtual void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex, size_t MinData) = 0;
 
 	// estimation
-	virtual double getEta(const BAM::TSequencedData &base) const noexcept   = 0;
-	virtual double getEta(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
+	virtual double getEta(const BAM::TSequencedData &data) const noexcept   = 0;
+	virtual double getEta(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
 	virtual double adjust() noexcept                                        = 0;
 	virtual std::string typeString() const noexcept                         = 0;

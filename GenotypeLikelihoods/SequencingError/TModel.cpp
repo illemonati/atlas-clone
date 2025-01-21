@@ -63,7 +63,7 @@ TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedData &data) const noexce
 	const auto e = _epsilon.calcErrorRate(data);
 	const auto l = data.base;
 	TBaseLikelihoods baseLikelihoods;
-	for (auto k = Base::min; k < Base::max; ++k) baseLikelihoods[k] = e * _rho[k][l];
+	for (auto k = Base::min; k < Base::max; ++k) baseLikelihoods[k] = e * _rho.prob(k, data);
 	baseLikelihoods[l] = e.complement();
 	return baseLikelihoods;
 }
@@ -79,16 +79,16 @@ void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
 				 {Base::A, Base::C, Base::T},
 				 {Base::A, Base::C, Base::G}});
 
-			const auto k  = d.sequenced();
-			const auto ls = lss[k];
+			const auto ls = lss[d.base];
 
 			const double r = randomGenerator().getRand();
-			if (r < _rho[k][ls[0]]) {
-				d.sequenced(ls[0]);
-			} else if (r < _rho[k][ls[0]] + _rho[k][ls[1]]) {
-				d.sequenced(ls[1]);
+			double rhoSum  = _rho.prob(d, ls[0]);
+			if (r < rhoSum) {
+				d.base = ls[0];
+			} else if (r < rhoSum + _rho.prob(d,ls[1])) {
+				d.base = ls[1];
 			} else {
-				d.sequenced(ls[2]);
+				d.base = ls[2];
 			}
 		}
 	}

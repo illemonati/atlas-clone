@@ -35,14 +35,14 @@ void TEpsilon::init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_
 	_F.resize(numParameters);
 }
 
-coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedData &base) const noexcept {
-	return _functions.getEpsilon(base);
+coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedData &data) const noexcept {
+	return _functions.getEpsilon(data);
 }
 
-coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
+coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 											   std::vector<T2ndDerivative> &der2) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	return _functions.getEpsilon(base, der1, der2);
+	return _functions.getEpsilon(data, der1, der2);
 }
 
 

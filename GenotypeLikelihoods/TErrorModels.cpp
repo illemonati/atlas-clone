@@ -31,23 +31,23 @@ TErrorModels::TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo) {
 		logfile().endIndent();
 };
 
-coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedData &base) const {
-	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
+coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedData &data) const {
+	if (data.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
-	return _pmd.P_dij(base, _recal.P_dij(base))[base.base].complement();
+	return _pmd.P_dij(data, _recal.P_dij(data))[data.base].complement();
 };
 
-coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedData & base) const{
-	if(base.base == genometools::Base::N){
+coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedData &data) const{
+	if(data.base == genometools::Base::N){
 		return coretools::PhredInt::highest();
 	} else {
-		return coretools::PhredInt(errorWithPMD(base));
+		return coretools::PhredInt(errorWithPMD(data));
 	}
 };
 
-void TErrorModels::recalibrateWithPMD(BAM::TSequencedData & base) const{
-	base.recalQuality = phredIntWithPMD(base);
+void TErrorModels::recalibrateWithPMD(BAM::TSequencedData &data) const{
+	data.recalQuality = phredIntWithPMD(data);
 };
 
 void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
@@ -56,11 +56,11 @@ void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
 	}
 };
 
-double TErrorModels::calculateLogPMDS(const BAM::TSequencedData & base, const genometools::Base & ref, const coretools::Probability & pi) const{
+double TErrorModels::calculateLogPMDS(const BAM::TSequencedData &data, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
-	const TBaseLikelihoods baseLikelihoodsNoPMD = _recal.P_dij(base);
+	const TBaseLikelihoods baseLikelihoodsNoPMD = _recal.P_dij(data);
 
-	const TBaseLikelihoods baseLikelihoods = _pmd.P_dij(base, baseLikelihoodsNoPMD);
+	const TBaseLikelihoods baseLikelihoods = _pmd.P_dij(data, baseLikelihoodsNoPMD);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
 	const TBaseLikelihoods tmpBaseData = fromError(ref, pi);

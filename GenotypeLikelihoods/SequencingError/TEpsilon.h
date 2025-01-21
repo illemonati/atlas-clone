@@ -32,7 +32,7 @@ class TEpsilon {
 	arma::mat _JxF;
 	size_t _numSitesAdded = 0;
 
-	coretools::Probability _calcErrorRate(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
+	coretools::Probability _calcErrorRate(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 												   std::vector<T2ndDerivative> &der2) const noexcept;
 
 	template<bool isInvariant> static constexpr auto _makeGenotype() {
@@ -57,11 +57,11 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQ(const BAM::TSequencedData &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQ(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
 				const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
 
-		const double eps    = calcErrorRate(base);
+		const double eps    = calcErrorRate(data);
 		const double eps_c  = 1. - eps;
 		const double leps   = std::log(eps);
 		const double leps_c = std::log(eps_c);
@@ -74,7 +74,7 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQJF(const BAM::TSequencedData &base, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQJF(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
 				   const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
 		if (_converged) return;
 		static std::vector<T1stDerivative> der1st;
@@ -82,7 +82,7 @@ class TEpsilon {
 		der1st.clear();
 		der2nd.clear();
 		// get error rate
-		const double eps      = _calcErrorRate(base, der1st, der2nd);
+		const double eps      = _calcErrorRate(data, der1st, der2nd);
 		const double eps_c    = 1. - eps;
 		const double leps     = std::log(eps);
 		const double leps_c   = std::log(eps_c);
@@ -123,14 +123,14 @@ public:
 
 	void init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData);
 
-	coretools::Probability calcErrorRate(const BAM::TSequencedData &base) const noexcept; 
+	coretools::Probability calcErrorRate(const BAM::TSequencedData &data) const noexcept; 
 	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
 
 	template<bool updateJF, bool isInvariant>
-	void add(const BAM::TSequencedData &base, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
-		if constexpr (updateJF) _addToQJF<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
-		else _addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
+	void add(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
+		if constexpr (updateJF) _addToQJF<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
+		else _addToQ<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 	}
 	void solveJxF();
 	void propose(double lambda);

@@ -26,18 +26,18 @@ namespace SequencingError {
 // pure abstract base class
 //--------------------------------------------------------------------
 struct TModel {
-	virtual ~TModel()                                                                                 = default;
+	virtual ~TModel()                                                                           = default;
 	// Per Base
-	virtual coretools::PhredInt phredInt(const BAM::TSequencedData &data) const noexcept = 0;
-	virtual genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data) const noexcept                    = 0;
+	virtual coretools::PhredInt phredInt(const BAM::TSequencedData &data) const noexcept        = 0;
+	virtual genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data) const noexcept = 0;
 	// Per Alignment
-	virtual void simulate(BAM::TAlignment &aln) const noexcept                                        = 0;
-	virtual void recalibrate(BAM::TAlignment &aln) const noexcept                                     = 0;
+	virtual void simulate(BAM::TAlignment &aln) const noexcept                                  = 0;
+	virtual void recalibrate(BAM::TAlignment &aln) const noexcept                               = 0;
 	// Model Info
-	virtual bool recalibrates() const noexcept                                                        = 0;
-	virtual BAM::RGInfo::TInfo info() const                                                           = 0;
-	virtual TRho *rho() noexcept                                                                      = 0;
-	virtual TEpsilon *epsilon() noexcept                                                              = 0;
+	virtual bool recalibrates() const noexcept                                                  = 0;
+	virtual BAM::RGInfo::TInfo info() const                                                     = 0;
+	virtual TRho *rho() noexcept                                                                = 0;
+	virtual TEpsilon *epsilon() noexcept                                                        = 0;
 };
 
 //------------------------------------------------

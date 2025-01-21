@@ -71,9 +71,6 @@ struct TSequencedData {
 	constexpr genometools::Base sequenced() const noexcept {
 		return get<Flags::ReversedStrand>() ? genometools::flipped(base) : base;
 	}
-	constexpr void sequenced(genometools::Base SBase) noexcept {
-		base = get<Flags::ReversedStrand>() ? genometools::flipped(SBase) : SBase;
-	}
 
 	template<Flags F>
 	constexpr bool get() const noexcept {return properties.get<F>();}

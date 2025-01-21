@@ -138,11 +138,11 @@ public:
 	const TCigar &cigar() const { return _cigar; };
 
 	TSequencedData &operator[](size_t internalPos) noexcept {
-		assert(internalPos < _bases.size());
+		assert(internalPos < _data.size());
 		return _data[internalPos];
 	};
 	const TSequencedData &operator[](size_t internalPos) const noexcept {
-		assert(internalPos < _bases.size());
+		assert(internalPos < _data.size());
 		return _data[internalPos];
 	};
 

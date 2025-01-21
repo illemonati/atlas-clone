@@ -17,8 +17,8 @@ private:
 public:
 	TQualityFilter();
 
-	bool pass(const BAM::TSequencedData & base) const {
-		return _range.within(base.originalQuality);
+	bool pass(const BAM::TSequencedData & data) const {
+		return _range.within(data.originalQuality);
 	};
 };
 
@@ -33,8 +33,8 @@ private:
 
 public:
 	explicit TContextFilter();
-	bool pass(const BAM::TSequencedData & base) const noexcept {
-		return _keptContexts[base.context()];
+	bool pass(const BAM::TSequencedData & data) const noexcept {
+		return _keptContexts[data.context()];
 	}
 	constexpr operator bool() const noexcept {
 		return _filter;

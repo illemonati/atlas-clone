@@ -150,8 +150,8 @@ public:
 
 	double adjust() noexcept override { return 0.; }
 
-	double getEta(const BAM::TSequencedData &base) const noexcept override {
-		const double v = Transformer::transform(Covariate::extract(base));
+	double getEta(const BAM::TSequencedData &data) const noexcept override {
+		const double v = Transformer::transform(Covariate::extract(data));
 		if constexpr (O == 1) {
 			return _betas.front() * v;
 		} else if constexpr (O == 2) {
@@ -170,9 +170,9 @@ public:
 		}
 	}
 
-	double getEta(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
+	double getEta(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &) const noexcept override {
-		const double v = Transformer::transform(Covariate::extract(base));
+		const double v = Transformer::transform(Covariate::extract(data));
 		if constexpr (O == 1) {
 			der1.emplace_back(firstParameterIndex(), v);
 			return _betas.front() * v;

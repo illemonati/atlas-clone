@@ -43,9 +43,9 @@ public:
 	size_t numParameters() const noexcept override { return _vals.size(); }
 
 	double *begin() noexcept override { return _vals.data(); }
-	double *end() noexcept override { return _vals.data() + _vals.size(); }
+	double *end() noexcept override { return _vals.data() + numParameters(); }
 	const double *begin() const noexcept override { return _vals.data(); }
-	const double *end() const noexcept override { return _vals.data() + _vals.size(); }
+	const double *end() const noexcept override { return _vals.data() + numParameters(); }
 
 	void setData(std::vector<std::pair<size_t, double>> Data) {
 		// make sure
@@ -155,14 +155,14 @@ public:
 		return mean;
 	}
 
-	double getEta(const BAM::TSequencedData &base) const noexcept override {
-		const auto val = Covariate::extract(base);
+	double getEta(const BAM::TSequencedData &data) const noexcept override {
+		const auto val = Covariate::extract(data);
 		return _beta(val);
 	}
 
-	double getEta(const BAM::TSequencedData &base, std::vector<T1stDerivative> &der1,
+	double getEta(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
-		const auto val = Covariate::extract(base);
+		const auto val = Covariate::extract(data);
 
 		const size_t der_index = firstParameterIndex() + _iis[val];
 		der1.emplace_back(der_index, 1.0);
