@@ -23,14 +23,16 @@ namespace SequencingError {
 class TEpsilon {
 	TFunctions _functions;
 
-	double _Q       = 0.;
-	double _oldQ    = 0.;
-	double _maxF    = 0.;
-	bool _converged = false;
+	double _Q      = 0.;
+	double _oldQ   = 0.;
+	double _maxF   = 0.;
+	double _maxJxF = 0.;
+
 	arma::mat _Jacobian;
 	arma::vec _F;
 	arma::mat _JxF;
 	size_t _numSitesAdded = 0;
+	bool _converged = false;
 
 	coretools::Probability _calcErrorRate(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 												   std::vector<T2ndDerivative> &der2) const noexcept;
@@ -59,8 +61,6 @@ class TEpsilon {
 	template<bool isInvariant>
 	void _addToQ(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
 				const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
-		if (_converged) return;
-
 		const double eps    = calcErrorRate(data);
 		const double eps_c  = 1. - eps;
 		const double leps   = std::log(eps);
@@ -76,7 +76,6 @@ class TEpsilon {
 	template<bool isInvariant>
 	void _addToQJF(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
 				   const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
-		if (_converged) return;
 		static std::vector<T1stDerivative> der1st;
 		static std::vector<T2ndDerivative> der2nd;
 		der1st.clear();
@@ -105,13 +104,11 @@ class TEpsilon {
 			_Jacobian(dm->index, dm->index) -= epsEps_c * dm->derivative * dm->derivative;
 			for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
 				_Jacobian(dm->index, dn->index) -= epsEps_c * dm->derivative * dn->derivative;
-				_Jacobian(dn->index, dm->index) -= epsEps_c * dm->derivative * dn->derivative;
 			}
 		}
 		// add second derivatives to Jacobian
 		for (auto &dmn : der2nd) {
 			_Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
-			_Jacobian(dmn.index2, dmn.index1) += w_ij * dmn.derivative;
 		}
 
 		++_numSitesAdded;
@@ -124,11 +121,14 @@ public:
 	void init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData);
 
 	coretools::Probability calcErrorRate(const BAM::TSequencedData &data) const noexcept; 
+	double oldQ() const noexcept {return _oldQ;};
 	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
+	double maxChange() const noexcept {return _maxJxF;}
 
 	template<bool updateJF, bool isInvariant>
 	void add(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
+		if (_converged) return;
 		if constexpr (updateJF) _addToQJF<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 	}

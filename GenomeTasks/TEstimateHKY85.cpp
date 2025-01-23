@@ -10,6 +10,7 @@
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/Ploidy.h"
 #include <memory>
 
 namespace GenomeTasks {
@@ -21,7 +22,7 @@ using genometools::Base;
 using genometools::Genotype;
 
 double TEstimateHKY85::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites) {
-	const auto isInvariant = _genoDist->isInvariant();
+	const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
 
 	const auto PgI_init = [isInvariant]() {
 		TGenotypeLikelihoods Ps(P(1.));

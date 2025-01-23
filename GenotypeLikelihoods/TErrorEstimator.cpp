@@ -3,7 +3,11 @@
  *
  */
 #include "TErrorEstimator.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Strings/toString.h"
+#include "genometools/Genotypes/Ploidy.h"
+#include "coretools/Math/TSumLog.h"
 
 namespace GenotypeLikelihoods {
 
@@ -199,7 +203,7 @@ void TErrorEstimator::_updatePbbar() {
 	size_t i     = 0;
 	for (size_t r = 0; r < _regionSites.size(); ++r) {
 		const auto &sites      = _regionSites[r];
-		const auto isInvariant = _genoDist[r]->isInvariant();
+		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
 		for (const auto& site: sites) {
 			const auto &P_g_I_di = _P_g_I_dis[i++];
 			for (const auto &d_ij : site) {
@@ -249,7 +253,10 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		_solveDerivative();
 		double oldQ = 0.;
 		double maxF  = 0.;
-		for (const auto& e: _epsilons) {
+		for (size_t i = 0; i < _epsilons.size(); ++i) {
+			const auto &e = _epsilons[i];
+
+			logfile().list("Model ", i, ": old Q: ", e->Q(), ", max F: ", e->maxF(), ", max Change: ", e->maxChange(), ".");
 			oldQ += e->Q();
 			maxF = std::max(e->maxF(), maxF);
 		}
@@ -259,14 +266,18 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		constexpr int maxShift = 30;
 		size_t nUpdated = 0;
 		for (int shift = 0; shift <= maxShift; ++shift) {
-			logfile().overListFlush("Setting new epsilon with backtracking = 1/2^", shift, " : ");
-			for (auto &e : _epsilons) e->propose(1./(1 << shift));
-			
+			if (shift == 0) {
+				logfile().startIndent("Setting new epsilon:");
+			} else {
+				logfile().startIndent("Setting new epsilon with backtracking = 1/2^", shift, ":");
+			}
+			for (auto &e : _epsilons) { e->propose(1. / (1 << shift)); }
+
 			nUpdated = _calculateQ();
-			logfile().flush(toString(nUpdated), "/", nTot, " models converged.");
+			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
+			logfile().endIndent();
 			if (nUpdated == nTot) break;
 		}
-		logfile().newLine();
 
 		double newQ = 0.;
 		for (const auto& e: _epsilons) {
@@ -305,14 +316,90 @@ double TErrorEstimator::_calculateLL_updatePg() {
 	for (size_t r = 0; r < _regionSites.size(); ++r) {
 		const auto &sites = _regionSites[r];
 		auto &genoDist    = _genoDist[r];
-		if (genoDist->isInvariant()) {
-			LL += _calculateLL_updatePg<genometools::Ploidy::haploid>(sites, genoDist.get());
-		} else {
-			LL += _calculateLL_updatePg<genometools::Ploidy::diploid>(sites, genoDist.get());
-		}
+		LL += _calculateLL_updatePg(sites, genoDist.get(), genoDist->ploidy());
 	}
 	if (!std::isfinite(LL)) UERROR("LL = ", LL, ", you may need to pool your readgroups!");
 	return LL;
+}
+
+size_t TErrorEstimator::_calculateQ() {
+	_calculateQ<false>();
+	size_t nUpdated = 0;
+	for (size_t i = 0; i < _epsilons.size(); ++i) {
+		const auto& e = _epsilons[i];
+		const auto u = e->acceptOrReject();
+		if (!u) { logfile().list("Model ", i, " not accepted! delta Q: ", e->Q() - e->oldQ(), "."); }
+	}
+	for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
+	return nUpdated;
+}
+
+double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist,
+											  genometools::Ploidy Pl) {
+	using coretools::P;
+	using genometools::Base;
+	using genometools::Genotype;
+	using genometools::Ploidy;
+	using genometools::TGenotypeLikelihoods;
+
+	constexpr auto PgI_inits = []() {
+		coretools::TStrongArray<genometools::TGenotypeLikelihoods, genometools::Ploidy> Ps;
+		Ps[Ploidy::diploid] = TGenotypeLikelihoods(P(1.));
+		Ps[Ploidy::haploid] = TGenotypeLikelihoods(P(1.));
+
+		Ps[Ploidy::haploid][Genotype::AC] = P(0.);
+		Ps[Ploidy::haploid][Genotype::AG] = P(0.);
+		Ps[Ploidy::haploid][Genotype::AT] = P(0.);
+		Ps[Ploidy::haploid][Genotype::CG] = P(0.);
+		Ps[Ploidy::haploid][Genotype::CT] = P(0.);
+		Ps[Ploidy::haploid][Genotype::GT] = P(0.);
+		return Ps;
+	}();
+	const auto &PgI_init = PgI_inits[Pl];
+
+	coretools::TSumLogProbability LL{};
+	for (const auto &site : sites) {
+		if (site.genotype == Genotype::NN) { // unknown genotype
+			const auto ref                             = site.refBase;
+			genometools::TGenotypeLikelihoods P_g_I_di = PgI_init;
+			double sum                                 = 1.;
+			for (const auto &d_ij : site) {
+				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
+				const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
+
+				LL.add(sum);
+				const double sum_inv = 1. / sum;
+				sum                  = 0.;
+				for (auto k = Base::min; k < Base::max; ++k) {
+					const auto kk = genometools::genotype(k, k);
+					P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
+					sum += P_g_I_di[kk];
+				}
+				if (Pl == genometools::Ploidy::diploid) {
+					for (const auto kl :
+					     {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+						const auto k = genometools::first(kl);
+						const auto l = genometools::second(kl);
+						P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
+						sum += P_g_I_di[kl];
+					}
+				}
+			}
+			LL.add(genoDist->normalize_add(P_g_I_di, ref));
+			_P_g_I_dis.push_back(P_g_I_di);
+		} else { // known genotype.
+			_P_g_I_dis.emplace_back(P(0.));
+			_P_g_I_dis.back()[site.genotype] = P(1.); // Probability of correct genotype is 1
+			double P_g                       = 1.;
+			for (auto &d_ij : site) {
+				const auto L_eps = _recal.P_dij(d_ij);
+				const auto L_D   = _pmd.P_dij(d_ij, L_eps);
+				P_g *= genoDist->getGenotypeLikelihood(L_D, site.genotype);
+			}
+			LL.add(P_g);
+		}
+	}
+	return LL.getSum();
 }
 
 void TErrorEstimator::_writeModels(std::string_view Intro) {
