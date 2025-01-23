@@ -265,17 +265,8 @@ public:
 	}
 
 	double adjust() noexcept override {
-		double mean = 0.;
-		for (size_t i = 0; i < numParameters(); ++i) {
-			mean += _betas[i];
-		}
-		if (mean != 0.) mean /= numParameters();
-
-		for (size_t i = 0; i < numParameters(); ++i) {
-			_betas[i] -= mean;
-		}
-
-		return mean;
+		// Base::N = 0, so we can't adjust
+		return 0.;
 	}
 
 	double getEta(const BAM::TSequencedData &data) const noexcept override {
