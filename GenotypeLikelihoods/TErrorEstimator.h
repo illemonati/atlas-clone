@@ -53,17 +53,17 @@ private:
 	// variables for estimation
 	size_t _numEMIterations;
 	double _minDeltaLL;
+	double _QLL;
 	size_t _NewtonRaphsonNumIterations;
 	double _NewtonRaphsonMaxF;
 	size_t _minData;
 
-	bool _writeIts = false;
-	bool _onlyLL   = false;
-
-	size_t _nPi      = -1;
-	size_t _nRho     = -1;
-	size_t _nPsi     = -1;
-	size_t _nEpsilon = -1;
+	bool _writeIts  = false;
+	bool _onlyLL    = false;
+	bool _noPi      = false;
+	bool _noRho     = false;
+	bool _noPsi     = false;
+	bool _noEpsilon = false;
 
 	template<bool UpdateJF> void _calculateQ() {
 		size_t i  = 0;
@@ -90,7 +90,7 @@ private:
 	}
 
 	size_t _calculateQ();
-	void _updateEpsilon(double deltaDeltaLL);
+	double _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
 	double _calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist, genometools::Ploidy Pl);
 

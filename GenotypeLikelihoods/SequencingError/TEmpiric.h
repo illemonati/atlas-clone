@@ -83,14 +83,14 @@ public:
 		assert(_vals.size() == pool.size());
 
 		// Lower
-		while (_vals.size() > 2 && _vals.front() < MinData) {
+		while (_vals.size() > 1 && _vals.front() < MinData) {
 			_vals[1] += _vals[0];
 			pool[1].insert(pool[1].end(), pool[0].begin(), pool[0].end());
 			_vals.erase(_vals.begin());
 			pool.erase(pool.begin());
 		}
 		// Upper
-		while (_vals.size() > 2 && _vals.back() < MinData) {
+		while (_vals.size() > 1 && _vals.back() < MinData) {
 			const auto i = _vals.size() - 1;
 			_vals[i - 1] += _vals[i];
 			pool[i - 1].insert(pool[i - 1].end(), pool[i].begin(), pool[i].end());
@@ -100,7 +100,7 @@ public:
 
 		// Middle
 		size_t iMin = std::distance(_vals.begin(), std::min_element(_vals.begin(), _vals.end()));
-		while (_vals[iMin] < MinData) {
+		while (_vals.size() > 1 && _vals[iMin] < MinData) {
 			size_t dir = _vals[iMin - 1] < _vals[iMin + 1] ? -1 : 1;
 			_vals[iMin + dir] += _vals[iMin];
 			pool[iMin + dir].insert(pool[iMin + dir].end(), pool[iMin].begin(), pool[iMin].end());
@@ -125,7 +125,7 @@ public:
 				_vals[i] = 0;
 			}
 		}
-		assert(_vals.size() <= size_t(_nope));
+		assert(_vals.size() <= _iis.size());
 	}
 
 	double adjust() noexcept override {

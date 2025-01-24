@@ -32,7 +32,7 @@ class TEpsilon {
 	arma::vec _F;
 	arma::mat _JxF;
 	size_t _numSitesAdded = 0;
-	bool _converged = false;
+	bool _accepted        = false;
 
 	coretools::Probability _calcErrorRate(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 												   std::vector<T2ndDerivative> &der2) const noexcept;
@@ -121,14 +121,15 @@ public:
 	void init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_t MinData);
 
 	coretools::Probability calcErrorRate(const BAM::TSequencedData &data) const noexcept; 
-	double oldQ() const noexcept {return _oldQ;};
+	double deltaQ() const noexcept {return _Q - _oldQ;};
 	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
 	double maxChange() const noexcept {return _maxJxF;}
+	bool accepted() const noexcept {return _accepted; }
 
 	template<bool updateJF, bool isInvariant>
 	void add(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
-		if (_converged) return;
+		if (_accepted) return;
 		if constexpr (updateJF) _addToQJF<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 	}

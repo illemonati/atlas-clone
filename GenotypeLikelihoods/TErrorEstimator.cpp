@@ -5,6 +5,7 @@
 #include "TErrorEstimator.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/Genotypes/Ploidy.h"
 #include "coretools/Math/TSumLog.h"
@@ -87,24 +88,24 @@ TErrorEstimator::TErrorEstimator()
 	logfile().startIndent("Settings regarding the EM algorithm:");
 
 	_numEMIterations = parameters().get("iterations", 200);
-	_nPi             = parameters().get("NPi", _numEMIterations);
-	_nRho            = parameters().get("NRho", _numEMIterations);
-	_nPsi            = parameters().get("NPsi", _numEMIterations);
-	_nEpsilon        = parameters().get("NEpsilon", _numEMIterations);
 	_minData         = parameters().get("minData", 10000);
 	logfile().list("Will perform at max ", _numEMIterations, " EM iterations. (parameter 'iterations')");
-	logfile().list("Will perform at max ", _nPi, " pi estimations. (parameter 'NPi')");
-	logfile().list("Will perform at max ", _nRho, " rho estimations. (parameter 'NRho')");
-	logfile().list("Will perform at max ", _nPsi, " psi estimations. (parameter 'NPsi')");
-	logfile().list("Will perform at max ", _nEpsilon, " epsilon estimations. (parameter 'NEpsilon')");
 	logfile().list("Will pool data with less than ", _minData, " data Points. (parameter 'minData')");
+
+	// Mostly for debugging
+	_noPi      = parameters().exists("noPi");
+	_noRho     = parameters().exists("noRho");
+	_noPsi     = parameters().exists("noPsi");
+	_noEpsilon = parameters().exists("noEpsilon");
 
 	_minDeltaLL                 = parameters().get("minDeltaLL", 1e-6);
 	_NewtonRaphsonNumIterations = parameters().get("NRiterations", 20);
 	_NewtonRaphsonMaxF          = parameters().get("maxF", 1e-6);
+	_QLL                        = parameters().get("QLL", 1e-1);
 	logfile().list("Will stop EM when deltaLL < ", _minDeltaLL, ". (parameter 'minDeltaLL')");
 	logfile().list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations. (parameter NRiterations)");
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ". (parameter maxF)");
+	logfile().list("Will only update recal if deltaQ[LL]/deltaLL > ", _QLL, ". (parameter 'QLL')");
 
 	// booleans
 	_writeIts = parameters().exists("filePerIteration");
@@ -243,10 +244,11 @@ void TErrorEstimator::_updatePbbar() {
 	}
 }
 
-void TErrorEstimator::_updateEpsilon(double deltaLL) {
+double TErrorEstimator::_updateEpsilon(double deltaLL) {
 	using coretools::str::toString;
 	logfile().list("Optimizing Q_beta using a Newton-Raphson algorithm.");
-	const auto nTot = _epsilons.size();
+	const auto nTot  = _epsilons.size();
+	double deltaQTot = 0.;
 
 	for (size_t i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration ", i + 1, ":");
@@ -263,20 +265,37 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		logfile().list("Current Q_beta = ", oldQ);
 		logfile().list("max(F) = ", maxF);
 
-		constexpr int maxShift = 30;
-		size_t nUpdated = 0;
+		constexpr int maxShift     = 16;
+		constexpr double minChange = 1e-9;
+		size_t nUpdated            = 0;
 		for (int shift = 0; shift <= maxShift; ++shift) {
 			if (shift == 0) {
-				logfile().startIndent("Setting new epsilon:");
+				logfile().startIndent("Proposing new epsilon:");
+				for (auto &e : _epsilons) {
+					if (!e->accepted()) { e->propose(1. / (1 << shift)); }
+				}
 			} else {
-				logfile().startIndent("Setting new epsilon with backtracking = 1/2^", shift, ":");
+				std::string sModels;
+				for (size_t j = 0; j < _epsilons.size(); ++j) {
+					const auto f = 1 << shift;
+					const auto& e = _epsilons[j];
+					if (!e->accepted() && e->maxChange() / f > minChange) {
+						sModels += toString(" ", j, ",");
+						e->propose(1. / (1 << shift));
+					}
+				}
+				sModels.pop_back();
+				logfile().startIndent("Proposing new epsilon with backtracking = 1/2^", shift, " for models", sModels);
 			}
-			for (auto &e : _epsilons) { e->propose(1. / (1 << shift)); }
 
 			nUpdated = _calculateQ();
-			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
-			logfile().endIndent();
-			if (nUpdated == nTot) break;
+			if (nUpdated == nTot) {
+				logfile().list(toString(nUpdated), "/", nTot, " models accepted.");
+				logfile().endIndent();
+				break;
+			} else {
+				logfile().endIndent();
+			}
 		}
 
 		double newQ = 0.;
@@ -285,6 +304,7 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 			e->adjust();
 		}
 		const auto deltaQ = newQ - oldQ;
+		deltaQTot += deltaQ;
 		logfile().conclude("delta Q = ", deltaQ);
 
 		if (nUpdated < nTot) {
@@ -307,6 +327,7 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		}
 		logfile().endIndent();
 	}
+	return deltaQTot;
 }
 
 double TErrorEstimator::_calculateLL_updatePg() {
@@ -328,7 +349,7 @@ size_t TErrorEstimator::_calculateQ() {
 	for (size_t i = 0; i < _epsilons.size(); ++i) {
 		const auto& e = _epsilons[i];
 		const auto u = e->acceptOrReject();
-		if (!u) { logfile().list("Model ", i, " not accepted! delta Q: ", e->Q() - e->oldQ(), "."); }
+		if (!u) { logfile().list("Model ", i, " not accepted! delta Q: ", e->deltaQ(), "."); }
 	}
 	for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
 	return nUpdated;
@@ -430,8 +451,10 @@ void TErrorEstimator::_runEM() {
 	_genome.rgInfo().write(_genome.outputName() + "_init.json");
 
 	// calculate initial LL
-	double oldLL   = _calculateLL_updatePg();
-	double deltaLL = std::abs(oldLL);
+	double oldLL     = _calculateLL_updatePg();
+	double deltaLL   = std::abs(oldLL);
+	double deltaQEps = deltaLL;
+	bool doEps       = true;
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
 	// running iterations
@@ -442,26 +465,26 @@ void TErrorEstimator::_runEM() {
 
 		_updatePbbar();
 
-		if (i < _nPi) {
+		if (!_noPi) {
 			logfile().list("Estimating pi");
 			for (auto &g : _genoDist) g->estimate();
 		}
 
-		if (i < _nPsi) {
+		if (!_noPsi) {
 			logfile().list("Estimating psi");
 			for (auto &psi : _psis) psi->estimate();
 		}
 
-		if (i < _nRho) {
+		if (!_noRho) {
 			logfile().list("Estimating rho");
 			for (auto &rho : _rhos) rho->estimate();
 		}
 
-		if (i < _nEpsilon) {
+		if (!_noEpsilon && doEps) {
 			logfile().startIndent("Estimating epsilon:");
-			_updateEpsilon(deltaLL);
+			deltaQEps = _updateEpsilon(deltaLL);
 			logfile().endIndent();
-		}
+		} 
 
 		const double LL = _calculateLL_updatePg();
 		deltaLL         = LL - oldLL;
@@ -482,10 +505,19 @@ void TErrorEstimator::_runEM() {
 
 		// check if we break based on LL
 		if (i > 0 && deltaLL < _minDeltaLL) {
-			if (deltaLL < 0) logfile().warning("Negative LL!");
-			else logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
+			if (!doEps) {
+				// do at least one more iteration with epsilon calculation
+				doEps = true;
+				continue;
+			}
+			if (deltaLL < 0) {
+				logfile().warning("Negative LL!");
+				break;
+			}
+			logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
 			break;
 		}
+		doEps = deltaQEps > deltaLL * _QLL;
 		oldLL = LL;
 	}
 	if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");

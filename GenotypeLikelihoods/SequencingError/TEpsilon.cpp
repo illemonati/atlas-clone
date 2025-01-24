@@ -64,21 +64,21 @@ void TEpsilon::solveJxF() {
 }
 
 void TEpsilon::propose(double lambda) {
-	if (!_converged) {
+	if (!_accepted) {
 		_functions.propose(lambda, _JxF);
 		_Q = 0; // reset to recalculate
 	}
 }
 
 bool TEpsilon::acceptOrReject() {
-	_converged = _Q > _oldQ;
-	if (!_converged) _functions.reject();
-	return _converged;
+	_accepted = _Q > _oldQ;
+	if (!_accepted) _functions.reject();
+	return _accepted;
 }
 
 void TEpsilon::adjust() {
 	_Q         = 0.;
-	_converged = false;
+	_accepted = false;
 	_functions.adjust();
 }
 
