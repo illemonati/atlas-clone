@@ -189,7 +189,7 @@ if __name__ == "__main__":
         else:
             ax1 = plt.subplot(111)
 
-        plt.errorbar(mdepths, mthetas_g, color=col[i%nSamples], xerr=sdepths, yerr=sthetas_g, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6, label=label)
+        plt.errorbar(mdepths, mthetas_g, color=col[i%nSamples], yerr=sthetas_g, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6, label=label)
         plt.hlines(mthetas_g[0], 0, 1.5*max(mdepths), col[i%nSamples], "dashed")
         plt.xscale("log")
         plt.legend(ncols=2, borderaxespad=0.)
@@ -203,18 +203,18 @@ if __name__ == "__main__":
 
         else:
             plt.yscale("log")
-            mas    = mthetas_g + sthetas_g
-            mis    = mthetas_g - sthetas_g
+            mas    = mthetas_g
+            mis    = mthetas_g
             yma[0] = 10**ceil(log10(max(yma[0], max(mas[nonzero(mas)]))))
             ymi[0] = min(ymi[0], min(mis[nonzero(mis)]))
-            plt.ylim(min(ymi[0]/1.1, yma[0]/20), yma[0]*1.1)
+            plt.ylim(min(ymi[0]/5, yma[0]/20), yma[0]*2)
             if hky85: plt.ylabel(r"$\theta_{g}$")
             else: plt.ylabel(r"$\theta_f$")
 
         if hky85 and hky85_i:
             plt.subplot(312, sharex=ax1)
             plt.tick_params('x', labelbottom=False)
-            plt.errorbar(mdepths, mthetas_r, color=col[i%nSamples], xerr=sdepths, yerr=sthetas_r, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
+            plt.errorbar(mdepths, mthetas_r, color=col[i%nSamples], yerr=sthetas_r, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
 
             if args.relative:
                 plt.yscale("linear")
@@ -225,16 +225,17 @@ if __name__ == "__main__":
                 plt.yscale("log")
                 plt.ylabel(r"$\theta_r$")
 
-                mas = mthetas_r + sthetas_r
-                mis = mthetas_r - sthetas_r
+                mas = mthetas_r
+                mis = mthetas_r
                 yma[1] = 10**ceil(log10(max(yma[1], max(mas[nonzero(mas)]))))
                 ymi[1] = min(ymi[1], min(mis[nonzero(mis)]))
-                plt.ylim(min(ymi[1]/1.1, yma[1]/20), yma[1]*1.1)
+                print(ymi, yma)
+                plt.ylim(min(ymi[1]/5, yma[1]/20), yma[1]*2)
 
         if hky85 and hky85_i:
             plt.subplot(313, sharex=ax1)
 
-            plt.errorbar(mdepths, mmus, color=col[i%nSamples], xerr=sdepths, yerr=smus, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
+            plt.errorbar(mdepths, mmus, color=col[i%nSamples], yerr=smus, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
 
             plt.yscale("linear")
             plt.ylim(0, 1.)

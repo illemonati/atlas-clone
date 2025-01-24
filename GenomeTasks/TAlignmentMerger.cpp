@@ -40,10 +40,10 @@ void callMergeFunction(BAM::TAlignment &alignment, BAM::TAlignment &mate, size_t
 std::pair<PhredInt, PhredInt> minQual(const BAM::TAlignment &firstRead, const BAM::TAlignment &secondRead) {
 	// base iterator starts at first position of the reverse strand, then increments until it reaches either the last
 	// aligned position of itself or the forward read
-	std::vector<BAM::TSequencedBase>::const_iterator baseIterator = secondRead.begin();
+	std::vector<BAM::TSequencedData>::const_iterator dataIterator = secondRead.begin();
 	size_t internalPos                                            = 0;
 	// use the recalibrated quality
-	PhredInt secondReadMinQual                                    = baseIterator->recalQuality;
+	PhredInt secondReadMinQual                                    = dataIterator->recalQuality;
 
 	while (!secondRead.isAlignedAtInternalPos(internalPos) ||
 	       (secondRead.positionInRef(internalPos).position() !=
@@ -54,24 +54,24 @@ std::pair<PhredInt, PhredInt> minQual(const BAM::TAlignment &firstRead, const BA
 		// (therefore the error-probability is higher and the quality is lower) save this number as the new minimum
 		// quality
 		if (secondRead.isAlignedAtInternalPos(internalPos)) {
-			if (baseIterator->recalQuality > secondReadMinQual) secondReadMinQual = baseIterator->recalQuality;
+			if (dataIterator->recalQuality > secondReadMinQual) secondReadMinQual = dataIterator->recalQuality;
 		}
-		baseIterator++;
+		dataIterator++;
 		internalPos++;
 	}
 	// base iterator starts at last position of the forward strand, then decrements until it reaches either the first
 	// aligned position of itself or the forward read
-	std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
+	std::vector<BAM::TSequencedData>::const_reverse_iterator dataIteratorReverse = firstRead.rbegin();
 	internalPos                                                                  = firstRead.getLastInternalPos();
-	PhredInt firstReadMinQual                                                    = baseIteratorReverse->recalQuality;
+	PhredInt firstReadMinQual                                                    = dataIteratorReverse->recalQuality;
 	while (!firstRead.isAlignedAtInternalPos(internalPos) ||
 	       (firstRead.positionInRef(internalPos).position() != secondRead.position() &&
 	        firstRead.positionInRef(internalPos).position() != firstRead.position())) {
 		if (firstRead.isAlignedAtInternalPos(internalPos)) {
-			if (baseIteratorReverse->recalQuality > firstReadMinQual)
-				firstReadMinQual = baseIteratorReverse->recalQuality;
+			if (dataIteratorReverse->recalQuality > firstReadMinQual)
+				firstReadMinQual = dataIteratorReverse->recalQuality;
 		}
-		baseIteratorReverse++;
+		dataIteratorReverse++;
 		internalPos--;
 	}
 	// returns a pair of the minimum qualities of both reads (in the overlap)
@@ -94,12 +94,12 @@ PhredInt determineQualAtSingleBase(const BAM::TAlignment &alignment, size_t numB
 	// for the first read, we start at the last base of the read and go to the base at the center of the overlap and
 	// return its quality-value
 	if (isFirst) {
-		std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIterator = alignment.rbegin() + numBasesFromEnd;
-		return baseIterator->recalQuality;
+		std::vector<BAM::TSequencedData>::const_reverse_iterator dataIterator = alignment.rbegin() + numBasesFromEnd;
+		return dataIterator->recalQuality;
 	} else {
 		// for the second read, we start at the first base of the read
-		std::vector<BAM::TSequencedBase>::const_iterator baseIterator = alignment.begin() + numBasesFromEnd;
-		return baseIterator->recalQuality;
+		std::vector<BAM::TSequencedData>::const_iterator dataIterator = alignment.begin() + numBasesFromEnd;
+		return dataIterator->recalQuality;
 	}
 }
 

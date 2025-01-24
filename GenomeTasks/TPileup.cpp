@@ -11,7 +11,7 @@
 #include <cmath>
 #include <vector>
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Containers/TView.h"
 #include "coretools/Files/TOutputFile.h"
@@ -235,18 +235,19 @@ TPileup::TPileup() {
 		_histSettings.set<Hist::Contexts>(impl::parseField(histograms, "contexts", "Base contexts"));
 		_histSettings.set<Hist::AllelicDepth>(impl::parseField(histograms, "allelicDepth", "Allelic depth"));
 		_histSettings.set<Hist::Transitions>(impl::parseField(histograms, "transitions", "ref to base transition"));
+		_histSettings.set<Hist::StrandMate>(impl::parseField(histograms, "strandMate", "first/second vs fwd/rev strand"));
 		logfile().endIndent();
 
 		// check if unknown fields were given
 		if (!histograms.empty()) {
 			if (histograms.size() == 1) {
 				UERROR("Unknown histogram '", *histograms.begin(),
-				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
+				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'strandMate' and 'contexts'.");
 			} else {
 				std::string f;
 				for (auto i : histograms) { f += '\'' + i + "', "; }
 				UERROR("Unknown histograms: ", f.substr(0, f.size() - 2),
-				       "! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
+				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'strandMate' and 'contexts'.");
 			}
 		}
 		if (_histSettings.get<Hist::Depths>()) {
@@ -290,6 +291,12 @@ TPileup::TPileup() {
 				_outTransitionsPsi.open(_genome.front().outputName() + "_transitionsPsi.txt.gz", header);
 				_outTransitionsRho.open(_genome.front().outputName() + "_transitionsRho.txt.gz", header);
 			}
+		}
+
+		if (_histSettings.get<Hist::StrandMate>()) {
+			logfile().list("Will count 1st/2nd mate vs forward/reversed strand. (parameter 'strandMate')");
+			_outStrandMate.open(_genome.front().outputName() + "_strandMate.txt.gz", {"Chr", "Readgroup", "Mate1-Fwd", "Mate1-Rev", "Mate2-Fwd", "Mate2-Rev"});
+			_strandMate.resize(_genome.front().bamFile().readGroups().size());
 		}
 	} else {
 		logfile().list("Will not output histograms (use 'histograms' to do so).");
@@ -337,6 +344,12 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 					trans.resize(p + 1);
 				}
 				++trans[p][site.refBase][b.base];
+			}
+		}
+
+		if (_histSettings.get<Hist::StrandMate>()) {
+			for (auto &b : site) {
+				++_strandMate[b.readGroupID][b.mate()][b.strand()];
 			}
 		}
 
@@ -429,6 +442,17 @@ void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
 				}
 			}
 		}
+	}
+
+	if (_histSettings.get<Hist::StrandMate>()) {
+		for (size_t rg = 0; rg < _strandMate.size(); ++rg) {
+			auto& sm = _strandMate[rg];
+			_outStrandMate.writeln(Chr.name(), _genome.front().bamFile().readGroups().getName(rg),
+								   sm[Mate::first][Strand::Fwd], sm[Mate::first][Strand::Rev],
+								   sm[Mate::second][Strand::Fwd], sm[Mate::second][Strand::Rev]);
+			sm.fill({});
+		}
+		_outStrandMate.flush();
 	}
 }
 

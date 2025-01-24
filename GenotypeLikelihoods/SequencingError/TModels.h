@@ -19,7 +19,7 @@
 
 namespace BAM {
 class TReadGroups;
-struct TSequencedBase;
+struct TSequencedData;
 } // namespace BAM
 
 namespace GenotypeLikelihoods::SequencingError  {
@@ -46,21 +46,21 @@ public:
 	RGModels &RGModel(size_t rgID) noexcept { return _pModels[rgID]; }
 	const RGModels &RGModel(size_t rgID) const noexcept { return _pModels[rgID]; }
 
-	TModel& model(const BAM::TSequencedBase &data) noexcept {
+	TModel& model(const BAM::TSequencedData &data) noexcept {
 		return *RGModel(data.readGroupID)[data.mate()];
 	}
-	const TModel& model(const BAM::TSequencedBase &data) const noexcept {
+	const TModel& model(const BAM::TSequencedData &data) const noexcept {
 		return *RGModel(data.readGroupID)[data.mate()];
 	}
 
 	bool recalibrates() const noexcept { return !_withRecal.empty(); }
 
 	// calculate error rates
-	coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept {
+	coretools::PhredInt phredInt(const BAM::TSequencedData &data) const noexcept {
 		return model(data).phredInt(data);
 	}
 	void recalibrate(BAM::TAlignment &aln) const noexcept { RGModel(aln.readGroupId())[aln.mate()]->recalibrate(aln); };
-	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept {
+	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data) const noexcept {
 		return model(data).P_dij(data);
 	}
 

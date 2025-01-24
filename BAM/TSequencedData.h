@@ -5,8 +5,8 @@
  *      Author: wegmannd
  */
 
-#ifndef TSEQUENCEDBASE_H_
-#define TSEQUENCEDBASE_H_
+#ifndef TSEQUENCEDDATA_H_
+#define TSEQUENCEDDATA_H_
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -38,13 +38,10 @@ inline std::string toString(Strand e) {
 	return std::string(strands[e]);
 }
 
-//---------------------------------------------------------------
-// TSequencedBase
-//---------------------------------------------------------------
 // data container with minimal footprint, also used in recal
-struct TSequencedBase {
-	genometools::Base base         = genometools::Base::N;
-	genometools::Base previousBase = genometools::Base::N;
+struct TSequencedData {
+	genometools::Base base              = genometools::Base::N;
+	genometools::Base previousSequenced = genometools::Base::N;
 
 	// original quality as in BAM file, but transformed to phredInt
 	coretools::PhredInt originalQuality = coretools::PhredInt::highest();
@@ -68,7 +65,12 @@ struct TSequencedBase {
 	constexpr End end() const noexcept {return distFrom3 < distFrom5 ? End::from3 : End::from5;}
 	constexpr Strand strand() const noexcept {return get<Flags::ReversedStrand>() ? Strand::Rev : Strand::Fwd;}
 	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
-	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
+	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousSequenced, sequenced());}
+
+	// As sequenced by Machine
+	constexpr genometools::Base sequenced() const noexcept {
+		return get<Flags::ReversedStrand>() ? genometools::flipped(base) : base;
+	}
 
 	template<Flags F>
 	constexpr bool get() const noexcept {return properties.get<F>();}

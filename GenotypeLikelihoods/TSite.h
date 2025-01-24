@@ -18,7 +18,7 @@
 #include "genometools/Genotypes/Base.h"
 
 #include "genometools/Genotypes/Containers.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 
 namespace GenotypeLikelihoods {
 
@@ -29,7 +29,7 @@ namespace GenotypeLikelihoods {
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
 private:
-	std::vector<BAM::TSequencedBase> _bases;
+	std::vector<BAM::TSequencedData> _data;
 public:
 	genometools::TGenotypeLikelihoods genotypeLikelihoods;
 	genometools::Base refBase      = genometools::Base::N;
@@ -38,11 +38,11 @@ public:
 	void clear() noexcept;
 
 	// access
-	BAM::TSequencedBase &operator[](size_t i) noexcept { return _bases[i]; };
-	const BAM::TSequencedBase &operator[](size_t i) const noexcept{ return _bases[i]; };
+	BAM::TSequencedData &operator[](size_t i) noexcept { return _data[i]; };
+	const BAM::TSequencedData &operator[](size_t i) const noexcept{ return _data[i]; };
 
 	// add
-	void add(const BAM::TSequencedBase &base);
+	void add(const BAM::TSequencedData &data);
 	genometools::TBaseData baseFrequencies() const noexcept;
 	void shuffle();
 
@@ -51,8 +51,8 @@ public:
 	void downsample(size_t UpToDepth);
 
 	// getters
-	bool empty() const noexcept { return _bases.empty(); };
-	size_t depth() const noexcept { return _bases.size(); };
+	bool empty() const noexcept { return _data.empty(); };
+	size_t depth() const noexcept { return _data.size(); };
 	size_t refDepth() const;
 	std::string getBases() const;
 	std::vector<genometools::Base> sampleBases() const;
@@ -63,15 +63,15 @@ public:
 	std::array<int, 2> countFwdRev() const;
 
 	// loop
-	using iterator       = std::vector<BAM::TSequencedBase>::iterator;
-	using const_iterator = std::vector<BAM::TSequencedBase>::const_iterator;
+	using iterator       = std::vector<BAM::TSequencedData>::iterator;
+	using const_iterator = std::vector<BAM::TSequencedData>::const_iterator;
 
-	iterator begin() noexcept { return _bases.begin(); };
-	iterator end() noexcept{ return _bases.end(); };
-	const_iterator begin() const noexcept { return _bases.cbegin(); };
-	const_iterator end() const noexcept { return _bases.cend(); };
-	const_iterator cbegin() const noexcept { return _bases.cbegin(); };
-	const_iterator cend() const noexcept { return _bases.cend(); };
+	iterator begin() noexcept { return _data.begin(); };
+	iterator end() noexcept{ return _data.end(); };
+	const_iterator begin() const noexcept { return _data.cbegin(); };
+	const_iterator end() const noexcept { return _data.cend(); };
+	const_iterator cbegin() const noexcept { return _data.cbegin(); };
+	const_iterator cend() const noexcept { return _data.cend(); };
 };
 
 }; // namespace GenotypeLikelihoods

@@ -6,7 +6,7 @@
  */
 
 #include "TWindow.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "genometools/TBed.h"
 #include "genometools/TFastaReader.h"
 #include "coretools/Math/TNumericRange.h"

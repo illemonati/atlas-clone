@@ -6,6 +6,7 @@
  */
 
 #include "TEpsilon.h"
+#include "armadillo"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -35,23 +36,25 @@ void TEpsilon::init(const RecalEstimatorTools::TRecalDataTable &DataTable, size_
 	_F.resize(numParameters);
 }
 
-coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	return _functions.getEpsilon(base);
+coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedData &data) const noexcept {
+	return _functions.getEpsilon(data);
 }
 
-coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 											   std::vector<T2ndDerivative> &der2) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	return _functions.getEpsilon(base, der1, der2);
+	return _functions.getEpsilon(data, der1, der2);
 }
 
 
 void TEpsilon::solveJxF() {
 	// scale maxF #sites
-	_maxF = std::max(_F.max(), -_F.min()) / _numSitesAdded;
+	_Jacobian = arma::symmatu(_Jacobian);
+	_maxF = std::max(std::abs(_F.max()), std::abs(_F.min())) / _numSitesAdded;
 	if (!solve(_JxF, _Jacobian, _F))
 		UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
 		       _Jacobian);
+	_maxJxF = std::max(std::abs(_JxF.max()), std::abs(_JxF.min()));
 
 	// automatically reset
 	_Jacobian.zeros();
@@ -61,21 +64,21 @@ void TEpsilon::solveJxF() {
 }
 
 void TEpsilon::propose(double lambda) {
-	if (!_converged) {
+	if (!_accepted) {
 		_functions.propose(lambda, _JxF);
 		_Q = 0; // reset to recalculate
 	}
 }
 
 bool TEpsilon::acceptOrReject() {
-	_converged = _Q > _oldQ;
-	if (!_converged) _functions.reject();
-	return _converged;
+	_accepted = _Q > _oldQ;
+	if (!_accepted) _functions.reject();
+	return _accepted;
 }
 
 void TEpsilon::adjust() {
 	_Q         = 0.;
-	_converged = false;
+	_accepted = false;
 	_functions.adjust();
 }
 

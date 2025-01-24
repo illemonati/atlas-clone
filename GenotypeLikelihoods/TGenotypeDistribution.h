@@ -20,19 +20,19 @@ namespace GenotypeLikelihoods {
 
 class TGenotypeDistribution {
 public:
-	TGenotypeDistribution()                                                                            = default;
-	virtual ~TGenotypeDistribution()                                                                   = default;
+	TGenotypeDistribution()          = default;
+	virtual ~TGenotypeDistribution() = default;
 	virtual genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const = 0;
 	virtual coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
-														 genometools::Genotype genotype) const         = 0;
-	virtual double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base ref)             = 0;
-	virtual void estimate()                                                                            = 0;
-	virtual std::string_view typeString() const noexcept                                               = 0;
-	virtual void log() const                                                                           = 0;
-	virtual bool isInvariant() const noexcept                                                          = 0;
-	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const            = 0;
-	virtual std::vector<double> pis() const                                                            = 0;
-	virtual void reset()                                                                               = 0;
+														 genometools::Genotype genotype) const                  = 0;
+	virtual double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base ref)         = 0;
+	virtual void estimate()                                                                                     = 0;
+	virtual std::string_view typeString() const noexcept                                                        = 0;
+	virtual void log() const                                                                                    = 0;
+	virtual genometools::Ploidy ploidy() const noexcept                                                         = 0;
+	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const                     = 0;
+	virtual std::vector<double> pis() const                                                                     = 0;
+	virtual void reset()                                                                                        = 0;
 };
 
 template<genometools::Ploidy P>
@@ -67,7 +67,7 @@ public:
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
-	bool isInvariant() const noexcept override {return true;}
+	genometools::Ploidy ploidy() const noexcept override {return genometools::Ploidy::haploid;}
 	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
 	std::vector<double> pis() const override;
 	virtual void reset() override;
@@ -89,7 +89,7 @@ public:
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
-	bool isInvariant() const noexcept override {return false;}
+	genometools::Ploidy ploidy() const noexcept override {return genometools::Ploidy::diploid;}
 	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
 	std::vector<double> pis() const override;
 	virtual void reset() override;
@@ -119,7 +119,7 @@ public:
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
-	bool isInvariant() const noexcept override {return false;}
+	genometools::Ploidy ploidy() const noexcept override {return genometools::Ploidy::diploid;}
 	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
 	std::vector<double> pis() const override;
 	virtual void reset() override;
@@ -147,7 +147,7 @@ public:
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
-	bool isInvariant() const noexcept override {return true;}
+	genometools::Ploidy ploidy() const noexcept override {return genometools::Ploidy::haploid;}
 	virtual void addHeader(std::vector<std::string> &Header, std::string_view Prefix) const override;
 	std::vector<double> pis() const override;
 	virtual void reset() override;

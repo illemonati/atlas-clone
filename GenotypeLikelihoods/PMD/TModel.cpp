@@ -1,5 +1,5 @@
 #include "TModel.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Containers.h"
@@ -15,18 +15,18 @@ using genometools::TBaseData;
 
 using genometools::Genotype;
 using genometools::TGenotypeProbabilities;
-using BAM::TSequencedBase;
+using BAM::TSequencedData;
 using coretools::P;
 using coretools::Probability;
 
-TBaseProbabilities TNoPMD::P_bbar(Base b, const TSequencedBase &,
+TBaseProbabilities TNoPMD::P_bbar(Base b, const TSequencedData &,
 								  const TBaseLikelihoods &) const noexcept {
 	static constexpr TBaseMassFunctions P_bbars{
 	    {TBaseProbabilities::normalize({1., 0., 0., 0.}), TBaseProbabilities::normalize({0., 1., 0., 0.}),
 	     TBaseProbabilities::normalize({0., 0., 1., 0.}), TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 	return P_bbars[b];
 }
-TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedBase &,
+TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedData &,
 								  const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const Base a = first(g);
 	const Base b = second(g);
@@ -36,7 +36,7 @@ TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedBase &,
 	return TBaseProbabilities::normalize(Psum);
 }
 
-TBaseBaseProbabilities TNoPMD::P_b_bbar(genometools::Genotype g, const BAM::TSequencedBase &,
+TBaseBaseProbabilities TNoPMD::P_b_bbar(genometools::Genotype g, const BAM::TSequencedData &,
 								const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	TBaseBaseProbabilities bbProbs{};
 	double sum = 0.;
@@ -49,7 +49,7 @@ TBaseBaseProbabilities TNoPMD::P_b_bbar(genometools::Genotype g, const BAM::TSeq
 	return bbProbs;
 }
 
-TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedBase &data,
+TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedData &data,
 									const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	// Assuming genotype g = bb
 	// This is also, due to normalization, P_b_bbar with genotype g = bb
@@ -93,7 +93,7 @@ double bbProbs(Base b, TBaseBaseProbabilities &probs, Probability pCT, Probabili
 }
 } // namespace impl
 
-TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
+TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedData &data,
 									const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
@@ -116,7 +116,7 @@ TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
 	return TBaseProbabilities::normalize(Psum);
 }
 
-TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedBase &data,
+TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedData &data,
 								const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
@@ -130,7 +130,7 @@ TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedBase 
 	return bbProbs;
 }
 
-TBaseLikelihoods TWithPMD::P_dij(const TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+TBaseLikelihoods TWithPMD::P_dij(const TSequencedData &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
 
