@@ -45,10 +45,10 @@ echo '{
   "fragmentLength": "normal(200,200)[30,1025]",
   "baseQuality": "categorical(12:1,22:2,27:3,32:4,37:5,41:100)",
   "mappingQuality": "normal(60,10)[30,60]",
-  "softClipping": "poisson(0.2)[0,5]",
+  "softClipping": "normal(1,1)[0,0]",
   "recal": {
 	  "intercept": -1.0,
-	  "position": {"polynomial": [0.02]},
+	  "position": {"empiric": [[0, -1], [1, 0]]},
 	  "quality": {"polynomial": [0.95,0.02]},
 	  "fragmentLength": {"empiric": [[32, 1], [64, 0.5], [128, 0], [256, -0.5], [512, -1]]},
 	  "rho": [
@@ -72,6 +72,7 @@ if [ $1 ]; then
 fi
 k="111"
 L="${N}$k"
+probs="0.5,0.2,0.1,0.05,0.02,0.01"
 
 out="simulate"
 $atlas --task simulate --RGInfo "workflow.json" \
@@ -79,17 +80,20 @@ $atlas --task simulate --RGInfo "workflow.json" \
 	   --chrLength $L --depth 10 --ploidy 2 \
 	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
-out="pileup"
-$atlas --task pileup --onlySummaries --histograms depth,transitions,strandMate \
-	   --bam simulate.bam --fasta simulate.fasta \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
-
 out="merge"
 $atlas --task mergeOverlappingReads --bam simulate.bam  \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
 bam=merge_merged.bam
-probs="0.5,0.2,0.1,0.05,0.02,0.01"
+
+out="pileup"
+$atlas --task pileup --onlySummaries --histograms depth,transitions,strandMate \
+	   --bam $bam --fasta simulate.fasta \
+	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+
+out="BAMDiagnostics"
+$atlas --task BAMDiagnostics --bam $bam --fasta simulate.fasta \
+	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 out=HK85reads_raw
 $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \

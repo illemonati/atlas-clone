@@ -195,19 +195,16 @@ if __name__ == "__main__":
         plt.legend(ncols=2, borderaxespad=0.)
         if args.relative:
             plt.yscale("linear")
-            mas    = mthetas_g + sthetas_g
-            yma[0] = ceil(2*(max(yma[0], max(mas[nonzero(mas)]))))/2
-            plt.ylim(0, yma[0])
+            yma[0] = max(yma[0], max(mthetas_g[nonzero(mthetas_g)]))
+            plt.ylim(0, 1.1*yma[0])
             if hky85: plt.ylabel(r"$\theta_{f/g}/\theta_0$")
             else: plt.ylabel(r"$\theta_f/\theta_0$")
 
         else:
             plt.yscale("log")
-            mas    = mthetas_g
-            mis    = mthetas_g
-            yma[0] = 10**ceil(log10(max(yma[0], max(mas[nonzero(mas)]))))
-            ymi[0] = min(ymi[0], min(mis[nonzero(mis)]))
-            plt.ylim(min(ymi[0]/5, yma[0]/20), yma[0]*2)
+            yma[0] = max(yma[0], max(mthetas_g[nonzero(mthetas_g)]))
+            ymi[0] = min(ymi[0], min(mthetas_g[nonzero(mthetas_g)]))
+            plt.ylim(min(ymi[0]/2, yma[0]/10), yma[0]*2)
             if hky85: plt.ylabel(r"$\theta_{g}$")
             else: plt.ylabel(r"$\theta_f$")
 
@@ -225,20 +222,19 @@ if __name__ == "__main__":
                 plt.yscale("log")
                 plt.ylabel(r"$\theta_r$")
 
-                mas = mthetas_r
-                mis = mthetas_r
-                yma[1] = 10**ceil(log10(max(yma[1], max(mas[nonzero(mas)]))))
-                ymi[1] = min(ymi[1], min(mis[nonzero(mis)]))
-                print(ymi, yma)
-                plt.ylim(min(ymi[1]/5, yma[1]/20), yma[1]*2)
+                yma[1] = max(yma[1], max(mthetas_r[nonzero(mthetas_r)]))
+                ymi[1] = min(ymi[1], min(mthetas_r[nonzero(mthetas_r)]))
+                plt.ylim(min(ymi[1]/2, yma[1]/10), yma[1]*2)
 
         if hky85 and hky85_i:
             plt.subplot(313, sharex=ax1)
 
             plt.errorbar(mdepths, mmus, color=col[i%nSamples], yerr=smus, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
+            plt.yscale("log")
+            yma[2] = max(yma[2], max(mmus[nonzero(mmus)]))
+            ymi[2] = min(ymi[2], min(mmus[nonzero(mmus)]))
+            plt.ylim(ymi[2]/2, yma[2]*2)
 
-            plt.yscale("linear")
-            plt.ylim(0, 1.)
             plt.ylabel(r"$\mu$")
 
     # All
