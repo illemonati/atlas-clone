@@ -121,8 +121,8 @@ protected:
 				emptyChr = _genome.size() == 1 && _genome.front().bamFile().curPosition().refID() > chr.refID();
 			}
 
-			if (!chr.inUse() || emptyChr) {
-				logfile().list("Chromosome '" + chr.name() + "' is empty.");
+			if (_windows[chr.refID()].empty() || !chr.inUse() || emptyChr) {
+				logfile().list("Chromosome '" + chr.name() + "' is empty/masked.");
 				_endChromosome(chr);
 				continue;
 			}

@@ -60,6 +60,10 @@ private:
 	size_t _maxNumReadsToRead       = -1;
 	size_t _numIdentifiedDuplicates = 0;
 
+	// downsample
+	double _downProb       = 0.;
+	size_t _numDownsampled = 0;
+
 	// duplicates
 	bool _resetDuplicates = false;
 	size_t _maxDupOverlap = _nope;

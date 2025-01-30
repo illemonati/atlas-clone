@@ -92,7 +92,7 @@ $atlas --task pileup --onlySummaries --histograms depth,transitions,strandMate \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 out="BAMDiagnostics"
-$atlas --task BAMDiagnostics --bam $bam --fasta simulate.fasta \
+$atlas --task BAMDiagnostics --bam $bam \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 out=HK85reads_raw

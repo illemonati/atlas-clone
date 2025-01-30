@@ -11,6 +11,7 @@
 #include "api/BamWriter.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringConversions.h"
 #include "coretools/algorithms.h"
 
@@ -176,6 +177,17 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 		_filters.disable(FilterType::ReadGroup);
 	}
 
+	constexpr std::string_view downsample = "downsampleReads";
+	_downProb = parameters().get(downsample, 0.);
+	if (_downProb < 0. || _downProb > 1.) {
+		logfile().warning("Cannot downsample reads with probability ", _downProb, "! Will set to 0.(parameter '", downsample, "')");
+	} else if (_downProb > 0.) {
+		logfile().list("Will downsample reads with probability ", _downProb, ".(parameter '", downsample, "')");
+	} else {
+		logfile().list("Will not downsample reads.(use '", downsample, "')");
+	}
+
+
 	constexpr std::string_view sDupReset = "resetDuplicates";
 	_resetDuplicates = parameters().exists(sDupReset);
 	if (_resetDuplicates) {
@@ -297,6 +309,10 @@ bool TBamFile::readNextAlignment(){
 	//check if we limit reads
 	if(_numAlignmentRead >=_maxNumReadsToRead){
 		return false;
+	}
+	if (_downProb != 0. && coretools::instances::randomGenerator().getRand() < (1 -_downProb)) {
+		++_numDownsampled;
+		return readNextAlignment();
 	}
 
 	//store previous position
