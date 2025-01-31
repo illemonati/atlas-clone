@@ -186,7 +186,7 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		GenotypeLikelihoods::TWindow destination(window, _windows.uptoDepth(), p);
+		GenotypeLikelihoods::TWindow destination(window, p, _windows.uptoDepth(), _windows.shuffleSites());
 		logfile().done();
 
 		_windows.filter(destination);

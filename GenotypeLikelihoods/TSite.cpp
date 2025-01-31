@@ -38,22 +38,6 @@ TBaseData TSite::baseFrequencies() const noexcept {
 	return bd;
 }
 
-void TSite::downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker) {
-	// only subsample if depth > maxDepth
-	if (_data.size() > maxDepth) {
-		// select subsample
-		const auto &subsample = picker.pick(_data.size(), maxDepth);
-
-		// copy bases to new vector
-		std::vector<BAM::TSequencedData> newBases;
-		newBases.reserve(subsample.size());
-		for (auto i : subsample) { newBases.push_back(_data[i]); }
-
-		// swap vectors
-		_data = std::move(newBases);
-	}
-}
-
 void TSite::downsample(coretools::Probability p) {
 	using coretools::instances::randomGenerator;
 	const auto iMax  = _data.size() - 1;

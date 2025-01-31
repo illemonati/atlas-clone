@@ -178,10 +178,8 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 	}
 
 	constexpr std::string_view downsample = "downsampleReads";
-	_downProb = parameters().get(downsample, 0.);
-	if (_downProb < 0. || _downProb > 1.) {
-		logfile().warning("Cannot downsample reads with probability ", _downProb, "! Will set to 0.(parameter '", downsample, "')");
-	} else if (_downProb > 0.) {
+	_downProb = parameters().get(downsample, coretools::P(0.));
+	if (_downProb > 0.) {
 		logfile().list("Will downsample reads with probability ", _downProb, ".(parameter '", downsample, "')");
 	} else {
 		logfile().list("Will not downsample reads.(use '", downsample, "')");
@@ -224,9 +222,14 @@ void TBamFile::setFilters(const TBamFilters& Filters) {
 }
 
 bool TBamFile::_readNextAlignmentFromFile(){
-	if(!_bamReader.GetNextAlignment(_curBamAlignment)){
-		return false;
+	using coretools::instances::randomGenerator;
+	for (;;) {
+		if (!_bamReader.GetNextAlignment(_curBamAlignment)) { return false; }
+		if (_downProb == 0. || randomGenerator().getRand() < _downProb) { break; }
+		// Else downsaple alignment
+		++_numDownsampled;
 	}
+
 	++_numAlignmentRead;
 
 	//store current read group ID
@@ -306,14 +309,7 @@ bool TBamFile::_applyFilters() {
 }
 
 bool TBamFile::readNextAlignment(){
-	//check if we limit reads
-	if(_numAlignmentRead >=_maxNumReadsToRead){
-		return false;
-	}
-	if (_downProb != 0. && coretools::instances::randomGenerator().getRand() < (1 -_downProb)) {
-		++_numDownsampled;
-		return readNextAlignment();
-	}
+	if (_numAlignmentRead >= _maxNumReadsToRead) { return false; }
 
 	//store previous position
 	_previousAlignmentPosition = _curAlignmentPosition;

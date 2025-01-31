@@ -32,7 +32,7 @@ $atlas --task pileup \
 	   --fixedSeed 171 --out $out --logFile $out.out 2> $out.eout
 
 out="filter"
-$atlas --task filterBAM --bam simulate.bam --chr "chr1,chr7" \
+$atlas --task filterBAM --bam simulate.bam --chr "chr1,chr7" --downsampleReads 0.3 \
         --fixedSeed 172 --out $out --logFile $out.out 2> $out.eout
 
 out="filtered"
@@ -41,7 +41,7 @@ $atlas --task pileup \
 	   --fixedSeed 173 --out $out --logFile $out.out 2> $out.eout
 
 out="bases"
-$atlas --task pileup --shuffleSites --fields "bases" \
+$atlas --task pileup --shuffleSites --fields "bases" --downsampleSites 0.5 \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --fixedSeed 174 --out $out --logFile $out.out 2> $out.eout
 

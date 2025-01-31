@@ -144,8 +144,10 @@ void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) 
 			}
 		} else {
 			// get sites and alleles from site subset
-			auto thesePositions = _windows.subset<false>()->getPositionInWindow(Window);
-			for (auto &it : thesePositions) { _addSite(Window[it - Window.from()], it.ref()); }
+			for (auto it = _windows.alleles().begin(Window); it != _windows.alleles().end(); ++it) {
+				if (!Window.within(it->position)) break;
+				_addSite(Window[it->position - Window.from()], it->ref);
+			}
 		}
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
@@ -160,6 +162,7 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 	//  1) from an alleles file (chr, pos, allele)
 	//  2) from a BED file and the reference
 	if (parameters().exists("alleles")) {
+		_fileName = parameters().get("alleles");
 		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), false);
 		_parseFromBed = false;
 	} else if (parameters().exists("bed")) {
@@ -168,9 +171,9 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 		logfile().list("Will assume that the reference allele is the preferred allele.");
 		_windows.requireReference();
 		// parse BED
-		_bedFileName = parameters().get("bed");
-		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
-		_bedFile.parse(_bedFileName, _genome.bamFile().chromosomes());
+		_fileName = parameters().get("bed");
+		logfile().listFlush("Reading BED file '", _fileName, "' (parameter 'bed') ...");
+		_bedFile.parse(_fileName, _genome.bamFile().chromosomes());
 		logfile().done();
 		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.NChrWindows(),
 		                   " chromosomes.");
@@ -201,11 +204,7 @@ void TEstimateMutationLoad::run() {
 	// write output file
 	std::string filename = _genome.outputName() + "_mutationLoad.txt";
 	coretools::TOutputFile out(filename, {"BAM", "Alleles", "Pi_rr", "Pi_ra", "Pi_aa", "Pi_ab"});
-	if (_parseFromBed) {
-		out.writeln(_genome.bamFile().filename(), _bedFileName, prior.getPi());
-	} else {
-		out.writeln(_genome.bamFile().filename(), _windows.subset<false>()->filename(), prior.getPi());
-	}
+	out.writeln(_genome.bamFile().filename(), _fileName, prior.getPi());
 }
 
 } // end namespace GenomeTasks

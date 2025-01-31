@@ -18,6 +18,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
+#include "coretools/algorithms.h"
 #include "genometools/Genotypes/Base.h"
 
 #include "TSite.h"

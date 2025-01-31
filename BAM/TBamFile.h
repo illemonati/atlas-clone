@@ -17,6 +17,7 @@
 #include "api/SamHeader.h"
 
 #include "coretools/TTimer.h"
+#include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
@@ -61,7 +62,7 @@ private:
 	size_t _numIdentifiedDuplicates = 0;
 
 	// downsample
-	double _downProb       = 0.;
+	coretools::Probability _downProb;
 	size_t _numDownsampled = 0;
 
 	// duplicates

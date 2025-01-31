@@ -46,7 +46,6 @@ public:
 	genometools::TBaseData baseFrequencies() const noexcept;
 	void shuffle();
 
-	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 	void downsample(coretools::Probability p);
 	void downsample(size_t UpToDepth);
 

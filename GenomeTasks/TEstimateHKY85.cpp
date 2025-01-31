@@ -166,7 +166,7 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 				auto &stat   = _stats_P[r][i];
 
 				logfile().list("Downsampling reads to probability ", p, ".");
-				GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+				GenotypeLikelihoods::TWindow downsampled(window, p, _windows.uptoDepth(), _windows.shuffleSites());
 				_windows.filter(downsampled);
 
 				for (const auto &site : downsampled) {
@@ -207,7 +207,7 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 
 		if (_sample == Sample::reads) {
 			const coretools::Probability p = P(dOrP);
-			GenotypeLikelihoods::TWindow downsampled(window, _windows.uptoDepth(), p);
+			GenotypeLikelihoods::TWindow downsampled(window, p, _windows.uptoDepth(), _windows.shuffleSites());
 			_windows.filter(downsampled);
 
 			const auto LL_p  = _runEM(downsampled.sites());

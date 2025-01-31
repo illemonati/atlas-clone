@@ -11,15 +11,14 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
 
 #include "genometools/Genotypes/Containers.h"
 #include "TAlignment.h"
 #include "TSite.h"
+#include "genometools/TAlleles.h"
 
 
 namespace coretools {
@@ -63,74 +62,18 @@ private:
 	void _calcDepth() const;
 
 	// fill sites and clean
-	size_t _findFirstPositionWithinWindow(const BAM::TAlignment &alignment) const;
-	void _fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites, size_t readUpToDepth) const;
-	void _fillSites(std::vector<TSite> &sites, size_t readUpToDepth);
-	int _fillSitesDownsampling(std::vector<TSite> &sites, size_t readUpToDepth,
-	                           const coretools::Probability &downsamplingProb) const;
-
-	//fill sites according to subset: templates to allow for different types of subsets
-	template<typename SiteSubsetType>
-	void _fillSitesSubset(BAM::TAlignment &alignment, std::vector<TSite> &sites,
-	                      coretools::TConstView<SiteSubsetType> thesePos, size_t readUpToDepth) {
-		size_t p = _findFirstPositionWithinWindow(alignment);
-
-		// position in window where first one = 0
-		// p is at first position of read in window
-		auto it = thesePos.begin();
-		for (; p < alignment.parsedLength(); ++p) {
-			if (alignment.isAlignedAtInternalPos(p) && alignment[p].base != genometools::Base::N) {
-				size_t internalPos = alignment.positionInRef(p) - from();
-
-				// if read extends past window length
-				if (internalPos >= size()) break; // since part of the read maps to next window
-
-				// find position in thesePos
-				while (it != thesePos.end() && *it < alignment.positionInRef(p)) ++it;
-
-				if (it != thesePos.end() && *it == alignment.positionInRef(p) &&
-				    sites[internalPos].depth() < readUpToDepth) {
-					sites[internalPos].add(alignment[p]);
-				}
-			}
-		}
-	}
-
-	template<typename SiteSubsetType>
-	void _fillSitesSubset(std::vector<TSite> &sites, SiteSubsetType &subset, size_t readUpToDepth){
-		sites.clear();
-		sites.resize(size());
-
-		auto thesePositions = subset.getPositionInWindow(*this);
-
-		for(auto & a : _usedAlignments){
-			_fillSitesSubset(a, sites, thesePositions, readUpToDepth);
-		}
-	}
-
-	template<typename SiteSubsetType>
-	int _fillSitesSubsetDownsampling(std::vector<TSite> &sites, SiteSubsetType &subset, size_t readUpToDepth,
-	                                 const coretools::Probability &downsamplingProb){
-		sites.resize(size());
-
-		//get positions that are used
-		auto thesePositions = subset.getPositionInWindow(*this);
-
-		int counter = 0;
-		for(auto & a : _usedAlignments){
-			if(coretools::instances::randomGenerator().getRand() < downsamplingProb){
-				_fillSitesSubset(a, sites, thesePositions, readUpToDepth);
-				++counter;
-			}
-		}
-		return counter;
-	}
+	size_t _findFirstPositionWithinWindow(const BAM::TAlignment &Alignment) const;
+	void _fillSites(std::vector<TSite> &sites, const genometools::TAlleles& Alleles);
+	void _fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites) const;
+	void _fillSites(BAM::TAlignment &alignment, std::vector<TSite> &sites, const genometools::TAlleles &alleles);
+	int _fillSitesDownsampling(std::vector<TSite> &sites, const coretools::Probability &downsamplingProb) const;
 	void _clear();
 
 public:
 	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {};
-	TWindow(const TWindow &other, const int readUpToDepth, const coretools::Probability &downsamplingProb) {
-		downsampleFromOther(other, readUpToDepth, downsamplingProb);
+	TWindow(const TWindow &other, const coretools::Probability &downsamplingProb, size_t UpToDepth, bool Shuffle) {
+		downsampleFromOther(other, downsamplingProb);
+		downsample(UpToDepth, Shuffle);
 	}
 
 	// Allow to set chromosome name when jumping
@@ -142,38 +85,17 @@ public:
 	void operator+=(size_t length);
 	void resize(size_t newLength);
 
-	// void stealFromOther(TWindow & other);
-	void downsampleFromOther(const TWindow &other, size_t readUpToDepth, const coretools::Probability &downsamplingProb);
-	template<typename SiteSubsetType>
-	void downsampleFromOther(TWindow &other, SiteSubsetType &subset, size_t readUpToDepth,
-	                         const coretools::Probability &downsamplingProb){
-		//clear and set coordinates
-		_clear();
-		move(other, other.chrName());
+	void downsample(size_t UpToDepth, bool Shuffle);
+	void downsample(coretools::Probability p);
 
-		//fill sites by downsampling, recalculate depth
-		_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb);
-		_masked.assign(_sites.size(), false);
-		_calcDepth();
-	};
+	// void stealFromOther(TWindow & other);
+	void downsampleFromOther(const TWindow &other, const coretools::Probability &downsamplingProb);
 	
-	template<typename SiteSubsetType>
-	void addReferenceBaseToSites(const SiteSubsetType &subset) {
-		if (!_referenceBaseAdded && subset.hasPositionsInWindow(*this)) {
-			// now only run over sites listed in that window
-			const auto thesePositions = subset.getPositionInWindow(*this);
-			for (auto &it : thesePositions) {
-				size_t pos          = it - from();
-				_sites[pos].refBase = it.ref();
-			}
-			_referenceBaseAdded = true;
-		}
-	};
+	void addReferenceBaseToSites(const genometools::TAlleles &Alleles);
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);
 
 	size_t applyMask(genometools::TBed &mask, bool doInverseMasking);
 	void maskCpG(const genometools::TFastaReader &reference);
-	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 	genometools::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const coretools::TNumericRange<size_t> &DepthRange);
 
@@ -187,11 +109,13 @@ public:
 
 	size_t numReadsInWindow() const noexcept { return _numReadsInWindow; };
 	double depth() const noexcept;
+
 	size_t numMaskedSites() const noexcept {
 		_calcDepth();
 		return _numMaskedSites;
 	}
 	size_t numSites() const noexcept {return size() - numMaskedSites();}
+
 	size_t numSitesWithData() const noexcept {
 		_calcDepth();
 		return _numSitesWithData;
@@ -218,14 +142,7 @@ public:
 		_usedAlignments.push_back(usedAlignment);
 	}
 
-	void fillSites(size_t readUpToDepth);
-	template<typename SiteSubsetType>
-	void fillSitesSubset(SiteSubsetType &subset, size_t readUpToDepth){
-		_fillSitesSubset(_sites, subset, readUpToDepth);
-		_masked.assign(_sites.size(), false);
-		_numMaskedSites = 0;
-		_numReadsInWindow = _usedAlignments.size();
-	}
+	void fillSites(const genometools::TAlleles& alleles);
 };
 
 };     // namespace GenotypeLikelihoods

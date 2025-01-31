@@ -8,6 +8,8 @@
 #include "TCaller.h"
 #include "GenotypeFunctions.h"
 #include "TSite.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/fillContainer.h"
 #include "coretools/Strings/toString.h"
@@ -1185,7 +1187,8 @@ TCall::TCall() {
 	} else if(method == "majorityBase"){
 		_caller = std::make_unique<TCallerMajorityBase>();
 	} else if(method == "consensify"){
-		_caller = std::make_unique<TCallerConsensify>(_windows.downsampleDepth());
+		const auto dDepth = parameters().get<size_t>("downsample");
+		_caller = std::make_unique<TCallerConsensify>(dDepth);
 	} else if(method == "allelePresence"){
 		_caller = std::make_unique<TCallerAllelePresence>();
 	} else if(method == "MLE"){
@@ -1269,19 +1272,19 @@ void TCall::_call(GenotypeLikelihoods::TWindow& window){
 
 void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 	//check if we need to process this window
-	if(_windows.subset<true>()->hasPositionsInWindow(window)){
+	const auto& alleles = _windows.alleles();
+	if(alleles.overlaps(window)){
 		//add reference to sites
-		window.addReferenceBaseToSites(*_windows.subset<true>());
+		window.addReferenceBaseToSites(alleles);
 
 		//only run over sites listed in that window
-		auto thesePositions = _windows.subset<true>()->getPositionInWindow(window);
-		for(auto& it : thesePositions){
+		for (auto it = alleles.begin(window); it != alleles.end() && window.within(it->position); ++it) {
 			//calculate genotype likelihoods
-			uint32_t internalPos = it - window.from();
+			uint32_t internalPos = it->position - window.from();
 			TSite& site = window[internalPos];
-			site.refBase = it.ref();
+			site.refBase = it->ref;
 			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
-			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
+			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
 		}
 	}
 };
@@ -1293,7 +1296,7 @@ void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");
-		if(_windows.subset<true>()){
+		if(_windows.alleles()){
 			_callKnwonAlleles(window);
 		} else {
 			_call(window);
