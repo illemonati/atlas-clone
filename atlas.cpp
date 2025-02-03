@@ -9,6 +9,7 @@
 #include "TOverlapQuantifier.h"
 #include "TOverlappingReadsMerger.h"
 #include "TSafEstimator.h"
+#include "TTransitionTabler.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -118,7 +119,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TFromTo>("fromTo", "FromTo");
 	main.createDebugTask<PopulationTools::TSpearmanGWAS>("SpearmanGWAS", "GWAS with Spearman correlation, allowing for population-specific signs");
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
-	//main.createDebugTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating depth distribution among sites and per window"); // replaced by BeXY, TODO: remove code?
+	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
 };
 
 void addTests(coretools::TMain & ){

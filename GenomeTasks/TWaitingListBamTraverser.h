@@ -55,7 +55,7 @@ protected:
 	bool _alignmentCanBeWrittenUnchanged();
 
 public:
-	TWaitingListBamTraverser(std::string_view OutName);
+	TWaitingListBamTraverser(std::string_view OutName="");
 	void traverseBAM();
 };
 

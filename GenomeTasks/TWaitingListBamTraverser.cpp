@@ -82,7 +82,10 @@ TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 	// max distance between mates
 	if (parameters().exists("dryRun")) {
 		logfile().list("Doing dry-run, no BAM file will be written. (parameter 'dryRun')");
-	} else {
+		
+	} else if (OutName.empty()){
+		// do nothing, log nothing
+	}else {
 		const auto fn = _genome.outputName() + std::string(OutName);
 		logfile().list("Filtering into BAM file", fn , ". (use 'dryRun' for filter summary)");
 		_outBam = std::make_unique<BAM::TOutputBamFile>(fn, _genome.bamFile());
