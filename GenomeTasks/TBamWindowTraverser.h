@@ -1,6 +1,7 @@
 #ifndef TBAMWINDOWTRAVERSER_H_
 #define TBAMWINDOWTRAVERSER_H_
 
+#include <algorithm>
 #include <type_traits>
 
 #include "coretools/Main/TLog.h"
@@ -81,6 +82,18 @@ class TBamWindowTraverser {
 		}
 	}
 
+	size_t _nextRefID() {
+		if constexpr (isSingle) {
+			return _genome.bamFile().curPosition().refID();
+		} else {
+			size_t refID = -1;
+			for (const auto& g : _genome) {
+				refID = std::min(refID, g.bamFile().curPosition().refID());
+			}
+			return refID;
+		}
+	}
+
 protected:
 	GType _genome = _initGenome();
 	TBamWindows _windows{_chromosomes(_genome)};
@@ -111,20 +124,22 @@ protected:
 			logfile().startIndent("Traversing BAM ", file, " in windows:");
 		}
 
+		bool lastSkipped = false;
 		for (const auto &chr : _chromosomes(_genome)) {
 			_startChromosome(chr);
 
-			bool emptyChr = false;
-			if constexpr (isSingle) {
-				emptyChr = _genome.bamFile().curPosition().refID() > chr.refID();
-			} else {
-				emptyChr = _genome.size() == 1 && _genome.front().bamFile().curPosition().refID() > chr.refID();
-			}
-
-			if (_windows[chr.refID()].empty() || !chr.inUse() || emptyChr) {
-				logfile().list("Chromosome '" + chr.name() + "' is empty/masked.");
+			if (_windows[chr.refID()].empty() || !chr.inUse() || _nextRefID() > chr.refID()) {
+				if (!lastSkipped) {
+					logfile().listFlush("Chromosome(s) ");
+					lastSkipped = true;
+				}
+				logfile().flush("'", chr.name(), "',");
 				_endChromosome(chr);
 				continue;
+			}
+			if (lastSkipped) {
+				logfile().write("are empty/masked.");
+				lastSkipped = false;
 			}
 
 			logfile().startNumbering("Parsing chromosome '" + chr.name() + "':");
@@ -144,6 +159,9 @@ protected:
 			}
 			_endChromosome(chr);
 			logfile().endNumbering();
+		}
+		if (lastSkipped) {
+			logfile().write("are empty/masked.");
 		}
 		logfile().endIndent();
 

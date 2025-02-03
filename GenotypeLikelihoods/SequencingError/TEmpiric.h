@@ -18,7 +18,10 @@ namespace GenotypeLikelihoods::SequencingError {
 template<typename Covariate> class TEmpiric final : public TFunction {
 private:
 	static constexpr size_t _N = [](){
-		if constexpr (std::is_same_v<Covariate, TCovariate_fragmentLength>) {
+		if constexpr (std::is_same_v<Covariate, TCovariate_context>) {
+			return 5;
+		}
+		else if constexpr (std::is_same_v<Covariate, TCovariate_fragmentLength>) {
 			return 32; //2**32 > length of largest chromosome
 		} else {
 			return 256;
@@ -182,7 +185,7 @@ public:
 		constexpr size_t Nmax = 3;
 
 		std::string ret = "[";
-		if (numParameters() <= 2 * Nmax) {
+		if constexpr (_N <= 2 * Nmax) {
 			// write all parameters
 			for (size_t i = 0; i < _iis.size(); ++i) {
 				if (_iis[i] != _nope) {
