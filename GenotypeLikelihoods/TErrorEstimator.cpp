@@ -139,8 +139,6 @@ void TErrorEstimator::_identifyModels() {
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
 	for (auto rg : _recalMap.readGroupsInUse()) {
-		if (_dataTables[rg][Mate::first].size() == 0 && _dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
-
 		const auto& pooledWith = _recalMap.readGroupsPooledWith(rg);
 		std::string s = ":";
 		if (pooledWith.size() > 1) {
