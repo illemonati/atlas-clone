@@ -27,23 +27,51 @@ void TTransitionTabler::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &
 		const auto &first  = rhs.alignment.isSecondMate() ? lhs.alignment : rhs.alignment;
 		const auto &second = rhs.alignment.isSecondMate() ? rhs.alignment : lhs.alignment;
 
-		auto &trans1      = _transitions[first.strand()];
-		const auto softL1 = first.cigar().lengthSoftClippedLeft();
-		if (trans1.size() < first.size()) trans1.resize(first.size());
-		for (size_t i = 0; i < first.parsedLength(); ++i) {
-			if (first.isAlignedAtInternalPos(i) && first[i].base != Base::N && !first[i].get<BAM::Flags::SoftClipped>()) {
-				assert(i >= softL1);
-				++trans1[i - softL1][first.referenceAtInternalPos(i)][first[i].base];
+		if (first.isReverseStrand()) {
+			auto &trans1      = _transitions[BAM::Strand::Rev];
+			const auto l_m1_ps = first.cigar().lengthSequenced() - 1 + first.cigar().lengthSoftClippedLeft();
+			if (trans1.size() < first.parsedLength()) trans1.resize(first.parsedLength());
+			for (size_t i = 0; i < first.parsedLength(); ++i) {
+				if (first.isAlignedAtInternalPos(i) && first[i].base != Base::N &&
+					!first[i].get<BAM::Flags::SoftClipped>()) {
+					assert(l_m1_ps >= i);
+					++trans1[l_m1_ps - i][first.referenceAtInternalPos(i)][first[i].base];
+				}
+			}
+		} else {
+			auto &trans1      = _transitions[BAM::Strand::Fwd];
+			const auto softL1 = first.cigar().lengthSoftClippedLeft();
+			if (trans1.size() < first.parsedLength()) trans1.resize(first.parsedLength());
+			for (size_t i = 0; i < first.parsedLength(); ++i) {
+				if (first.isAlignedAtInternalPos(i) && first[i].base != Base::N &&
+					!first[i].get<BAM::Flags::SoftClipped>()) {
+					assert(i >= softL1);
+					++trans1[i - softL1][first.referenceAtInternalPos(i)][first[i].base];
+				}
 			}
 		}
-		auto &trans2       = _transitions[second.strand()];
-		const auto softL2  = second.cigar().lengthSoftClippedLeft();
 		const auto length1 = first.cigar().lengthSequenced();
-		if (trans2.size() < second.size() + first.size()) trans2.resize(first.size() + second.size());
-		for (size_t i = 0; i < second.parsedLength(); ++i) {
-			if (second.isAlignedAtInternalPos(i) && second[i].base != Base::N && !second[i].get<BAM::Flags::SoftClipped>()) {
-				assert(i >= softL2);
-				++trans2[i - softL2 + length1][second.referenceAtInternalPos(i)][second[i].base];
+		if (second.isReverseStrand()) {
+			auto &trans2      = _transitions[BAM::Strand::Rev];
+			const auto l_m1_ps = second.cigar().lengthSequenced() - 1 + second.cigar().lengthSoftClippedLeft();
+			if (trans2.size() < second.parsedLength() + length1) trans2.resize(second.parsedLength() + length1);
+			for (size_t i = 0; i < second.parsedLength(); ++i) {
+				if (second.isAlignedAtInternalPos(i) && second[i].base != Base::N &&
+					!second[i].get<BAM::Flags::SoftClipped>()) {
+					assert(l_m1_ps >= i);
+					++trans2[l_m1_ps - i + length1][second.referenceAtInternalPos(i)][second[i].base];
+				}
+			}
+		} else {
+			auto &trans2       = _transitions[BAM::Strand::Fwd];
+			const auto softL2  = second.cigar().lengthSoftClippedLeft();
+			if (trans2.size() < second.size() + length1) trans2.resize(first.size() + length1);
+			for (size_t i = 0; i < second.parsedLength(); ++i) {
+				if (second.isAlignedAtInternalPos(i) && second[i].base != Base::N &&
+				    !second[i].get<BAM::Flags::SoftClipped>()) {
+					assert(i >= softL2);
+					++trans2[i - softL2 + length1][second.referenceAtInternalPos(i)][second[i].base];
+				}
 			}
 		}
 	}
@@ -53,14 +81,27 @@ void TTransitionTabler::_handleSingle(TWaitingAlignment &lhs) {
 		lhs.alignment.addReference(_parser.reference());
 
 		const auto &single  = lhs.alignment;
-
-		auto &trans       = _transitions[single.strand()];
-		const auto softL = single.cigar().lengthSoftClippedLeft();
-	    if (trans.size() < single.size()) trans.resize(single.size());
-	    for (size_t i = 0; i < single.parsedLength(); ++i) {
-			assert(i >= softL);
-			if (single.isAlignedAtInternalPos(i) && single[i].base != Base::N) {
-				++trans[i - softL][single.referenceAtInternalPos(i)][single[i].base];
+		if (single.isReverseStrand()) {
+			auto &trans      = _transitions[BAM::Strand::Rev];
+			const auto l_m1_ps = single.cigar().lengthSequenced() - 1 + single.cigar().lengthSoftClippedLeft();
+			if (trans.size() < single.parsedLength()) trans.resize(single.parsedLength());
+			for (size_t i = 0; i < single.parsedLength(); ++i) {
+				if (single.isAlignedAtInternalPos(i) && single[i].base != Base::N &&
+					!single[i].get<BAM::Flags::SoftClipped>()) {
+					assert(l_m1_ps >= i);
+					++trans[l_m1_ps - i][single.referenceAtInternalPos(i)][single[i].base];
+				}
+			}
+		} else {
+			auto &trans      = _transitions[BAM::Strand::Fwd];
+			const auto softL1 = single.cigar().lengthSoftClippedLeft();
+			if (trans.size() < single.parsedLength()) trans.resize(single.parsedLength());
+			for (size_t i = 0; i < single.parsedLength(); ++i) {
+				if (single.isAlignedAtInternalPos(i) && single[i].base != Base::N &&
+					!single[i].get<BAM::Flags::SoftClipped>()) {
+					assert(i >= softL1);
+					++trans[i - softL1][single.referenceAtInternalPos(i)][single[i].base];
+				}
 			}
 		}
 }
