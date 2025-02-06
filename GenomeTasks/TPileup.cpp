@@ -77,7 +77,7 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 						for (auto b = Base::min; b < Base::max; ++b) {
 							//Rel
 							const auto rel = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
-							_outTransitionsRel.write(fmt::format("{:.3f}", rel));
+							_outTransitionsRel.write(fmt::format("{:.4f}", rel));
 
 							//Rho
 							if (ref == b) {
@@ -85,7 +85,7 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 							}
 							else {
 								const auto rho = totRho ? double(tr[i][ref][b])/totRho : 0;
-								_outTransitionsRho.write(fmt::format("{:.3f}", rho));
+								_outTransitionsRho.write(fmt::format("{:.4f}", rho));
 							}
 						}
 					}
@@ -98,7 +98,7 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 								const auto fromTo = tot[ref] ? double(tr[i][ref][b]) / tot[ref] : 0;
 								const auto toFrom = tot[b] ? double(tr[i][b][ref]) / tot[b] : 0;
 								const auto Psi    = (fromTo - toFrom) / (1.0 - toFrom);
-								_outTransitionsPsi.write(fmt::format("{:.3f}", Psi));
+								_outTransitionsPsi.write(fmt::format("{:.4f}", Psi));
 							}
 						}
 					}
@@ -236,6 +236,7 @@ TPileup::TPileup() {
 		_histSettings.set<Hist::Contexts>(impl::parseField(histograms, "contexts", "Base contexts"));
 		_histSettings.set<Hist::AllelicDepth>(impl::parseField(histograms, "allelicDepth", "Allelic depth"));
 		_histSettings.set<Hist::Transitions>(impl::parseField(histograms, "transitions", "ref to base transition"));
+		_histSettings.set<Hist::PrevBases>(impl::parseField(histograms, "prevBases", "ref to base to prevBase counts"));
 		_histSettings.set<Hist::StrandMate>(impl::parseField(histograms, "strandMate", "first/second vs fwd/rev strand"));
 		logfile().endIndent();
 
@@ -284,7 +285,7 @@ TPileup::TPileup() {
 				std::vector<std::string> header{"Chr", "Mate", "Strand", "End", "Pos"};
 				for (auto ref = Base::min; ref < Base::max; ++ref) {
 					for (auto b = Base::min; b < Base::max; ++b) {
-						header.push_back(coretools::str::toString(toString(ref), "-", toString(b)));
+						header.push_back(coretools::str::toString(ref, "-", b));
 					}
 				}
 				_outTransitions.open(_genome.front().outputName() + "_transitions.txt.gz", header);
@@ -294,9 +295,18 @@ TPileup::TPileup() {
 			}
 		}
 
+		if (_histSettings.get<Hist::PrevBases>()) {
+			if (!_windows.parser().reference()) {
+				logfile().warning("Cannot count reference-base-previousbase without reference!");
+				_histSettings.set<Hist::PrevBases>(false);
+			} else {
+				using genometools::Base;
+				logfile().list("Will create count table of reference-base-prevousbase.");
+			}
+		}
+
 		if (_histSettings.get<Hist::StrandMate>()) {
 			logfile().list("Will count 1st/2nd mate vs forward/reversed strand. (parameter 'strandMate')");
-			_outStrandMate.open(_genome.front().outputName() + "_strandMate.txt.gz", {"Chr", "Readgroup", "Mate1-Fwd", "Mate1-Rev", "Mate2-Fwd", "Mate2-Rev"});
 			_strandMate.resize(_genome.front().bamFile().readGroups().size());
 		}
 	} else {
@@ -345,6 +355,13 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 					trans.resize(p + 1);
 				}
 				++trans[p][site.refBase][b.base];
+			}
+		}
+
+		if (_histSettings.get<Hist::PrevBases>()) {
+			for (auto &b : site) {
+				if (b.base == Base::N) continue;
+				++_prevBases[b.mate()][b.strand()][site.refBase][b.base][b.previousBase()];
 			}
 		}
 
@@ -445,20 +462,13 @@ void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
 		}
 	}
 
-	if (_histSettings.get<Hist::StrandMate>()) {
-		for (size_t rg = 0; rg < _strandMate.size(); ++rg) {
-			auto& sm = _strandMate[rg];
-			_outStrandMate.writeln(Chr.name(), _genome.front().bamFile().readGroups().getName(rg),
-								   sm[Mate::first][Strand::Fwd], sm[Mate::first][Strand::Rev],
-								   sm[Mate::second][Strand::Fwd], sm[Mate::second][Strand::Rev]);
-			sm.fill({});
-		}
-		_outStrandMate.flush();
-	}
 }
 
 void TPileup::run() {
 	using genometools::Base;
+	using BAM::Mate;
+	using BAM::Strand;
+
 	_traverseBAMWindows();
 
 	if (_histSettings.get<Hist::Depths>()) {
@@ -510,6 +520,49 @@ void TPileup::run() {
 	if (_histSettings.get<Hist::Transitions>()) {
 		impl::writeTransitions(_transitionsTot, "All", _outTransitions, _outTransitionsRel, _outTransitionsPsi,
 							   _outTransitionsRho);
+	}
+
+	if (_histSettings.get<Hist::PrevBases>()) {
+
+		std::vector<std::string> header{"Mate", "Strand", "ref", "base"};
+		for (auto b = Base::min; b <= Base::max; ++b) { header.push_back(toString(b)); }
+		coretools::TOutputFile outPrevBase(_genome.front().outputName() + "_prevBases.txt.gz", header);
+		coretools::TOutputFile outPrevBaseRel(_genome.front().outputName() + "_prevBasesRel.txt.gz", header);
+
+		for (auto mate = Mate::min; mate < Mate::max; ++mate) {
+			if (_prevBases[mate][Strand::Fwd][Base::A][Base::A][Base::A] == 0) continue; // assume mate not available
+			for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+				for (auto ref = Base::min; ref < Base::max; ++ref) {
+					for (auto b = Base::min; b < Base::max; ++b) {
+						outPrevBase.write(mate, strand, ref, b);
+						outPrevBaseRel.write(mate, strand, ref, b);
+						size_t tot = 0;
+						for (auto p = Base::min; p <= Base::max; ++p) {
+							outPrevBase.write(_prevBases[mate][strand][ref][b][p]);
+							tot += _prevBases[mate][strand][ref][b][p];
+						}
+						outPrevBase.endln();
+						for (auto p = Base::min; p <= Base::max; ++p) {
+							if (tot > 0) outPrevBaseRel.write(double(_prevBases[mate][strand][ref][b][p])/tot);
+							else outPrevBaseRel.write(0.);
+						}
+						outPrevBaseRel.endln();
+					}
+				}
+			}
+		}
+	}
+
+	if (_histSettings.get<Hist::StrandMate>()) {
+		coretools::TOutputFile outStrandMate(_genome.front().outputName() + "_strandMate.txt.gz", {"Readgroup", "Mate1-Fwd", "Mate1-Rev", "Mate2-Fwd", "Mate2-Rev"});
+		for (size_t rg = 0; rg < _strandMate.size(); ++rg) {
+			auto& sm = _strandMate[rg];
+			outStrandMate.writeln(_genome.front().bamFile().readGroups().getName(rg),
+								   sm[Mate::first][Strand::Fwd], sm[Mate::first][Strand::Rev],
+								   sm[Mate::second][Strand::Fwd], sm[Mate::second][Strand::Rev]);
+			sm.fill({});
+		}
+		outStrandMate.flush();
 	}
 }
 

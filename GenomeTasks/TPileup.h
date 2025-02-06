@@ -23,9 +23,10 @@ namespace GenomeTasks {
 class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base>;
 	using Transitions = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<Rho>, BAM::End>, BAM::Strand>, BAM::Mate>;
+	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base>, genometools::Base>, BAM::Strand>, BAM::Mate>;
 
 	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
-	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, StrandMate, max};
+	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, PrevBases, StrandMate, max};
 
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -34,7 +35,6 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	coretools::TOutputFile _outTransitionsRel;
 	coretools::TOutputFile _outTransitionsPsi;
 	coretools::TOutputFile _outTransitionsRho;
-	coretools::TOutputFile _outStrandMate;
 
 	coretools::TCountDistribution<> _depthPerSite;
 	coretools::TCountDistribution<> _depthPerSitePerChromosome;
@@ -43,6 +43,8 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 
 	Transitions _transitionsChr;
 	Transitions _transitionsTot;
+
+	PrevBases _prevBases;
 
 	std::vector<coretools::TStrongArray<coretools::TStrongArray<size_t, BAM::Strand>, BAM::Mate>> _strandMate;
 
