@@ -21,9 +21,9 @@ namespace GenomeTasks {
 // TPileup
 //---------------------------------
 class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
-	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base>;
+	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
 	using Transitions = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<Rho>, BAM::End>, BAM::Strand>, BAM::Mate>;
-	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base>, genometools::Base>, BAM::Strand>, BAM::Mate>;
+	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>, genometools::Base, 5>, BAM::Strand>, BAM::Mate>;
 
 	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
 	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, PrevBases, StrandMate, max};

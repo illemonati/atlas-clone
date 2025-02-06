@@ -31,10 +31,9 @@ class TSimulatorHaplotypes;
 
 class THaplotypeSimulator {
 protected:
-	coretools::TStrongArray<double, genometools::Base> _cumulRef;
 	genometools::TBaseProbabilities _baseFreq;
-	 coretools::TStrongArray<double, genometools::Base>_cumulBaseFreq;
-	coretools::Probability _referenceDivergence;
+	coretools::TStrongArray<double, genometools::Base> _cumulBaseFreq;
+	coretools::Probability _referenceN;
 	THaplotypeSimulator();
 public:
 	virtual ~THaplotypeSimulator() = default;
@@ -45,10 +44,18 @@ public:
 	[[nodiscard]] virtual size_t sampleSize() const noexcept = 0;
 };
 
+class THaplotypeRefDivSimulator : public THaplotypeSimulator {
+protected:
+	coretools::TStrongArray<double, genometools::Base> _cumulRef; // N is a posibility
+	coretools::Probability _referenceDivergence;
+public:
+	THaplotypeRefDivSimulator();
+};
+
 //---------------------------------------------------------
 // TSimulatorOneIndividual
 //---------------------------------------------------------
-class TSimulatorOne : public THaplotypeSimulator {
+class TSimulatorOne final : public THaplotypeRefDivSimulator {
 private:
 	std::vector<double> _thetas;
 
@@ -65,7 +72,7 @@ public:
 	[[nodiscard]] size_t sampleSize() const noexcept override {return 1;}
 };
 
-class TSimulatorHKY85 : public THaplotypeSimulator {
+class TSimulatorHKY85 final : public THaplotypeSimulator {
 private:
 	using Pickers = std::vector<coretools::TStrongArray<coretools::TRandomPicker, genometools::Base>>;
 
@@ -88,7 +95,7 @@ public:
 //---------------------------------------------------------
 // TSimulatorPairOfIndividuals
 //---------------------------------------------------------
-class TSimulatorPair : public THaplotypeSimulator {
+class TSimulatorPair final : public THaplotypeRefDivSimulator {
 private:
 	static constexpr std::array<std::array<size_t, 4>, 4> _orderLookup = {
 	    {{0, 1, 2, 3}, {0, 1, 3, 2}, {1, 0, 2, 3}, {1, 0, 3, 2}}};
@@ -114,7 +121,7 @@ public:
 //---------------------------------------------------------
 // TSimulatorSFS
 //---------------------------------------------------------
-class TSimulatorSFS : public THaplotypeSimulator {
+class TSimulatorSFS final : public THaplotypeRefDivSimulator {
 private:
 	int _sampleSize;
 	std::vector<std::unique_ptr<SFS>> _sfs;
@@ -144,7 +151,7 @@ struct TSimulatorHWSite {
 	double f;
 };
 
-class TSimulatorHW : public THaplotypeSimulator {
+class TSimulatorHW : public THaplotypeRefDivSimulator {
 private:
 	int _sampleSize;
 	coretools::Probability _fracPoly;

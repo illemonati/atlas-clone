@@ -48,20 +48,6 @@ Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulPro
 
 
 THaplotypeSimulator::THaplotypeSimulator(){
-	if(parameters().exists("refDiv")){
-		parameters().fill("refDiv", _referenceDivergence);
-		_referenceDivergence = parameters().get<coretools::Probability>("refDiv");
-		logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ". (parameter 'refDiv')");
-	} else {
-		_referenceDivergence = P(0.01);
-		logfile().list("Will simulate data with default reference divergence = ", _referenceDivergence, ". (set with 'refDiv')");
-	}
-	_cumulRef[Base::A] = 1.0 - _referenceDivergence;
-	_cumulRef[Base::C] = _cumulRef[Base::A] + _referenceDivergence / 3.0;
-	_cumulRef[Base::G] = _cumulRef[Base::C] + _referenceDivergence / 3.0;
-	_cumulRef[Base::T] = 1.0;
-
-	// base frequencies
 	if(parameters().exists("baseFreq")){
 		std::vector<double> freq;
 		coretools::str::fillContainerFromString(parameters().get<std::string>("baseFreq"), freq, ',');
@@ -79,12 +65,35 @@ THaplotypeSimulator::THaplotypeSimulator(){
 	_cumulBaseFreq[Base::C] = _cumulBaseFreq[Base::A] + _baseFreq[Base::C];
 	_cumulBaseFreq[Base::G] = _cumulBaseFreq[Base::C] + _baseFreq[Base::G];
 	_cumulBaseFreq[Base::T] = 1.0;
+
+	if(parameters().exists("refN")){
+		parameters().fill("refN", _referenceN);
+		_referenceN = parameters().get<coretools::Probability>("refN");
+		logfile().list("Will simulate data Ref = N probability = ", _referenceN, ". (parameter 'refN')");
+	} else {
+		_referenceN = P(0.001);
+		logfile().list("Will simulate data with default Ref = N probability = ", _referenceN, ". (set with 'refN')");
+	}
+}
+
+THaplotypeRefDivSimulator::THaplotypeRefDivSimulator() : THaplotypeSimulator() {
+	if(parameters().exists("refDiv")){
+		_referenceDivergence = parameters().get<coretools::Probability>("refDiv");
+		logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ". (parameter 'refDiv')");
+	} else {
+		_referenceDivergence = P(0.01);
+		logfile().list("Will simulate data with default reference divergence = ", _referenceDivergence, ". (set with 'refDiv')");
+	}
+	_cumulRef[Base::A] = 1.0 - _referenceDivergence;
+	_cumulRef[Base::C] = _cumulRef[Base::A] + _referenceDivergence / 3.0;
+	_cumulRef[Base::G] = _cumulRef[Base::C] + _referenceDivergence / 3.0;
+	_cumulRef[Base::T] = 1.0;
 }
 
 //---------------------------------------------------------
 // TSimulatorOneIndividual
 //---------------------------------------------------------
-TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeSimulator() {
+TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeRefDivSimulator() {
 	// now theta
 	parameters().fill("theta", _thetas, {0.001});
 	if (_thetas.size() == 1) {
@@ -110,7 +119,9 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		haplotypes(0, 1, l) = randomGenerator().pickOne(mutTable[haplotypes(0, 0, l)]);
 
 		// decide on reference sequence
-		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[l] = Base::N;
+		} else if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
 			reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
 		} else {
 			reference[l] = haplotypes(0, randomGenerator().sample(2), l);
@@ -126,7 +137,11 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 
 		// decide on ref
-		reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[l] = Base::N;
+		} else {
+			reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
+		}
 	}
 }
 
@@ -184,7 +199,11 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulat
 		const Base k = Base(_pick_g[refID][R]());
 		const Base l = Base(_pick_g[refID][R]());
 
-		reference[i]        = r;
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[i] = Base::N;
+		} else {
+			reference[i] = r;
+		}
 		haplotypes(0, 0, i) = k;
 		haplotypes(0, 1, i) = l;
 	}
@@ -197,7 +216,11 @@ void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulat
 		const Base ref = randomGenerator().pickOne(_cumulBaseFreq);
 		const Base R   = Base(_pick_r[refID][ref]());
 
-		reference[i]        = ref;
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[i] = Base::N;
+		} else {
+			reference[i] = ref;
+		}
 		haplotypes(0, 0, i) = R;
 		haplotypes(0, 1, i) = R;
 	}
@@ -206,7 +229,7 @@ void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulat
 //---------------------------------------------------------
 // TSimulatorPairOfIndividuals
 //---------------------------------------------------------
-TSimulatorPair::TSimulatorPair() : THaplotypeSimulator() {
+TSimulatorPair::TSimulatorPair() : THaplotypeRefDivSimulator() {
 	logfile().startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
 	// Initialize phis
@@ -373,7 +396,9 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 		haplotypes(1, 1, l) = _genoTrans[c][g][_orderLookup[o][3]];
 
 		// simulate reference
-		if (c == 0) {
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[l] = Base::N;
+		} else if (c == 0) {
 			reference[l] = impl::mutateBase(reference[l], _cumulRef);
 		} else {
 			const int r   = randomGenerator().sample(4);
@@ -385,7 +410,7 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 //---------------------------------------------------------
 // TSimulatorSFS
 //---------------------------------------------------------
-	TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THaplotypeSimulator(), _mutTable(_baseFreq) {
+TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THaplotypeRefDivSimulator(), _mutTable(_baseFreq) {
 	logfile().startIndent("Reading parameters to simulate a population sample given an SFS:");
 	const auto nChromosomes = chromosomes.size();
 
@@ -491,7 +516,9 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteHaploid(l, haplotypes, ancestral, derived);
 
 		//simulate size
-		if(alleleCount == 0){
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[l] = Base::N;
+		} else if(alleleCount == 0){
 			//site was monomorphic
 			reference[l] = impl::mutateBase(ancestral, _cumulRef);
 		} else {
@@ -515,7 +542,9 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteDiploid(l, haplotypes, ancestral, derived);
 
 		// decide on reference sequence
-		if (alleleCount == 0) {
+		if (randomGenerator().getRand() < _referenceN) {
+			reference[l] = Base::N;
+		} else if (alleleCount == 0) {
 			reference[l] = impl::mutateBase(ancestral, _cumulRef);
 		} else {
 			if (randomGenerator().getRand() < (double) alleleCount / (double) haplotypes.size() / 2.0) //division by 2 as we have twice as many haplotypes as samples
@@ -530,7 +559,7 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 // TSimulatorHardyWeinberg
 //---------------------------------------------------------
 TSimulatorHW::TSimulatorHW()
-	: THaplotypeSimulator(), _fracPoly(parameters().get("fracPoly", coretools::Probability(0.1))),
+	: THaplotypeRefDivSimulator(), _fracPoly(parameters().get("fracPoly", coretools::Probability(0.1))),
 	  _alpha(parameters().get("alpha", 0.5)),
 	  _beta(parameters().get("beta", 0.5)), _F(parameters().get("F", 0.0)),
 	  _mutTable(_baseFreq) {
@@ -596,7 +625,11 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &re
 		site.f             = randomGenerator().getRand() < _referenceDivergence ? 1. : 0.;
 	}
 	// store reference
-	reference[pos] = site.reference;
+	if (randomGenerator().getRand() < _referenceN) {
+		reference[pos] = Base::N;
+	} else {
+		reference[pos] = site.reference;
+	}
 
 	// write true frequency: pos is 1 based!
 	if (_writeTrueAlleleFreq) {
