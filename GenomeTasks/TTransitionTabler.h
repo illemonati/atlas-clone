@@ -8,7 +8,7 @@ namespace GenomeTasks {
 class TTransitionTabler final
 	: public TWaitingListBamTraverser {
 private:
-	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base>;
+	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
 	using Transitions = coretools::TStrongArray<std::vector<Rho>, BAM::Strand>;
 
 	Transitions _transitions;

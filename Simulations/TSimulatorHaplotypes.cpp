@@ -51,6 +51,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 	std::string genoString;
 
 	for (size_t l = 0; l < _length; ++l) {
+		if (ref[l] == Base::N) continue; // skip
 		// chromosome name, position and ID
 		trueGenoVCF << chrName << '\t' << l + 1 << "\t.\t";
 

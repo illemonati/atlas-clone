@@ -123,21 +123,13 @@ void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases,const size_t
 
 void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base> &haplotype,
 											 size_t fragmentLength, size_t readLength, bool readIsContaminated) {
-
 	//prepare vector of bases
 	std::vector<Base> bases;
 	BAM::TCigar cigar;
 
 	//sample softclip lengths
-	size_t softClipLength3 = 0;
-	size_t softClipLength5 = 0;
-	if(_softClipDist3){
-		softClipLength3 = _softClipDist3->sample();
-	}
-
-	if(_softClipDist5){
-		softClipLength5 = _softClipDist5->sample();
-	}
+	const auto softClipLength3 = _softClipDist3 ? _softClipDist3->sample() : 0;
+	const auto softClipLength5 = _softClipDist5 ? _softClipDist5->sample() : 0;
 
 	// set read length
 	if (alignment.isReverseStrand()) {
@@ -150,7 +142,8 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 
 	// simulate true bases
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + alignment.position() : haplotype.cbegin() + alignment.position();
-	auto len = std::min(fragmentLength, readLength) - softClipLength5 - softClipLength3;
+	auto len = std::min(fragmentLength, readLength);
+	assert(len > 0);
 	bases.insert(bases.end(), start, start + len);
 	cigar.add('M', len);
 

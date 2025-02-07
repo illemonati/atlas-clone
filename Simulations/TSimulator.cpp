@@ -444,7 +444,8 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		}
 
 		// find major and minor allele
-		const auto refAllele                  = _reference[l];
+		const auto refAllele = _reference[l];
+		if (refAllele == Base::N) continue; // skip
 		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
 		// working
