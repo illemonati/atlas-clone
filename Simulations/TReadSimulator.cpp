@@ -10,12 +10,15 @@
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
 #include "TSimulatorReference.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 
 namespace Simulations {
 using BAM::RGInfo::InfoType;
 using BAM::RGInfo::TReadGroupInfoEntry;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using coretools::instances::parameters;
 using coretools::probdist::TCategoricalDistribution;
 using coretools::P;
 using genometools::Base;
@@ -68,6 +71,14 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
 		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
 		_duplicationRateAmongSimulated = P(_duplicationRate / (_duplicationRate.complement()));
+	}
+
+	if(parameters().exists("baseN")){
+		_baseN = parameters().get<coretools::Probability>("baseN");
+		logfile().list("Will simulate reads with base = N probability = ", _baseN, ". (parameter 'baseN')");
+	} else {
+		_baseN = P(0.001);
+		logfile().list("Will simulate reads with base = N probability = ", _baseN, ". (set with 'baseN')");
 	}
 }
 
@@ -151,6 +162,11 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 		_addSoftclippedBases(bases, softClipLength5, cigar);
 	} else {
 		_addSoftclippedBases(bases, softClipLength3, cigar);
+	}
+
+	// make some bases N
+	for (auto& b: bases) {
+		if (randomGenerator().getRand() < _baseN) b = Base::N;
 	}
 	
 	// simulate true qualities

@@ -67,9 +67,8 @@ THaplotypeSimulator::THaplotypeSimulator(){
 	_cumulBaseFreq[Base::T] = 1.0;
 
 	if(parameters().exists("refN")){
-		parameters().fill("refN", _referenceN);
 		_referenceN = parameters().get<coretools::Probability>("refN");
-		logfile().list("Will simulate data Ref = N probability = ", _referenceN, ". (parameter 'refN')");
+		logfile().list("Will simulate data with Ref = N probability = ", _referenceN, ". (parameter 'refN')");
 	} else {
 		_referenceN = P(0.001);
 		logfile().list("Will simulate data with default Ref = N probability = ", _referenceN, ". (set with 'refN')");

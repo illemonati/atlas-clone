@@ -58,6 +58,7 @@ protected:
 
 	coretools::Probability _duplicationRate{0.};
 	coretools::Probability _duplicationRateAmongSimulated{0.};
+	coretools::Probability _baseN;
 
 	// contamination
 	double _contaminationRate = 0.;

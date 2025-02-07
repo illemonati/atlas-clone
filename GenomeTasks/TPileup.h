@@ -41,10 +41,10 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	coretools::TCountDistributionVector<> _qualDist;
 	coretools::TCountDistributionVector<> _contextDist;
 
-	Transitions _transitionsChr;
-	Transitions _transitionsTot;
+	Transitions _transitionsChr{};
+	Transitions _transitionsTot{};
 
-	PrevBases _prevBases;
+	PrevBases _prevBases{};
 
 	std::vector<coretools::TStrongArray<coretools::TStrongArray<size_t, BAM::Strand>, BAM::Mate>> _strandMate;
 

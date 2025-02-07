@@ -11,7 +11,7 @@ private:
 	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
 	using Transitions = coretools::TStrongArray<std::vector<Rho>, BAM::Strand>;
 
-	Transitions _transitions;
+	Transitions _transitions{};
 
 	coretools::TOutputFile _outTransitions;
 	coretools::TOutputFile _outTransitionsRel;
