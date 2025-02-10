@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("--yMax", type=float, default=0., help="x-column")
     parser.add_argument("--logx", action="store_true", help="logx")
     parser.add_argument("--logy", action="store_true", help="logy")
+    parser.add_argument("--vLine", "-v", type=int)
     parser.add_argument("--format", "-f", default="-")
     parser.add_argument("--grep", "-g", default="")
 
@@ -32,6 +33,9 @@ if __name__ == "__main__":
     data = genfromtxt(lines)
     for y in args.y:
         plt.plot(data[:, args.x - 1], data[:, y - 1], args.format, label=header[y-1])
+
+    if args.vLine is not None:
+        plt.axvline(args.vLine, ls=":", color="k")
 
     if args.logx:
         plt.xscale("log")

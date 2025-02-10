@@ -11,12 +11,11 @@ private:
 	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
 	using Transitions = coretools::TStrongArray<std::vector<Rho>, BAM::Strand>;
 
-	Transitions _transitions{};
+	std::array<Transitions, 3> _transitions{};
 
-	coretools::TOutputFile _outTransitions;
-	coretools::TOutputFile _outTransitionsRel;
-	coretools::TOutputFile _outTransitionsPsi;
-	coretools::TOutputFile _outTransitionsRho;
+	std::array<coretools::TOutputFile, 3> _outTransitions;
+	std::array<coretools::TOutputFile, 3> _outTransitionsRel;
+	std::array<coretools::TOutputFile, 3> _outTransitionsRho;
 
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &lhs) override;
