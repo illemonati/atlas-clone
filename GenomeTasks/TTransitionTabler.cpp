@@ -32,16 +32,20 @@ void TTransitionTabler::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &
 
 		const auto &first  = rhs.alignment.isSecondMate() ? lhs.alignment : rhs.alignment;
 		const auto &second = rhs.alignment.isSecondMate() ? rhs.alignment : lhs.alignment;
+		const auto &cigar1 = first.cigar();
+		const auto &cigar2 = second.cigar();
+		const auto length1 = cigar1.lengthSequenced();
+		const auto length2 = cigar2.lengthSequenced();
 
 		if (first.isReverseStrand()) {
 			auto &trans1  = _transitions[0][BAM::Strand::Rev];
 			auto &transM1 = _transitions[1][BAM::Strand::Rev];
 
-			const auto l_m1_ps = first.cigar().lengthSequenced() - 1 + first.cigar().lengthSoftClippedLeft();
+			const auto l_m1_ps = length1 - 1 + cigar1.lengthSoftClippedLeft();
 
-			if (trans1.size() < first.parsedLength()) trans1.resize(first.parsedLength());
-			if (transM1.size() < first.parsedLength()) transM1.resize(first.parsedLength());
-			for (size_t i = 0; i < first.parsedLength(); ++i) {
+			if (trans1.size() < length1) trans1.resize(length1);
+			if (transM1.size() < length1) transM1.resize(length1);
+			for (size_t i = 0; i < first.size(); ++i) {
 				if (first.isAlignedAtInternalPos(i) && first[i].base != Base::N &&
 					!first[i].get<BAM::Flags::SoftClipped>()) {
 					assert(l_m1_ps >= i);
@@ -52,11 +56,11 @@ void TTransitionTabler::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &
 		} else {
 			auto &trans1      = _transitions[0][BAM::Strand::Fwd];
 			auto &transM1     = _transitions[1][BAM::Strand::Fwd];
-			const auto softL1 = first.cigar().lengthSoftClippedLeft();
+			const auto softL1 = cigar1.lengthSoftClippedLeft();
 
-			if (trans1.size() < first.parsedLength()) trans1.resize(first.parsedLength());
-			if (transM1.size() < first.parsedLength()) transM1.resize(first.parsedLength());
-			for (size_t i = 0; i < first.parsedLength(); ++i) {
+			if (trans1.size() < length1) trans1.resize(length1);
+			if (transM1.size() < length1) transM1.resize(length1);
+			for (size_t i = 0; i < first.size(); ++i) {
 				if (first.isAlignedAtInternalPos(i) && first[i].base != Base::N &&
 					!first[i].get<BAM::Flags::SoftClipped>()) {
 					assert(i >= softL1);
@@ -65,15 +69,14 @@ void TTransitionTabler::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &
 				}
 			}
 		}
-		const auto length1 = first.cigar().lengthSequenced();
 		if (second.isReverseStrand()) {
 			auto &trans2       = _transitions[0][BAM::Strand::Rev];
 			auto &transM2      = _transitions[2][BAM::Strand::Rev];
-			const auto l_m1_ps = second.cigar().lengthSequenced() - 1 + second.cigar().lengthSoftClippedLeft();
+			const auto l_m1_ps = length2 - 1 + cigar2.lengthSoftClippedLeft();
 
-			if (trans2.size() < second.parsedLength() + length1) trans2.resize(second.parsedLength() + length1);
-			if (transM2.size() < second.parsedLength() + length1) transM2.resize(second.parsedLength());
-			for (size_t i = 0; i < second.parsedLength(); ++i) {
+			if (trans2.size() < length2 + length1) trans2.resize(length2 + length1);
+			if (transM2.size() < length2) transM2.resize(length2);
+			for (size_t i = 0; i < second.size(); ++i) {
 				if (second.isAlignedAtInternalPos(i) && second[i].base != Base::N &&
 					!second[i].get<BAM::Flags::SoftClipped>()) {
 					assert(l_m1_ps >= i);
@@ -84,12 +87,12 @@ void TTransitionTabler::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &
 		} else {
 			auto &trans2      = _transitions[0][BAM::Strand::Fwd];
 			auto &transM2     = _transitions[2][BAM::Strand::Fwd];
-			const auto softL2 = second.cigar().lengthSoftClippedLeft();
+			const auto softL2 = cigar2.lengthSoftClippedLeft();
 
-			if (trans2.size() < second.size() + length1) trans2.resize(second.parsedLength() + length1);
-			if (transM2.size() < second.size() + length1) transM2.resize(second.parsedLength());
+			if (trans2.size() < length2 + length1) trans2.resize(length2 + length1);
+			if (transM2.size() < length2 + length1) transM2.resize(length2);
 
-			for (size_t i = 0; i < second.parsedLength(); ++i) {
+			for (size_t i = 0; i < second.size(); ++i) {
 				if (second.isAlignedAtInternalPos(i) && second[i].base != Base::N &&
 				    !second[i].get<BAM::Flags::SoftClipped>()) {
 					assert(i >= softL2);
