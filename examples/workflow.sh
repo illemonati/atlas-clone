@@ -37,27 +37,6 @@ echo '{
       }
     },
     "pmd": "CT5:0.2*exp(-0.3*p)+0.05;GA5:0.05*exp(0*p)+0"
-  },
-  "RG2": {
-  "readGroup": "RG2",
-  "seqType": "single",
-  "seqCycles": "150",
-  "fragmentLength": "normal(200,200)[30,1025]",
-  "baseQuality": "categorical(12:1,22:2,27:3,32:4,37:5,41:100)",
-  "mappingQuality": "normal(60,10)[30,60]",
-  "softClipping": "normal(1,1)[0,0]",
-  "recal": {
-	  "intercept": -1.0,
-	  "position": {"empiric": [[0, -1], [1, 0]]},
-	  "quality": {"polynomial": [0.95,0.02]},
-	  "fragmentLength": {"empiric": [[32, 1], [64, 0.5], [128, 0], [256, -0.5], [512, -1]]},
-	  "rho": [
-		[0.0, 0.2, 0.3, 0.5],
-		[0.1, 0.0, 0.2, 0.7],
-		[0.3, 0.4, 0.0, 0.4],
-		[0.2, 0.2, 0.6, 0.0]]
-	},
-    "pmd": "CT5:0.2*exp(-0.3*p)+0.05;GA5:0.05*exp(0*p)+0"
   }
 }' > workflow.json
 
@@ -80,8 +59,18 @@ $atlas --task simulate --RGInfo "workflow.json" \
 	   --chrLength $L --depth 10 --ploidy 2 \
 	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
+bam=simulate.bam
+
+out="bdBefore"
+$atlas --task BAMDiagnostics --bam $bam --writeMates \
+	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+
+out="ttBefore"
+$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
+	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+
 out="merge"
-$atlas --task mergeOverlappingReads --bam simulate.bam  \
+$atlas --task mergeOverlappingReads --bam $bam \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
 bam=merge_merged.bam
@@ -91,9 +80,15 @@ $atlas --task pileup --onlySummaries --histograms depth,transitions,strandMate \
 	   --bam $bam --fasta simulate.fasta \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-out="BAMDiagnostics"
-$atlas --task BAMDiagnostics --bam $bam \
+out="bdAfter"
+$atlas --task BAMDiagnostics --bam $bam --writeMates \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+
+out="ttAfter"
+$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
+	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+
+exit
 
 out=HK85reads_raw
 $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
@@ -109,7 +104,7 @@ $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 	   --fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
 
 out=ee
-$atlas --task estimateErrors --minDeltaLL $delta --filePerIteration \
+$atlas --task estimateErrors --minDeltaLL $delta \
 	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
 	   --fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 

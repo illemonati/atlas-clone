@@ -84,7 +84,7 @@ private:
 
 public:
 	TAlignment(uint32_t RefID, uint32_t Position) : TGenomePosition(RefID, Position) {}
-	TAlignment(const TGenomePosition &other) : TGenomePosition(other){};
+	TAlignment(const TGenomePosition &other) : TGenomePosition(other){}
 	TAlignment() = default;
 
 	// clear, fill and parse
@@ -98,13 +98,11 @@ public:
 
 	// setters
 	void addReference(const genometools::TFastaReader &fasta);
-	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
-	void setName(std::string Name) { _name = std::move(Name); };
-	void setMappingQuality(coretools::PhredInt Mappingquality) { _mappingQuality = Mappingquality; };
-	void setMateGenomicPosition(const TGenomePosition & Position) {
-		_mateGenomicPosition.move(Position);
-	};
-	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
+	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; }
+	void setName(std::string Name) { _name = std::move(Name); }
+	void setMappingQuality(coretools::PhredInt Mappingquality) { _mappingQuality = Mappingquality; }
+	void setMateGenomicPosition(const TGenomePosition &Position) { _mateGenomicPosition.move(Position); }
+	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; }
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 							  const std::vector<coretools::PhredInt> &Quals);
 	void setReadGroup(uint16_t readGroupId);
@@ -117,57 +115,57 @@ public:
 	void setCigarForUnitTest(const TCigar &Cigar) {_cigar = Cigar;}
 
 	// getters: position
-	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
+	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; }
 	uint32_t getLastInternalPos() const;
-	TGenomePosition lastAlignedPositionWithRespectToRef() const { return *this + (_refSize - 1); };
+	TGenomePosition lastAlignedPositionWithRespectToRef() const { return *this + (_refSize - 1); }
 	bool isAlignedAtInternalPos(size_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
 	TGenomePosition positionInRef(size_t internalPosition) const;
-	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; };
-	uint32_t matePosition() const { return _mateGenomicPosition.position(); };
-	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); };
-	uint16_t fragmentLength() const { return _fragmentLength; };
+	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; }
+	uint32_t matePosition() const { return _mateGenomicPosition.position(); }
+	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); }
+	uint16_t fragmentLength() const { return _fragmentLength; }
 
-	const std::string& name() const { return _name; };
-	uint16_t readGroupId() const { return _readGroupID; };
-	size_t parsedLength() const { return _alignedPosition.size(); };
-	uint32_t length() const { return _cigar.lengthRead(); };
-	int32_t insertSize() const { return _insertSize_TLEN; };
-	coretools::PhredInt mappingQuality() const { return _mappingQuality; };
-	uint16_t flags() const { return _flags.asInt(); };
-	const TCigar &cigar() const { return _cigar; };
+	const std::string& name() const { return _name; }
+	uint16_t readGroupId() const { return _readGroupID; }
+	size_t parsedLength() const { return _alignedPosition.size(); }
+	uint32_t length() const { return _cigar.lengthRead(); }
+	int32_t insertSize() const { return _insertSize_TLEN; }
+	coretools::PhredInt mappingQuality() const { return _mappingQuality; }
+	uint16_t flags() const { return _flags.asInt(); }
+	const TCigar &cigar() const { return _cigar; }
 
 	TSequencedData &operator[](size_t internalPos) noexcept {
 		assert(internalPos < _data.size());
 		return _data[internalPos];
-	};
+	}
 	const TSequencedData &operator[](size_t internalPos) const noexcept {
 		assert(internalPos < _data.size());
 		return _data[internalPos];
-	};
+	}
 
 	std::string sequence() const;
 	std::string qualities() const;
-	bool isEmpty() const noexcept { return _empty; };
-	bool isParsed() const noexcept { return _parsed; };
-	bool isReverseStrand() const noexcept { return _flags.isReverseStrand(); };
-	bool isPaired() const noexcept { return _flags.isPaired(); };
-	bool isProperPair() const noexcept { return _flags.isProperPair(); };
-	bool isSecondMate() const noexcept { return _flags.isSecondMate(); };
+	bool isEmpty() const noexcept { return _empty; }
+	bool isParsed() const noexcept { return _parsed; }
+	bool isReverseStrand() const noexcept { return _flags.isReverseStrand(); }
+	bool isPaired() const noexcept { return _flags.isPaired(); }
+	bool isProperPair() const noexcept { return _flags.isProperPair(); }
+	bool isSecondMate() const noexcept { return _flags.isSecondMate(); }
 	Mate mate() const noexcept {return static_cast<Mate>(_flags.isSecondMate());}
 	Strand strand() const noexcept {return static_cast<Strand>(_flags.isReverseStrand());}
 
 	// looping
-	std::vector<TSequencedData>::iterator begin() noexcept { return _data.begin(); };
-	std::vector<TSequencedData>::iterator end() noexcept { return _data.end(); };
-	std::vector<TSequencedData>::reverse_iterator rbegin() noexcept { return _data.rbegin(); };
-	std::vector<TSequencedData>::reverse_iterator rend() noexcept { return _data.rend(); };
-	std::vector<TSequencedData>::const_iterator begin() const noexcept { return _data.begin(); };
-	std::vector<TSequencedData>::const_iterator end() const noexcept { return _data.end(); };
-	std::vector<TSequencedData>::const_reverse_iterator rbegin() const noexcept { return _data.rbegin(); };
-	std::vector<TSequencedData>::const_reverse_iterator rend() const noexcept { return _data.rend(); };
+	auto begin() noexcept { return _data.begin(); }
+	auto end() noexcept { return _data.end(); }
+	auto rbegin() noexcept { return _data.rbegin(); }
+	auto rend() noexcept { return _data.rend(); }
+	auto begin() const noexcept { return _data.begin(); }
+	auto end() const noexcept { return _data.end(); }
+	auto rbegin() const noexcept { return _data.rbegin(); }
+	auto rend() const noexcept { return _data.rend(); }
 	
-	size_t size() const noexcept { return _data.size(); }
+	size_t size() const noexcept { assert(_data.empty() || _data.size() == length()); return length(); }
 
 	// filters and other functions to modify data
 	template<typename Filter> void filter(const Filter &F) {
@@ -188,6 +186,6 @@ public:
 	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
 };
 
-}; // namespace BAM
+} // namespace BAM
 
 #endif /* TALIGNMENT_H_ */

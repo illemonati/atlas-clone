@@ -61,9 +61,9 @@ std::pair<PhredInt, PhredInt> minQual(const BAM::TAlignment &firstRead, const BA
 	}
 	// base iterator starts at last position of the forward strand, then decrements until it reaches either the first
 	// aligned position of itself or the forward read
-	std::vector<BAM::TSequencedData>::const_reverse_iterator dataIteratorReverse = firstRead.rbegin();
-	internalPos                                                                  = firstRead.getLastInternalPos();
-	PhredInt firstReadMinQual                                                    = dataIteratorReverse->recalQuality;
+	auto dataIteratorReverse  = firstRead.rbegin();
+	internalPos               = firstRead.getLastInternalPos();
+	PhredInt firstReadMinQual = dataIteratorReverse->recalQuality;
 	while (!firstRead.isAlignedAtInternalPos(internalPos) ||
 	       (firstRead.positionInRef(internalPos).position() != secondRead.position() &&
 	        firstRead.positionInRef(internalPos).position() != firstRead.position())) {

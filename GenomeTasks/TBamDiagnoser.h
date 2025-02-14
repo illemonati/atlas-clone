@@ -29,8 +29,9 @@ private:
 	};
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
-	bool _chromStats = false;
+	bool _chromStats         = false;
 	bool _identifyDuplicates = false;
+	bool _writeMates         = false;
 	std::vector<TOld> _old;
 	genometools::TGenomePosition _oldPosition;
 	coretools::TOutputFile _duplicateFile;
@@ -40,10 +41,10 @@ private:
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
 	// std::vector per readgroup, countdistributionvector per chromosome
-    std::vector<coretools::TCountDistributionVector<>> _readLength;
+	std::array<std::vector<coretools::TCountDistributionVector<>>, 3> _readLength; // 0: both, mate1 & 
     std::vector<coretools::TCountDistributionVector<>> _readDist;
     coretools::TCountDistributionVector<> _allReadDist;
-    std::vector<coretools::TCountDistributionVector<>> _usableLength;
+	std::array<std::vector<coretools::TCountDistributionVector<>>, 3> _usableLength;
     std::vector<coretools::TCountDistributionVector<>> _softClippedLength;
    	std::vector<coretools::TCountDistributionVector<>> _mappingQuality;
     std::vector<coretools::TCountDistributionVector<>> _fragmentLength;
@@ -58,6 +59,6 @@ public:
 	void run();
 };
 
-}; // end namespace
+} // end namespace
 
 #endif /* TBAMDIAGNOSER_H_ */
