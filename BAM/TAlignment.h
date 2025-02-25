@@ -134,6 +134,7 @@ public:
 	coretools::PhredInt mappingQuality() const { return _mappingQuality; }
 	uint16_t flags() const { return _flags.asInt(); }
 	const TCigar &cigar() const { return _cigar; }
+	TCigar &cigar() { return _cigar; }
 
 	TSequencedData &operator[](size_t internalPos) noexcept {
 		assert(internalPos < _data.size());

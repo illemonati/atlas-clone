@@ -6,6 +6,7 @@
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
 #include "TIlluminaIdentifier.h"
+#include "TNewMerger.h"
 #include "TOverlapQuantifier.h"
 #include "TOverlappingReadsMerger.h"
 #include "TSafEstimator.h"
@@ -120,6 +121,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<PopulationTools::TSpearmanGWAS>("SpearmanGWAS", "GWAS with Spearman correlation, allowing for population-specific signs");
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
 	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
+	main.createDebugTask<GenomeTasks::TNewMerger>("newMerge", "merge paired reads");
 };
 
 void addTests(coretools::TMain & ){

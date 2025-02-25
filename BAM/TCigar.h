@@ -46,6 +46,9 @@ public:
 	void add(char Type, size_t Length);
 	void removeSoftClips();
 	void removeSoftClips(size_t maxNumberOfSoftClippedBases);
+	void addSoftClipsLeft(size_t Length);
+	void addSoftClipsRight(size_t Length);
+	void allSoftClipped();
 
 	constexpr size_t lengthAligned() const noexcept { return _lengthAligned; };
 	constexpr size_t lengthInserted() const noexcept { return _lengthInserted; };
