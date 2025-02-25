@@ -70,7 +70,7 @@ $atlas --task transitionTable --bam $bam --fasta simulate.fasta \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 out="merge"
-$atlas --task mergeOverlappingReads --bam $bam \
+$atlas --task mergeOverlappingReads --bam $bam --mergingMethod middle \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
 bam=merge_merged.bam

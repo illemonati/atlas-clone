@@ -1,6 +1,7 @@
 #ifndef GENOMETASKS_TTRANSITIONTABLER_H_
 #define GENOMETASKS_TTRANSITIONTABLER_H_
 
+#include "TAlignment.h"
 #include "TWaitingListBamTraverser.h"
 
 namespace GenomeTasks {
@@ -15,7 +16,10 @@ private:
 
 	std::array<coretools::TOutputFile, 3> _outTransitions;
 	std::array<coretools::TOutputFile, 3> _outTransitionsRel;
-	std::array<coretools::TOutputFile, 3> _outTransitionsRho;
+
+	void _handleAlignments(const BAM::TAlignment& first, const BAM::TAlignment& second);
+	void _handleFwd(std::vector<Rho>& transAll, std::vector<Rho>& transMate, const BAM::TAlignment& aln, size_t addL);
+	void _handleRev(std::vector<Rho>& transAll, std::vector<Rho>& transMate, const BAM::TAlignment& aln, size_t addL);
 
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &lhs) override;

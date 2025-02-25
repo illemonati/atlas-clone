@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TBamTraverser.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
@@ -41,10 +42,13 @@ private:
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
 	// std::vector per readgroup, countdistributionvector per chromosome
-	std::array<std::vector<coretools::TCountDistributionVector<>>, 3> _readLength; // 0: both, mate1 & 
     std::vector<coretools::TCountDistributionVector<>> _readDist;
     coretools::TCountDistributionVector<> _allReadDist;
-	std::array<std::vector<coretools::TCountDistributionVector<>>, 3> _usableLength;
+
+	enum class LengthType : size_t {min, All=min, Fwd1, Rev1, Fwd2, Rev2, max};
+	coretools::TStrongArray<std::vector<coretools::TCountDistributionVector<>>, LengthType> _readLength;
+	coretools::TStrongArray<std::vector<coretools::TCountDistributionVector<>>, LengthType> _usableLength;
+
     std::vector<coretools::TCountDistributionVector<>> _softClippedLength;
    	std::vector<coretools::TCountDistributionVector<>> _mappingQuality;
     std::vector<coretools::TCountDistributionVector<>> _fragmentLength;
