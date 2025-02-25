@@ -25,7 +25,7 @@ void TNewMerger::_mergeMiddle(BAM::TAlignment& left, BAM::TAlignment& right) {
 		// llll -> llll
 		//  rr      ss 
 
-		right.cigar().allSoftClipped();
+		right.cigar().setAllSoftClipped();
 		right.moveOnRef(-1);
 
 	} else {

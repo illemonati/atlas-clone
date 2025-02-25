@@ -102,7 +102,7 @@ void TCigar::clear() {
 	_lengthSkipped           = 0;
 	_lengthSoftClippedLeft   = 0;
 	_lengthSoftClippedRight  = 0;
-};
+}
 
 void TCigar::add(char Type, size_t Length) {
 	if (_lengthSoftClippedRight) { UERROR("Cigar string contains entries past soft clipping on right!"); }
@@ -126,7 +126,7 @@ void TCigar::add(char Type, size_t Length) {
 
 	// add to vector
 	_cigar.emplace_back(Type, Length);
-};
+}
 
 void TCigar::removeSoftClips() {
 	if (_cigar.front().type == 'S') _cigar.erase(_cigar.begin());
@@ -135,7 +135,60 @@ void TCigar::removeSoftClips() {
 	// update length
 	_lengthSoftClippedLeft  = 0;
 	_lengthSoftClippedRight = 0;
-};
+}
+
+void TCigar::setAllSoftClipped() {
+	const auto l = lengthRead();
+	clear();
+	add('S', l);
+}
+
+void TCigar::addSoftClipsLeft(size_t Length) {
+	if (Length == 0) return;
+
+	if (Length > lengthRead()) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
+
+	if (_cigar.front().type == 'S') {
+		_cigar.front().length += Length;
+	} else {
+		_cigar.emplace(_cigar.begin(), 'S', Length);
+	}
+
+	if (_cigar.size() < 2) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
+
+	// remove elements shorter than Length
+	while (_cigar[1].length <= Length) {
+		Length -= _cigar[1].length;
+		_cigar.erase(_cigar.begin() + 1);
+		assert(_cigar.size() > 1);
+	}
+	assert(_cigar.size() > 1);
+	// Shorten element that is longer
+	if (Length > 0) _cigar[1].length -= Length;
+}
+void TCigar::addSoftClipsRight(size_t Length) {
+	if (Length == 0) return;
+
+	if (Length > lengthRead()) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
+
+	if (_cigar.back().type == 'S') {
+		_cigar.back().length += Length;
+	} else {
+		_cigar.emplace_back('S', Length);
+	}
+		
+	if (_cigar.size() < 2) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
+
+	// remove elements shorter than Length
+	while ((_cigar.rbegin() + 1)->length <= Length) {
+		Length -= (_cigar.rbegin() + 1)->length;
+		_cigar.erase(_cigar.begin() + _cigar.size() - 2);
+		assert(_cigar.size() > 1);
+	}
+	assert(_cigar.size() > 1);
+	// Shorten element that is longer
+	if (Length > 0) (_cigar.rbegin() + 1)->length -= Length;
+}
 
 void TCigar::removeSoftClips(size_t maxNumberOfSoftClippedBases) {
 	if(maxNumberOfSoftClippedBases == 0) removeSoftClips();
@@ -149,7 +202,7 @@ void TCigar::removeSoftClips(size_t maxNumberOfSoftClippedBases) {
 			_lengthSoftClippedRight = maxNumberOfSoftClippedBases;
 		}
 	}
-};
+}
 
 std::string TCigar::compileString() const{
 	std::string s;
@@ -163,4 +216,4 @@ TCigar::operator std::string() const {
 	return compileString();
 }
 
-}; // namespace BAM
+} // namespace BAM
