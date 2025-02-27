@@ -25,7 +25,7 @@ void TNewMerger::_mergeMiddle(BAM::TAlignment& left, BAM::TAlignment& right) {
 		// llll -> llll
 		//  rr      ss 
 
-		right.cigar().setAllSoftClipped();
+		right.cigar().setAllToSoftClipped();
 		right.moveOnRef(-1);
 
 	} else {
@@ -76,9 +76,6 @@ void TNewMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 		lhs.status = AlignmentStatus::ready;
 		rhs.status = AlignmentStatus::ready;
 	}
-}
-
-TNewMerger::TNewMerger() {
 }
 
 }

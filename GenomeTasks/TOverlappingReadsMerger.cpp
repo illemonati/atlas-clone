@@ -33,7 +33,7 @@ TOverlappingReadsMerger::TOverlappingReadsMerger() : TWaitingListBamTraverser("_
 	} else {
 		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.");
 	}
-};
+}
 
 void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 	if (!lhs.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too

@@ -6,7 +6,7 @@ echo '{"RG1":{"seqType": "paired"}, "RG2":{"seqType": "single"}, "RG3":{"seqType
 
 # paired end
 out="simulate"
-$atlas --task simulate --RGInfo sim.json --chrLength 1111111 \
+$atlas --task simulate --RGInfo sim.json --chrLength 111111 \
 	   --fixedSeed 140 --out $out --logFile $out.out 2> $out.eout
 
 echo "RG1 RG2" > rgs.txt

@@ -18,7 +18,7 @@ private:
 	void _writeTransitions();
 
 public:
-	TNewMerger();
+	TNewMerger() : TWaitingListBamTraverser("_merged.bam") {}
 	void run() { traverseBAM(); }
 };
 

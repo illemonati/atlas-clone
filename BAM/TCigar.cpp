@@ -128,6 +128,27 @@ void TCigar::add(char Type, size_t Length) {
 	_cigar.emplace_back(Type, Length);
 }
 
+void TCigar::_compileLengths() {
+	_lengthInserted = 0;
+	_lengthDeleted  = 0;
+	_lengthAligned  = 0;
+	_lengthSkipped  = 0;
+	for (const auto &c : _cigar) {
+		switch (c.type) {
+		case 'I': _lengthInserted += c.length; break;
+		case 'D':_lengthDeleted += c.length; break;
+		case 'N': _lengthSkipped += c.length; break;
+		case 'M':
+		case '=':
+		case 'X': _lengthAligned += c.length; break;
+		case 'S': break;
+		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		}
+	}
+	if (_cigar.front().type == 'S') _lengthSoftClippedLeft = _cigar.front().length;
+	if (_cigar.size() > 1 && _cigar.back().type == 'S') _lengthSoftClippedLeft = _cigar.back().length;
+}
+
 void TCigar::removeSoftClips() {
 	if (_cigar.front().type == 'S') _cigar.erase(_cigar.begin());
 	if (_cigar.back().type == 'S') _cigar.pop_back();
@@ -137,60 +158,72 @@ void TCigar::removeSoftClips() {
 	_lengthSoftClippedRight = 0;
 }
 
-void TCigar::setAllSoftClipped() {
+void TCigar::setAllToSoftClipped() {
 	const auto l = lengthRead();
 	clear();
 	add('S', l);
+	_lengthSoftClippedLeft  = l;
 }
 
 void TCigar::addSoftClipsLeft(size_t Length) {
-	if (Length == 0) return;
+	std::reverse(_cigar.begin(), _cigar.end());
+	addSoftClipsRight(Length);
+	std::reverse(_cigar.begin(), _cigar.end());
 
-	if (Length > lengthRead()) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
-
-	if (_cigar.front().type == 'S') {
-		_cigar.front().length += Length;
-	} else {
-		_cigar.emplace(_cigar.begin(), 'S', Length);
-	}
-
-	if (_cigar.size() < 2) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
-
-	// remove elements shorter than Length
-	while (_cigar[1].length <= Length) {
-		Length -= _cigar[1].length;
-		_cigar.erase(_cigar.begin() + 1);
-		assert(_cigar.size() > 1);
-	}
-	assert(_cigar.size() > 1);
-	// Shorten element that is longer
-	if (Length > 0) _cigar[1].length -= Length;
+	std::swap(_lengthSoftClippedLeft, _lengthSoftClippedRight);
 }
+
 void TCigar::addSoftClipsRight(size_t Length) {
 	if (Length == 0) return;
 
-	if (Length > lengthRead()) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
+	if (Length > lengthRead())
+		DEVERROR("Cannot add ", Length, " Softclips to cigar '", compileString(), "'.");
 
+	CigarOperator softClipR('S', 0);
 	if (_cigar.back().type == 'S') {
-		_cigar.back().length += Length;
-	} else {
-		_cigar.emplace_back('S', Length);
+		softClipR.length += _cigar.back().length;
+		_cigar.pop_back();
 	}
-		
-	if (_cigar.size() < 2) DEVERROR("Cannot add ", Length ," Softclips to ", compileString());
 
-	// remove elements shorter than Length
-	while ((_cigar.rbegin() + 1)->length <= Length) {
-		Length -= (_cigar.rbegin() + 1)->length;
-		_cigar.erase(_cigar.begin() + _cigar.size() - 2);
-		assert(_cigar.size() > 1);
+	while (Length > 0 && !_cigar.empty()) {
+		switch (_cigar.back().type) {
+		case 'I':
+			softClipR.length += _cigar.back().length;
+			_cigar.pop_back();
+			break;
+		case 'D':
+		case 'N':
+			if (Length >= _cigar.back().length) {
+				Length -= _cigar.back().length;
+				_cigar.pop_back();
+			} else {
+				_cigar.back().length -= Length;
+				Length = 0;
+			}
+			break;
+
+		case 'M':
+		case '=':
+		case 'X':
+			if (Length >= _cigar.back().length) {
+				Length -= _cigar.back().length;
+				softClipR.length += _cigar.back().length;
+				_cigar.pop_back();
+			} else {
+				_cigar.back().length -= Length;
+				softClipR.length += Length;
+				Length = 0;
+			}
+			break;
+		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		}
 	}
-	assert(_cigar.size() > 1);
-	// Shorten element that is longer
-	if (Length > 0) (_cigar.rbegin() + 1)->length -= Length;
+	if (Length > 0) DEVERROR("Error parsing cigar '", compileString(), "'.");
+	_cigar.push_back(softClipR);
+	_compileLengths();
 }
 
-void TCigar::removeSoftClips(size_t maxNumberOfSoftClippedBases) {
+void TCigar::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 	if(maxNumberOfSoftClippedBases == 0) removeSoftClips();
 	else {
 		if (_cigar.front().type == 'S' && _cigar.front().length > maxNumberOfSoftClippedBases) {

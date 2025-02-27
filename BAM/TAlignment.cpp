@@ -433,7 +433,7 @@ void TAlignment::trimRead(uint64_t trimmingLength3Prime, uint64_t trimmingLength
 
 void TAlignment::trimSoftClips() {
 	// make sure read is parsed
-	if (!_parsed) DEVERROR("Read was not parsed!");
+	if (!_parsed) parse();
 
 	if (_cigar.lengthSoftClippedLeft()) {
 		_data.erase(_data.begin(), _data.begin() + _cigar.lengthSoftClippedLeft());
@@ -448,7 +448,7 @@ void TAlignment::trimSoftClips() {
 
 void TAlignment::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 	// make sure read is parsed
-	if (!_parsed) DEVERROR("Read was not parsed!");
+	if (!_parsed) parse();
 
 	// check if there is softclipping that exceeds the threshold on the left
 	if (_cigar.lengthSoftClippedLeft() > maxNumberOfSoftClippedBases) {
@@ -461,7 +461,7 @@ void TAlignment::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 		_sequenceAndQualitiesChanged = true;
 	}		
 		// update cigar and length
-	_cigar.removeSoftClips(maxNumberOfSoftClippedBases);
+	_cigar.trimSoftClips(maxNumberOfSoftClippedBases);
 }
 
 
