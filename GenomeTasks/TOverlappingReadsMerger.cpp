@@ -35,20 +35,20 @@ TOverlappingReadsMerger::TOverlappingReadsMerger() : TWaitingListBamTraverser("_
 	}
 }
 
-void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
-	if (!lhs.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
-		rhs.alignment.setIsProperPair(false);
-		lhs.status = AlignmentStatus::orphan;
-		rhs.status = AlignmentStatus::orphan;
+void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &mate, TWaitingAlignment &next) {
+	if (!mate.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
+		next.alignment.setIsProperPair(false);
+		mate.status = AlignmentStatus::orphan;
+		next.status = AlignmentStatus::orphan;
 	} else {
 		// attempt merging: make sure alignments are parsed
 		// Note: if we recalibrate, they were already parsed
-		if (!lhs.alignment.isParsed()) { lhs.alignment.parse(); }
-		if (!rhs.alignment.isParsed()) { rhs.alignment.parse(); }
+		if (!mate.alignment.isParsed()) { mate.alignment.parse(); }
+		if (!next.alignment.isParsed()) { next.alignment.parse(); }
 
-		_merger->merge(lhs.alignment, rhs.alignment);
-		lhs.status = AlignmentStatus::ready;
-		rhs.status = AlignmentStatus::ready;
+		_merger->merge(next.alignment, mate.alignment);
+		mate.status = AlignmentStatus::ready;
+		next.status = AlignmentStatus::ready;
 	}
 }
 

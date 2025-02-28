@@ -226,7 +226,11 @@ void TWaitingListBamTraverser::traverseBAM() {
 					mate->status = AlignmentStatus::filterOut;
 				} else {
 					const auto pMate = mate->alignment.position();
-					_handleMates(next, *mate);
+					// mate <= next with respect to reference
+					assert(mate->alignment <= next.alignment);
+					_handleMates(*mate, next);
+					assert(mate->alignment <= next.alignment);
+
 					if (mate->alignment.position() > pMate) {
 						// !! reverse iterator
 						while (mate != _waitingList.rbegin() && (mate - 1)->alignment < mate->alignment)  {

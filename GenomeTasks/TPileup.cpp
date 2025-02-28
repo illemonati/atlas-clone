@@ -237,7 +237,6 @@ TPileup::TPileup() {
 		_histSettings.set<Hist::AllelicDepth>(impl::parseField(histograms, "allelicDepth", "Allelic depth"));
 		_histSettings.set<Hist::Transitions>(impl::parseField(histograms, "transitions", "ref to base transition"));
 		_histSettings.set<Hist::PrevBases>(impl::parseField(histograms, "prevBases", "ref to base to prevBase counts"));
-		_histSettings.set<Hist::StrandMate>(impl::parseField(histograms, "strandMate", "first/second vs fwd/rev strand"));
 		logfile().endIndent();
 
 		// check if unknown fields were given
@@ -304,11 +303,6 @@ TPileup::TPileup() {
 				logfile().list("Will create count table of reference-base-prevousbase.");
 			}
 		}
-
-		if (_histSettings.get<Hist::StrandMate>()) {
-			logfile().list("Will count 1st/2nd mate vs forward/reversed strand. (parameter 'strandMate')");
-			_strandMate.resize(_genome.front().bamFile().readGroups().size());
-		}
 	} else {
 		logfile().list("Will not output histograms (use 'histograms' to do so).");
 	}
@@ -362,12 +356,6 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			for (auto &b : site) {
 				if (b.base == Base::N) continue;
 				++_prevBases[b.mate()][b.strand()][site.refBase][b.base][b.previousBase()];
-			}
-		}
-
-		if (_histSettings.get<Hist::StrandMate>()) {
-			for (auto &b : site) {
-				++_strandMate[b.readGroupID][b.mate()][b.strand()];
 			}
 		}
 
@@ -551,18 +539,6 @@ void TPileup::run() {
 				}
 			}
 		}
-	}
-
-	if (_histSettings.get<Hist::StrandMate>()) {
-		coretools::TOutputFile outStrandMate(_genome.front().outputName() + "_strandMate.txt.gz", {"Readgroup", "Mate1-Fwd", "Mate1-Rev", "Mate2-Fwd", "Mate2-Rev"});
-		for (size_t rg = 0; rg < _strandMate.size(); ++rg) {
-			auto& sm = _strandMate[rg];
-			outStrandMate.writeln(_genome.front().bamFile().readGroups().getName(rg),
-								   sm[Mate::first][Strand::Fwd], sm[Mate::first][Strand::Rev],
-								   sm[Mate::second][Strand::Fwd], sm[Mate::second][Strand::Rev]);
-			sm.fill({});
-		}
-		outStrandMate.flush();
 	}
 }
 

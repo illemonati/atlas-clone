@@ -133,6 +133,9 @@ void TCigar::_compileLengths() {
 	_lengthDeleted  = 0;
 	_lengthAligned  = 0;
 	_lengthSkipped  = 0;
+
+	_lengthSoftClippedLeft  = 0;
+	_lengthSoftClippedRight = 0;
 	for (const auto &c : _cigar) {
 		switch (c.type) {
 		case 'I': _lengthInserted += c.length; break;

@@ -1,81 +1,129 @@
 #include "TNewMerger.h"
+#include "coretools/Main/TLog.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
+#include <memory>
+#include <numeric>
 
 namespace GenomeTasks {
 
-void TNewMerger::_mergeMiddle(BAM::TAlignment& left, BAM::TAlignment& right) {
-	if (left.refID() != right.refID()) return;
+bool TMiddleMerger::_mergeMiddle(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
+	const auto FStart = Fwd.position();
+	const auto FLen   = Fwd.cigar().lengthMapped();
+	const auto FEnd   = FStart + FLen;
 
-	const auto lStart = left.position();
-	const auto lLen   = left.cigar().lengthAligned();
-	const auto lEnd   = lStart + lLen;
+	const auto RStart = Rev.position();
+	const auto RLen   = Rev.cigar().lengthMapped();
+	const auto REnd   = RStart + RLen;
 
-	const auto rStart = right.position();
-	const auto rLen   = right.cigar().lengthAligned();
-	const auto rEnd   = rStart + rLen;
+	if (RStart >= FEnd) {
+		// FFF    -> FFF
+		//    RRR       RRR
+		++_cases[Cases::NoOverlap];
 
-	if (rStart >= lEnd) {
-		// lll    -> lll
-		//    rrr       rrr
-
-		return; // no overlap
+		return true; // no overlap
 	}
 
-	if (rStart > lStart && rEnd <= lEnd) {
-		// llll -> llll
-		//  rr      ss 
+	if (RStart < FStart) {
+		//  FFFF
+		// RRR
+		++_cases[Cases::RStart_s_FStart];
 
-		right.cigar().setAllToSoftClipped();
-		right.moveOnRef(-1);
+		//  something strange, discard!
+		return false;
+	}
 
+	if (REnd < FEnd) {
+		//  FFF
+		// RRR
+		++_cases[Cases::REnd_s_FEnd];
+
+		//  something strange, discard!
+		return false;
+	}
+
+	//  FFF  -> FFs
+	//   RRR     sRR
+	// or
+	//  FFFF -> FFFs
+	//   RRR     ssR
+	// or
+	//  FFF    -> FFs
+	//  RRRR      ssRR
+	// or
+	//  FFFF   -> FFss
+	//  RRRR      ssRR
+	++_cases[Cases::Overlap];
+
+	const auto overlap  = FEnd - RStart;
+	const auto FOverlap = overlap / 2;
+	const auto ROverlap = overlap - FOverlap; // this takes care of odd numbers
+
+	Fwd.cigar().addSoftClipsRight(FOverlap);
+	Rev.cigar().addSoftClipsLeft(ROverlap);
+
+	Rev += ROverlap;
+	Fwd.setMateGenomicPosition(Rev);
+
+	return true;
+}
+
+bool TMiddleMerger::merge(BAM::TAlignment &lhs, BAM::TAlignment &rhs) {
+	if (lhs.isReverseStrand() == rhs.isReverseStrand()) {
+		if (lhs.isReverseStrand()) ++_cases[Cases::BothRev];
+		else ++_cases[Cases::BothFwd];
+
+		return false;
+	}
+
+	// middleMerge
+	if (rhs.isSecondMate()) {
+		return _mergeMiddle(lhs, rhs);
 	} else {
-		//  lll  -> lls
-		//   rrr     srr
-		// or
-		//  lll    -> lls
-		//  rrrr      ssrrr
-
-		const auto overlap  = lEnd - rStart;
-		const auto lOverlap = overlap / 2;
-		const auto rOverlap = overlap - lOverlap; // this takes care of odd numbers
-
-		left.cigar().addSoftClipsRight(lOverlap);
-		right.cigar().addSoftClipsLeft(rOverlap);
-
-		right += rOverlap;
-		left.setMateGenomicPosition(right);
+		return _mergeMiddle(rhs, lhs);
 	}
 }
 
-void TNewMerger::_merge(BAM::TAlignment &lhs, BAM::TAlignment &rhs) {
-	// middleMerge
-	if (lhs < rhs) {
-		_mergeMiddle(lhs, rhs);
-	} else if (rhs < lhs) {
-		_mergeMiddle(rhs, lhs);
-	} else {
-		// same starting position -> shorter first
-		if (lhs.cigar().lengthAligned() < rhs.cigar().lengthAligned()) {
-			_mergeMiddle(lhs, rhs);
-		} else {
-			_mergeMiddle(rhs, lhs);
-		}
-	}
+void TMiddleMerger::summary() {
+	using coretools::instances::logfile;
+	const double nCases = std::accumulate(_cases.begin(), _cases.end(), 0);
+	logfile().startIndent("Merging summary:");
+	logfile().list(_cases[Cases::NoOverlap], " pairs without overlap: ", _cases[Cases::NoOverlap]/nCases);
+	logfile().list(_cases[Cases::Overlap], " pairs with overlap: ", _cases[Cases::Overlap]/nCases);
+	logfile().list(_cases[Cases::BothFwd], " pairs with two Fwd strands: ", _cases[Cases::BothFwd]/nCases);
+	logfile().list(_cases[Cases::BothRev], " pairs with two Rev strands: ", _cases[Cases::BothRev]/nCases);
+	logfile().list(_cases[Cases::RStart_s_FStart], " pairs where Rev starts before Fwd: ", _cases[Cases::RStart_s_FStart]/nCases);
+	logfile().list(_cases[Cases::REnd_s_FEnd], " pairs where Rev ends before Fwd: ", _cases[Cases::REnd_s_FEnd]/nCases);
+	logfile().endIndent();
+}
+
+TNewMerger::TNewMerger() : TWaitingListBamTraverser("_merged.bam") {
+	_merger = std::make_unique<TMiddleMerger>();
 }
 
 void TNewMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
+	// lhs <= rhs with respect to reference
 	if (!lhs.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
 		rhs.alignment.setIsProperPair(false);
 		lhs.status = AlignmentStatus::orphan;
 		rhs.status = AlignmentStatus::orphan;
 	} else {
 		// no parsing needed!
-		_merge(lhs.alignment, rhs.alignment);
+		bool merged = _merger->merge(lhs.alignment, rhs.alignment);
 
+		if (merged) {
+			lhs.status = AlignmentStatus::ready;
+			rhs.status = AlignmentStatus::ready;
+		} else {
+			lhs.status = AlignmentStatus::filterOut;
+			rhs.status = AlignmentStatus::filterOut;
+		}
 
-		lhs.status = AlignmentStatus::ready;
-		rhs.status = AlignmentStatus::ready;
 	}
+}
+
+void TNewMerger::run() {
+	traverseBAM();
+	_merger->summary();
 }
 
 }
