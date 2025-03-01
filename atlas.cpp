@@ -9,6 +9,7 @@
 #include "TNewMerger.h"
 #include "TOverlapQuantifier.h"
 #include "TOverlappingReadsMerger.h"
+#include "TPairAnalyser.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
 #include "coretools/Main/TMain.h"
@@ -122,6 +123,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
 	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
 	main.createDebugTask<GenomeTasks::TNewMerger>("newMerge", "merge paired reads");
+	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
 };
 
 void addTests(coretools::TMain & ){

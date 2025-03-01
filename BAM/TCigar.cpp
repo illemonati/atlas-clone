@@ -179,7 +179,7 @@ void TCigar::addSoftClipsLeft(size_t Length) {
 void TCigar::addSoftClipsRight(size_t Length) {
 	if (Length == 0) return;
 
-	if (Length > lengthRead())
+	if (Length > lengthMapped())
 		DEVERROR("Cannot add ", Length, " Softclips to cigar '", compileString(), "'.");
 
 	CigarOperator softClipR('S', 0);

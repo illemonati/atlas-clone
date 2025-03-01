@@ -6,7 +6,38 @@
 
 namespace GenomeTasks {
 
-bool TMiddleMerger::_mergeMiddle(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
+namespace impl {
+constexpr bool isOdd(size_t N) {
+	return N & 1;
+}
+}
+
+bool TMiddleMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Overlap) {
+	// all edge cases are already handeld!
+
+	// odd number -> one more for Mate1
+	const auto FOverlap = impl::isOdd(Overlap) ? Overlap / 2 + !Fwd.isSecondMate() : Overlap / 2;
+	const auto ROverlap = Overlap - FOverlap; // this takes care of odd numbers
+
+	Fwd.cigar().addSoftClipsRight(FOverlap);
+	Rev.cigar().addSoftClipsLeft(ROverlap);
+
+	Rev += ROverlap;
+	Fwd.setMateGenomicPosition(Rev);
+
+	return true;
+}
+
+bool TNewMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
+	if (Rev < Fwd) {
+		//  FFFF
+		// RRR
+		++_cases[Cases::RStart_s_FStart];
+
+		//  something strange, discard!
+		return false;
+	}
+
 	const auto FStart = Fwd.position();
 	const auto FLen   = Fwd.cigar().lengthMapped();
 	const auto FEnd   = FStart + FLen;
@@ -23,15 +54,6 @@ bool TMiddleMerger::_mergeMiddle(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 		return true; // no overlap
 	}
 
-	if (RStart < FStart) {
-		//  FFFF
-		// RRR
-		++_cases[Cases::RStart_s_FStart];
-
-		//  something strange, discard!
-		return false;
-	}
-
 	if (REnd < FEnd) {
 		//  FFF
 		// RRR
@@ -41,6 +63,7 @@ bool TMiddleMerger::_mergeMiddle(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 		return false;
 	}
 
+	// else:
 	//  FFF  -> FFs
 	//   RRR     sRR
 	// or
@@ -53,37 +76,10 @@ bool TMiddleMerger::_mergeMiddle(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 	//  FFFF   -> FFss
 	//  RRRR      ssRR
 	++_cases[Cases::Overlap];
-
-	const auto overlap  = FEnd - RStart;
-	const auto FOverlap = overlap / 2;
-	const auto ROverlap = overlap - FOverlap; // this takes care of odd numbers
-
-	Fwd.cigar().addSoftClipsRight(FOverlap);
-	Rev.cigar().addSoftClipsLeft(ROverlap);
-
-	Rev += ROverlap;
-	Fwd.setMateGenomicPosition(Rev);
-
-	return true;
+	return _merger->merge(Fwd, Rev, FEnd - RStart);
 }
 
-bool TMiddleMerger::merge(BAM::TAlignment &lhs, BAM::TAlignment &rhs) {
-	if (lhs.isReverseStrand() == rhs.isReverseStrand()) {
-		if (lhs.isReverseStrand()) ++_cases[Cases::BothRev];
-		else ++_cases[Cases::BothFwd];
-
-		return false;
-	}
-
-	// middleMerge
-	if (rhs.isSecondMate()) {
-		return _mergeMiddle(lhs, rhs);
-	} else {
-		return _mergeMiddle(rhs, lhs);
-	}
-}
-
-void TMiddleMerger::summary() {
+void TNewMerger::_summary() {
 	using coretools::instances::logfile;
 	const double nCases = std::accumulate(_cases.begin(), _cases.end(), 0);
 	logfile().startIndent("Merging summary:");
@@ -108,7 +104,14 @@ void TNewMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 		rhs.status = AlignmentStatus::orphan;
 	} else {
 		// no parsing needed!
-		bool merged = _merger->merge(lhs.alignment, rhs.alignment);
+		auto merged = false;
+		if (lhs.alignment.isReverseStrand() == rhs.alignment.isReverseStrand()) {
+			if (lhs.alignment.isReverseStrand()) ++_cases[Cases::BothRev];
+			else ++_cases[Cases::BothFwd];
+			merged = false;
+		} else {
+			merged = rhs.alignment.isReverseStrand() ? _merge(lhs.alignment, rhs.alignment) : _merge(rhs.alignment, lhs.alignment);
+		}
 
 		if (merged) {
 			lhs.status = AlignmentStatus::ready;
@@ -123,7 +126,7 @@ void TNewMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
 
 void TNewMerger::run() {
 	traverseBAM();
-	_merger->summary();
+	_summary();
 }
 
 }

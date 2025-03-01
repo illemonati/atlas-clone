@@ -73,11 +73,11 @@ out="newMerge"
 $atlas --task newMerge --bam $bam \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
-out="merge"
+out="oldMerge"
 $atlas --task mergeOverlappingReads --bam $bam --mergingMethod middle \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
-for name in newMerge merge; do
+for name in newMerge oldMerge; do
 	bam=${name}_merged.bam 
 	out="${name}_pileup"
 	$atlas --task pileup --onlySummaries --histograms depth,transitions \

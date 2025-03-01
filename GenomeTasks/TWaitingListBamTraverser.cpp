@@ -229,7 +229,6 @@ void TWaitingListBamTraverser::traverseBAM() {
 					// mate <= next with respect to reference
 					assert(mate->alignment <= next.alignment);
 					_handleMates(*mate, next);
-					assert(mate->alignment <= next.alignment);
 
 					if (mate->alignment.position() > pMate) {
 						// !! reverse iterator
