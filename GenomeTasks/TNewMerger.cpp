@@ -46,14 +46,6 @@ bool TNewMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 	const auto RLen   = Rev.cigar().lengthMapped();
 	const auto REnd   = RStart + RLen;
 
-	if (RStart >= FEnd) {
-		// FFF    -> FFF
-		//    RRR       RRR
-		++_cases[Cases::NoOverlap];
-
-		return true; // no overlap
-	}
-
 	if (REnd < FEnd) {
 		//  FFF
 		// RRR
@@ -61,6 +53,15 @@ bool TNewMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 
 		//  something strange, discard!
 		return false;
+	}
+
+
+	if (RStart >= FEnd) {
+		// FFF    -> FFF
+		//    RRR       RRR
+		++_cases[Cases::NoOverlap];
+
+		return true; // no overlap
 	}
 
 	// else:
@@ -85,10 +86,10 @@ void TNewMerger::_summary() {
 	logfile().startIndent("Merging summary:");
 	logfile().list(_cases[Cases::NoOverlap], " pairs without overlap: ", _cases[Cases::NoOverlap]/nCases);
 	logfile().list(_cases[Cases::Overlap], " pairs with overlap: ", _cases[Cases::Overlap]/nCases);
-	logfile().list(_cases[Cases::BothFwd], " pairs with two Fwd strands: ", _cases[Cases::BothFwd]/nCases);
-	logfile().list(_cases[Cases::BothRev], " pairs with two Rev strands: ", _cases[Cases::BothRev]/nCases);
-	logfile().list(_cases[Cases::RStart_s_FStart], " pairs where Rev starts before Fwd: ", _cases[Cases::RStart_s_FStart]/nCases);
-	logfile().list(_cases[Cases::REnd_s_FEnd], " pairs where Rev ends before Fwd: ", _cases[Cases::REnd_s_FEnd]/nCases);
+	logfile().list("Discarted ", _cases[Cases::BothFwd], " pairs with two Fwd strands: ", _cases[Cases::BothFwd]/nCases);
+	logfile().list("Discarted ", _cases[Cases::BothRev], " pairs with two Rev strands: ", _cases[Cases::BothRev]/nCases);
+	logfile().list("Discarted ", _cases[Cases::RStart_s_FStart], " pairs where Rev starts before Fwd: ", _cases[Cases::RStart_s_FStart]/nCases);
+	logfile().list("Discarted ", _cases[Cases::REnd_s_FEnd], " pairs where Rev ends before Fwd: ", _cases[Cases::REnd_s_FEnd]/nCases);
 	logfile().endIndent();
 }
 

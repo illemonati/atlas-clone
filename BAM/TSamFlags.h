@@ -70,8 +70,7 @@ public:
 
 	void setIsReverseStrand(bool ok) noexcept  { _flags.set<4>(ok); };
 	void setMateIsReverseStrand(bool ok) noexcept  { _flags.set<5>(ok); };
-	void setIsRead1(bool ok) noexcept  { _flags.set<6>(ok); };
-	void setIsRead2(bool ok) noexcept  { _flags.set<7>(ok); };
+	void setIsSecondMate(bool ok) noexcept { _flags.set<7>(ok); _flags.set<6>(!ok);};
 
 	void setIsSecondary(bool ok) noexcept  { _flags.set<8>(ok); };
 	void setIsQCFailed(bool ok) noexcept  { _flags.set<9>(ok); };

@@ -84,11 +84,11 @@ for name in newMerge oldMerge; do
 		--bam $bam --fasta simulate.fasta \
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-	out="${name}_bdAfter"
+	out="${name}_bd"
 	$atlas --task BAMDiagnostics --bam $bam --writeMates \
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-	out="${name}_ttAfter"
+	out="${name}_tt"
 	$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
