@@ -40,7 +40,7 @@ void TTransitionTabler::_handleAlignments(const BAM::TAlignment &first, const BA
 void TTransitionTabler::_handleFwd(std::vector<Rho> &transAll, std::vector<Rho> &transMate, const BAM::TAlignment &aln,
 								   size_t addL) {
 	const auto cigar = aln.cigar();
-	const auto len   = cigar.lengthAligned();
+	const auto len   = cigar.lengthSequenced();
 	const auto softL = cigar.lengthSoftClippedLeft();
 
 	if (transAll.size() < len + addL) transAll.resize(len + addL);
@@ -60,7 +60,7 @@ void TTransitionTabler::_handleFwd(std::vector<Rho> &transAll, std::vector<Rho> 
 void TTransitionTabler::_handleRev(std::vector<Rho> &transAll, std::vector<Rho> &transMate, const BAM::TAlignment &aln,
                                    size_t addL) {
 	const auto &cigar  = aln.cigar();
-	const auto len     = cigar.lengthAligned();
+	const auto len     = cigar.lengthSequenced();
 	const auto softL   = cigar.lengthSoftClippedLeft();
 	const auto l_m1_ps = len - 1 + softL;
 
