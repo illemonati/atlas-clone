@@ -1,60 +1,163 @@
 #include "TOverlappingReadsMerger.h"
-
-#include "TAlignmentMerger.h"
+#include "TSequencedData.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include <memory>
+#include <numeric>
 
 namespace GenomeTasks {
-
 using coretools::instances::logfile;
-using coretools::instances::parameters;
 
-TOverlappingReadsMerger::TOverlappingReadsMerger() : TWaitingListBamTraverser("_merged.bam") {
-	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){
-		logfile().warning("Improper pairs are kept but will not be merged!");
+namespace impl {
+constexpr bool isOdd(size_t N) {
+	return N & 1;
+}
+}
+
+bool TMiddleMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Overlap) {
+	// all edge cases are already handeld!
+
+	// odd number -> one more for Mate1
+	const auto FOverlap = impl::isOdd(Overlap) ? Overlap / 2 + !Fwd.isSecondMate() : Overlap / 2;
+	const auto ROverlap = Overlap - FOverlap; // this takes care of odd numbers
+
+	Fwd.cigar().addSoftClipsRight(FOverlap);
+	Rev.cigar().addSoftClipsLeft(ROverlap);
+
+	Rev += ROverlap;
+	Fwd.setMateGenomicPosition(Rev);
+
+	return true;
+}
+
+bool TOverlappingReadsMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
+	if (Rev < Fwd) {
+		//  FFFF
+		// RRR
+		++_cases[Cases::RStart_s_FStart];
+
+		//  something strange, discard!
+		return false;
 	}
 
-	//set merging method
-	std::string method = parameters().get<std::string>("mergingMethod", "middle");
-	if (method == "randomRead"){
-		_merger = std::make_unique<AlignmentMerger::TRandomRead>();
+	const auto FStart = Fwd.position();
+	const auto FLen   = Fwd.cigar().lengthMapped();
+	const auto FEnd   = FStart + FLen;
+
+	const auto RStart = Rev.position();
+	const auto RLen   = Rev.cigar().lengthMapped();
+	const auto REnd   = RStart + RLen;
+
+	if (REnd < FEnd) {
+		//  FFF
+		// RRR
+		++_cases[Cases::REnd_s_FEnd];
+
+		//  something strange, discard!
+		return false;
+	}
+
+
+	if (RStart >= FEnd) {
+		// FFF    -> FFF
+		//    RRR       RRR
+		++_cases[Cases::NoOverlap];
+
+
+		return true; // no overlap
+	}
+
+	// else:
+	//  FFF  -> FFs
+	//   RRR     sRR
+	// or
+	//  FFFF -> FFFs
+	//   RRR     ssR
+	// or
+	//  FFF    -> FFs
+	//  RRRR      ssRR
+	// or
+	//  FFFF   -> FFss
+	//  RRRR      ssRR
+	++_cases[Cases::Overlap];
+	return _merger->merge(Fwd, Rev, FEnd - RStart);
+}
+
+void TOverlappingReadsMerger::_summary() {
+	const double nCases = std::accumulate(_cases.begin(), _cases.end(), 0);
+	logfile().startIndent("Merging summary:");
+	logfile().list(_cases[Cases::NoOverlap], " pairs without overlap: ", _cases[Cases::NoOverlap]/nCases);
+	logfile().list(_cases[Cases::Overlap], " pairs with overlap: ", _cases[Cases::Overlap]/nCases);
+	logfile().list("Discarted ", _cases[Cases::BothFwd], " pairs with two Fwd strands: ", _cases[Cases::BothFwd]/nCases);
+	logfile().list("Discarted ", _cases[Cases::BothRev], " pairs with two Rev strands: ", _cases[Cases::BothRev]/nCases);
+	logfile().list("Discarted ", _cases[Cases::RStart_s_FStart], " pairs where Rev starts before Fwd: ", _cases[Cases::RStart_s_FStart]/nCases);
+	logfile().list("Discarted ", _cases[Cases::REnd_s_FEnd], " pairs where Rev ends before Fwd: ", _cases[Cases::REnd_s_FEnd]/nCases);
+	logfile().endIndent();
+}
+
+TOverlappingReadsMerger::TOverlappingReadsMerger() : TWaitingListBamTraverser("_merged.bam") {
+	using coretools::instances::parameters;
+
+	const auto method = parameters().get("mergingMethod", "middle");
+	if (method == "random"){
+		_merger = std::make_unique<TRandomMerger>();
 		logfile().list("Merging method: will keep random read for all overlapping positions. (parameter 'mergingMethod')");
 	} else if(method == "highestQuality"){
-		_merger = std::make_unique<AlignmentMerger::THighestQuality>();
+		_merger = std::make_unique<TQualityMerger>();
 		logfile().list("Merging method: will keep read with highest minimum quality at overlapping positions. (parameter 'mergingMethod')");
-	} else if(method == "firstMate"){
-		_merger = std::make_unique<AlignmentMerger::TFirstMate>();
-		logfile().list("Merging method: will merge first mate at overlapping positions. (parameter 'mergingMethod')");
+	} else if(method == "keepFirst"){
+		_merger = std::make_unique<TMateMerger>(BAM::Mate::first);
+		logfile().list("Merging method: will keep read of first mate at overlapping positions. (parameter 'mergingMethod')");
 	} else if(method == "secondMate"){
-		_merger = std::make_unique<AlignmentMerger::TSecondMate>();
-		logfile().list("Merging method: will merge second mate at overlapping positions. (parameter 'mergingMethod')");
+		_merger = std::make_unique<TMateMerger>(BAM::Mate::second);
+		logfile().list("Merging method: will keep read of second mate at overlapping positions. (parameter 'mergingMethod')");
 	} else if (method == "middle"){
-		_merger = std::make_unique<AlignmentMerger::TMiddle>();
+		_merger = std::make_unique<TMiddleMerger>();
 		logfile().list("Merging method: will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
 	} else {
 		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.");
 	}
+
+	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){
+		logfile().warning("Improper pairs are kept but will not be merged!");
+	}
+
+
+	_merger = std::make_unique<TMiddleMerger>();
 }
 
-void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &mate, TWaitingAlignment &next) {
-	if (!mate.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
-		next.alignment.setIsProperPair(false);
-		mate.status = AlignmentStatus::orphan;
-		next.status = AlignmentStatus::orphan;
+void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
+	// lhs <= rhs with respect to reference
+	if (!lhs.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
+		rhs.alignment.setIsProperPair(false);
+		lhs.status = AlignmentStatus::orphan;
+		rhs.status = AlignmentStatus::orphan;
 	} else {
-		// attempt merging: make sure alignments are parsed
-		// Note: if we recalibrate, they were already parsed
-		if (!mate.alignment.isParsed()) { mate.alignment.parse(); }
-		if (!next.alignment.isParsed()) { next.alignment.parse(); }
+		// no parsing needed!
+		auto merged = false;
+		if (lhs.alignment.isReverseStrand() == rhs.alignment.isReverseStrand()) {
+			if (lhs.alignment.isReverseStrand()) ++_cases[Cases::BothRev];
+			else ++_cases[Cases::BothFwd];
+			merged = false;
+		} else {
+			merged = rhs.alignment.isReverseStrand() ? _merge(lhs.alignment, rhs.alignment) : _merge(rhs.alignment, lhs.alignment);
+		}
 
-		_merger->merge(next.alignment, mate.alignment);
-		mate.status = AlignmentStatus::ready;
-		next.status = AlignmentStatus::ready;
+		if (merged) {
+			lhs.status = AlignmentStatus::ready;
+			rhs.status = AlignmentStatus::ready;
+		} else {
+			lhs.status = AlignmentStatus::filterOut;
+			rhs.status = AlignmentStatus::filterOut;
+		}
+
 	}
 }
 
-void TOverlappingReadsMerger::_handleSingle(TWaitingAlignment &lhs) {
-	// add as ready for writing
-	lhs.status = AlignmentStatus::ready;
-};
+void TOverlappingReadsMerger::run() {
+	traverseBAM();
+	_summary();
+}
 
 }

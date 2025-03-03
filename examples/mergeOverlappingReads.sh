@@ -21,9 +21,9 @@ out="simulate_bd"
 $atlas --task BAMDiagnostics --bam $bam \
 	   --fixedSeed 141 --logFile $out.out 2> $out.eout
 
-for name in "middle" "firstMate" "secondMate" "highestQuality" "randomRead"; do
+for name in "middle" "keepFirst" "keepSecond" "highestQuality" "random"; do
 	out="$name"
-	$atlas --task mergeOverlappingReads  --mergingMethod $name --bam $bam  \
+	$atlas --task mergeOverlappingReads --mergingMethod $name --bam $bam  \
 		   --fixedSeed 142 --out $out --logFile $out.out 2> $out.eout
 
 	out="${name}_bd"
