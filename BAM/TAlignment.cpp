@@ -46,37 +46,6 @@ char makeIllumina(char Quality) noexcept {
 	return coretools::toChar(phrIll);
 }
 
-void TAlignment::clear() {
-	TGenomePosition::clear();
-	_name.clear();
-	_flags.reset();
-	_mappingQuality = PhredInt::highest();
-	_cigar.clear();
-	_mateGenomicPosition.clear();
-	_insertSize_TLEN = 0;
-	_readGroupID     = 0;
-	_bamID           = 0;
-	_fragmentLength  = 0;
-
-	_lastAlignedPos = 0;
-
-	// booleans
-	_empty   = true;
-	_parsed  = false;
-
-	// sequence and qualities. Mutable so that they can be recreated from bases even for const TAlignment
-	_sequence.clear();
-	_qualities.clear();
-	_sequenceAndQualitiesChanged = false;
-
-	// per base data
-	_data.clear();
-	_alignedPosition.clear();
-
-	// reference
-	_referenceSequence.clear();
-}
-
 //--------------------------------------
 // functions to fill alignment
 //--------------------------------------
@@ -152,7 +121,7 @@ void TAlignment::_parseBasesQualities() {
 	int p = 0; // index regarding reference position (!= d for soft clipping & indels)
 
 	// loop over cigar operations
-	for (auto &cigarIter : _cigar) {
+	for (const auto &cigarIter : _cigar) {
 		switch (cigarIter.type) {
 
 		// for 'M', '=' or 'X': just copy
@@ -361,11 +330,6 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 
 void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
-}
-
-//get overlap length from previous function and pass it on to cigar constructor
-void TAlignment::merge(uint16_t overlapLength, size_t &mappedBasesClipped) {
-	_setCigar(TCigar(cigar(), overlapLength, !isReverseStrand(), mappedBasesClipped));
 }
 
 //--------------------------------------

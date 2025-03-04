@@ -88,7 +88,6 @@ public:
 	TAlignment() = default;
 
 	// clear, fill and parse
-	void clear();
 	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
 			  uint16_t MappingQuality, const TCigar &Cigar, uint32_t MateRefID, uint32_t MatePosition,
 			  const int32_t &InsertSize_TLEN, const std::string &Sequence, const std::string &Qualities,
@@ -183,7 +182,6 @@ public:
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
 	void downsampleAlignment(coretools::Probability fraction);
-	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
 };
 
 } // namespace BAM

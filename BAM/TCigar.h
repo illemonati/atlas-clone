@@ -34,29 +34,24 @@ private:
 	size_t _lengthSoftClippedLeft  = 0;
 	size_t _lengthSoftClippedRight = 0;
 
-	void _flipCigar();
 	void _compileLengths();
 
 public:
-	TCigar()=default;
-	TCigar(TCigar cigar, size_t overlapLength, bool isFirst, size_t &mappedBasesClipped);
-
 	void clear();
+
 	auto begin() const noexcept { return _cigar.begin(); }
 	auto end() const noexcept { return _cigar.end(); }
-	auto rbegin() const noexcept { return _cigar.rbegin(); }
-	auto rend() const noexcept { return _cigar.rend(); }
 
 	void add(char Type, size_t Length);
 	void removeSoftClips();
 	void trimSoftClips(size_t maxNumberOfSoftClippedBases);
 	void addSoftClipsLeft(size_t Length);
 	void addSoftClipsRight(size_t Length);
-	void setAllToSoftClipped();
 
 	constexpr size_t lengthAligned() const noexcept { return _lengthAligned; }
 	constexpr size_t lengthInserted() const noexcept { return _lengthInserted; }
 	constexpr size_t lengthDeleted() const noexcept { return _lengthDeleted; }
+	constexpr size_t lengthSkipped() const noexcept { return _lengthSkipped; }
 	constexpr size_t lengthSoftClippedLeft() const noexcept { return _lengthSoftClippedLeft; }
 	constexpr size_t lengthSoftClippedRight() const noexcept { return _lengthSoftClippedRight; }
 	constexpr size_t lengthSoftClipped() const noexcept { return _lengthSoftClippedLeft + _lengthSoftClippedRight; }
