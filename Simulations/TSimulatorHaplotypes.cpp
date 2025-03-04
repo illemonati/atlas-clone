@@ -39,7 +39,7 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 	trueGenoVCF << '\n';
 }
 
-const std::array<std::vector<Base>,2>& TSimulatorHaplotypes::get(size_t i) {
+const std::array<std::vector<Base>,2>& TSimulatorHaplotypes::get(size_t i) const {
 	if (i >= numInd)
 		UERROR("Haplotypes of individual ", i + 1, " requested, but defined for only ", numInd, " individuals!");
 	return haplotypes[i];
@@ -51,6 +51,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 	std::string genoString;
 
 	for (size_t l = 0; l < _length; ++l) {
+		if (ref[l] == Base::N) continue; // skip
 		// chromosome name, position and ID
 		trueGenoVCF << chrName << '\t' << l + 1 << "\t.\t";
 

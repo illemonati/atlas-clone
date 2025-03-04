@@ -2,6 +2,8 @@
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "genometools/TAlleles.h"
 
 namespace GenomeTasks {
 
@@ -46,8 +48,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 
 		for (auto &window: windows) {
 			const auto& chr = Chromosomes[window.refID()];
-			if (!chr.inUse() || (_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
-				(_subsetMonomorphic && !_subsetMonomorphic->hasPositionsInWindow(window)) ||
+			if (!chr.inUse() || (_alleles && !_alleles.overlaps(window)) ||
 				(_considerRegions && !_mask.overlaps(window))) {
 				logfile().list("Ignoring window [", window.from().position(), ", ", window.to().position(), "] on chr ", chr.name(), "!");
 				continue;
@@ -87,8 +88,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 												  std::min(chr.to().position(), limit * _windowSize));
 
 			for (genometools::TGenomeWindow window(from, _windowSize); window.from() < to; window += _windowSize) {
-				if ((_subsetPolymoprhic && !_subsetPolymoprhic->hasPositionsInWindow(window)) ||
-					(_subsetMonomorphic && !_subsetMonomorphic->hasPositionsInWindow(window)) ||
+				if ((_alleles && !_alleles.overlaps(window)) ||
 					(_considerRegions && !_mask.overlaps(window))) {
 					continue;
 				}
@@ -137,6 +137,14 @@ void TBamWindows::_setSiteFilters() {
 	logfile().list("Will read data up to depth ", _upToDepth,
 				   " and ignore additional bases. (parameter 'readUpToDepth')");
 
+	constexpr std::string_view downsample = "downsampleSites";
+	_downProb = parameters().get(downsample, coretools::P(0.));
+	if (_downProb > 0.) {
+		logfile().list("Will downsample sites with probability ", _downProb, ".(parameter '", downsample, "')");
+	} else {
+		logfile().list("Will not downsample sites.(use '", downsample, "')");
+	}
+
 	// depth filter
 	if (parameters().exists("filterDepth")) {
 		parameters().fill("filterDepth", _depthFilter);
@@ -146,16 +154,6 @@ void TBamWindows::_setSiteFilters() {
 	} else {
 		_applyDepthFilter = false;
 		logfile().list("Will keep sites regardless of depth. (use 'filterDepth' to filter)");
-	}
-
-	// downsample?
-	_downsampleDepth = parameters().get<int>("downsample", 0);
-	if (_downsampleDepth > 0) {
-		logfile().list("Will downsample sites to a depth <= ", _downsampleDepth, ". (parameter 'downsample')");
-		if (_depthFilter.larger(_downsampleDepth)) {
-			logfile().warning("Downsample depth is >= max of depth filter: no downsampling will occur.");
-		}
-		_subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(30);
 	}
 
 	// CpG filter
@@ -210,7 +208,7 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 	}
 	
 	// only allow for one subset to be active
-	if (_subsetPolymoprhic || _subsetMonomorphic) { DEVERROR("Site subset already initialized!"); }
+	if (!_alleles.empty()) { DEVERROR("Site subset already initialized!"); }
 
 	if (_considerRegions)
 		UERROR("Site subsets (parameter '", paramName,
@@ -220,12 +218,9 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 			   "') and masks (parameter 'mask') can not be used at the same time!");
 
 	const auto filename = parameters().get(paramName);
+	auto morphic = polymorphic ? genometools::Morphic::Poly : genometools::Morphic::Mono;
+	_alleles.parse(filename, Chromosomes, morphic);
 
-	if(polymorphic){
-		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, Chromosomes);
-	} else {
-		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, Chromosomes);
-	}	
 	logfile().endIndent();
 }
 
@@ -244,7 +239,6 @@ void TBamWindows::filter(GenotypeLikelihoods::TWindow &Window) {
 		// filter sites
 		if (_applyDepthFilter) { Window.applyDepthFilter(_depthFilter); }
 		if (_filterCpG) { Window.maskCpG(_parser.reference()); }
-		if (_downsampleDepth > 0) { Window.downsample(_downsampleDepth, *_subsamplePicker); };
 	}
 
 	// apply filters on window
@@ -260,23 +254,10 @@ void TBamWindows::filter(GenotypeLikelihoods::TWindow &Window) {
 
 void TBamWindows::fillSites(GenotypeLikelihoods::TWindow &Window) {
 	// fill sites
-	if (_subsetPolymoprhic) {
-		Window.fillSitesSubset(*_subsetPolymoprhic, _upToDepth);
-		Window.addReferenceBaseToSites(*_subsetPolymoprhic);
-	} else if (_subsetMonomorphic) {
-		Window.fillSitesSubset(*_subsetMonomorphic, _upToDepth);
-		Window.addReferenceBaseToSites(*_subsetMonomorphic);
-	} else {
-		Window.fillSites(_upToDepth);
-		Window.addReferenceBaseToSites(_parser.reference());
-	}
-	if (_shuffleSites) {
-		for (auto& site: Window) {
-			site.shuffle();
-		}
-	}
+	Window.fillSites(_alleles);
+	Window.addReferenceBaseToSites(_parser.reference());
+	if (_downProb != 0.) Window.downsample(_downProb);
+	Window.downsample(_upToDepth, _shuffleSites);
 }
-
-
 
 }

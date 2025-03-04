@@ -10,12 +10,15 @@
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
 #include "TSimulatorReference.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 
 namespace Simulations {
 using BAM::RGInfo::InfoType;
 using BAM::RGInfo::TReadGroupInfoEntry;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using coretools::instances::parameters;
 using coretools::probdist::TCategoricalDistribution;
 using coretools::P;
 using genometools::Base;
@@ -68,6 +71,14 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
 		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
 		_duplicationRateAmongSimulated = P(_duplicationRate / (_duplicationRate.complement()));
+	}
+
+	if(parameters().exists("baseN")){
+		_baseN = parameters().get<coretools::Probability>("baseN");
+		logfile().list("Will simulate reads with base = N probability = ", _baseN, ". (parameter 'baseN')");
+	} else {
+		_baseN = P(0.001);
+		logfile().list("Will simulate reads with base = N probability = ", _baseN, ". (set with 'baseN')");
 	}
 }
 
@@ -123,21 +134,13 @@ void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases,const size_t
 
 void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base> &haplotype,
 											 size_t fragmentLength, size_t readLength, bool readIsContaminated) {
-
 	//prepare vector of bases
 	std::vector<Base> bases;
 	BAM::TCigar cigar;
 
 	//sample softclip lengths
-	size_t softClipLength3 = 0;
-	size_t softClipLength5 = 0;
-	if(_softClipDist3){
-		softClipLength3 = _softClipDist3->sample();
-	}
-
-	if(_softClipDist5){
-		softClipLength5 = _softClipDist5->sample();
-	}
+	const auto softClipLength3 = _softClipDist3 ? _softClipDist3->sample() : 0;
+	const auto softClipLength5 = _softClipDist5 ? _softClipDist5->sample() : 0;
 
 	// set read length
 	if (alignment.isReverseStrand()) {
@@ -150,7 +153,8 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 
 	// simulate true bases
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + alignment.position() : haplotype.cbegin() + alignment.position();
-	auto len = std::min(fragmentLength, readLength) - softClipLength5 - softClipLength3;
+	auto len = std::min(fragmentLength, readLength);
+	assert(len > 0);
 	bases.insert(bases.end(), start, start + len);
 	cigar.add('M', len);
 
@@ -158,6 +162,11 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 		_addSoftclippedBases(bases, softClipLength5, cigar);
 	} else {
 		_addSoftclippedBases(bases, softClipLength3, cigar);
+	}
+
+	// make some bases N
+	for (auto& b: bases) {
+		if (randomGenerator().getRand() < _baseN) b = Base::N;
 	}
 	
 	// simulate true qualities
@@ -208,8 +217,6 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 //----------------------------------
 	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal) {
-
-	_alignment.setSamFlags(_flags);
 
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
@@ -306,19 +313,14 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 		UERROR(errRange);
 	}
 
-	// set SAM flags
-	_flags.setIsPaired(true);
-	_flags.setIsProperPair(true);
-	_flags.setIsRead1(true);
-	_flags.setMateIsReverseStrand(false);
-	_alignment.setSamFlags(_flags);
+	// set initial flags
+	_alignment.setIsPaired(true);
+	_alignment.setIsProperPair(true);
+	_alignment.setIsReverseStrand(false);
 
-	// set SAM flags of second mate
-	_mateFlags.setIsPaired(true);
-	_mateFlags.setIsProperPair(true);
-	_mateFlags.setIsRead2(true);
-	_mateFlags.setIsReverseStrand(true);
-	_secondMate.setSamFlags(_mateFlags);
+	_mate.setIsPaired(true);
+	_mate.setIsProperPair(true);
+	_mate.setIsReverseStrand(true);
 }
 
 double TReadSimulatorPairedEnd::meanReadLength() const {
@@ -329,10 +331,10 @@ void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 	BamFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (_secondMate == _alignment) {
-		BamFile.writeAlignment(_secondMate);
+	if (_mate == _alignment) {
+		BamFile.writeAlignment(_mate);
 	} else {
-		BamFile.writeAlignmentLater(_secondMate);
+		BamFile.writeAlignmentLater(_mate);
 	}
 }
 
@@ -341,33 +343,38 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition & Position, const 
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
 
-	// Fill FIRST mate
+	if (randomGenerator().getRand() < 0.5) {
+		_alignment.setIsSecondMate(true);
+		_mate.setIsSecondMate(false);
+	} else {
+		_alignment.setIsSecondMate(false);
+		_mate.setIsSecondMate(true);
+	}
 
-	// prepare alignment
+	// Forward Read
 	_simulateAlignmentDetails(Position);
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-	// Fill SECOND mate
-
+	// Reversed Read (after Forward Read in bam-file)
 	// identify position
-	_secondMate.move(_alignment);
+	_mate.move(_alignment);
 	if(fragmentLength > _numCycles[1]){
-		_secondMate += (size_t) fragmentLength - (size_t) _numCycles[1];
+		_mate += (size_t) fragmentLength - (size_t) _numCycles[1];
 	}
 
 	// create new alignment
-	_secondMate.setReadGroup(_readGroup->id);
-	_secondMate.setName(_alignment.name());
-	_secondMate.setMappingQuality(_alignment.mappingQuality());
+	_mate.setReadGroup(_readGroup->id);
+	_mate.setName(_alignment.name());
+	_mate.setMappingQuality(_alignment.mappingQuality());
+	assert(_alignment.isReverseStrand() != _mate.isReverseStrand());
+	assert(_alignment.isSecondMate() != _mate.isSecondMate());
 
 	// simulated bases and qualities
-	_simulateBasesQualities(_secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
+	_simulateBasesQualities(_mate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// WRITE ALIGNMENTS
-	//-----------------
-	//set mate positions
-	_alignment.setMateGenomicPosition(_secondMate);
-	_secondMate.setMateGenomicPosition(_alignment);
+	_alignment.setMateGenomicPosition(_mate);
+	_mate.setMateGenomicPosition(_alignment);
 }
 
 } // namespace Simulations

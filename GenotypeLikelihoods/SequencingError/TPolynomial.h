@@ -144,14 +144,14 @@ public:
 	const double *end() const noexcept override { return _betas.data() + O; }
 
 
-	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex, size_t) noexcept override {
 		_firstParameterIndex = FirstParameterIndex;
 	}
 
 	double adjust() noexcept override { return 0.; }
 
-	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		const double v = Transformer::transform(Covariate::extract(base));
+	double getEta(const BAM::TSequencedData &data) const noexcept override {
+		const double v = Transformer::transform(Covariate::extract(data));
 		if constexpr (O == 1) {
 			return _betas.front() * v;
 		} else if constexpr (O == 2) {
@@ -170,9 +170,9 @@ public:
 		}
 	}
 
-	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+	double getEta(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &) const noexcept override {
-		const double v = Transformer::transform(Covariate::extract(base));
+		const double v = Transformer::transform(Covariate::extract(data));
 		if constexpr (O == 1) {
 			der1.emplace_back(firstParameterIndex(), v);
 			return _betas.front() * v;

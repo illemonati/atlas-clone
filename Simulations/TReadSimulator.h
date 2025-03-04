@@ -20,7 +20,6 @@
 #include "SequencingError/TModels.h"
 #include "TAlignment.h"
 #include "TReadGroupInfo.h"
-#include "TSamFlags.h"
 
 namespace GenotypeLikelihoods::PMD {struct TModel;}
 
@@ -59,13 +58,13 @@ protected:
 
 	coretools::Probability _duplicationRate{0.};
 	coretools::Probability _duplicationRateAmongSimulated{0.};
+	coretools::Probability _baseN;
 
 	// contamination
 	double _contaminationRate = 0.;
 	TSimulatorReference *_contaminationSource = nullptr;
 
 	// alignment
-	BAM::TSamFlags _flags;
 	BAM::TAlignment _alignment;
 
 	//initialization functions
@@ -128,8 +127,7 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
-	BAM::TAlignment _secondMate;
-	BAM::TSamFlags _mateFlags;
+	BAM::TAlignment _mate;
 	std::array<coretools::StrictlyPositiveUInt, 2> _numCycles;
 
 	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype) override;

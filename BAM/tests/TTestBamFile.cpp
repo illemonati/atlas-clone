@@ -372,12 +372,12 @@ void TTestBamFilePairedEnd::writeDummyAlignments(size_t numAlignments, bool comp
         mate1.setMateGenomicPosition(mate2);
         mate1.setInsertSize(mate2.position() - mate1.position());
         mate1.setIsReverseStrand(false);
-        mate1.setIsRead1(true); mate1.setIsRead2(false);
+        mate1.setIsSecondMate(false); 
 
         mate2.setMateGenomicPosition(mate1);
         mate2.setInsertSize(mate2.position() - mate1.position());
         mate2.setIsReverseStrand(true);
-        mate2.setIsRead1(false); mate2.setIsRead2(true);
+        mate2.setIsSecondMate(true); 
     }
 
     // finally: write

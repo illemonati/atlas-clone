@@ -38,19 +38,19 @@ public:
 	const double *begin() const noexcept override { return _betas.data(); }
 	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
 
-	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex, size_t) noexcept override {
 		_firstParameterIndex = FirstParameterIndex;
 	}
 
-	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		const auto q = Covariate::extract(base);
+	double getEta(const BAM::TSequencedData &data) const noexcept override {
+		const auto q = Covariate::extract(data);
 		if (q >= _tmpStorage.size()) { _expandTmpStorage(q); }
 		return _tmpStorage[q].phiCumul*_betas.front();
 	}
 
-	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+	double getEta(const BAM::TSequencedData &data, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &der2) const noexcept override {
-		const auto q = Covariate::extract(base);
+		const auto q = Covariate::extract(data);
 		if (q >= _tmpStorage.size()) { _expandTmpStorage(q); }
 
 		const auto b1 = firstParameterIndex();

@@ -28,7 +28,7 @@ public:
 	void setLength(size_t length) noexcept;
 	size_t length() const { return _length; };
 	void openTrueGenotypeVCF(std::string filename);
-	const std::array<std::vector<genometools::Base>,2>& get(size_t i);
+	const std::array<std::vector<genometools::Base>,2>& get(size_t i) const;
 	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
 	size_t size() const noexcept { return numInd; };
 	genometools::Base &operator()(size_t ind, size_t hap, size_t site) noexcept { return haplotypes[ind][hap][site]; };

@@ -8,6 +8,8 @@
 #ifndef GENOMETASKS_TPILEUP_H_
 #define GENOMETASKS_TPILEUP_H_
 
+#include "TSequencedData.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TBamWindowTraverser.h"
@@ -19,20 +21,33 @@ namespace GenomeTasks {
 // TPileup
 //---------------------------------
 class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
-private:
+	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
+	using Transitions = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<Rho>, BAM::End>, BAM::Strand>, BAM::Mate>;
+	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>, genometools::Base, 5>, BAM::Strand>, BAM::Mate>;
+
+	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
+	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, PrevBases, max};
+
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
 	coretools::TOutputFile _outDepthPerChromosome;
+	coretools::TOutputFile _outTransitions;
+	coretools::TOutputFile _outTransitionsRel;
+	coretools::TOutputFile _outTransitionsPsi;
+	coretools::TOutputFile _outTransitionsRho;
 
 	coretools::TCountDistribution<> _depthPerSite;
 	coretools::TCountDistribution<> _depthPerSitePerChromosome;
 	coretools::TCountDistributionVector<> _qualDist;
 	coretools::TCountDistributionVector<> _contextDist;
 
-	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
-	coretools::TStrongBitSet<Print> _printSettings;
+	Transitions _transitionsChr{};
+	Transitions _transitionsTot{};
 
-	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, max};
+	PrevBases _prevBases{};
+
+
+	coretools::TStrongBitSet<Print> _printSettings;
 	coretools::TStrongBitSet<Hist> _histSettings;
 
 	TAllelicDepthCounts _counts;

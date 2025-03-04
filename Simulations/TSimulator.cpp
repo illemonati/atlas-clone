@@ -271,7 +271,7 @@ void TBAMSimulator::_initializeReadSimulator(){
 	}
 };
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes,
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
 									  size_t avgDepth) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
@@ -419,7 +419,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	_vcf = std::make_unique<genometools::TVCFWriter>(filename, "ATLAS_simulations", sampleNames, _chromosomes, usePhredLikelihoods);
 }
 
-void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
+void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
 	logfile().startIndent("Simulating genotype likelihoods:");
 
 	for (size_t l = 0; l < Chromosome.length(); ++l) {
@@ -444,7 +444,8 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		}
 
 		// find major and minor allele
-		const auto refAllele                  = _reference[l];
+		const auto refAllele = _reference[l];
+		if (refAllele == Base::N) continue; // skip
 		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
 		// working

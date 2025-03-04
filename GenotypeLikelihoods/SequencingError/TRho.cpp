@@ -1,8 +1,10 @@
 #include "TRho.h"
 
+#include "TSequencedData.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
+#include "genometools/Genotypes/Base.h"
 
 namespace GenotypeLikelihoods::SequencingError {
 
@@ -74,9 +76,17 @@ BAM::RGInfo::TInfo TRho::info() const {
 	};
 }
 
-void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
+void TRho::add(const BAM::TSequencedData& data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
+	using genometools::flipped;
+	const auto l = data.base;
 	for (auto k = Base::min; k < Base::max; ++k) {
-		_rhoSum[k][l] += P_g_I_d*P_bbar_I_d[k];
+		if (data.get<BAM::Flags::ReversedStrand>()) {
+			const auto k_f = flipped(k);
+			const auto l_f = flipped(l);
+			_rhoSum[k_f][l_f] += P_g_I_d*P_bbar_I_d[k];
+		} else {
+			_rhoSum[k][l] += P_g_I_d*P_bbar_I_d[k];
+		}
 	}
 }
 

@@ -152,19 +152,6 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         for (auto baseWritten = alignmentWritten->begin(); baseWritten != alignmentWritten->end(); baseWritten++, baseRead++){
             // all attributes of TBase
             EXPECT_EQ(baseWritten->originalQuality, baseRead->originalQuality);
-            /*
-            EXPECT_EQ(baseWritten->recalibratedQualityAsPhredInt, baseRead->recalibratedQualityAsPhredInt);
-            EXPECT_EQ(baseWritten->distFrom3Prime, baseRead->distFrom3Prime);
-            EXPECT_EQ(baseWritten->distFrom5Prime, baseRead->distFrom5Prime);
-            EXPECT_EQ(baseWritten->readGroupID, baseRead->readGroupID);
-            EXPECT_EQ(baseWritten->fragmentLength, baseRead->fragmentLength);
-            EXPECT_EQ(baseWritten->mappingQuality, baseRead->mappingQuality);
-            EXPECT_EQ(baseWritten->isReverseStrand(), baseRead->isReverseStrand());
-            EXPECT_EQ(baseWritten->isAligned(), baseRead->isAligned());
-            EXPECT_EQ(baseWritten->isSecondMate(), baseRead->isSecondMate());
-            EXPECT_TRUE(baseWritten->base == baseRead->base);
-            EXPECT_TRUE(baseWritten->context == baseRead->context);
-            */
         }
         EXPECT_EQ(baseRead, alignmentRead.end());
 
@@ -297,7 +284,7 @@ public:
 };
 
 TEST_F(TBamFile_Test_Windows, numWindows){
-    EXPECT_EQ(genomeWindow->numWindows(),9);
+    EXPECT_EQ(genomeWindow->numWindows(),8);
 }
 
 TEST_F(TBamFile_Test_Windows, refIDWindows){
@@ -316,11 +303,11 @@ TEST_F(TBamFile_Test_Windows, refIDWindows){
     EXPECT_EQ((*genomeWindow)[5].refID(), 2);
 
     // 4. chr (case6))
-    EXPECT_EQ((*genomeWindow)[6].refID(), 3);
+	// no window 'cause no data
 
     // 5. chr (case 7) and 8))
+    EXPECT_EQ((*genomeWindow)[6].refID(), 4);
     EXPECT_EQ((*genomeWindow)[7].refID(), 4);
-    EXPECT_EQ((*genomeWindow)[8].refID(), 4);
 }
 
 TEST_F(TBamFile_Test_Windows, positionsWindows){
@@ -339,11 +326,11 @@ TEST_F(TBamFile_Test_Windows, positionsWindows){
     EXPECT_EQ((*genomeWindow)[5].fromOnChr(), 100); EXPECT_EQ((*genomeWindow)[5].toOnChr(), 199);
 
     // 4. chr (case6))
-    EXPECT_EQ((*genomeWindow)[6].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[6].toOnChr(), 80);
+	// no window 'cause no data
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ((*genomeWindow)[7].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[7].toOnChr(), 100);
-    EXPECT_EQ((*genomeWindow)[8].fromOnChr(), 100); EXPECT_EQ((*genomeWindow)[8].toOnChr(), 177);
+    EXPECT_EQ((*genomeWindow)[6].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[6].toOnChr(), 100);
+    EXPECT_EQ((*genomeWindow)[7].fromOnChr(), 100); EXPECT_EQ((*genomeWindow)[7].toOnChr(), 177);
 }
 
 TEST_F(TBamFile_Test_Windows, depthPerWindow){
@@ -362,11 +349,11 @@ TEST_F(TBamFile_Test_Windows, depthPerWindow){
     EXPECT_EQ(genomeWindow->depth[5], 0.);
 
     // 4. chr (case6))
-    EXPECT_EQ(genomeWindow->depth[6], 0.);
+	// no window 'cause no data
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->depth[7], 0.15); // only M count for depth; S, I and D of cigar are ignored
-    EXPECT_EQ(genomeWindow->depth[8], 0.);
+    EXPECT_EQ(genomeWindow->depth[6], 0.15); // only M count for depth; S, I and D of cigar are ignored
+    EXPECT_EQ(genomeWindow->depth[7], 0.);
 }
 
 
@@ -384,11 +371,11 @@ TEST_F(TBamFile_Test_Windows, numReadsInWindow_PerWindow){
     EXPECT_EQ(genomeWindow->numReadsInWindow[5], 0);
 
     // 4. chr (case6))
-    EXPECT_EQ(genomeWindow->numReadsInWindow[6], 0);
+	// no window 'cause no data
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->numReadsInWindow[7], 3);
-    EXPECT_EQ(genomeWindow->numReadsInWindow[8], 0);
+    EXPECT_EQ(genomeWindow->numReadsInWindow[6], 3);
+    EXPECT_EQ(genomeWindow->numReadsInWindow[7], 0);
 }
 
 TEST_F(TBamFile_Test_Windows, sites_getBases){
@@ -460,15 +447,11 @@ TEST_F(TBamFile_Test_Windows, sites_getBases){
     }
 
     // 4. chr (case6))
-    c = 0;
-    for (const auto& site : genomeWindow->sites[6]){ // 7. window
-        EXPECT_EQ(site.getBases(), "-");
-        c++;
-    }
+	// no window 'cause no data
 
     // 5. chr (case 7) and 8))
     c = 0;
-    for (const auto& site : genomeWindow->sites[7]){ // 8. window
+    for (const auto& site : genomeWindow->sites[6]){ // 7. window
         if (c >= 0 && c < 4)
             EXPECT_EQ(site.getBases(), "A");
         else if (c == 4)
@@ -484,7 +467,7 @@ TEST_F(TBamFile_Test_Windows, sites_getBases){
         c++;
     }
     c = 0;
-    for (const auto& site : genomeWindow->sites[8]){ // 9. window
+    for (const auto& site : genomeWindow->sites[7]){ // 8. window
         EXPECT_EQ(site.getBases(), "-");
     }
 }
@@ -558,15 +541,11 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     }
 
     // 4. chr (case6))
-    c = 0;
-    for (const auto& site : genomeWindow->sites[6]){ // 7. window
-        EXPECT_EQ(site.getQualities(), "-");
-        c++;
-    }
+	// no window 'cause no data
 
     // 5. chr (case 7) and 8))
     c = 0;
-    for (const auto& site : genomeWindow->sites[7]){ // 8. window
+    for (const auto& site : genomeWindow->sites[6]){ // 7. window
         if (c >= 0 && c < 4)
             EXPECT_EQ(site.getQualities(), "\"");
         else if (c == 4)
@@ -582,7 +561,7 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
         c++;
     }
     c = 0;
-    for (const auto& site : genomeWindow->sites[8]){ // 9. window
+    for (const auto& site : genomeWindow->sites[7]){ // 8. window
         EXPECT_EQ(site.getQualities(), "-");
     }
 }

@@ -8,7 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
 #include <cstdint>
 
 namespace GenotypeLikelihoods {
@@ -20,15 +20,8 @@ struct TCovariate_context {
 	static constexpr std::string_view name = "context";
 	static constexpr Covariates index      = Covariates::Context;
 
-	static uint8_t extract(const BAM::TSequencedBase &base) noexcept {
-		return coretools::index(base.previousBase);
-	}
-
-	static size_t N(const std::vector<size_t> &) noexcept {
-		return coretools::index(genometools::Base::N) + 1;
-	}
-	static bool isUsed(const std::vector<size_t> &, size_t) noexcept {
-		return true;
+	static uint8_t extract(const BAM::TSequencedData &Data) noexcept {
+		return coretools::index(Data.previousSequenced);
 	}
 };
 
@@ -36,61 +29,29 @@ struct TCovariate_fragmentLength {
 	static constexpr std::string_view name = "fragmentLength";
 	static constexpr Covariates index      = Covariates::FragmentLength;
 
-	static uint8_t extract(const BAM::TSequencedBase &base) noexcept { return base.fragmentLength.log(); }
-
-	static size_t N(const std::vector<size_t> &fragmentLengths) noexcept {
-		return fragmentLengths.size();
-	}
-
-	static bool isUsed(const std::vector<size_t> &fragmentLengths, size_t i) noexcept {
-		return fragmentLengths[i];
-	}
+	static uint8_t extract(const BAM::TSequencedData &Data) noexcept { return Data.fragmentLength.log(); }
 };
 
 struct TCovariate_mappingQuality {
 	static constexpr std::string_view name = "mappingQuality";
 	static constexpr Covariates index      = Covariates::MappingQuality;
 
-	static uint8_t extract(const BAM::TSequencedBase &base) noexcept { return base.mappingQuality.get(); }
-
-	static size_t N(const std::vector<size_t>& mappingQualities) noexcept {
-		return mappingQualities.size();
-	}
-
-	static bool isUsed(const std::vector<size_t>& mappingQualities, size_t i) noexcept {
-		return mappingQualities[i];
-	}
+	static uint8_t extract(const BAM::TSequencedData &Data) noexcept { return Data.mappingQuality.get(); }
 };
 
 struct TCovariate_position {
 	static constexpr std::string_view name = "position";
 	static constexpr Covariates index      = Covariates::Position;
 
-	static uint8_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5.pseudo(); }
-
-	static size_t N(const std::vector<size_t>& positions) noexcept {
-		return positions.size();
-	}
-
-	static bool isUsed(const std::vector<size_t>& positions, size_t i) noexcept {
-		return positions[i];
-	}
+	static uint8_t extract(const BAM::TSequencedData &Data) noexcept { return Data.distFrom5.pseudo(); }
 };
 
 struct TCovariate_quality {
 	static constexpr std::string_view name = "quality";
 	static constexpr Covariates index      = Covariates::Quality;
 
-	static uint8_t extract(const BAM::TSequencedBase &base) noexcept {
-		return base.originalQuality.get();
-	}
-
-	static size_t N(const std::vector<size_t>& qualities) noexcept {
-		return qualities.size();
-	}
-
-	static bool isUsed(const std::vector<size_t>& qualities, size_t i) noexcept {
-		return qualities[i];
+	static uint8_t extract(const BAM::TSequencedData &Data) noexcept {
+		return Data.originalQuality.get();
 	}
 };
 

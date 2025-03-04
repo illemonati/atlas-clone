@@ -6,6 +6,7 @@
  */
 
 #include "TCreateBedMask.h"
+#include "coretools/algorithms.h"
 
 namespace GenomeTasks{
 

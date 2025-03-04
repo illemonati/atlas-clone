@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TBamTraverser.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
@@ -29,8 +30,9 @@ private:
 	};
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
-	bool _chromStats = false;
+	bool _chromStats         = false;
 	bool _identifyDuplicates = false;
+	bool _writeMates         = false;
 	std::vector<TOld> _old;
 	genometools::TGenomePosition _oldPosition;
 	coretools::TOutputFile _duplicateFile;
@@ -40,15 +42,19 @@ private:
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
 	// std::vector per readgroup, countdistributionvector per chromosome
-    std::vector<coretools::TCountDistributionVector<>> _readLength;
     std::vector<coretools::TCountDistributionVector<>> _readDist;
     coretools::TCountDistributionVector<> _allReadDist;
-    std::vector<coretools::TCountDistributionVector<>> _usableLength;
+
+	enum class LengthType : size_t {min, All=min, Fwd1, Rev1, Fwd2, Rev2, max};
+	coretools::TStrongArray<std::vector<coretools::TCountDistributionVector<>>, LengthType> _readLength;
+	coretools::TStrongArray<std::vector<coretools::TCountDistributionVector<>>, LengthType> _usableLength;
+
     std::vector<coretools::TCountDistributionVector<>> _softClippedLength;
    	std::vector<coretools::TCountDistributionVector<>> _mappingQuality;
     std::vector<coretools::TCountDistributionVector<>> _fragmentLength;
     std::vector<coretools::TCountDistributionVector<>> _readStart;
     coretools::TCountDistributionVector<> _allReadStart;
+	std::vector<std::vector<std::array<size_t, 2>>> _paired;
 
     void _handleAlignment() override;
 
@@ -57,6 +63,6 @@ public:
 	void run();
 };
 
-}; // end namespace
+} // end namespace
 
 #endif /* TBAMDIAGNOSER_H_ */

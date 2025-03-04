@@ -126,7 +126,7 @@ class TEstimateMutationLoad final : public TBamWindowTraverser<WindowType::Singl
 private:
 	std::vector<MutationLoad::TSiteData> _sites;
 	bool _parseFromBed;
-	std::string _bedFileName;
+	std::string _fileName;
 	genometools::TBed _bedFile;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;

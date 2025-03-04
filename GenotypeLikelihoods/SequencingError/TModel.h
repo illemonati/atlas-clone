@@ -14,7 +14,7 @@
 #include "TRho.h"
 
 namespace BAM {
-struct TSequencedBase;
+struct TSequencedData;
 class TAlignment;
 }
 
@@ -26,18 +26,18 @@ namespace SequencingError {
 // pure abstract base class
 //--------------------------------------------------------------------
 struct TModel {
-	virtual ~TModel()                                                                                 = default;
+	virtual ~TModel()                                                                           = default;
 	// Per Base
-	virtual coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept = 0;
-	virtual genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept                    = 0;
+	virtual coretools::PhredInt phredInt(const BAM::TSequencedData &data) const noexcept        = 0;
+	virtual genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data) const noexcept = 0;
 	// Per Alignment
-	virtual void simulate(BAM::TAlignment &aln) const noexcept                                        = 0;
-	virtual void recalibrate(BAM::TAlignment &aln) const noexcept                                     = 0;
+	virtual void simulate(BAM::TAlignment &aln) const noexcept                                  = 0;
+	virtual void recalibrate(BAM::TAlignment &aln) const noexcept                               = 0;
 	// Model Info
-	virtual bool recalibrates() const noexcept                                                        = 0;
-	virtual BAM::RGInfo::TInfo info() const                                                           = 0;
-	virtual TRho *rho() noexcept                                                                      = 0;
-	virtual TEpsilon *epsilon() noexcept                                                              = 0;
+	virtual bool recalibrates() const noexcept                                                  = 0;
+	virtual BAM::RGInfo::TInfo info() const                                                     = 0;
+	virtual TRho *rho() noexcept                                                                = 0;
+	virtual TEpsilon *epsilon() noexcept                                                        = 0;
 };
 
 //------------------------------------------------
@@ -45,8 +45,8 @@ struct TModel {
 //------------------------------------------------
 struct TNoRecal final : public TModel {
 	// Per Base
-	coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept override;
-	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
+	coretools::PhredInt phredInt(const BAM::TSequencedData &data) const noexcept override;
+	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data) const noexcept override;
 
 	// Per Alignment
 	void simulate(BAM::TAlignment &aln) const noexcept override;
@@ -72,8 +72,8 @@ public:
 	TWithRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 
 	// Per Base
-	coretools::PhredInt phredInt(const BAM::TSequencedBase &data) const noexcept override;
-	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
+	coretools::PhredInt phredInt(const BAM::TSequencedData &data) const noexcept override;
+	genometools::TBaseLikelihoods P_dij(const BAM::TSequencedData &data) const noexcept override;
 
 	void simulate(BAM::TAlignment &aln) const noexcept override;
 	void recalibrate(BAM::TAlignment &aln) const noexcept override;

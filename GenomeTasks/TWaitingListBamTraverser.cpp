@@ -82,7 +82,10 @@ TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 	// max distance between mates
 	if (parameters().exists("dryRun")) {
 		logfile().list("Doing dry-run, no BAM file will be written. (parameter 'dryRun')");
-	} else {
+		
+	} else if (OutName.empty()){
+		// do nothing, log nothing
+	}else {
 		const auto fn = _genome.outputName() + std::string(OutName);
 		logfile().list("Filtering into BAM file", fn , ". (use 'dryRun' for filter summary)");
 		_outBam = std::make_unique<BAM::TOutputBamFile>(fn, _genome.bamFile());
@@ -223,7 +226,10 @@ void TWaitingListBamTraverser::traverseBAM() {
 					mate->status = AlignmentStatus::filterOut;
 				} else {
 					const auto pMate = mate->alignment.position();
-					_handleMates(next, *mate);
+					// mate <= next with respect to reference
+					assert(mate->alignment <= next.alignment);
+					_handleMates(*mate, next);
+
 					if (mate->alignment.position() > pMate) {
 						// !! reverse iterator
 						while (mate != _waitingList.rbegin() && (mate - 1)->alignment < mate->alignment)  {
@@ -257,6 +263,14 @@ void TWaitingListBamTraverser::traverseBAM() {
 
 	// done parsing bam file: report
 	bamFile.printSummary(_genome.outputName());
+}
+
+bool TWaitingListBamTraverser::_alignmentCanBeWrittenUnchanged() {
+	return !_recalibrate && !_genome.bamFile().curIsPaired() && _waitingList.empty() &&
+		   (_removeSoftClippedBases
+				? (_genome.bamFile().curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases &&
+				   _genome.bamFile().curCIGAR().lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases)
+				: true);
 }
 
 } // namespace GenomeTasks

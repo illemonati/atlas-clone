@@ -38,13 +38,13 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
 	BAM::RGInfo::TReadGroupInfo rgi(rg);
     TErrorModels calculator(rgi);
 
-    BAM::TSequencedBase base;
-    base.originalQuality = coretools::PhredInt(20);
+    BAM::TSequencedData data;
+    data.originalQuality = coretools::PhredInt(20);
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
-    base.base = Base::A;
-	base.readGroupID = 0;
-    site.add(base);
+    data.base = Base::A;
+	data.readGroupID = 0;
+    site.add(data);
 
     const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 

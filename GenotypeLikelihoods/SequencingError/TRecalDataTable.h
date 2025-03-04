@@ -17,7 +17,7 @@ private:
 	coretools::TStrongArray<std::vector<size_t>, SequencingError::Covariates> _tables;
 
 public:
-	void add(const BAM::TSequencedBase & base);
+	void add(const BAM::TSequencedData & data);
 
 	constexpr size_t size() const noexcept { return _counts; }
 	const std::vector<size_t>& operator[](SequencingError::Covariates cov) const {return _tables[cov];}

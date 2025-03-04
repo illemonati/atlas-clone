@@ -38,6 +38,9 @@ double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
 	double PMDS = 0.0;
 	for (size_t d = 0; d < alignment.size(); ++d) {
 		if (alignment.isAlignedAtInternalPos(d)) {
+			const auto ref = alignment.referenceAtInternalPos(d);
+			if (ref == genometools::Base::N) continue;
+
 			PMDS += _genome.errorModels().calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d),
 																   _pi);
 		}

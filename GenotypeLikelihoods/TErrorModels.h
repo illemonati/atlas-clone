@@ -12,43 +12,43 @@
 
 #include "PMD/TModels.h"
 #include "SequencingError/TModels.h"
-#include "genometools/Genotypes/Containers.h"
 #include "TReadGroupInfo.h"
+#include "genometools/Genotypes/Containers.h"
 
 namespace BAM {
 class TReadGroups;
-struct TSequencedBase;
+struct TSequencedData;
 class TAlignment;
 } // namespace BAM
 
-namespace GenotypeLikelihoods{
+namespace GenotypeLikelihoods {
 class TSite;
 
-class TErrorModels{
+class TErrorModels {
 private:
 	PMD::TModels _pmd;
 	SequencingError::TModels _recal;
 
 public:
-	TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo);
+	TErrorModels(BAM::RGInfo::TReadGroupInfo &RGInfo);
 
-	const SequencingError::TModels& sequencingErrorModels() const { return _recal; };
-	SequencingError::TModels& sequencingErrorModels() { return _recal; };
-	const PMD::TModels& postMortemDamageModels() const { return _pmd; };
-	PMD::TModels& postMortemDamageModels() { return _pmd; };
+	const SequencingError::TModels &sequencingErrorModels() const { return _recal; };
+	SequencingError::TModels &sequencingErrorModels() { return _recal; };
+	const PMD::TModels &postMortemDamageModels() const { return _pmd; };
+	PMD::TModels &postMortemDamageModels() { return _pmd; };
 
-	coretools::Probability errorWithPMD(const BAM::TSequencedBase & base) const;
-	coretools::PhredInt phredIntWithPMD(const BAM::TSequencedBase & base) const;
-	void recalibrateWithPMD(BAM::TSequencedBase & base) const;
+	coretools::Probability errorWithPMD(const BAM::TSequencedData &data) const;
+	coretools::PhredInt phredIntWithPMD(const BAM::TSequencedData &data) const;
+	void recalibrateWithPMD(BAM::TSequencedData &data) const;
 
-	void recalibrateWithPMD(BAM::TAlignment& aln) const;
-	double calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
+	void recalibrateWithPMD(BAM::TAlignment &aln) const;
+	double calculateLogPMDS(const BAM::TSequencedData &data, const genometools::Base &ref,
+	                        const coretools::Probability &pi) const; // TODO: move to PMDS class?
 
-	//functions performed on sites
-	genometools::TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite & site) const;
+	// functions performed on sites
+	genometools::TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite &site) const;
 };
 
-
-}; //end namespace
+}; // namespace GenotypeLikelihoods
 
 #endif /* GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_ */

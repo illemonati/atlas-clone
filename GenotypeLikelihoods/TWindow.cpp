@@ -6,7 +6,8 @@
  */
 
 #include "TWindow.h"
-#include "TSequencedBase.h"
+#include "TSequencedData.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/TBed.h"
 #include "genometools/TFastaReader.h"
 #include "coretools/Math/TNumericRange.h"
@@ -64,21 +65,80 @@ size_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment
 		}
 		return p;
 	}
-
 	return 0;
 }
+
+void TWindow::addReferenceBaseToSites(const genometools::TAlleles &Alleles) {
+		if (Alleles && Alleles.overlaps(*this)) {
+			// now only run over sites listed in that window
+			for (auto it = Alleles.begin(*this); it != Alleles.end() && within(it->position); ++it) {
+				size_t pos          = it->position - from();
+				_sites[pos].refBase = it->ref;
+			}
+			_referenceBaseAdded = true;
+		}
+	};
 
 //-------------------------------------------------------
 // TWindow: add alignments and fill sites
 //-------------------------------------------------------
 
-void TWindow::fillSites(size_t readUpToDepth){
-	_fillSites(_sites, readUpToDepth);
+void TWindow::downsample(size_t UpToDepth, bool Shuffle) {
+	for (auto &s : _sites) {
+		if (Shuffle) s.shuffle();
+		s.downsample(UpToDepth);
+	}
+}
+
+void TWindow::downsample(coretools::Probability p) {
+	for (auto &s : _sites) { s.downsample(p); }
+}
+
+void TWindow::fillSites(const genometools::TAlleles& alleles){
+	_fillSites(_sites, alleles);
 	_masked.assign(_sites.size(), false);
 	_numMaskedSites = 0;
 	_numReadsInWindow = _usedAlignments.size();
 }
-void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites, size_t readUpToDepth) const {
+
+void TWindow::_fillSites(std::vector<TSite> &Sites, const genometools::TAlleles& Alleles) {
+	// _sites may have a size, but all sites are empty!
+	assert(std::all_of(_sites.begin(), _sites.end(), [](const auto& site){return site.empty();}));
+	Sites.resize(size());
+
+	//add reads in usedAlignments to sites in window
+	for(auto & a : _usedAlignments){
+		//now fill
+		if (Alleles) {
+			_fillSites(a, Sites, Alleles);
+		} else {
+			_fillSites(a, Sites);
+		}
+	}
+}
+
+void TWindow::_fillSites(BAM::TAlignment &alignment, std::vector<TSite> &sites,
+							   const genometools::TAlleles &Alleles) {
+	size_t p = _findFirstPositionWithinWindow(alignment);
+
+	// position in window where first one = 0
+	// p is at first position of read in window
+	auto it = Alleles.begin(*this);
+	for (; p < alignment.parsedLength(); ++p) {
+		if (alignment.isAlignedAtInternalPos(p) && alignment[p].base != genometools::Base::N) {
+			size_t internalPos = alignment.positionInRef(p) - from();
+
+			// if read extends past window length
+			if (internalPos >= size()) break; // since part of the read maps to next window
+
+			// find position in thesePos
+			while (it != Alleles.end() && it->position < alignment.positionInRef(p)) ++it;
+			if (it != Alleles.end() && it->position == alignment.positionInRef(p)) { sites[internalPos].add(alignment[p]); }
+		}
+	}
+}
+
+void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites) const {
 	// position in window where first one = 0
 	// p is at first position of read in window
 	for (size_t p = _findFirstPositionWithinWindow(alignment); p < alignment.parsedLength(); ++p) {
@@ -92,23 +152,11 @@ void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &s
 		// if read extends past window length
 		if (posInWindow >= size()) break; // since part of the read maps to next window
 
-		if (sites[posInWindow].depth() < readUpToDepth) { sites[posInWindow].add(alignment[p]); }
-	}
-};
-
-void TWindow::_fillSites(std::vector<TSite> &sites, size_t readUpToDepth) {
-	// _sites may have a size, but all sites are empty!
-	assert(std::all_of(_sites.begin(), _sites.end(), [](const auto& site){return site.empty();}));
-	sites.resize(size());
-
-	//add reads in usedAlignments to sites in window
-	for(auto & a : _usedAlignments){
-		//now fill
-		_fillSites(a, sites, readUpToDepth);
+		sites[posInWindow].add(alignment[p]);
 	}
 }
 
-int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const Probability & downsamplingProb) const {
+int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const Probability & downsamplingProb) const {
 	sites.resize(size());
 	for (size_t i = 0; i < size(); ++i) sites[i].refBase = _sites[i].refBase;
 
@@ -117,7 +165,7 @@ int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToD
 	for(auto& a : _usedAlignments){
 		//fill if alignment is to be used
 		if(randomGenerator().getRand() < downsamplingProb){
-			_fillSites(a, sites, readUpToDepth);
+			_fillSites(a, sites);
 			++counter;
 		}
 	}
@@ -165,14 +213,14 @@ void TWindow::resize(size_t newLength) {
 	_clear();	
 };
 
-void TWindow::downsampleFromOther(const TWindow & other, size_t readUpToDepth, const Probability & downsamplingProb){
+void TWindow::downsampleFromOther(const TWindow & other, const Probability & downsamplingProb){
 	_clear();
 
 	//set coordinates
 	move(other, other.chrName());
 
 	//fill sites by downsampling
-	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb);
+	_numReadsInWindow = other._fillSitesDownsampling(_sites, downsamplingProb);
 	_masked.assign(_sites.size(), false);
 
 	//calc depth
@@ -285,11 +333,6 @@ void TWindow::maskCpG(const genometools::TFastaReader & reference){
 	}
 };
 
-void TWindow::downsample(size_t maxDepth, const coretools::TSubsamplePicker & picker){
-	for(auto& s : _sites){
-		s.downsample(maxDepth, picker);
-	}
-};
 
 genometools::TBaseProbabilities TWindow::estimateBaseFrequencies() const{
 	//estimate initial base frequencies

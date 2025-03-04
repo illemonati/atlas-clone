@@ -11,6 +11,7 @@
 #include "coretools/Files/gzstream.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "genometools/Genotypes/Containers.h"
 #include "genometools/Genotypes/Genotype.h"
 

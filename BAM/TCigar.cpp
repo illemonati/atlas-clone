@@ -6,7 +6,6 @@
  */
 
 #include "TCigar.h"
-
 #include "coretools/Main/TError.h"
 
 namespace BAM {
@@ -15,94 +14,6 @@ namespace BAM {
 // TCigar
 // A class to store, access and manipulate CIGAR operators
 //----------------------------------------------------------
-TCigar::TCigar(TCigar cigar, size_t overlapLength, bool isForwardStrand, size_t &mappedBasesClipped) {
-	size_t overlap = 0;
-	//if the overlap is larger than the number of aligned bases in the read (i.e. the other read eclipses this alignment), all bases are softclipped
-	if (overlapLength >= cigar.lengthMapped()) {
-		add('S', cigar.lengthRead());
-	} else {
-		//how many aligned bases before the overlap begins
-		size_t nonOverlapLength = cigar.lengthMapped() - overlapLength;
-		//if the read starts before its mate, go beginning->end, otherwise go end->beginning
-		if (isForwardStrand) {
-			std::vector<CigarOperator>::const_iterator iterator = cigar.begin();
-			//copy cigar string until either the start of the overlap or the end of the read is reached
-			size_t nextLengthMapped = 0;
-			while (lengthMapped() < nonOverlapLength && iterator!=cigar.end()) {
-				//if next segment of cigar string would exceed nonOverlapLength, split it up into M/=/X and S
-				nextLengthMapped = lengthMapped()+iterator->length;
-				if (nextLengthMapped >= nonOverlapLength && (iterator->type == 'D' || iterator->type == 'N')){
-					nonOverlapLength = lengthMapped();
-				} else if (nextLengthMapped > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
-						overlap = nextLengthMapped - nonOverlapLength;
-						add(iterator->type,iterator->length - overlap);
-				} else {
-					add(iterator->type,iterator->length);
-				}
-				iterator++;
-			}
-			//sum up the length of the remaining overlap
-			while (iterator != cigar.end()) {
-				if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S')
-					overlap+=iterator->length;
-				iterator++;
-			}
-
-			add('S',overlap);
-		} else {
-			//same as the part above, just use rbegin instead of begin to construct the cigar-string from right to left
-			std::vector<CigarOperator>::const_reverse_iterator iterator = cigar.rbegin();
-			size_t nextLengthMapped = 0;
-			while (lengthMapped() < nonOverlapLength && iterator != cigar.rend()) {
-				nextLengthMapped = lengthMapped()+iterator->length;
-				if (nextLengthMapped >= nonOverlapLength && (iterator->type == 'D' || iterator->type == 'N')){
-					mappedBasesClipped += iterator->length;
-					nonOverlapLength = lengthMapped();
-				} else if (nextLengthMapped > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
-						overlap = nextLengthMapped - nonOverlapLength;
-						mappedBasesClipped += overlap;
-						add(iterator->type,iterator->length - overlap);
-				} else {
-					add(iterator->type,iterator->length);
-				}
-				iterator++;
-			}
-			while (iterator != cigar.rend()) {
-				if (iterator->type == 'M' ||  iterator->type == '=' || iterator->type == 'X') {
-					mappedBasesClipped += iterator->length;
-					overlap+=iterator->length;
-				} else if (iterator->type == 'I' || iterator->type == 'S') {
-					overlap+=iterator->length;
-				} else if (iterator->type == 'D' || iterator->type == 'N') {
-					mappedBasesClipped += iterator->length;
-				}
-				iterator++;
-			}
-			_lengthSoftClippedLeft++;
-			add('S',overlap);
-			_lengthSoftClippedLeft--;
-			//cigar string needs to be flipped because it was created in reverse
-			_flipCigar();
-		}
-	}
-}
-
-void TCigar::_flipCigar() {
-	std::reverse(_cigar.begin(), _cigar.end());
-	size_t temp = lengthSoftClippedLeft();
-	_lengthSoftClippedLeft = lengthSoftClippedRight();
-	_lengthSoftClippedRight = temp;
-}
-
-void TCigar::clear() {
-	_cigar.clear();
-	_lengthAligned           = 0;
-	_lengthInserted          = 0;
-	_lengthDeleted           = 0;
-	_lengthSkipped           = 0;
-	_lengthSoftClippedLeft   = 0;
-	_lengthSoftClippedRight  = 0;
-};
 
 void TCigar::add(char Type, size_t Length) {
 	if (_lengthSoftClippedRight) { UERROR("Cigar string contains entries past soft clipping on right!"); }
@@ -126,7 +37,31 @@ void TCigar::add(char Type, size_t Length) {
 
 	// add to vector
 	_cigar.emplace_back(Type, Length);
-};
+}
+
+void TCigar::_compileLengths() {
+	_lengthInserted = 0;
+	_lengthDeleted  = 0;
+	_lengthAligned  = 0;
+	_lengthSkipped  = 0;
+
+	_lengthSoftClippedLeft  = 0;
+	_lengthSoftClippedRight = 0;
+	for (const auto &c : _cigar) {
+		switch (c.type) {
+		case 'I': _lengthInserted += c.length; break;
+		case 'D':_lengthDeleted += c.length; break;
+		case 'N': _lengthSkipped += c.length; break;
+		case 'M':
+		case '=':
+		case 'X': _lengthAligned += c.length; break;
+		case 'S': break;
+		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		}
+	}
+	if (_cigar.front().type == 'S') _lengthSoftClippedLeft = _cigar.front().length;
+	if (_cigar.size() > 1 && _cigar.back().type == 'S') _lengthSoftClippedLeft = _cigar.back().length;
+}
 
 void TCigar::removeSoftClips() {
 	if (_cigar.front().type == 'S') _cigar.erase(_cigar.begin());
@@ -135,9 +70,67 @@ void TCigar::removeSoftClips() {
 	// update length
 	_lengthSoftClippedLeft  = 0;
 	_lengthSoftClippedRight = 0;
-};
+}
 
-void TCigar::removeSoftClips(size_t maxNumberOfSoftClippedBases) {
+void TCigar::addSoftClipsLeft(size_t Length) {
+	std::reverse(_cigar.begin(), _cigar.end());
+	addSoftClipsRight(Length);
+	std::reverse(_cigar.begin(), _cigar.end());
+
+	std::swap(_lengthSoftClippedLeft, _lengthSoftClippedRight);
+}
+
+void TCigar::addSoftClipsRight(size_t Length) {
+	if (Length == 0) return;
+
+	if (Length > lengthMapped())
+		DEVERROR("Cannot add ", Length, " Softclips to cigar '", compileString(), "'.");
+
+	CigarOperator softClipR('S', 0);
+	if (_cigar.back().type == 'S') {
+		softClipR.length += _cigar.back().length;
+		_cigar.pop_back();
+	}
+
+	while (Length > 0 && !_cigar.empty()) {
+		switch (_cigar.back().type) {
+		case 'I':
+			softClipR.length += _cigar.back().length;
+			_cigar.pop_back();
+			break;
+		case 'D':
+		case 'N':
+			if (Length >= _cigar.back().length) {
+				Length -= _cigar.back().length;
+				_cigar.pop_back();
+			} else {
+				_cigar.back().length -= Length;
+				Length = 0;
+			}
+			break;
+
+		case 'M':
+		case '=':
+		case 'X':
+			if (Length >= _cigar.back().length) {
+				Length -= _cigar.back().length;
+				softClipR.length += _cigar.back().length;
+				_cigar.pop_back();
+			} else {
+				_cigar.back().length -= Length;
+				softClipR.length += Length;
+				Length = 0;
+			}
+			break;
+		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		}
+	}
+	if (Length > 0) DEVERROR("Error parsing cigar '", compileString(), "'.");
+	_cigar.push_back(softClipR);
+	_compileLengths();
+}
+
+void TCigar::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 	if(maxNumberOfSoftClippedBases == 0) removeSoftClips();
 	else {
 		if (_cigar.front().type == 'S' && _cigar.front().length > maxNumberOfSoftClippedBases) {
@@ -149,12 +142,12 @@ void TCigar::removeSoftClips(size_t maxNumberOfSoftClippedBases) {
 			_lengthSoftClippedRight = maxNumberOfSoftClippedBases;
 		}
 	}
-};
+}
 
 std::string TCigar::compileString() const{
 	std::string s;
-	for(auto& it : _cigar){
-		s += coretools::str::toString(it.length) + it.type;
+	for(const auto& c : _cigar){
+		s += coretools::str::toString(c.length) + c.type;
 	}
 	return s;
 }
@@ -163,4 +156,14 @@ TCigar::operator std::string() const {
 	return compileString();
 }
 
-}; // namespace BAM
+void TCigar::clear() {
+	_cigar.clear();
+	_lengthAligned          = 0;
+	_lengthInserted         = 0;
+	_lengthDeleted          = 0;
+	_lengthSkipped          = 0;
+	_lengthSoftClippedLeft  = 0;
+	_lengthSoftClippedRight = 0;
+}
+
+} // namespace BAM

@@ -18,6 +18,7 @@ for i in {1..17}; do
 
 	out="complex$i"
 	$atlas --task BAMDiagnostics --identifyDuplicates --bam simulate_ind$i.bam \
+		   --downsampleReads 0.75 \
 		   --filterSoftClips --filterMQ 0,$u --blacklist blacklist_$i.txt \
 		   --filterReadLength 0,$u --filterFragmentLength 0,$u \
 		   --fixedSeed 1$i --out $out --logFile $out.out 2> $out.eout

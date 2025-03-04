@@ -5,8 +5,8 @@
  *      Author: wegmannd
  */
 
-#ifndef TSEQUENCEDBASE_H_
-#define TSEQUENCEDBASE_H_
+#ifndef TSEQUENCEDDATA_H_
+#define TSEQUENCEDDATA_H_
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -19,21 +19,29 @@
 namespace BAM {
 
 enum class End : size_t {min, from5=min, from3, max};
+enum class Strand : size_t {min, Fwd=min, Rev, max};
 enum class Mate : size_t {min, first=min, second, max};
-enum class Flags: size_t {min, ReversedStrand = min, SecondMate, Aligned, SoftClipped, max};
+enum class Flags: size_t {min, ReversedStrand = min, Paired, SecondMate, Aligned, SoftClipped, max};
 
 inline std::string toString(Mate m) {
 	constexpr coretools::TStrongArray<std::string_view, Mate> mates{{"Mate1", "Mate2"}};
 	return std::string(mates[m]);
 }
 
-//---------------------------------------------------------------
-// TSequencedBase
-//---------------------------------------------------------------
+inline std::string toString(End e) {
+	constexpr coretools::TStrongArray<std::string_view, End> ends{{"5", "3"}};
+	return std::string(ends[e]);
+}
+
+inline std::string toString(Strand e) {
+	constexpr coretools::TStrongArray<std::string_view, Strand> strands{{"Fwd", "Rev"}};
+	return std::string(strands[e]);
+}
+
 // data container with minimal footprint, also used in recal
-struct TSequencedBase {
-	genometools::Base base         = genometools::Base::N;
-	genometools::Base previousBase = genometools::Base::N;
+struct TSequencedData {
+	genometools::Base base              = genometools::Base::N;
+	genometools::Base previousSequenced = genometools::Base::N;
 
 	// original quality as in BAM file, but transformed to phredInt
 	coretools::PhredInt originalQuality = coretools::PhredInt::highest();
@@ -54,9 +62,18 @@ struct TSequencedBase {
 	uint16_t bamID          = -1;
 
 	constexpr Mate mate() const noexcept {return static_cast<Mate>(get<Flags::SecondMate>());}
-	constexpr End end() const noexcept {return distFrom5 < distFrom3 ? End::from5 : End::from3;}
+	constexpr End end() const noexcept {return distFrom3 < distFrom5 ? End::from3 : End::from5;}
+	constexpr Strand strand() const noexcept {return get<Flags::ReversedStrand>() ? Strand::Rev : Strand::Fwd;}
 	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
-	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
+	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousSequenced, sequenced());}
+
+	// As sequenced by Machine
+	constexpr genometools::Base sequenced() const noexcept {
+		return get<Flags::ReversedStrand>() ? genometools::flipped(base) : base;
+	}
+	constexpr genometools::Base previousBase() const noexcept {
+		return get<Flags::ReversedStrand>() ? genometools::flipped(previousSequenced) : previousSequenced;
+	}
 
 	template<Flags F>
 	constexpr bool get() const noexcept {return properties.get<F>();}

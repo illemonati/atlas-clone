@@ -52,10 +52,10 @@ protected:
 	//pure virtual functions
 	virtual void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) = 0;
 	virtual void _handleSingle(TWaitingAlignment &lhs)                        = 0;
-	virtual bool _alignmentCanBeWrittenUnchanged()                            = 0;
+	bool _alignmentCanBeWrittenUnchanged();
 
 public:
-	TWaitingListBamTraverser(std::string_view OutName);
+	TWaitingListBamTraverser(std::string_view OutName="");
 	void traverseBAM();
 };
 

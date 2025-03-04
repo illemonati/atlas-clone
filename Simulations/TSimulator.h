@@ -45,7 +45,7 @@ protected:
 
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
-	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) = 0;
+	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) = 0;
 
 public:
 	TSimulator(const std::string &method);
@@ -73,7 +73,7 @@ protected:
 									  const std::string &extraProgressText);
 
 	// simulate reads and write bam files
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
 
 public:
 	TBAMSimulator(const std::string &method);
@@ -90,7 +90,7 @@ private:
 	std::unique_ptr<genometools::TVCFWriter> _vcf;
 
 protected:
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
 
 public:
 	TVCFSimulator(const std::string &method);
