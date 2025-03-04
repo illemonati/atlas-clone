@@ -316,13 +316,11 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 	// set initial flags
 	_alignment.setIsPaired(true);
 	_alignment.setIsProperPair(true);
-	_alignment.setIsRead1(true);
 	_alignment.setIsReverseStrand(false);
 
-	_secondMate.setIsPaired(true);
-	_secondMate.setIsProperPair(true);
-	_secondMate.setIsRead2(true);
-	_secondMate.setIsReverseStrand(true);
+	_mate.setIsPaired(true);
+	_mate.setIsProperPair(true);
+	_mate.setIsReverseStrand(true);
 }
 
 double TReadSimulatorPairedEnd::meanReadLength() const {
@@ -333,10 +331,10 @@ void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 	BamFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (_secondMate == _alignment) {
-		BamFile.writeAlignment(_secondMate);
+	if (_mate == _alignment) {
+		BamFile.writeAlignment(_mate);
 	} else {
-		BamFile.writeAlignmentLater(_secondMate);
+		BamFile.writeAlignmentLater(_mate);
 	}
 }
 
@@ -345,32 +343,38 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition & Position, const 
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
 
-	// first mate
-	_simulateAlignmentDetails(Position);
-	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+	if (randomGenerator().getRand() < 0.5) {
+		_alignment.setIsSecondMate(true);
+		_mate.setIsSecondMate(false);
+	} else {
+		_alignment.setIsSecondMate(false);
+		_mate.setIsSecondMate(true);
+	}
 
+	// Forward Read
+	_simulateAlignmentDetails(Position);
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-	// second mate
+	// Reversed Read (after Forward Read in bam-file)
 	// identify position
-	_secondMate.move(_alignment);
+	_mate.move(_alignment);
 	if(fragmentLength > _numCycles[1]){
-		_secondMate += (size_t) fragmentLength - (size_t) _numCycles[1];
+		_mate += (size_t) fragmentLength - (size_t) _numCycles[1];
 	}
 
 	// create new alignment
-	_secondMate.setReadGroup(_readGroup->id);
-	_secondMate.setName(_alignment.name());
-	_secondMate.setMappingQuality(_alignment.mappingQuality());
-	_secondMate.setIsReverseStrand(!_alignment.isReverseStrand());
-	assert(_alignment.isReverseStrand() != _secondMate.isReverseStrand());
+	_mate.setReadGroup(_readGroup->id);
+	_mate.setName(_alignment.name());
+	_mate.setMappingQuality(_alignment.mappingQuality());
+	assert(_alignment.isReverseStrand() != _mate.isReverseStrand());
+	assert(_alignment.isSecondMate() != _mate.isSecondMate());
 
 	// simulated bases and qualities
-	_simulateBasesQualities(_secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
+	_simulateBasesQualities(_mate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// WRITE ALIGNMENTS
-	_alignment.setMateGenomicPosition(_secondMate);
-	_secondMate.setMateGenomicPosition(_alignment);
+	_alignment.setMateGenomicPosition(_mate);
+	_mate.setMateGenomicPosition(_alignment);
 }
 
 } // namespace Simulations

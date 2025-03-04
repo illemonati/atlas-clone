@@ -88,7 +88,6 @@ public:
 	TAlignment() = default;
 
 	// clear, fill and parse
-	void clear();
 	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
 			  uint16_t MappingQuality, const TCigar &Cigar, uint32_t MateRefID, uint32_t MatePosition,
 			  const int32_t &InsertSize_TLEN, const std::string &Sequence, const std::string &Qualities,
@@ -109,8 +108,7 @@ public:
 	void setIsPaired(bool ok) { _flags.setIsPaired(ok); }
 	void setIsProperPair(bool ok) { _flags.setIsProperPair(ok); }
 	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); }
-	void setIsRead1(bool IsRead1) { _flags.setIsRead1(IsRead1); }
-	void setIsRead2(bool IsRead2) { _flags.setIsRead2(IsRead2); }
+	void setIsSecondMate(bool ok) { _flags.setIsSecondMate(ok); }
 	void setSamFlags(BAM::TSamFlags Flags) { _flags = std::move(Flags); }
 	void setCigarForUnitTest(const TCigar &Cigar) {_cigar = Cigar;}
 
@@ -134,6 +132,7 @@ public:
 	coretools::PhredInt mappingQuality() const { return _mappingQuality; }
 	uint16_t flags() const { return _flags.asInt(); }
 	const TCigar &cigar() const { return _cigar; }
+	TCigar &cigar() { return _cigar; }
 
 	TSequencedData &operator[](size_t internalPos) noexcept {
 		assert(internalPos < _data.size());
@@ -144,8 +143,8 @@ public:
 		return _data[internalPos];
 	}
 
-	std::string sequence() const;
-	std::string qualities() const;
+	const std::string& sequence() const;
+	const std::string& qualities() const;
 	bool isEmpty() const noexcept { return _empty; }
 	bool isParsed() const noexcept { return _parsed; }
 	bool isReverseStrand() const noexcept { return _flags.isReverseStrand(); }
@@ -183,7 +182,6 @@ public:
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
 	void downsampleAlignment(coretools::Probability fraction);
-	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
 };
 
 } // namespace BAM

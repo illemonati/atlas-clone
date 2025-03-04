@@ -51,7 +51,7 @@ if [ $1 ]; then
 fi
 k="111"
 L="${N}$k"
-probs="0.5,0.2,0.1,0.05,0.02,0.01"
+probs="0.5,0.2,0.1,0.05"
 
 out="simulate"
 $atlas --task simulate --RGInfo "workflow.json" \
@@ -69,50 +69,50 @@ out="ttBefore"
 $atlas --task transitionTable --bam $bam --fasta simulate.fasta \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-out="merge"
-$atlas --task mergeOverlappingReads --bam $bam \
-	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
-bam=merge_merged.bam
+for name in "middle"; do
+	out=$name
+	$atlas --task mergeOverlappingReads --mergingMethod $name --bam $bam \
+		   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
 
-out="pileup"
-$atlas --task pileup --onlySummaries --histograms depth,transitions,strandMate \
-	   --bam $bam --fasta simulate.fasta \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+	bam=${name}_merged.bam 
+	out="${name}_pileup"
+	$atlas --task pileup --onlySummaries --histograms depth,transitions \
+		--bam $bam --fasta simulate.fasta \
+		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-out="bdAfter"
-$atlas --task BAMDiagnostics --bam $bam --writeMates \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+	out="${name}_bd"
+	$atlas --task BAMDiagnostics --bam $bam --writeMates \
+		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-out="ttAfter"
-$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+	out="${name}_tt"
+	$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
+		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-exit
+	out=${name}_HK85reads_raw
+	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+		--prob $probs --sample reads \
+		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--fixedSeed 20 --out $out --logFile $out.out 2> $out.eout
 
-out=HK85reads_raw
-$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
-	   --prob $probs --sample reads \
-	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
-	   --fixedSeed 20 --out $out --logFile $out.out 2> $out.eout
+	out=${name}_HK85reads_truth
+	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+		--prob $probs --sample reads \
+		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--RGInfo workflow.json \
+		--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
 
-out=HK85reads_truth
-$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
-	   --prob $probs --sample reads \
-	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
-	   --RGInfo workflow.json \
-	   --fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
+	out=${name}_ee
+	$atlas --task estimateErrors --minDeltaLL $delta \
+		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
-out=ee
-$atlas --task estimateErrors --minDeltaLL $delta \
-	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
-	   --fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
+	ee=${name}_ee_RGInfo.json
 
-ee=ee_RGInfo.json
-
-out=HK85reads_ee
-$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
-	   --prob $probs --sample reads \
-	   --bam $bam --fasta simulate.fasta  --chr "chr1" \
-	   --RGInfo $ee \
-	   --fixedSeed 22 --out $out --logFile $out.out 2> $out.eout
+	out=${name}_HK85reads_ee
+	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+		--prob $probs --sample reads \
+		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--RGInfo $ee \
+		--fixedSeed 22 --out $out --logFile $out.out 2> $out.eout
+done

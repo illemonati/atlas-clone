@@ -26,7 +26,7 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>, genometools::Base, 5>, BAM::Strand>, BAM::Mate>;
 
 	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
-	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, PrevBases, StrandMate, max};
+	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, PrevBases, max};
 
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -46,7 +46,6 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 
 	PrevBases _prevBases{};
 
-	std::vector<coretools::TStrongArray<coretools::TStrongArray<size_t, BAM::Strand>, BAM::Mate>> _strandMate;
 
 	coretools::TStrongBitSet<Print> _printSettings;
 	coretools::TStrongBitSet<Hist> _histSettings;

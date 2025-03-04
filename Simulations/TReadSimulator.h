@@ -127,7 +127,7 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
-	BAM::TAlignment _secondMate;
+	BAM::TAlignment _mate;
 	std::array<coretools::StrictlyPositiveUInt, 2> _numCycles;
 
 	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype) override;

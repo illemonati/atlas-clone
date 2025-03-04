@@ -6,8 +6,8 @@
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
 #include "TIlluminaIdentifier.h"
-#include "TOverlapQuantifier.h"
 #include "TOverlappingReadsMerger.h"
+#include "TPairAnalyser.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
 #include "coretools/Main/TMain.h"
@@ -59,7 +59,6 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TOverlappingReadsMerger>(groupName, "mergeOverlappingReads", "Merging paired-end reads in BAM file");
 	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");	
 	main.createGroupedTask<GenomeTasks::TBamDiagnoser>(groupName, "BAMDiagnostics", "Estimating depth and read property frequencies");
-	main.createGroupedTask<GenomeTasks::TOverlapQuantifier>(groupName, "readOverlap", "Estimating distribution of overlap of paired reads");
 	main.createGroupedTask<GenomeTasks::TAssessSoftClipping>(groupName, "assessSoftClipping", "Assessing level of soft clipping in BAM file");
 	main.createGroupedTask<GenomeTasks::TSoftClipsTrimmer>(groupName, "trimSoftClips", "Removing soft clipped bases from reads");
 	main.createGroupedTask<GenomeTasks::TQualityTransformation>(groupName, "qualityTransformation", "Printing Quality Transformation");
@@ -120,6 +119,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<PopulationTools::TSpearmanGWAS>("SpearmanGWAS", "GWAS with Spearman correlation, allowing for population-specific signs");
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
 	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
+	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
 };
 
 void addTests(coretools::TMain & ){
