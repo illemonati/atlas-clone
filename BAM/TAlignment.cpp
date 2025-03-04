@@ -406,12 +406,12 @@ void TAlignment::_updateSequenceAndQualities() const {
 	}
 }
 
-std::string TAlignment::sequence() const {
+const std::string& TAlignment::sequence() const {
 	_updateSequenceAndQualities();
 	return _sequence;
 }
 
-std::string TAlignment::qualities() const {
+const std::string& TAlignment::qualities() const {
 	_updateSequenceAndQualities();
 	return _qualities;
 }

@@ -144,8 +144,8 @@ public:
 		return _data[internalPos];
 	}
 
-	std::string sequence() const;
-	std::string qualities() const;
+	const std::string& sequence() const;
+	const std::string& qualities() const;
 	bool isEmpty() const noexcept { return _empty; }
 	bool isParsed() const noexcept { return _parsed; }
 	bool isReverseStrand() const noexcept { return _flags.isReverseStrand(); }

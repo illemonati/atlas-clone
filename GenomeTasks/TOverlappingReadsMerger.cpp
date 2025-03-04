@@ -1,5 +1,6 @@
 #include "TOverlappingReadsMerger.h"
 #include "TSequencedData.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
@@ -8,28 +9,6 @@
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
-
-namespace impl {
-constexpr bool isOdd(size_t N) {
-	return N & 1;
-}
-}
-
-bool TMiddleMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Overlap) {
-	// all edge cases are already handeld!
-
-	// odd number -> one more for Mate1
-	const auto FOverlap = impl::isOdd(Overlap) ? Overlap / 2 + !Fwd.isSecondMate() : Overlap / 2;
-	const auto ROverlap = Overlap - FOverlap; // this takes care of odd numbers
-
-	Fwd.cigar().addSoftClipsRight(FOverlap);
-	Rev.cigar().addSoftClipsLeft(ROverlap);
-
-	Rev += ROverlap;
-	Fwd.setMateGenomicPosition(Rev);
-
-	return true;
-}
 
 bool TOverlappingReadsMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 	if (Rev < Fwd) {
@@ -81,7 +60,8 @@ bool TOverlappingReadsMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev)
 	//  FFFF   -> FFss
 	//  RRRR      ssRR
 	++_cases[Cases::Overlap];
-	return _merger->merge(Fwd, Rev, FEnd - RStart);
+	_merger->merge(Fwd, Rev, FEnd - RStart);
+	return true;
 }
 
 void TOverlappingReadsMerger::_summary() {
@@ -102,29 +82,29 @@ TOverlappingReadsMerger::TOverlappingReadsMerger() : TWaitingListBamTraverser("_
 	const auto method = parameters().get("mergingMethod", "middle");
 	if (method == "random"){
 		_merger = std::make_unique<TRandomMerger>();
-		logfile().list("Merging method: will keep random read for all overlapping positions. (parameter 'mergingMethod')");
-	} else if(method == "highestQuality"){
-		_merger = std::make_unique<TQualityMerger>();
-		logfile().list("Merging method: will keep read with highest minimum quality at overlapping positions. (parameter 'mergingMethod')");
-	} else if(method == "keepFirst"){
+		logfile().list("Merging method: ", method, ", will keep random read for all overlapping positions. (parameter 'mergingMethod')");
+	}  else if(method == "keepFirst"){
 		_merger = std::make_unique<TMateMerger>(BAM::Mate::first);
-		logfile().list("Merging method: will keep read of first mate at overlapping positions. (parameter 'mergingMethod')");
-	} else if(method == "secondMate"){
+		logfile().list("Merging method: ", method, ", will keep read of first mate at overlapping positions. (parameter 'mergingMethod')");
+	} else if(method == "keepFwd"){
+		_merger = std::make_unique<TStrandMerger>(BAM::Strand::Fwd);
+		logfile().list("Merging method: ", method, ", will keep read of forward strand at overlapping positions. (parameter 'mergingMethod')");
+	} else if(method == "keepRev"){
+		_merger = std::make_unique<TStrandMerger>(BAM::Strand::Rev);
+		logfile().list("Merging method: ", method, ", will keep read of reversed strand at overlapping positions. (parameter 'mergingMethod')");
+	} else if(method == "keepSecond"){
 		_merger = std::make_unique<TMateMerger>(BAM::Mate::second);
-		logfile().list("Merging method: will keep read of second mate at overlapping positions. (parameter 'mergingMethod')");
+		logfile().list("Merging method: ", method, ", will keep read of second mate at overlapping positions. (parameter 'mergingMethod')");
 	} else if (method == "middle"){
 		_merger = std::make_unique<TMiddleMerger>();
-		logfile().list("Merging method: will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
+		logfile().list("Merging method: ", method, ", will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
 	} else {
-		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.");
+		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'keepFirst', 'keppSecond' or 'random'.");
 	}
 
 	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){
 		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
-
-
-	_merger = std::make_unique<TMiddleMerger>();
 }
 
 void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) {
