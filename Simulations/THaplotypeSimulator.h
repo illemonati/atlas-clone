@@ -45,7 +45,7 @@ public:
 
 class THaplotypeRefDivSimulator : public THaplotypeSimulator {
 protected:
-	coretools::TStrongArray<double, genometools::Base> _cumulRef; // N is a posibility
+	coretools::TStrongArray<double, genometools::Base> _cumulRef;
 	coretools::Probability _referenceDivergence;
 public:
 	THaplotypeRefDivSimulator();

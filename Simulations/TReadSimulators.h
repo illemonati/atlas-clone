@@ -45,13 +45,11 @@ public:
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
-	struct TSimStat {
-		size_t RG;
-		size_t nSim;
-	};
-	TSimStat simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase>& Haplotype, BAM::TOutputBamFile &BamFile);
+	std::pair<size_t, size_t> simulate(const genometools::TGenomePosition &Position,
+									   const std::vector<genometools::TwoBase> &Haplotype,
+									   const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
 
-	//getters
+	// getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
 	[[nodiscard]] double averageReadLength() const { return _averageReadLength; };
