@@ -20,6 +20,7 @@
 #include "SequencingError/TModels.h"
 #include "TAlignment.h"
 #include "TReadGroupInfo.h"
+#include "genometools/Genotypes/TwoBases.h"
 
 namespace GenotypeLikelihoods::PMD {struct TModel;}
 
@@ -80,11 +81,12 @@ protected:
 	void _simulateAlignmentDetails(const genometools::TGenomePosition & Position);
 	bool _simulateContamination();
 	void _addSoftclippedBases(std::vector<genometools::Base> & bases, const size_t &softClipLength, BAM::TCigar & Cigar);
-	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<genometools::Base> &haplotype, size_t fragmentLength,
-								 size_t readLength, bool readIsContaminated);
+	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<genometools::TwoBase> &haplotype,
+								 bool firstHaplo, size_t fragmentLength, size_t readLength, bool readIsContaminated);
 
-	virtual void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype) = 0;
-	virtual void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) = 0;
+	virtual void _simulate(const genometools::TGenomePosition &Position,
+						   const std::vector<genometools::TwoBase> &Haplotype) = 0;
+	virtual void _writeSimulatedAlignments(BAM::TOutputBamFile &BamFile)       = 0;
 
 public:
 	TReadSimulator(const BAM::TReadGroup & ReadGroup, const BAM::RGInfo::TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
@@ -95,9 +97,10 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	size_t simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile &BamFile);
+	size_t simulate(const genometools::TGenomePosition &Position, const std::vector<genometools::TwoBase> &Haplotype,
+					BAM::TOutputBamFile &BamFile);
 
-	//getters
+	// getters
 	const std::string& name() const { return _readGroup->name_ID; }
 	[[nodiscard]] virtual double meanReadLength() const = 0;
 	double maxFragmentLength() {
@@ -112,7 +115,7 @@ class TReadSimulatorSingleEnd final : public TReadSimulator {
 private:
 	coretools::StrictlyPositiveUInt _numCycles;
 
-	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype) override;
+	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype) override;
 	void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) override;
 
 public:
@@ -130,7 +133,7 @@ private:
 	BAM::TAlignment _mate;
 	std::array<coretools::StrictlyPositiveUInt, 2> _numCycles;
 
-	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype) override;
+	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype) override;
 	void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) override;
 
 public:

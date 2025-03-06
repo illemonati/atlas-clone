@@ -27,7 +27,6 @@ namespace genometools { class TChromosome; }
 namespace genometools { class TChromosomes; }
 
 namespace Simulations {
-class TSimulatorHaplotypes;
 
 class THaplotypeSimulator {
 protected:

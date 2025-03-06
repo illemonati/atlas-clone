@@ -8,7 +8,6 @@
 #ifndef TSIMULATOR_H_
 #define TSIMULATOR_H_
 
-#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,7 +47,7 @@ protected:
 	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) = 0;
 
 public:
-	TSimulator(const std::string &method);
+	TSimulator(const std::string_view Method);
 	void runSimulations();
 	virtual ~TSimulator() = default;
 };
@@ -61,14 +60,14 @@ class TBAMSimulator : public TSimulator {
 protected:
 	// bam files
 	std::vector<TReadSimulators> _readSimulators; // one per sample
-	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
+	TSimulatorBamFiles _bamFiles;
 
 	// read simulator
 	void _initializeReadSimulator();
 
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-									  const std::array<std::vector<genometools::Base>, 2>& haplotypes,
+									  const std::vector<genometools::TwoBase>& haplotypes,
 									  TReadSimulators &readSimulator, size_t avgDepth, BAM::TOutputBamFile &bamFile,
 									  const std::string &extraProgressText);
 
@@ -76,8 +75,7 @@ protected:
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
 
 public:
-	TBAMSimulator(const std::string &method);
-	~TBAMSimulator() { _bamFiles->close(); }
+	TBAMSimulator(const std::string_view Method);
 };
 
 //---------------------------------------------------------

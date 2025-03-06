@@ -1,39 +1,30 @@
 #ifndef TSIMULATORHAPLOTYPES_H_
 #define TSIMULATORHAPLOTYPES_H_
 
-#include "coretools/Files/gzstream.h"
-#include "genometools/Genotypes/Base.h"
+#include "coretools/Files/TOutputFile.h"
+#include "genometools/Genotypes/TwoBases.h"
 #include <cstddef>
 #include <vector>
-#include <array>
 
 namespace Simulations {
 class TSimulatorReference;
 
 class TSimulatorHaplotypes {
 private:
-	size_t numInd;
-	size_t _length = 0;
-	std::vector<std::array<std::vector<genometools::Base>,2>> haplotypes;
-
-	// write true genotypes to VCF
-	gz::ogzstream trueGenoVCF;
-
-	void allocateStorage();
+	std::vector<std::vector<genometools::TwoBase>> _haplotypes;
+	coretools::TOutputFile _trueGenoVCF; // write true genotypes to VCF
 public:
-	TSimulatorHaplotypes(size_t NumIndividuals): numInd(NumIndividuals){};
-	~TSimulatorHaplotypes() {
-		if (trueGenoVCF) trueGenoVCF.close();
+	TSimulatorHaplotypes(size_t NumIndividuals) : _haplotypes(NumIndividuals) {}
+	void setLength(size_t Length) noexcept {
+		for (auto &h : _haplotypes) h.resize(Length);
 	}
-	void setLength(size_t length) noexcept;
-	size_t length() const { return _length; };
-	void openTrueGenotypeVCF(std::string filename);
-	const std::array<std::vector<genometools::Base>,2>& get(size_t i) const;
-	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
-	size_t size() const noexcept { return numInd; };
-	genometools::Base &operator()(size_t ind, size_t hap, size_t site) noexcept { return haplotypes[ind][hap][site]; };
-	const genometools::Base &operator()(size_t ind, size_t hap, size_t site) const noexcept { return haplotypes[ind][hap][site]; };
-	bool isPolymoprhic(size_t pos) const noexcept;
+	size_t length() const { return size() ? _haplotypes.front().size() : 0; }
+	void openTrueGenotypeVCF(std::string_view Filename);
+	void writeTrueGenotypes(std::string_view ChrName, const TSimulatorReference &Ref);
+	size_t size() const noexcept { return _haplotypes.size(); };
+	const std::vector<genometools::TwoBase>& operator[](size_t Ind) const noexcept {return _haplotypes[Ind];}
+	std::vector<genometools::TwoBase>& operator[](size_t Ind) noexcept {return _haplotypes[Ind];}
+	bool isPolymoprhic(size_t Pos) const noexcept;
 };
 }
 #endif

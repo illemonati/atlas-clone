@@ -10,7 +10,7 @@ namespace Simulations {
 using coretools::instances::logfile;
 using coretools::str::toString;
 
-TSimulatorBamFiles::TSimulatorBamFiles(size_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
+void TSimulatorBamFiles::open(size_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
 				       const genometools::TChromosomes &Chromosomes) {
 	coretools::instances::logfile().startIndent("Preparing BAM files for output:");
 
@@ -70,7 +70,7 @@ void TSimulatorBamFiles::_createBamFile(const std::string & Filename,
 	}
 }
 
-void TSimulatorBamFiles::close() {
+TSimulatorBamFiles::~TSimulatorBamFiles() {
 	logfile().startIndent("Indexing BAM files:");
 	_files.clear();
 	logfile().endIndent();

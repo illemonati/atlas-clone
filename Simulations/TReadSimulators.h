@@ -13,6 +13,7 @@
 
 #include "PMD/TModels.h"
 #include "TReadSimulator.h"
+#include "genometools/Genotypes/TwoBases.h"
 
 namespace Simulations {
 
@@ -48,7 +49,7 @@ public:
 		size_t RG;
 		size_t nSim;
 	};
-	TSimStat simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::Base>& Haplotype, BAM::TOutputBamFile &BamFile);
+	TSimStat simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase>& Haplotype, BAM::TOutputBamFile &BamFile);
 
 	//getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
