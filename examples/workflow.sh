@@ -41,7 +41,7 @@ echo '{
 }' > workflow.json
 
 delta=0.1
-N=50
+N=10
 
 if [ $1 ]; then
     N=$1
@@ -53,32 +53,34 @@ k="111"
 L="${N}$k"
 probs="0.5,0.2,0.1,0.05"
 
-out="simulate"
-$atlas --task simulate --RGInfo "workflow.json" \
-	   --type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.0075 \
-	   --chrLength $L --depth 10 --ploidy 2 \
-	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
+#for bias in 0.5 0.7 0.9; do
+for bias in 0.6; do
+	name=${bias/./_}
+	out="${name}_simulate"
+	$atlas --task simulate --RGInfo "workflow.json" \
+		--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.0075 \
+		--chrLength $L --depth 10 --ploidy 2 --refBias $bias \
+		--fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
 
-bam=simulate.bam
+	bam=$out.bam
+	fasta=$out.fasta
 
-out="bdBefore"
-$atlas --task BAMDiagnostics --bam $bam --writeMates \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+	out="${name}_bdBefore"
+	$atlas --task BAMDiagnostics --bam $bam --writeMates \
+		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-out="ttBefore"
-$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+	out="${name}_ttBefore"
+	$atlas --task transitionTable --bam $bam --fasta $fasta \
+		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-
-for name in "middle"; do
-	out=$name
-	$atlas --task mergeOverlappingReads --mergingMethod $name --bam $bam \
+	out="${name}_merge"
+	$atlas --task mergeOverlappingReads --mergingMethod middle --bam $bam \
 		   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
+	bam=${out}_merged.bam 
 
-	bam=${name}_merged.bam 
 	out="${name}_pileup"
 	$atlas --task pileup --onlySummaries --histograms depth,transitions \
-		--bam $bam --fasta simulate.fasta \
+		--bam $bam --fasta $fasta \
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 	out="${name}_bd"
@@ -86,25 +88,25 @@ for name in "middle"; do
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 	out="${name}_tt"
-	$atlas --task transitionTable --bam $bam --fasta simulate.fasta \
+	$atlas --task transitionTable --bam $bam --fasta $fasta \
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_HK85reads_raw
 	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
-		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--bam $bam --fasta $fasta  --chr "chr1" \
 		--fixedSeed 20 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_HK85reads_truth
 	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
-		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--bam $bam --fasta $fasta  --chr "chr1" \
 		--RGInfo workflow.json \
 		--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_ee
 	$atlas --task estimateErrors --minDeltaLL $delta \
-		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--bam $bam --fasta $fasta  --chr "chr1" \
 		--fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
 	ee=${name}_ee_RGInfo.json
@@ -112,7 +114,7 @@ for name in "middle"; do
 	out=${name}_HK85reads_ee
 	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
-		--bam $bam --fasta simulate.fasta  --chr "chr1" \
+		--bam $bam --fasta $fasta  --chr "chr1" \
 		--RGInfo $ee \
 		--fixedSeed 22 --out $out --logFile $out.out 2> $out.eout
 done

@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Main/TLog.h"
 #include "coretools/Math/TCategoricalDistribution.h"
 #include "coretools/Types/probability.h"
 
@@ -41,19 +40,17 @@ namespace Simulations {
 class TReadSimulator{
 protected:
 	const BAM::TReadGroup *_readGroup;
-	//const TReadGroupInfoEntry & _readGroupInfo;
 	std::string _readNamePrefix;
+	int _readXPos = 1;
+	int _readYPos = 1;
 
 	// required distributions
 	coretools::probdist::TCategoricalDistribution<size_t> _fragmentLengthDistr;
 	coretools::probdist::TCategoricalDistribution<coretools::PhredInt> _qualityDist;
 	coretools::probdist::TCategoricalDistribution<coretools::PhredInt> _mappingQualityDist;
-
-	// Additional info
-	int _readXPos = 1;
-	int _readYPos = 1;
 	std::unique_ptr<coretools::probdist::TCategoricalDistribution<size_t>> _softClipDist5;
 	std::unique_ptr<coretools::probdist::TCategoricalDistribution<size_t>> _softClipDist3;
+
 	const GenotypeLikelihoods::PMD::TModel *_pmd;
 	const GenotypeLikelihoods::SequencingError::RGModels _recal;
 
@@ -62,24 +59,15 @@ protected:
 	coretools::Probability _baseN;
 	coretools::Probability _refBias;
 
-	// contamination
+	std::array<size_t, 2> _refCount;
+
 	double _contaminationRate = 0.;
 	TSimulatorReference *_contaminationSource = nullptr;
 
-	// alignment
-	BAM::TAlignment _alignment;
-
-	//initialization functions
-	template <typename Distr>
-	void _initDistribution(Distr & Dist, const BAM::RGInfo::TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
-		coretools::instances::logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[Info].description), ": ", RGInfo.getString(Info));
-		Dist.set(RGInfo.getString(Info));
-	};
 
 	// general functions
 	double _calcMeanReadLength(size_t MaxLen) const;
 	std::string _getNextReadName();
-	void _simulateAlignmentDetails(const genometools::TGenomePosition & Position);
 	bool _simulateContamination();
 	void _addSoftclippedBases(std::vector<genometools::Base> & Bases, const size_t &SoftClipLength, BAM::TCigar & Cigar);
 	void _simulateBasesQualities(BAM::TAlignment& Alignment, const std::vector<genometools::TwoBase>& Haplotype,
@@ -94,22 +82,17 @@ public:
 	TReadSimulator(const BAM::TReadGroup &ReadGroup, const BAM::RGInfo::TReadGroupInfoEntry &RGInfo,
 				   const GenotypeLikelihoods::PMD::TModel &Pmd,
 				   const GenotypeLikelihoods::SequencingError::RGModels &Recal);
-	virtual ~TReadSimulator() = default;
+	virtual ~TReadSimulator();
 
-	//setters
 	void setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd);
 	void setContamination(double rate, TSimulatorReference *Source);
 
-	//simulate
 	size_t simulate(const genometools::TGenomePosition &Position, const std::vector<genometools::TwoBase> &Haplotype,
 					const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
 
-	// getters
 	const std::string& name() const noexcept { return _readGroup->name_ID; }
 	[[nodiscard]] virtual double meanReadLength() const = 0;
-	double maxFragmentLength() {
-		return _fragmentLengthDistr.max();
-	}
+	double maxFragmentLength() { return _fragmentLengthDistr.max(); }
 };
 
 //-------------------------------
@@ -117,6 +100,7 @@ public:
 //-------------------------------
 class TReadSimulatorSingleEnd final : public TReadSimulator {
 private:
+	BAM::TAlignment _alignment;
 	size_t _numCycles;
 
 	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
@@ -134,7 +118,9 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
-	BAM::TAlignment _mate;
+	BAM::TAlignment _fwdStrand;
+	BAM::TAlignment _revStrand;
+
 	std::array<size_t, 2> _numCycles;
 
 	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;

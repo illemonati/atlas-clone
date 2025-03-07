@@ -65,6 +65,9 @@ if __name__ == "__main__":
 
         # get average and std
         data = genfromtxt(file, skip_header=1)
+        if len(data) == 0:
+            continue
+
         if len(data.shape) == 1:
             data = array([data])
 
@@ -152,7 +155,7 @@ if __name__ == "__main__":
             smus      = r_[[nanstd(m) for m in mus]]
             sPMD5s    = r_[[nanstd(p) for p in PMD5s]]
             sPMD3s    = r_[[nanstd(p) for p in PMD3s]]
-        
+
         if hky85_i:
             print(label)
             print("depth:", mdepths)

@@ -10,6 +10,7 @@
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
 #include "TSimulatorReference.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
@@ -28,10 +29,30 @@ using genometools::TwoBase;
 using genometools::TGenomePosition;
 
 namespace impl {
-bool useFirstHaplo(const std::vector<TwoBase> &Haplotype, const TSimulatorReference &Reference, size_t Start,
-				   size_t End, coretools::Probability RefBias) {
+std::pair<size_t, size_t> refDiff(const std::vector<TwoBase> &Haplotype, const TSimulatorReference &Reference, size_t Pos, size_t Len) {
+	std::pair<size_t, size_t> Ns{};
+	for (size_t i = 0; i < Len; ++i) {
+		const auto pi = Pos + i;
+		const auto fi = first(Haplotype[pi]);
+		const auto se = second(Haplotype[pi]);
+		if (fi == se) continue;
 
-	return randomGenerator().getRand() < 0.5;
+		const auto re = Reference[pi];
+
+		if (re == Base::N) continue;
+		if ((fi != re) && (se != re)) continue;
+
+		if (fi != re) ++Ns.first;
+		else ++Ns.second;
+	}
+	return Ns;
+}
+
+//initialization functions
+template <typename Distr>
+void initDistribution(Distr & Dist, const BAM::RGInfo::TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
+	coretools::instances::logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[Info].description), ": ", RGInfo.getString(Info));
+	Dist.set(RGInfo.getString(Info));
 }
 } // namespace impl
 
@@ -44,15 +65,14 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup &ReadGroup, const TReadGrou
 	: _readGroup(&ReadGroup), _pmd(&Pmd), _recal(Recal) {
 
 	// initialize bamAlignment
-	_alignment.setReadGroup(_readGroup->id);
 
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup->id) + ":";
 
 	//initialize distributions
-	_initDistribution(_fragmentLengthDistr, RGInfo, InfoType::fragmentLength);
-	_initDistribution(_mappingQualityDist, RGInfo, InfoType::mappingQuality);
-	_initDistribution(_qualityDist, RGInfo, InfoType::baseQuality);
+	impl::initDistribution(_fragmentLengthDistr, RGInfo, InfoType::fragmentLength);
+	impl::initDistribution(_mappingQualityDist, RGInfo, InfoType::mappingQuality);
+	impl::initDistribution(_qualityDist, RGInfo, InfoType::baseQuality);
 
 	//soft clip
 	logfile().listFlush(BAM::RGInfo::infos[InfoType::softClipping].description, ": ");
@@ -103,6 +123,12 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup &ReadGroup, const TReadGrou
 	}
 }
 
+TReadSimulator::~TReadSimulator() {
+	logfile().list(_refCount[0], " Reference difference in written haplotypes.");
+	logfile().list(_refCount[1], " Reference difference in unwritten haplotypes.");
+	logfile().list("Reference bias: ", double(_refCount[1])/(_refCount[0]+_refCount[1]));
+}
+
 double TReadSimulator::_calcMeanReadLength(size_t maxLen) const {
 	// if fragments are always shorter than _numcycles, return mean fragment length
 	if(_fragmentLengthDistr.max() < maxLen){
@@ -130,14 +156,6 @@ std::string TReadSimulator::_getNextReadName() {
 		_readXPos = 1;
 	}
 	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
-}
-
-void TReadSimulator::_simulateAlignmentDetails(const TGenomePosition & Position){
-	_alignment.move(Position);
-	_alignment.setName(_getNextReadName());
-
-	//simulate mapping quality
-	_alignment.setMappingQuality(_mappingQualityDist.sample());
 }
 
 bool TReadSimulator::_simulateContamination(){
@@ -196,7 +214,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &Alignment, const s
 	for (auto& b: bases) {
 		if (randomGenerator().getRand() < _baseN) b = Base::N;
 	}
-	
+
 	// simulate true qualities
 	std::vector<coretools::PhredInt> phredIntQualities(bases.size());
 	_qualityDist.sample(phredIntQualities);
@@ -268,6 +286,8 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 	} else {
 		UERROR(errRange);
 	}
+
+	_alignment.setReadGroup(_readGroup->id);
 }
 
 double TReadSimulatorSingleEnd::meanReadLength() const {
@@ -276,12 +296,12 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 
 void TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
 										const TSimulatorReference &Reference) {
-	// pick a fragment
 	const auto fragmentLength = _fragmentLengthDistr.sample();
 	const auto readLength     = std::min(fragmentLength, _numCycles);
 
-	// prepare alignment
-	_simulateAlignmentDetails(Position);
+	_alignment.move(Position);
+	_alignment.setName(_getNextReadName());
+	_alignment.setMappingQuality(_mappingQualityDist.sample());
 
 	if (randomGenerator().getRand() < 0.5) {
 		_alignment.setIsReverseStrand(true);
@@ -292,8 +312,17 @@ void TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const s
 	}
 
 	// simulated bases and qualities
-	const bool haplo1 = randomGenerator().getRand() < 0.5;
-	_simulateBasesQualities(_alignment, Haplotype, haplo1, readLength, _simulateContamination());
+	const auto refDiff = impl::refDiff(Haplotype, Reference, Position.position(), readLength);
+	auto bias = 0.5;
+	if (refDiff.first < refDiff.second) {
+		// more ref Difference in second mate -> bias towards first
+		bias = _refBias;
+	} else if (refDiff.first > refDiff.second) {
+		// more ref Difference in first mate -> bias towards second
+		bias = _refBias.complement();
+	} // else -> bias = 0.5
+	const bool firstHaplo = randomGenerator().getRand() < bias;
+	_simulateBasesQualities(_alignment, Haplotype, firstHaplo, readLength, _simulateContamination());
 }
 
 void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & BamFile){
@@ -306,6 +335,7 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 //----------------------------------
 	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal){
+
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
 	auto& json = RGInfo[InfoType::cycles];
@@ -351,14 +381,16 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 		UERROR(errRange);
 	}
 
-	// set initial flags
-	_alignment.setIsPaired(true);
-	_alignment.setIsProperPair(true);
-	_alignment.setIsReverseStrand(false);
+	// set Alignment properties
+	_fwdStrand.setIsPaired(true);
+	_fwdStrand.setIsProperPair(true);
+	_fwdStrand.setIsReverseStrand(false);
+	_fwdStrand.setReadGroup(_readGroup->id);
 
-	_mate.setIsPaired(true);
-	_mate.setIsProperPair(true);
-	_mate.setIsReverseStrand(true);
+	_revStrand.setIsPaired(true);
+	_revStrand.setIsProperPair(true);
+	_revStrand.setIsReverseStrand(true);
+	_revStrand.setReadGroup(_readGroup->id);
 }
 
 double TReadSimulatorPairedEnd::meanReadLength() const {
@@ -366,61 +398,72 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 }
 
 void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & BamFile){
-	BamFile.writeAlignment(_alignment);
+	BamFile.writeAlignment(_fwdStrand);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (_mate == _alignment) {
-		BamFile.writeAlignment(_mate);
+	if (_revStrand == _fwdStrand) {
+		BamFile.writeAlignment(_revStrand);
 	} else {
-		BamFile.writeAlignmentLater(_mate);
+		BamFile.writeAlignmentLater(_revStrand);
 	}
 }
 
 void TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-                                        const TSimulatorReference &Reference) {
-	// pick a fragment
+										const TSimulatorReference &Reference) {
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
-	const auto readLength1     = std::min(fragmentLength, _numCycles[0]);
-	const auto readLength2     = std::min(fragmentLength, _numCycles[1]);
+	const auto readLength1        = std::min(fragmentLength, _numCycles.front());
+	const auto readLength2        = std::min(fragmentLength, _numCycles.back());
 	const auto readIsContaminated = _simulateContamination();
 
-	const bool haplo1             = randomGenerator().getRand() < 0.5;
+	_fwdStrand.move(Position);
+	_fwdStrand.setName(_getNextReadName());
+	_fwdStrand.setMappingQuality(_mappingQualityDist.sample());
 
-	_alignment.setInsertSize(fragmentLength);
-	_mate.setInsertSize(-fragmentLength);
+	_revStrand.move(_fwdStrand);
+	if(fragmentLength > _numCycles.back()){
+		_revStrand += fragmentLength - _numCycles.back();
+	}
+	_revStrand.setName(_fwdStrand.name());
+	_revStrand.setMappingQuality(_fwdStrand.mappingQuality());
+
+	_fwdStrand.setInsertSize(fragmentLength);
+	_revStrand.setInsertSize(-fragmentLength);
 
 	if (randomGenerator().getRand() < 0.5) {
-		_alignment.setIsSecondMate(true);
-		_mate.setIsSecondMate(false);
+		_fwdStrand.setIsSecondMate(true);
+		_revStrand.setIsSecondMate(false);
 	} else {
-		_alignment.setIsSecondMate(false);
-		_mate.setIsSecondMate(true);
+		_fwdStrand.setIsSecondMate(false);
+		_revStrand.setIsSecondMate(true);
 	}
 
-	// Forward Read
-	_simulateAlignmentDetails(Position);
-	_simulateBasesQualities(_alignment, Haplotype, haplo1, readLength1, readIsContaminated);
+	assert(_fwdStrand.isReverseStrand() != _revStrand.isReverseStrand());
+	assert(_fwdStrand.isSecondMate() != _revStrand.isSecondMate());
 
-	// Reversed Read (after Forward Read in bam-file)
-	// identify position
-	_mate.move(_alignment);
-	if(fragmentLength > _numCycles[1]){
-		_mate += (size_t) fragmentLength - (size_t) _numCycles[1];
+	const auto refDiff1 = impl::refDiff(Haplotype, Reference, _fwdStrand.position(), readLength1);
+	const auto refDiff2 = impl::refDiff(Haplotype, Reference, _revStrand.position(), readLength2);
+	auto bias = 0.5;
+	if (refDiff1.first + refDiff2.first < refDiff1.second + refDiff2.second) {
+		// more ref Difference in second mate -> bias towards first
+		bias = _refBias;
+	} else if (refDiff1.first + refDiff2.first > refDiff1.second + refDiff2.second) {
+		// more ref Difference in first mate -> bias towards second
+		bias = _refBias.complement();
+	} // else -> bias = 0.5
+	const bool firstHaplo = randomGenerator().getRand() < bias;
+	if (firstHaplo) {
+		_refCount.front() += refDiff1.first + refDiff2.first;
+		_refCount.back() += refDiff1.second + refDiff2.second;
+	} else {
+		_refCount.front() += refDiff1.second + refDiff2.second;
+		_refCount.back() += refDiff1.first + refDiff2.first;
 	}
 
-	// create new alignment
-	_mate.setReadGroup(_readGroup->id);
-	_mate.setName(_alignment.name());
-	_mate.setMappingQuality(_alignment.mappingQuality());
-	assert(_alignment.isReverseStrand() != _mate.isReverseStrand());
-	assert(_alignment.isSecondMate() != _mate.isSecondMate());
+	_simulateBasesQualities(_fwdStrand, Haplotype, firstHaplo, readLength1, readIsContaminated);
+	_simulateBasesQualities(_revStrand, Haplotype, firstHaplo, readLength2, readIsContaminated);
 
-	// simulated bases and qualities
-	_simulateBasesQualities(_mate, Haplotype, haplo1, readLength2, readIsContaminated);
-
-	// WRITE ALIGNMENTS
-	_alignment.setMateGenomicPosition(_mate);
-	_mate.setMateGenomicPosition(_alignment);
+	_fwdStrand.setMateGenomicPosition(_revStrand);
+	_revStrand.setMateGenomicPosition(_fwdStrand);
 }
 
 } // namespace Simulations
