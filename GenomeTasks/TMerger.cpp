@@ -22,8 +22,8 @@ void TMiddleMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Ove
 	Fwd.cigar().addSoftClipsRight(FOverlap);
 	Rev.cigar().addSoftClipsLeft(ROverlap);
 
-	Rev += ROverlap;
-	Fwd.setMateGenomicPosition(Rev);
+	Rev.advanceOnRef(ROverlap);
+	Fwd.setMateGenomicPosition(Rev.from());
 }
 
 void TRandomMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Overlap) {
@@ -35,8 +35,8 @@ void TRandomMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Ove
 	} else {
 		Rev.cigar().addSoftClipsLeft(Overlap);
 
-		Rev += Overlap;
-		Fwd.setMateGenomicPosition(Rev);
+		Rev.advanceOnRef(Overlap);
+		Fwd.setMateGenomicPosition(Rev.from());
 	}
 }
 
@@ -48,8 +48,8 @@ void TMateMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Overl
 	} else {
 		Rev.cigar().addSoftClipsLeft(Overlap);
 
-		Rev += Overlap;
-		Fwd.setMateGenomicPosition(Rev);
+		Rev.advanceOnRef(Overlap);
+		Fwd.setMateGenomicPosition(Rev.from());
 	}
 }
 
@@ -61,8 +61,8 @@ void TStrandMerger::merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev, size_t Ove
 	} else {
 		Rev.cigar().addSoftClipsLeft(Overlap);
 
-		Rev += Overlap;
-		Fwd.setMateGenomicPosition(Rev);
+		Rev.advanceOnRef(Overlap);
+		Fwd.setMateGenomicPosition(Rev.from());
 	}
 }
 

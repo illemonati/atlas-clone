@@ -66,7 +66,7 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 	// copy data
 	_name  = Name;
 	_flags = Flags;
-	move(RefID, Position);
+	_position.move(RefID, Position);
 	MappingQuality   = std::min<uint16_t>(MappingQuality, PhredInt::max());
 	_mappingQuality  = PhredInt(MappingQuality);
 	_insertSize_TLEN = InsertSize_TLEN;
@@ -302,7 +302,7 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 }
 
 void TAlignment::addReference(const genometools::TFastaReader &fasta) {
-	const auto view = fasta.view(refID(), position(), _refSize);
+	const auto view = fasta.view(refID(), _position.position(), _refSize);
 	_referenceSequence.clear();
 	std::copy(view.begin(), view.end(), std::back_inserter(_referenceSequence));
 }
@@ -352,7 +352,7 @@ genometools::Base TAlignment::referenceAtInternalPos(size_t internalPosition) co
 
 genometools::TGenomePosition TAlignment::positionInRef(size_t internalPosition) const {
 	assert(isAlignedAtInternalPos(internalPosition));
-	return *this + _alignedPosition[internalPosition];
+	return _position + _alignedPosition[internalPosition];
 }
 
 void TAlignment::_updateSequenceAndQualities() const {

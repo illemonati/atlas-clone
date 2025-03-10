@@ -127,6 +127,12 @@ void TCigar::addSoftClipsRight(size_t Length) {
 	}
 	if (Length > 0) DEVERROR("Error parsing cigar '", compileString(), "'.");
 	_cigar.push_back(softClipR);
+
+	if (_cigar.size() == 2 && _cigar.front().type == 'S' && _cigar.back().type == 'S') {
+		// merge softClips
+		_cigar.front().length += _cigar.back().length;
+		_cigar.pop_back();
+	}
 	_compileLengths();
 }
 

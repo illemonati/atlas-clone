@@ -401,7 +401,7 @@ void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 	BamFile.writeAlignment(_fwdStrand);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (_revStrand == _fwdStrand) {
+	if (_revStrand.from() == _fwdStrand.from()) {
 		BamFile.writeAlignment(_revStrand);
 	} else {
 		BamFile.writeAlignmentLater(_revStrand);
@@ -419,9 +419,9 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const s
 	_fwdStrand.setName(_getNextReadName());
 	_fwdStrand.setMappingQuality(_mappingQualityDist.sample());
 
-	_revStrand.move(_fwdStrand);
+	_revStrand.move(_fwdStrand.from());
 	if(fragmentLength > _numCycles.back()){
-		_revStrand += fragmentLength - _numCycles.back();
+		_revStrand.advanceOnRef(fragmentLength - _numCycles.back());
 	}
 	_revStrand.setName(_fwdStrand.name());
 	_revStrand.setMappingQuality(_fwdStrand.mappingQuality());
@@ -462,8 +462,8 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const s
 	_simulateBasesQualities(_fwdStrand, Haplotype, firstHaplo, readLength1, readIsContaminated);
 	_simulateBasesQualities(_revStrand, Haplotype, firstHaplo, readLength2, readIsContaminated);
 
-	_fwdStrand.setMateGenomicPosition(_revStrand);
-	_revStrand.setMateGenomicPosition(_fwdStrand);
+	_fwdStrand.setMateGenomicPosition(_revStrand.from());
+	_revStrand.setMateGenomicPosition(_fwdStrand.from());
 }
 
 } // namespace Simulations

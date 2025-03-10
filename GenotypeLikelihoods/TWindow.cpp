@@ -181,7 +181,7 @@ void TWindow::_clear(){
 
 	_usedAlignments.erase(
 		std::remove_if(_usedAlignments.begin(), _usedAlignments.end(),
-					   [t = to(), f = from()](auto a) { return a >= t || a.lastAlignedPositionWithRespectToRef() < f; }),
+					   [t = to(), f = from()](const auto &a) { return a.from() >= t || a.to() <= f; }),
 		_usedAlignments.end());
 
 	_depth              = 0.0;
