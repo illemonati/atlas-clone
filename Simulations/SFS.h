@@ -26,14 +26,14 @@ private:
 	std::vector<size_t> _dimensions;
 	size_t _numChr{};
 	std::vector<double> _sfs;
-	coretools::TRandomPicker _sfsPicker;
 
+	coretools::TRandomPicker _sfsPicker;
 	coretools::TSubsamplePicker _picker;
 
 	void _setDerivedDiploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, genometools::Base derived);
 	void _setDerivedHaploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, genometools::Base derived);
 
-	size_t _simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, genometools::Base ancestral, genometools::Base derived, std::function<void(size_t, TSimulatorHaplotypes &, size_t, size_t, size_t, genometools::Base)> func);
+	size_t _simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, genometools::Base ancestral, genometools::Base derived, bool Haplo);
 
 public:
 	SFS(const std::string &filename);
@@ -43,12 +43,12 @@ public:
 
 	size_t numChromosomes() const noexcept { return _numChr; };
 	double monoFrac() const noexcept { return _sfs.front(); };
-	void writeToFile(const std::string& filename, bool writeLog = false) const;
+	void writeToFile(std::string_view Filename, bool WriteLog = false) const;
 
-	size_t simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, genometools::Base ancestral, genometools::Base derived); //return true if site was polymorphic
-	size_t simulateSiteHaploid(size_t l, TSimulatorHaplotypes & haplotypes, genometools::Base ancestral, genometools::Base derived); //return true if site was polymorphic
+	size_t simulateSiteDiploid(size_t L, TSimulatorHaplotypes & Haplotypes, genometools::Base Ancestral, genometools::Base Derived); 
+	size_t simulateSiteHaploid(size_t L, TSimulatorHaplotypes & Haplotypes, genometools::Base Ancestral, genometools::Base Derived);
 
-	double calcLLOneSite(const std::vector<double> &gl);
+	double calcLLOneSite(const std::vector<double> &Gl);
 };
 } // namespace Simulations
 #endif /* SFS_H_ */

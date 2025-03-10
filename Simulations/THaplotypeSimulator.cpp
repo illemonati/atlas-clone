@@ -18,6 +18,7 @@
 #include "coretools/Strings/concatenateString.h"
 #include "coretools/Strings/fillContainer.h"
 #include "genometools/GenomePositions/TChromosomes.h"
+#include "genometools/Genotypes/TwoBases.h"
 
 namespace Simulations {
 
@@ -114,17 +115,19 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	const TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (size_t l = 0; l < chromosome.length(); ++l) {
-		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
-		haplotypes(0, 1, l) = randomGenerator().pickOne(mutTable[haplotypes(0, 0, l)]);
+		const auto b1 = randomGenerator().pickOne(_cumulBaseFreq);
+		const auto b2 = randomGenerator().pickOne(mutTable[b1]);
 
 		// decide on reference sequence
 		if (randomGenerator().getRand() < _referenceN) {
 			reference[l] = Base::N;
-		} else if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
-			reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
+		} else if (b1 == b2) {
+			reference[l] = impl::mutateBase(b1, _cumulRef);
 		} else {
-			reference[l] = haplotypes(0, randomGenerator().sample(2), l);
+			reference[l] = randomGenerator().getRand() < 0.5 ? b1 : b2;
 		}
+
+		haplotypes[0][l] = genometools::twoBase(b1, b2);
 	}
 }
 
@@ -132,15 +135,15 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 						   const genometools::TChromosome &chromosome) {
 	// now simulate genotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
-		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
-		haplotypes(0, 1, l) = haplotypes(0, 0, l);
+		const auto b = randomGenerator().pickOne(_cumulBaseFreq);
 
 		// decide on ref
 		if (randomGenerator().getRand() < _referenceN) {
 			reference[l] = Base::N;
 		} else {
-			reference[l] = impl::mutateBase(haplotypes(0, 0, l), _cumulRef);
+			reference[l] = impl::mutateBase(b, _cumulRef);
 		}
+		haplotypes[0][l] = genometools::twoBase(b, b);
 	}
 }
 
@@ -203,8 +206,7 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulat
 		} else {
 			reference[i] = r;
 		}
-		haplotypes(0, 0, i) = k;
-		haplotypes(0, 1, i) = l;
+		haplotypes[0][i] = genometools::twoBase(k, l);
 	}
 }
 
@@ -220,8 +222,7 @@ void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulat
 		} else {
 			reference[i] = ref;
 		}
-		haplotypes(0, 0, i) = R;
-		haplotypes(0, 1, i) = R;
+		haplotypes[0][i] = genometools::twoBase(R, R);
 	}
 }
 
@@ -370,8 +371,11 @@ void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	// now set homozygous
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// assign to haplotypes
-		haplotypes(0, 1, l) = haplotypes(0, 0, l);
-		haplotypes(1, 1, l) = haplotypes(1, 0, l);
+		const auto b0 = first(haplotypes[0][l]);
+		const auto b1 = first(haplotypes[1][l]);
+
+		haplotypes[0][l] = genometools::twoBase(b0, b0);
+		haplotypes[1][l] = genometools::twoBase(b1, b1);
 	}
 }
 
@@ -389,10 +393,13 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 		const int o = randomGenerator().sample(4);
 
 		// assign to haplotypes
-		haplotypes(0, 0, l) = _genoTrans[c][g][_orderLookup[o][0]];
-		haplotypes(0, 1, l) = _genoTrans[c][g][_orderLookup[o][1]];
-		haplotypes(1, 0, l) = _genoTrans[c][g][_orderLookup[o][2]];
-		haplotypes(1, 1, l) = _genoTrans[c][g][_orderLookup[o][3]];
+		const auto b0 = _genoTrans[c][g][_orderLookup[o][0]];
+		const auto b1 = _genoTrans[c][g][_orderLookup[o][1]];
+		const auto b2 = _genoTrans[c][g][_orderLookup[o][2]];
+		const auto b3 = _genoTrans[c][g][_orderLookup[o][3]];
+
+		haplotypes[0][l] = genometools::twoBase(b0, b1);
+		haplotypes[1][l] = genometools::twoBase(b2, b3);
 
 		// simulate reference
 		if (randomGenerator().getRand() < _referenceN) {
@@ -641,13 +648,11 @@ void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, 
 						  const TSimulatorHWSite &site) {
 	if (site.f == 0.0) {
 		for (int i = 0; i < _sampleSize; ++i) {
-			haplotypes(i, 0, locus) = site.reference;
-			haplotypes(i, 1, locus) = site.reference;
+			haplotypes[i][locus] = genometools::twoBase(site.reference, site.reference);
 		}
 	} else {
 		for (int i = 0; i < _sampleSize; ++i) {
-			haplotypes(i, 0, locus) = site.alternative;
-			haplotypes(i, 1, locus) = site.alternative;
+			haplotypes[i][locus] = genometools::twoBase(site.alternative, site.alternative);
 		}
 	}
 }
@@ -667,11 +672,9 @@ void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 			// simulate genotypes
 			for (int i = 0; i < _sampleSize; ++i) {
 				if (randomGenerator().getRand() < site.f) {
-					haplotypes(i, 0, l) = site.alternative;
-					haplotypes(i, 1, l) = site.alternative;
+					haplotypes[i][l] = genometools::twoBase(site.alternative, site.alternative);
 				} else {
-					haplotypes(i, 0, l) = site.reference;
-					haplotypes(i, 1, l) = site.reference;
+					haplotypes[i][l] = genometools::twoBase(site.reference, site.reference);
 				}
 			}
 		} else {
@@ -698,19 +701,15 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 			for (int i = 0; i < _sampleSize; ++i) {
 				int geno = randomGenerator().pickOne(_cumulGenoProb);
 				if (geno == 0) {
-					haplotypes(i, 0, l) = site.reference;
-					haplotypes(i, 1, l) = site.reference;
+					haplotypes[i][l] = genometools::twoBase(site.reference, site.reference);
 				} else if (geno == 1) {
 					if (randomGenerator().getRand() < 0.5) {
-						haplotypes(i, 0, l) = site.reference;
-						haplotypes(i, 1, l) = site.alternative;
+						haplotypes[i][l] = genometools::twoBase(site.reference, site.alternative);
 					} else {
-						haplotypes(i, 0, l) = site.alternative;
-						haplotypes(i, 1, l) = site.reference;
+						haplotypes[i][l] = genometools::twoBase(site.alternative, site.reference);
 					}
 				} else {
-					haplotypes(i, 0, l) = site.alternative;
-					haplotypes(i, 1, l) = site.alternative;
+					haplotypes[i][l] = genometools::twoBase(site.alternative, site.alternative);
 				}
 			}
 		} else {

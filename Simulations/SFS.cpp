@@ -11,6 +11,7 @@
 #include "coretools/algorithms.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/fillContainer.h"
+#include "genometools/Genotypes/TwoBases.h"
 
 namespace Simulations {
 using coretools::instances::randomGenerator;
@@ -96,12 +97,12 @@ SFS::SFS(size_t numChr, size_t onlyThisBin) {
 	_sfsPicker.init(_sfs);
 }
 
-void SFS::writeToFile(const std::string& filename, bool writeLog) const {
-	coretools::TOutputFile out(filename);
+void SFS::writeToFile(std::string_view Filename, bool WriteLog) const {
+	coretools::TOutputFile out(Filename);
 
 	out.writeln("#SHAPE=<" + coretools::str::concatenateString(_dimensions, "/") + ">");
 
-	if (writeLog) {		
+	if (WriteLog) {		
 		for (size_t i = 0; i < _sfs.size(); ++i){
 			 out.write(log(_sfs[i]));
 		}
@@ -113,19 +114,24 @@ void SFS::writeToFile(const std::string& filename, bool writeLog) const {
 	out.endln();
 }
 
-namespace /* anonymous */ {
+namespace impl {
 
-constexpr size_t is_odd(size_t x) noexcept { return x & 1; }
+constexpr size_t is_odd(size_t N) noexcept { return N & 1; }
 
 }
 
 void SFS::_setDerivedDiploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
 	auto these = _picker.pick(N, k);
 	for(auto& i : these){
-		size_t index = i + shift;
-		size_t ind = index / 2;
-		bool hap = is_odd(index);
-		haplotypes(ind, hap, l) = derived;
+		const auto index = i + shift;
+		const auto ind = index / 2;
+		const auto b1 = first(haplotypes[ind][l]);
+		const auto b2 = second(haplotypes[ind][l]);
+		if (impl::is_odd(index)) {
+			haplotypes[ind][l] = genometools::twoBase(b1, derived);
+		} else {
+			haplotypes[ind][l] = genometools::twoBase(derived, b2);
+		}
 	}
 }
 
@@ -134,19 +140,16 @@ void SFS::_setDerivedHaploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t
 	auto these = _picker.pick(N, k);
 	for(auto& i : these){
 		size_t ind = i + shift;
-		haplotypes(ind, 0, l) = derived;
-		haplotypes(ind, 1, l) = derived;
+		haplotypes[ind][l] = genometools::twoBase(derived, derived);
 	}
 }
 
-size_t SFS::_simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived,
-		std::function<void(size_t, TSimulatorHaplotypes &, size_t, size_t, size_t, Base)> func){
-		//void (&func)(const size_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)){
+size_t SFS::_simulateSite(size_t l, TSimulatorHaplotypes &haplotypes, Base ancestral, Base derived, bool haplo) {
+	// void (&func)(const size_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)){
 	//returns allele count
 	//set all as ancestral
 	for (size_t i = 0; i < haplotypes.size(); ++i) {
-		haplotypes(i, 0, l) = ancestral;
-		haplotypes(i, 1, l) = ancestral;
+		haplotypes[i][l] = genometools::twoBase(ancestral, ancestral);
 	}
 
 	// pick derived allele frequency
@@ -163,26 +166,20 @@ size_t SFS::_simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, Base ance
 	size_t shift = 0;
 	for(size_t pop = 0; pop < _numChrPerPop.size(); ++pop){
 		if(subscripts[pop] > 0){
-			func(l, haplotypes, _numChrPerPop[pop], subscripts[pop], shift, derived);
+			haplo ? _setDerivedHaploid(l, haplotypes, _numChrPerPop[pop], subscripts[pop], shift, derived)
+				  : _setDerivedDiploid(l, haplotypes, _numChrPerPop[pop], subscripts[pop], shift, derived);
 		}
 		shift += _numChrPerPop[pop];
 	}
 	return std::accumulate(subscripts.begin(), subscripts.end(), 0);
 }
 
-
 size_t SFS::simulateSiteHaploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived){
-	return _simulateSite(l, haplotypes, ancestral, derived,
-			[this](const size_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
-				return _setDerivedHaploid(l, haplotypes, N, k, shift, derived);
-			});
+	return _simulateSite(l, haplotypes, ancestral, derived, true);
 }
 
 size_t SFS::simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived){
-	return _simulateSite(l, haplotypes, ancestral, derived,
-				[this](size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
-					return _setDerivedDiploid(l, haplotypes, N, k, shift, derived);
-				});
+	return _simulateSite(l, haplotypes, ancestral, derived, false);
 }
 
 double SFS::calcLLOneSite(const std::vector<double> &gl) {

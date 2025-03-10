@@ -4,7 +4,7 @@
 #include <cstddef>
 
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TOutputFile.h"
 #include "genometools/Genotypes/Base.h"
 
 namespace Simulations {
@@ -35,13 +35,14 @@ public:
 		}
 	}
 
-	void writeRefAltToVCF(gz::ogzstream &VCF) {
-		VCF << toString(refBase) << '\t';
+	void writeRefAltToVCF(coretools::TOutputFile &VCF) {
+		VCF.write(refBase);
 		if (nextIndex == 1) // no alt
-			VCF << ".";
+			VCF.write(".");
 		else {
-			VCF << toString(indexToBase[1]);
-			for (size_t i = 2; i < nextIndex; ++i) VCF << ',' << toString(indexToBase[i]);
+			VCF.writeNoDelim(indexToBase[1]);
+			for (size_t i = 2; i < nextIndex; ++i) VCF.writeNoDelim(',', indexToBase[i]);
+			VCF.writeDelim();
 		}
 	}
 };

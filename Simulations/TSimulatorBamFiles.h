@@ -20,10 +20,10 @@ private:
 											const BAM::TQualityAdjusterForWriting & QualityAdjuster);
 
 public:
-	TSimulatorBamFiles(size_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators, const genometools::TChromosomes &Chromosomes);
+	~TSimulatorBamFiles();
+	void open(size_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators, const genometools::TChromosomes &Chromosomes);
 
 	BAM::TOutputBamFile &operator[](size_t i);
-	void close();
 };
 }
 

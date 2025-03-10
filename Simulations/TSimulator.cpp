@@ -30,28 +30,28 @@ using genometools::TGenomePosition;
 //---------------------------------------------------------
 
 namespace /* anonymous */ {
-std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes &chs) {
-	if (method == TSimulatorOne::name) {
-		logfile().startIndent("Simulating a single individual (parameter 'type' = '", method, "')");
-		return std::make_unique<TSimulatorOne>(chs.size());
+std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(std::string_view Method, const TChromosomes &Chs) {
+	if (Method == TSimulatorOne::name) {
+		logfile().startIndent("Simulating a single individual (parameter 'type' = '", Method, "')");
+		return std::make_unique<TSimulatorOne>(Chs.size());
 	}
-	if (method == TSimulatorHKY85::name) {
-		logfile().startIndent("Simulating a single individual using HKY85 (parameter 'type' = '", method, "')");
-		return std::make_unique<TSimulatorHKY85>(chs.size());
+	if (Method == TSimulatorHKY85::name) {
+		logfile().startIndent("Simulating a single individual using HKY85 (parameter 'type' = '", Method, "')");
+		return std::make_unique<TSimulatorHKY85>(Chs.size());
 	}
-	if (method == TSimulatorPair::name) {
-		logfile().startIndent("Simulating a pair of individual (parameter 'type' = '", method, "')");
+	if (Method == TSimulatorPair::name) {
+		logfile().startIndent("Simulating a pair of individual (parameter 'type' = '", Method, "')");
 		return std::make_unique<TSimulatorPair>();
 	}
-	if (method == TSimulatorSFS::name) {
-		logfile().startIndent("Simulating individuals from an SFS (parameter 'type' = '", method, "')");
-		return std::make_unique<TSimulatorSFS>(chs);
+	if (Method == TSimulatorSFS::name) {
+		logfile().startIndent("Simulating individuals from an SFS (parameter 'type' = '", Method, "')");
+		return std::make_unique<TSimulatorSFS>(Chs);
 	}
-	if (method == TSimulatorHW::name) {
-		logfile().startIndent("Simulating individuals under Hardy-Weinberg (parameter 'type' = '", method, "')");
+	if (Method == TSimulatorHW::name) {
+		logfile().startIndent("Simulating individuals under Hardy-Weinberg (parameter 'type' = '", Method, "')");
 		return std::make_unique<TSimulatorHW>();
 	}
-	UERROR("Unknown simulation method '", method, "'! Use '", TSimulatorOne::name, "', '", TSimulatorPair::name, "', '", TSimulatorSFS::name, "' or '", TSimulatorHW::name, "'");
+	UERROR("Unknown simulation method '", Method, "'! Use '", TSimulatorOne::name, "', '", TSimulatorPair::name, "', '", TSimulatorSFS::name, "' or '", TSimulatorHW::name, "'");
 	logfile().endIndent();
 }
 
@@ -130,7 +130,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 // TSimulator
 //---------------------------------------------------------
 
-TSimulator::TSimulator(const std::string &method){
+TSimulator::TSimulator(const std::string_view Method){
 	// output settings
 	logfile().startIndent("Output settings:");
 	if(parameters().exists("out")){
@@ -155,18 +155,17 @@ TSimulator::TSimulator(const std::string &method){
 		logfile().list("Will NOT write BED files with variant and invariant positions. (request with 'writeVariantBED')");
 	}
 
-	_reference.open(_outname + ".fasta");
-
 	logfile().endIndent();
 
 	//parse sequencing depth
 	makeChromosomes(_chromosomes, _seqDepth);
-	_haploSimulator = makeHaploSimulator(method, _chromosomes);
+	_haploSimulator = makeHaploSimulator(Method, _chromosomes);
 }
 
 void TSimulator::runSimulations() {
 	// prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(_haploSimulator->sampleSize());
+	TSimulatorReference reference(_outname + ".fasta");
 
 	// open files to store extra info on sites
 	if (_writeTrueGenotypes) {
@@ -184,21 +183,21 @@ void TSimulator::runSimulations() {
 		logfile().startIndent("Simulating chromosome " + chr.name() + ":");
 
 		// update reference storage and update haplotype lengths
-		_reference.setChr(chr.name(), chr.length());
+		reference.setChr(chr.name(), chr.length());
 		haplotypes.setLength(chr.length());
 
 		// simulate genotypes
 		logfile().listFlush("Simulating genotypes ...");
 		if (chr.ploidy() == 1)
-			_haploSimulator->simulateHaploid(haplotypes, _reference, chr);
+			_haploSimulator->simulateHaploid(haplotypes, reference, chr);
 		else
-			_haploSimulator->simulateDiploid(haplotypes, _reference, chr);
+			_haploSimulator->simulateDiploid(haplotypes, reference, chr);
 		logfile().done();
 
 		// write true genotypes
 		if (_writeTrueGenotypes) {
 			logfile().listFlush("Writing true genotypes ...");
-			haplotypes.writeTrueGenotypes(chr.name(), _reference);
+			haplotypes.writeTrueGenotypes(chr.name(), reference);
 			logfile().done();
 		}
 
@@ -206,7 +205,7 @@ void TSimulator::runSimulations() {
 		if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name());
 
 		// write bam / vcf files!
-		_simulateAndWrite(chr, haplotypes, _seqDepth[i]);
+		_simulateAndWrite(chr, haplotypes, reference, _seqDepth[i]);
 
 		// end of chromosome
 		logfile().endIndent();
@@ -218,16 +217,7 @@ void TSimulator::runSimulations() {
 // TBamSimulator
 //---------------------------------------------------
 
-TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
-	using genometools::Base;
-	_initializeReadSimulator();
-
-	// open bam files
-	_bamFiles =
-	    std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
-}
-
-void TBAMSimulator::_initializeReadSimulator(){
+TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 	logfile().startIndent("Parameters regarding sequencing:");
 	//read RGInfo files from command line
 	std::vector<std::string> filenames = parameters().get<std::vector<std::string>>(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, {});
@@ -269,35 +259,36 @@ void TBAMSimulator::_initializeReadSimulator(){
 			}
 		}
 	}
-};
+	_bamFiles.open(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
+}
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
-									  size_t avgDepth) {
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome,
+									  const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference &Reference,
+									  size_t AvgDepth) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
 	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
 		auto &readSimulator = _readSimulators.size() == 1 ? _readSimulators.front() : _readSimulators[i];
-		_simulateReadsFromHaplotypes(Chromosome, Haplotypes.get(i), readSimulator, avgDepth,
-									 (*_bamFiles)[i], toString(" for individual ", i + 1));
+		_simulateReadsForInd(Chromosome, i, Haplotypes[i], Reference, readSimulator, AvgDepth, _bamFiles[i]);
 	}
 	logfile().endIndent();
 }
 
-void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-												 const std::array<std::vector<Base>, 2>& haplotypes,
-												 TReadSimulators &readSimulators, size_t avgDepth,
-												 BAM::TOutputBamFile &bamFile, const std::string &extraProgressText) {
+void TBAMSimulator::_simulateReadsForInd(const genometools::TChromosome &thisChr, size_t Ind,
+										 const std::vector<genometools::TwoBase> &Haplotypes,
+										 const TSimulatorReference &Reference, TReadSimulators &ReadSimulators,
+										 size_t AvgDepth, BAM::TOutputBamFile &BamFile) {
 	// Initialize probabilities to simulate reads
-	const size_t numReads          = thisChr.length() * avgDepth / readSimulators.averageReadLength();
-	const size_t chrLengthForStart = thisChr.length() - readSimulators.maxFragmentLength() + 1;
+	const size_t numReads          = thisChr.length() * AvgDepth / ReadSimulators.averageReadLength();
+	const size_t chrLengthForStart = thisChr.length() - ReadSimulators.maxFragmentLength() + 1;
 	const coretools::Probability probReadPerSite{1.0 / chrLengthForStart};
 
 	// initialize progress reporting
 	coretools::TProgressReporter<size_t> reporter(
-		numReads, toString("Simulating about ", numReads, " reads", extraProgressText));
+		numReads, toString("Simulating about ", numReads, " reads for individual ", Ind + 1));
 
 	// now simulate
-	const auto nRG = readSimulators.numRG();
+	const auto nRG = ReadSimulators.numRG();
 	std::vector<size_t> readsPerRG(nRG);
 	std::vector<size_t> dupsPerRG(nRG);
 	for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
@@ -308,9 +299,9 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 		// now simulate
 		if (numReadsHere > 0) {
 			for (size_t r = 0; r < numReadsHere; ++r) {
-				const auto ss = readSimulators.simulate(pos, haplotypes[randomGenerator().pickOneOfTwo()], bamFile);
-				readsPerRG[ss.RG] += ss.nSim;
-				if (ss.nSim > 1) dupsPerRG[ss.RG]  += ss.nSim - 1; // could be more than 1
+				const auto [RG, nSim] = ReadSimulators.simulate(pos, Haplotypes, Reference, BamFile);
+				readsPerRG[RG] += nSim;
+				if (nSim > 1) dupsPerRG[RG] += nSim - 1; // could be more than 1
 			}
 			// report progress
 			reporter.next();
@@ -323,7 +314,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	for (size_t rg = 0; rg < nRG; ++rg) {
 		logfile().conclude("Simulated ", readsPerRG[rg], " reads, including ",
 						   dupsPerRG[rg], " duplicates, in readgroup ",
-						   readSimulators.readGroups().getName(rg), ".");
+						   ReadSimulators.readGroups().getName(rg), ".");
 		totReads += readsPerRG[rg];
 		totDups += dupsPerRG[rg];
 	}
@@ -419,7 +410,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	_vcf = std::make_unique<genometools::TVCFWriter>(filename, "ATLAS_simulations", sampleNames, _chromosomes, usePhredLikelihoods);
 }
 
-void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
+void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) {
 	logfile().startIndent("Simulating genotype likelihoods:");
 
 	for (size_t l = 0; l < Chromosome.length(); ++l) {
@@ -431,11 +422,11 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 		for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
 			// get haplotypes
-			const auto hap1 = Haplotypes(i, 0, l);
-			const auto hap2 = Haplotypes(i, 1, l);
+			const auto hap1 = first(Haplotypes[i][l]);
+			const auto hap2 = second(Haplotypes[i][l]);
 
 			// simulate depth and genotype likelihoods
-			auto entry = simulate(genometools::biallelicGenotype(hap1, hap2, _reference[l], isDiploid), avgDepth);
+			auto entry = simulate(genometools::biallelicGenotype(hap1, hap2, Reference[l], isDiploid), avgDepth);
 
 			// store
 			genotypeLikelihoods[i] = entry;
@@ -444,7 +435,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		}
 
 		// find major and minor allele
-		const auto refAllele = _reference[l];
+		const auto refAllele = Reference[l];
 		if (refAllele == Base::N) continue; // skip
 		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
