@@ -118,7 +118,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 
         // position attributes of TAlignment
         EXPECT_EQ(alignmentWritten->lastAlingedInternalPos(), alignmentRead.lastAlingedInternalPos());
-        EXPECT_EQ(alignmentWritten->lastAlignedPositionWithRespectToRef(), alignmentRead.lastAlignedPositionWithRespectToRef());
+        EXPECT_EQ(alignmentWritten->to(), alignmentRead.to());
         for (size_t i = 0; i < alignmentWritten->parsedLength(); i++){
             EXPECT_EQ(alignmentWritten->isAlignedAtInternalPos(i), alignmentRead.isAlignedAtInternalPos(i));
 			if (alignmentWritten->isAlignedAtInternalPos(i)) {

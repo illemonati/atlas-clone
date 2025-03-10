@@ -59,10 +59,9 @@ size_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment
 			if (alignment.isAlignedAtInternalPos(p) && alignment.positionInRef(p) >= from()) break;
 			++p;
 		}
-		if (p == alignment.parsedLength()) {
-			DEVERROR("Alignment '", alignment.name(), "' at ", alignment.position(),
-					 " should be assigned to previous window, not to [", from().position(), ", ", to().position(), ")!");
-		}
+
+		// in rare situations, we can get p == alignment.parsedLength(), if a alignment overlaps two Windows
+		// and only deletions mapp into one of the Windows
 		return p;
 	}
 	return 0;
