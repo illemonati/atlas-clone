@@ -139,8 +139,10 @@ public:
 	int32_t insertSize() const { return _insertSize_TLEN; }
 	coretools::PhredInt mappingQuality() const { return _mappingQuality; }
 	uint16_t flags() const { return _flags.asInt(); }
+
 	const TCigar &cigar() const { return _cigar; }
-	TCigar &cigar() { return _cigar; }
+	void removeMappedRight(size_t Length) {_cigar.removeMappedRight(Length);}
+	void removedMappedLeft(size_t Length) { advanceOnRef(_cigar.removeMappedLeft(Length)); }
 
 	TSequencedData &operator[](size_t internalPos) noexcept {
 		assert(internalPos < _data.size());

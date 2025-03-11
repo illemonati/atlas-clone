@@ -103,24 +103,24 @@ TEST(TCigarTests, add) {
 
 	EXPECT_EQ(cigar.compileString(), "1S2M3I4=5D6X7N8S");
 
-	cigar.addSoftClipsLeft(1);
+	cigar.removeMappedLeft(1);
 	EXPECT_EQ(cigar.compileString(), "2S1M3I4=5D6X7N8S");
 
-	cigar.addSoftClipsRight(2);
+	cigar.removeMappedRight(2);
 	EXPECT_EQ(cigar.compileString(), "2S1M3I4=5D6X5N8S");
 
-	cigar.addSoftClipsLeft(3);
+	cigar.removeMappedLeft(3);
 	EXPECT_EQ(cigar.compileString(), "8S2=5D6X5N8S");
 
-	cigar.addSoftClipsRight(4);
+	cigar.removeMappedRight(4);
 	EXPECT_EQ(cigar.compileString(), "8S2=5D6X1N8S");
 
-	cigar.addSoftClipsLeft(5);
+	cigar.removeMappedLeft(5);
 	EXPECT_EQ(cigar.compileString(), "10S2D6X1N8S");
 
-	cigar.addSoftClipsRight(6);
+	cigar.removeMappedRight(6);
 	EXPECT_EQ(cigar.compileString(), "10S2D1X13S");
 
-	EXPECT_ANY_THROW(cigar.addSoftClipsLeft(7));
-	EXPECT_ANY_THROW(cigar.addSoftClipsRight(7));
+	EXPECT_ANY_THROW(cigar.removeMappedLeft(7));
+	EXPECT_ANY_THROW(cigar.removeMappedRight(7));
 }

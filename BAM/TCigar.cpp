@@ -7,6 +7,7 @@
 
 #include "TCigar.h"
 #include "coretools/Main/TError.h"
+#include <algorithm>
 
 namespace BAM {
 
@@ -72,15 +73,16 @@ void TCigar::removeSoftClips() {
 	_lengthSoftClippedRight = 0;
 }
 
-void TCigar::addSoftClipsLeft(size_t Length) {
+size_t TCigar::removeMappedLeft(size_t Length) {
 	std::reverse(_cigar.begin(), _cigar.end());
-	addSoftClipsRight(Length);
+	removeMappedRight(Length);
 	std::reverse(_cigar.begin(), _cigar.end());
 
 	std::swap(_lengthSoftClippedLeft, _lengthSoftClippedRight);
+	return Length;
 }
 
-void TCigar::addSoftClipsRight(size_t Length) {
+void TCigar::removeMappedRight(size_t Length) {
 	if (Length == 0) return;
 
 	if (Length > lengthMapped())
