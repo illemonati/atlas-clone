@@ -73,7 +73,7 @@ protected:
 	void _simulateBasesQualities(BAM::TAlignment& Alignment, const std::vector<genometools::TwoBase>& Haplotype,
 								 bool FirstHaplo, size_t ReadLength, bool ReadIsContaminated);
 
-	virtual void _simulate(const genometools::TGenomePosition &Position,
+	virtual bool _simulate(const genometools::TGenomePosition &Position,
 						   const std::vector<genometools::TwoBase> &Haplotype,
 						   const TSimulatorReference &Reference)         = 0;
 	virtual void _writeSimulatedAlignments(BAM::TOutputBamFile &BamFile) = 0;
@@ -103,7 +103,7 @@ private:
 	BAM::TAlignment _alignment;
 	size_t _numCycles;
 
-	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
+	bool _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
 	void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) override;
 
 public:
@@ -123,7 +123,7 @@ private:
 
 	std::array<size_t, 2> _numCycles;
 
-	void _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
+	bool _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
 	void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) override;
 
 public:

@@ -242,11 +242,11 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 								const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile) {
 	// Do not simulate fraction of reads that will be duplicates
 	if (_duplicationRate == 0.0) {
-		_simulate(Position, Haplotype, Reference);
+		if (!_simulate(Position, Haplotype, Reference)) return 0;
 		_writeSimulatedAlignments(BamFile);
 		return 1;
 	} else if (randomGenerator().getRand() > _duplicationRate) {
-		_simulate(Position, Haplotype, Reference);
+		if (!_simulate(Position, Haplotype, Reference)) return 0;
 		_writeSimulatedAlignments(BamFile);
 
 		if (randomGenerator().getRand() < _duplicationRateAmongSimulated) {
@@ -294,10 +294,33 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-void TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
+bool TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
 										const TSimulatorReference &Reference) {
 	const auto fragmentLength = _fragmentLengthDistr.sample();
 	const auto readLength     = std::min(fragmentLength, _numCycles);
+
+	const bool firstHaplo = randomGenerator().getRand() < 0.5;
+	const auto refDiff    = impl::refDiff(Haplotype, Reference, Position.position(), readLength);
+
+	// Discard alignment?
+	if (refDiff.first < refDiff.second) {
+		// more ref Difference in second mate -> bias towards first
+		const auto oRatio = firstHaplo ? _refBias.oddsRatio() : _refBias.complement().oddsRatio();
+		if (oRatio < 1 && randomGenerator().getRand() < oRatio) return false;
+	} else if (refDiff.first > refDiff.second) {
+		// more ref Difference in first mate -> bias towards second
+		const auto oRatio = firstHaplo ? _refBias.complement().oddsRatio() : _refBias.oddsRatio();
+		if (oRatio < 1 && randomGenerator().getRand() < oRatio) return false;
+	}
+
+	// Statistics
+	if (firstHaplo) {
+		_refCount.front() += refDiff.first;
+		_refCount.back() += refDiff.second;
+	} else {
+		_refCount.front() += refDiff.second;
+		_refCount.back() += refDiff.first;
+	}
 
 	_alignment.move(Position);
 	_alignment.setName(_getNextReadName());
@@ -311,18 +334,8 @@ void TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const s
 		_alignment.setInsertSize(fragmentLength);
 	}
 
-	// simulated bases and qualities
-	const auto refDiff = impl::refDiff(Haplotype, Reference, Position.position(), readLength);
-	auto bias = 0.5;
-	if (refDiff.first < refDiff.second) {
-		// more ref Difference in second mate -> bias towards first
-		bias = _refBias;
-	} else if (refDiff.first > refDiff.second) {
-		// more ref Difference in first mate -> bias towards second
-		bias = _refBias.complement();
-	} // else -> bias = 0.5
-	const bool firstHaplo = randomGenerator().getRand() < bias;
 	_simulateBasesQualities(_alignment, Haplotype, firstHaplo, readLength, _simulateContamination());
+	return true;
 }
 
 void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & BamFile){
@@ -408,12 +421,37 @@ void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 	}
 }
 
-void TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
+bool TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
 										const TSimulatorReference &Reference) {
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readLength1        = std::min(fragmentLength, _numCycles.front());
 	const auto readLength2        = std::min(fragmentLength, _numCycles.back());
 	const auto readIsContaminated = _simulateContamination();
+
+	const bool firstHaplo = randomGenerator().getRand() < 0.5;
+
+	const auto refDiff1 = impl::refDiff(Haplotype, Reference, _fwdStrand.position(), readLength1);
+	const auto refDiff2 = impl::refDiff(Haplotype, Reference, _revStrand.position(), readLength2);
+
+	// Discard alignment?
+	if (refDiff1.first + refDiff2.first < refDiff1.second + refDiff2.second) {
+		// more ref Difference in second mate -> bias towards first
+		const auto oRatio = firstHaplo ? _refBias.oddsRatio() : _refBias.complement().oddsRatio();
+		if (oRatio < 1 && randomGenerator().getRand() > oRatio) return false;
+	} else if (refDiff1.first + refDiff2.first > refDiff1.second + refDiff2.second) {
+		// more ref Difference in first mate -> bias towards second
+		const auto oRatio = firstHaplo ? _refBias.complement().oddsRatio() : _refBias.oddsRatio();
+		if (oRatio < 1 && randomGenerator().getRand() > oRatio) return false;
+	}
+
+	// Statistics
+	if (firstHaplo) {
+		_refCount.front() += refDiff1.first + refDiff2.first;
+		_refCount.back() += refDiff1.second + refDiff2.second;
+	} else {
+		_refCount.front() += refDiff1.second + refDiff2.second;
+		_refCount.back() += refDiff1.first + refDiff2.first;
+	}
 
 	_fwdStrand.move(Position);
 	_fwdStrand.setName(_getNextReadName());
@@ -440,30 +478,12 @@ void TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const s
 	assert(_fwdStrand.isReverseStrand() != _revStrand.isReverseStrand());
 	assert(_fwdStrand.isSecondMate() != _revStrand.isSecondMate());
 
-	const auto refDiff1 = impl::refDiff(Haplotype, Reference, _fwdStrand.position(), readLength1);
-	const auto refDiff2 = impl::refDiff(Haplotype, Reference, _revStrand.position(), readLength2);
-	auto bias = 0.5;
-	if (refDiff1.first + refDiff2.first < refDiff1.second + refDiff2.second) {
-		// more ref Difference in second mate -> bias towards first
-		bias = _refBias;
-	} else if (refDiff1.first + refDiff2.first > refDiff1.second + refDiff2.second) {
-		// more ref Difference in first mate -> bias towards second
-		bias = _refBias.complement();
-	} // else -> bias = 0.5
-	const bool firstHaplo = randomGenerator().getRand() < bias;
-	if (firstHaplo) {
-		_refCount.front() += refDiff1.first + refDiff2.first;
-		_refCount.back() += refDiff1.second + refDiff2.second;
-	} else {
-		_refCount.front() += refDiff1.second + refDiff2.second;
-		_refCount.back() += refDiff1.first + refDiff2.first;
-	}
-
 	_simulateBasesQualities(_fwdStrand, Haplotype, firstHaplo, readLength1, readIsContaminated);
 	_simulateBasesQualities(_revStrand, Haplotype, firstHaplo, readLength2, readIsContaminated);
 
 	_fwdStrand.setMateGenomicPosition(_revStrand.from());
 	_revStrand.setMateGenomicPosition(_fwdStrand.from());
+	return true;
 }
 
 } // namespace Simulations
