@@ -264,12 +264,14 @@ void TEstimateHKY85::run() {
 		const auto pis = _genoDist->pis();
 
 		const auto nIT = _numEMIterations;
-		for (size_t r = 0; r < _nRounds; ++r) {
-			logfile().list("Downsampling round ", r + 1, ".");
+		size_t r = 0;
+		while (!_sites_P.empty()) {
+			++r;
+			logfile().list("Downsampling round ", r, ".");
 			if (_windows.considerRegions()) {
-				_out.write("regions", "Round", r+1);
+				_out.write("regions", "Round", r);
 			} else {
-				_out.write("genome-wide", "Round", r+1);
+				_out.write("genome-wide", "Round", r);
 			}
 			_out.write(_stats_full.NData / NSites, NSites, _totSites - _stats_full.NMissing,
 					   double(_stats_full.NMissing - _totMaskedSites) / NSites, pis, LL);
@@ -280,7 +282,7 @@ void TEstimateHKY85::run() {
 			}
 
 			// downsampled
-			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
+			for (size_t i = 0; i < _sites_P.back().size(); ++i) {
 				constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{{"probability", "probability", "maximum depth"}};
 				logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[i], ".");
 				if (_sample == Sample::upToDepth) {
@@ -290,8 +292,8 @@ void TEstimateHKY85::run() {
 				}
 
 				if (_sample == Sample::reads) {
-					const auto &sites = _sites_P[r][i];
-					const auto &stat  = _stats_P[r][i];
+					const auto &sites = _sites_P.back()[i];
+					const auto &stat  = _stats_P.back()[i];
 
 					const auto LL_i = _runEM(sites);
 					_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
@@ -322,6 +324,9 @@ void TEstimateHKY85::run() {
 				}
 			}
 			_out.endln();
+			// release memory early
+			_sites_P.pop_back();
+			_stats_P.pop_back();
 		}
 	}
 }

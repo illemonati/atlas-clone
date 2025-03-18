@@ -37,7 +37,7 @@ private:
 	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_dis;
 
 	// per read
-	std::vector<genometools::TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
+	std::vector<SequencingError::TGenotypeFloats> _P_bbarEdij_I_gdijs;
 
 	BAM::TReadGroupMap _recalMap;
 	BAM::TReadGroupMap _pmdMap;
@@ -96,7 +96,7 @@ private:
 
 	void _identifyModels();
 	void _runEM();
-	void _updatePbbar();
+	void _updatePbbar(bool DoEps);
 
 	void _writeModels(std::string_view Intro);
 	void _handleSite(const TSite& Site, size_t Region);

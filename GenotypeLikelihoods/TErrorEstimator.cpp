@@ -7,6 +7,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
+#include "genometools/Genotypes/Containers.h"
 #include "genometools/Genotypes/Ploidy.h"
 #include "coretools/Math/TSumLog.h"
 
@@ -134,7 +135,7 @@ void TErrorEstimator::_identifyModels() {
 	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 
 	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
-	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
+	if (!_noEpsilon) _P_bbarEdij_I_gdijs.reserve(_dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
@@ -196,7 +197,7 @@ void TErrorEstimator::_identifyModels() {
 	logfile().endIndent();
 }
 
-void TErrorEstimator::_updatePbbar() {
+void TErrorEstimator::_updatePbbar(bool DoEps) {
 	using genometools::genotype;
 	_P_bbarEdij_I_gdijs.clear();
 	size_t i     = 0;
@@ -206,7 +207,6 @@ void TErrorEstimator::_updatePbbar() {
 		for (const auto& site: sites) {
 			const auto &P_g_I_di = _P_g_I_dis[i++];
 			for (const auto &d_ij : site) {
-				_P_bbarEdij_I_gdijs.emplace_back(coretools::P(0.));
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
@@ -221,7 +221,7 @@ void TErrorEstimator::_updatePbbar() {
 				}
 
 				// Rho
-				auto &P_bbarEdij_I_gdij = _P_bbarEdij_I_gdijs.back();
+				SequencingError::TGenotypeFloats P_bbarEdij_I_gdij(coretools::P(0.));
 				for (auto a = Base::min; a < Base::max; ++a) {
 					const auto aa              = genotype(a, a);
 					const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
@@ -237,6 +237,7 @@ void TErrorEstimator::_updatePbbar() {
 						_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[ab], P_bbar_I_ab_dij);
 					}
 				}
+				if (DoEps) _P_bbarEdij_I_gdijs.emplace_back(P_bbarEdij_I_gdij);
 			}
 		}
 	}
@@ -374,13 +375,12 @@ double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, T
 		Ps[Ploidy::haploid][Genotype::GT] = P(0.);
 		return Ps;
 	}();
-	const auto &PgI_init = PgI_inits[Pl];
 
 	coretools::TSumLogProbability LL{};
 	for (const auto &site : sites) {
 		if (site.genotype == Genotype::NN) { // unknown genotype
 			const auto ref                             = site.refBase;
-			genometools::TGenotypeLikelihoods P_g_I_di = PgI_init;
+			genometools::TGenotypeLikelihoods P_g_I_di = PgI_inits[Pl];
 			double sum                                 = 1.;
 			for (const auto &d_ij : site) {
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
@@ -461,7 +461,7 @@ void TErrorEstimator::_runEM() {
 		logfile().number("EM Iteration:");
 		logfile().addIndent();
 
-		_updatePbbar();
+		_updatePbbar(!_noEpsilon && doEps);
 
 		if (!_noPi) {
 			logfile().list("Estimating pi");

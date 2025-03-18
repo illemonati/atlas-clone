@@ -20,6 +20,8 @@ namespace RecalEstimatorTools {class TRecalDataTable;}
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
+using TGenotypeFloats = coretools::TStrongArray<float, genometools::Genotype, 10>;
+
 class TEpsilon {
 	TFunctions _functions;
 
@@ -60,7 +62,7 @@ class TEpsilon {
 
 	template<bool isInvariant>
 	void _addToQ(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
-				const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
+				const genometools::TGenotypeFloats &P_bbar_I_gds) {
 		const double eps    = calcErrorRate(data);
 		const double eps_c  = 1. - eps;
 		const double leps   = std::log(eps);
@@ -75,7 +77,7 @@ class TEpsilon {
 
 	template<bool isInvariant>
 	void _addToQJF(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
-				   const genometools::TGenotypeLikelihoods &P_bbar_I_gds) {
+				   const genometools::TGenotypeFloats &P_bbar_I_gds) {
 		static std::vector<T1stDerivative> der1st;
 		static std::vector<T2ndDerivative> der2nd;
 		der1st.clear();
@@ -128,7 +130,7 @@ public:
 	bool accepted() const noexcept {return _accepted; }
 
 	template<bool updateJF, bool isInvariant>
-	void add(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeLikelihoods & P_bbar_I_gds) {
+	void add(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds, const genometools::TGenotypeFloats & P_bbar_I_gds) {
 		if (_accepted) return;
 		if constexpr (updateJF) _addToQJF<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);

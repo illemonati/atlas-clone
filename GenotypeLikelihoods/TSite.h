@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Math/TSubsamplePicker.h"
-
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 
