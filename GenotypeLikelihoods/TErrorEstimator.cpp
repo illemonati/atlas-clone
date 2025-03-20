@@ -45,6 +45,7 @@ TErrorEstimator::TErrorEstimator()
 		for (size_t i = 0; i < beds.size(); ++i) {
 			const auto& bedFile   = beds[i];
 			_regions.emplace_back(bedFile, _genome.bamFile().chromosomes());
+			_regionSites[i].reserve(_regions[i].length());
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -134,9 +135,6 @@ void TErrorEstimator::_identifyModels() {
 
 	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 
-	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
-	if (!_noEpsilon) _P_bbarEdij_I_gdijs.reserve(_dataTables.size());
-
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
 	for (auto rg : _recalMap.readGroupsInUse()) {
@@ -194,6 +192,13 @@ void TErrorEstimator::_identifyModels() {
 		_psis.push_back(pmd.psi());
 		_psis.back()->estimateInit(_genome.outputName(), _minData);
 	}
+
+	const auto N = _dataTables.size();
+	_dataTables.clear();
+
+	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
+	if (!_noEpsilon) _P_bbarEdij_I_gdijs.reserve(N);
+
 	logfile().endIndent();
 }
 
@@ -531,6 +536,7 @@ void TErrorEstimator::estimate() {
 	// run EM
 	_runEM();
 
+
 	// writing final estimates
 	_recal.addToRGInfo(_genome.rgInfo());
 	_pmd.addToRGInfo(_genome.rgInfo());
@@ -572,6 +578,7 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
 				const size_t pStart = std::max(lb->from().position(), Window.from().position()) - Window.from().position();
 				const size_t pStop  = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
+				_regionSites[r].reserve(_regionSites[r].size() + pStop - pStart);
 				for (auto p = pStart; p < pStop; ++p) {
 					const auto s = Window[p];
 					_handleSite(Window[p], r);
@@ -586,6 +593,7 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 
 			region = std::distance(_refIDs.begin(), rIt);
 		}
+		_regionSites[region].reserve(_regionSites[region].size() + Window.size());
 		for (const auto &s : Window) {
 			_handleSite(s, region);
 		}

@@ -26,7 +26,7 @@ namespace GenotypeLikelihoods {
 //  Class that stores bases.
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
-private:
+public:
 	std::vector<BAM::TSequencedData> _data;
 public:
 	genometools::TGenotypeLikelihoods genotypeLikelihoods;
