@@ -111,8 +111,8 @@ void TOverlappingReadsMerger::_handleMates(TWaitingAlignment &lhs, TWaitingAlign
 	// lhs <= rhs with respect to reference
 	if (!lhs.alignment.isProperPair()) { // not a proper pair: mark mate as as improper too
 		rhs.alignment.setIsProperPair(false);
-		lhs.status = AlignmentStatus::orphan;
-		rhs.status = AlignmentStatus::orphan;
+		lhs.status = AlignmentStatus::filterOut;
+		rhs.status = AlignmentStatus::filterOut;
 	} else {
 		// no parsing needed!
 		auto merged = false;

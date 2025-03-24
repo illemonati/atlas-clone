@@ -12,7 +12,6 @@ namespace Simulations {
 
 using BAM::RGInfo::TReadGroupInfo;
 using coretools::instances::logfile;
-using genometools::Base;
 
 void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
@@ -115,12 +114,13 @@ TReadSimulators::TReadSimulators(std::string_view FileName, bool read){
 	RGinfo.write(FileName);
 }
 
-TReadSimulators::TSimStat TReadSimulators::simulate(const genometools::TGenomePosition &Position, const std::vector<Base> &Haplotype,
-							   BAM::TOutputBamFile &BamFile) {
+std::pair<size_t, size_t> TReadSimulators::simulate(const genometools::TGenomePosition &Position,
+													const std::vector<genometools::TwoBase> &Haplotype,
+													const TSimulatorReference &Reference,
+													BAM::TOutputBamFile &BamFile) {
 	// sample which simulator to use
 	const auto RG   = numRG() == 1 ? 0 : _picker();
-	const auto nSim = _readSimulators[RG]->simulate(Position, Haplotype, BamFile);
-
+	const auto nSim = _readSimulators[RG]->simulate(Position, Haplotype, Reference, BamFile);
 	return {RG, nSim};
 }
 

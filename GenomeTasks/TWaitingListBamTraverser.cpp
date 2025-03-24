@@ -14,9 +14,10 @@ using coretools::instances::parameters;
 
 namespace impl {
 
-template<typename Container>
-void insert_sorted(Container &Vec, const typename Container::value_type &Item) {
-	Vec.insert(std::upper_bound(Vec.begin(), Vec.end(), Item), Item);
+template<typename Container> void insert_sorted(Container &Vec, const typename Container::value_type &Item) {
+	Vec.insert(std::upper_bound(Vec.begin(), Vec.end(), Item,
+								[](const auto &lhs, const auto &rhs) { return lhs.alignment < rhs.alignment; }),
+			   Item);
 }
 } // namespace impl
 
@@ -52,8 +53,8 @@ void TWaitingListBamTraverser::_writeUpTo(const genometools::TGenomePosition &po
 	// writes all that are ready or too far away
 	auto it = _waitingList.begin();
 
-	for (; it != _waitingList.end() && it->alignment < position; ++it) {
-		if (it->status == AlignmentStatus::waiting && position - it->alignment > _maxDistanceBetweenMates) {
+	for (; it != _waitingList.end() && it->alignment.from() < position; ++it) {
+		if (it->status == AlignmentStatus::waiting && position - it->alignment.from() > _maxDistanceBetweenMates) {
 			it->status = AlignmentStatus::orphan; // waited long enough
 		}
 		if (it->status != AlignmentStatus::waiting)
@@ -215,31 +216,31 @@ void TWaitingListBamTraverser::traverseBAM() {
 				if (alignment.readGroupId() != mate->alignment.readGroupId()) {
 					constexpr std::array fise{"first", "second"};
 					UERROR("Alignment '", alignment.name(), "' with read group = ", _genome.bamFile().readGroups()[alignment.readGroupId()].name_ID,
-						   ", CIGAR = ", alignment.cigar().compileString(), ", starting position = ", genometools::TGenomePosition(alignment), ", and ",
+						   ", CIGAR = ", alignment.cigar().compileString(), ", starting position = ", alignment.from(), ", and ",
 						   fise[alignment.isSecondMate()], " mate '", mate->alignment.name(),
 						   "' with read group = ", _genome.bamFile().readGroups()[mate->alignment.readGroupId()].name_ID,
-						   ", CIGAR = ", mate->alignment.cigar().compileString(), ", starting position = ", genometools::TGenomePosition(mate->alignment), " do not match!");
+						   ", CIGAR = ", mate->alignment.cigar().compileString(), ", starting position = ", mate->alignment.from(), " do not match!");
 				}
-				const genometools::TGenomeWindow mateWin(mate->alignment, mate->alignment.length());
+				const genometools::TGenomeWindow mateWin(mate->alignment.from(), mate->alignment.length());
 				if(!_masks.keepPaired(alnWin, mateWin)){
 					next.status  = AlignmentStatus::filterOut;
 					mate->status = AlignmentStatus::filterOut;
 				} else {
 					const auto pMate = mate->alignment.position();
 					// mate <= next with respect to reference
-					assert(mate->alignment <= next.alignment);
+					assert(mate->alignment.from() <= next.alignment.from());
 					_handleMates(*mate, next);
 
 					if (mate->alignment.position() > pMate) {
 						// !! reverse iterator
-						while (mate != _waitingList.rbegin() && (mate - 1)->alignment < mate->alignment)  {
+						while (mate != _waitingList.rbegin() && (mate - 1)->alignment.from() < mate->alignment.from())  {
 							std::swap(*mate, *(mate - 1));
 							--mate;
 						}
 					}
 					if (mate->alignment.position() < pMate) {
 						// !! reverse iterator
-						while (mate != _waitingList.rend() - 1 && mate->alignment < (mate + 1)->alignment)  {
+						while (mate != _waitingList.rend() - 1 && mate->alignment.from() < (mate + 1)->alignment.from())  {
 							std::swap(*mate, *(mate + 1));
 							++mate;
 						}

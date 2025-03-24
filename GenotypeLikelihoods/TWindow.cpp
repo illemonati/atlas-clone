@@ -59,10 +59,9 @@ size_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment
 			if (alignment.isAlignedAtInternalPos(p) && alignment.positionInRef(p) >= from()) break;
 			++p;
 		}
-		if (p == alignment.parsedLength()) {
-			DEVERROR("Alignment '", alignment.name(), "' at ", alignment.position(),
-					 " should be assigned to previous window, not to [", from().position(), ", ", to().position(), ")!");
-		}
+
+		// in rare situations, we can get p == alignment.parsedLength(), if a alignment overlaps two Windows
+		// and only deletions mapp into one of the Windows
 		return p;
 	}
 	return 0;
@@ -181,7 +180,7 @@ void TWindow::_clear(){
 
 	_usedAlignments.erase(
 		std::remove_if(_usedAlignments.begin(), _usedAlignments.end(),
-					   [t = to(), f = from()](auto a) { return a >= t || a.lastAlignedPositionWithRespectToRef() < f; }),
+					   [t = to(), f = from()](const auto &a) { return a.from() >= t || a.to() <= f; }),
 		_usedAlignments.end());
 
 	_depth              = 0.0;

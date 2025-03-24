@@ -20,9 +20,6 @@ struct TWaitingAlignment{
 	TWaitingAlignment(BAM::TAlignment Alignment, AlignmentStatus Status = AlignmentStatus::waiting)
 		: alignment(std::move(Alignment)), status(Status) {}
 };
-inline bool operator<(const TWaitingAlignment& lhs, const TWaitingAlignment& rhs) {
-	return lhs.alignment < rhs.alignment;
-}
 
 class TWaitingListBamTraverser {
 private:

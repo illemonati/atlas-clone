@@ -8,6 +8,7 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
+#include <cstdint>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -40,14 +41,15 @@ char makeIllumina(char Quality) noexcept;
 //-----------------------------------------------------
 // TAlignment
 //-----------------------------------------------------
-class TAlignment final : public genometools::TGenomePosition {
+class TAlignment {
 private:
+	genometools::TGenomePosition _position;
 	// Alignment data
 	std::string _name;
 	TSamFlags _flags;
 	coretools::PhredInt _mappingQuality;
 	TCigar _cigar;
-	TGenomePosition _mateGenomicPosition;
+	genometools::TGenomePosition _mateGenomicPosition;
 	int32_t _insertSize_TLEN = 0;
 	size_t _readGroupID      = 0;
 	size_t _bamID            = 0;
@@ -83,9 +85,16 @@ private:
 	void _updateSequenceAndQualities() const;
 
 public:
-	TAlignment(uint32_t RefID, uint32_t Position) : TGenomePosition(RefID, Position) {}
-	TAlignment(const TGenomePosition &other) : TGenomePosition(other){}
+	TAlignment(uint32_t RefID, uint32_t Position) : _position(RefID, Position) {}
+	TAlignment(const genometools::TGenomePosition &other) : _position(other){}
 	TAlignment() = default;
+	constexpr size_t refID() const noexcept {return _position.refID();}
+	constexpr size_t position() const noexcept {return _position.position();}
+	constexpr void move(const genometools::TGenomePosition& GPos) noexcept {_position.move(GPos);}
+	constexpr void advanceOnRef(size_t Len) noexcept { _position += Len; }
+
+	constexpr genometools::TGenomePosition from() const noexcept {return _position;}
+	constexpr genometools::TGenomePosition to() const { return _position + _refSize; }
 
 	// clear, fill and parse
 	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
@@ -100,7 +109,7 @@ public:
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; }
 	void setName(std::string Name) { _name = std::move(Name); }
 	void setMappingQuality(coretools::PhredInt Mappingquality) { _mappingQuality = Mappingquality; }
-	void setMateGenomicPosition(const TGenomePosition &Position) { _mateGenomicPosition.move(Position); }
+	void setMateGenomicPosition(const genometools::TGenomePosition &Position) { _mateGenomicPosition.move(Position); }
 	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; }
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 							  const std::vector<coretools::PhredInt> &Quals);
@@ -115,10 +124,9 @@ public:
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; }
 	uint32_t getLastInternalPos() const;
-	TGenomePosition lastAlignedPositionWithRespectToRef() const { return *this + (_refSize - 1); }
 	bool isAlignedAtInternalPos(size_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
-	TGenomePosition positionInRef(size_t internalPosition) const;
+	genometools::TGenomePosition positionInRef(size_t internalPosition) const;
 	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; }
 	uint32_t matePosition() const { return _mateGenomicPosition.position(); }
 	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); }
@@ -131,8 +139,10 @@ public:
 	int32_t insertSize() const { return _insertSize_TLEN; }
 	coretools::PhredInt mappingQuality() const { return _mappingQuality; }
 	uint16_t flags() const { return _flags.asInt(); }
+
 	const TCigar &cigar() const { return _cigar; }
-	TCigar &cigar() { return _cigar; }
+	void removeMappedRight(size_t Length) {_cigar.removeMappedRight(Length);}
+	void removedMappedLeft(size_t Length) { advanceOnRef(_cigar.removeMappedLeft(Length)); }
 
 	TSequencedData &operator[](size_t internalPos) noexcept {
 		assert(internalPos < _data.size());
@@ -182,6 +192,10 @@ public:
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
 	void downsampleAlignment(coretools::Probability fraction);
+
+	friend constexpr bool operator<(const TAlignment& lhs, const TAlignment& rhs) {
+		return lhs.from() < rhs.from();
+	}
 };
 
 } // namespace BAM

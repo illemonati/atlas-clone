@@ -176,7 +176,7 @@ void TOutputBamFile::writeAlignment(const TAlignment & alignment){
 	//write alignments BEFORE alignment to write next
 	std::sort(_futureAlignments.begin(), _futureAlignments.end(), std::less<>());
 	std::reverse(_futureAlignments.begin(), _futureAlignments.end());
-	while (!_futureAlignments.empty() && _futureAlignments.back() <= alignment) {
+	while (!_futureAlignments.empty() && _futureAlignments.back().from() <= alignment.from()) {
 		_writeAlignment(_futureAlignments.back());
 		_futureAlignments.pop_back();
 		}

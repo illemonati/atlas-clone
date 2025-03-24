@@ -12,21 +12,18 @@ tol_vibrant = ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311', '#009988',
 IKRK        = ["#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"]
 basic       = ["#000000", "#FF0000", "#0000FF", "#FFA500", "#008000", "#808080", "#800080", "#008080"]
 
-col  = tol_bright
+col = tol_bright
+nCol = len(col)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot genotye Distribution data(s)")
     parser.add_argument("files", nargs='*', help="Data")
     parser.add_argument("--median", "-m", action="store_true")
     parser.add_argument("--relative",  "-r", action="store_true")
-    parser.add_argument("--num",  "-n", type=int, default=1)
     parser.add_argument("--out",  "-o", default="")
 
     args     = parser.parse_args()
     nFiles   = len(args.files)
-    nSamples = int(ceil(nFiles/args.num))
-
-    if (nSamples) > len(col): sys.exit("Can only compare a maximum of %d samples!"%(len(col)))
 
     ymi = [10., 10., 10., 10.]
     yma = [0., 0., 0., 0.]
@@ -65,6 +62,9 @@ if __name__ == "__main__":
 
         # get average and std
         data = genfromtxt(file, skip_header=1)
+        if len(data) == 0:
+            continue
+
         if len(data.shape) == 1:
             data = array([data])
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
             smus      = r_[[nanstd(m) for m in mus]]
             sPMD5s    = r_[[nanstd(p) for p in PMD5s]]
             sPMD3s    = r_[[nanstd(p) for p in PMD3s]]
-        
+
         if hky85_i:
             print(label)
             print("depth:", mdepths)
@@ -177,10 +177,10 @@ if __name__ == "__main__":
         else:
             ax1 = plt.subplot(111)
 
-        plt.errorbar(mdepths, mthetas_g, color=col[i%nSamples], yerr=sthetas_g, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6, label=label)
-        plt.hlines(mthetas_g[0], 0, 1.5*max(mdepths), col[i%nSamples], "dashed")
+        plt.errorbar(mdepths, mthetas_g, color=col[i%nCol], yerr=sthetas_g, fmt=fmts[i%nCol] + lins[int(i/nCol)], markersize=mks[i],linewidth=2, capsize=6, label=label)
+        plt.hlines(mthetas_g[0], 0, 1.5*max(mdepths), col[i%nCol], "dashed")
         plt.xscale("log")
-        plt.legend(ncols=2, borderaxespad=0.)
+        plt.legend(ncols=ceil(nFiles/4), borderaxespad=0.)
         if args.relative:
             plt.yscale("linear")
             yma[0] = max(yma[0], max(mthetas_g[nonzero(mthetas_g)]))
@@ -199,8 +199,8 @@ if __name__ == "__main__":
         if hky85 and hky85_i:
             plt.subplot(312, sharex=ax1)
             plt.tick_params('x', labelbottom=False)
-            plt.errorbar(mdepths, mthetas_r, color=col[i%nSamples], yerr=sthetas_r, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
-            plt.hlines(mthetas_r[0], 0, 1.5*max(mdepths), col[i%nSamples], "dashed")
+            plt.errorbar(mdepths, mthetas_r, color=col[i%nCol], yerr=sthetas_r, fmt=fmts[i%nCol] + lins[int(i/nCol)], markersize=mks[i],linewidth=2, capsize=6)
+            plt.hlines(mthetas_r[0], 0, 1.5*max(mdepths), col[i%nCol], "dashed")
 
             if args.relative:
                 plt.yscale("linear")
@@ -218,8 +218,8 @@ if __name__ == "__main__":
         if hky85 and hky85_i:
             plt.subplot(313, sharex=ax1)
 
-            plt.errorbar(mdepths, mmus, color=col[i%nSamples], yerr=smus, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6)
-            plt.hlines(mmus[0], 0, 1.5*max(mdepths), col[i%nSamples], "dashed")
+            plt.errorbar(mdepths, mmus, color=col[i%nCol], yerr=smus, fmt=fmts[i%nCol] + lins[int(i/nCol)], markersize=mks[i],linewidth=2, capsize=6)
+            plt.hlines(mmus[0], 0, 1.5*max(mdepths), col[i%nCol], "dashed")
             plt.yscale("log")
             yma[2] = max(yma[2], max(mmus[nonzero(mmus)]))
             ymi[2] = min(ymi[2], min(mmus[nonzero(mmus)]))
