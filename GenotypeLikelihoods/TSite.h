@@ -29,9 +29,7 @@ class TSite {
 public:
 	std::vector<BAM::TSequencedData> _data;
 public:
-	genometools::TGenotypeLikelihoods genotypeLikelihoods;
-	genometools::Base refBase      = genometools::Base::N;
-	genometools::Genotype genotype = genometools::Genotype::NN;
+	genometools::Base refBase = genometools::Base::N;
 
 	void clear() noexcept;
 

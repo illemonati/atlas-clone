@@ -11,9 +11,9 @@
 #include <armadillo>
 
 #include "SequencingError/TFunctions.h"
-#include "genometools/Genotypes/Containers.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/Genotype.h"
 
 namespace RecalEstimatorTools {class TRecalDataTable;}
 
@@ -61,7 +61,7 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void _addToQ(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQ(const BAM::TSequencedData &data, const TGenotypeFloats &P_g_I_ds,
 				const TGenotypeFloats &P_bbar_I_gds) {
 		const double eps    = calcErrorRate(data);
 		const double eps_c  = 1. - eps;
@@ -69,14 +69,14 @@ class TEpsilon {
 		const double leps_c = std::log(eps_c);
 
 		for (auto g : _makeGenotype<isInvariant>()) {
-			const double P_bbar_I_gd = P_bbar_I_gds[g];
-			const double P_g_I_d     = P_g_I_ds[g];
+			const auto P_bbar_I_gd = P_bbar_I_gds[g];
+			const auto P_g_I_d     = P_g_I_ds[g];
 			_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
 		}
 	}
 
 	template<bool isInvariant>
-	void _addToQJF(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQJF(const BAM::TSequencedData &data, const TGenotypeFloats &P_g_I_ds,
 				   const TGenotypeFloats &P_bbar_I_gds) {
 		static std::vector<T1stDerivative> der1st;
 		static std::vector<T2ndDerivative> der2nd;
@@ -90,8 +90,8 @@ class TEpsilon {
 
 		double w_ij = 0.;
 		for (auto g : _makeGenotype<isInvariant>()) {
-			const double P_bbar_I_gd = P_bbar_I_gds[g];
-			const double P_g_I_d     = P_g_I_ds[g];
+			const auto P_bbar_I_gd = P_bbar_I_gds[g];
+			const auto P_g_I_d     = P_g_I_ds[g];
 
 			_Q   += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
 			w_ij += P_g_I_d * (eps_c - P_bbar_I_gd);
@@ -130,9 +130,10 @@ public:
 	bool accepted() const noexcept {return _accepted; }
 
 	template<bool updateJF, bool isInvariant>
-	void add(const BAM::TSequencedData &data, const genometools::TGenotypeLikelihoods &P_g_I_ds, const TGenotypeFloats & P_bbar_I_gds) {
+	void add(const BAM::TSequencedData &data, const TGenotypeFloats &P_g_I_ds, const TGenotypeFloats &P_bbar_I_gds) {
 		if (_accepted) return;
-		if constexpr (updateJF) _addToQJF<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
+		if constexpr (updateJF)
+			_addToQJF<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(data, P_g_I_ds, P_bbar_I_gds);
 	}
 	void solveJxF();

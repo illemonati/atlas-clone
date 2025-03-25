@@ -11,7 +11,6 @@
 
 #include "genometools/Genotypes/Ploidy.h"
 #include "genometools/TBed.h"
-#include "genometools/Genotypes/Containers.h"
 
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"
@@ -34,7 +33,7 @@ private:
 	std::vector<std::unique_ptr<TGenotypeDistribution>> _genoDist;
 
 	// per site
-	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_dis;
+	std::vector<SequencingError::TGenotypeFloats> _P_g_I_dis;
 
 	// per read
 	std::vector<SequencingError::TGenotypeFloats> _P_bbarEdij_I_gdijs;

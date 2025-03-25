@@ -13,10 +13,11 @@
 
 namespace GenotypeLikelihoods {
 
+using coretools::P;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using genometools::Genotype;
 using genometools::Base;
+using genometools::Genotype;
 
 //---------------------------------------------------------------
 // TErrorEstimator
@@ -215,31 +216,31 @@ void TErrorEstimator::_updatePbbar(bool DoEps) {
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
-				_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[Genotype::CC], _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
-				_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[Genotype::GG], _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[Genotype::CC]), _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[Genotype::GG]), _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
 
 				if (!isInvariant) for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
-						_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[g], _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 				if (!isInvariant) for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
-						_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[g], _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 
 				// Rho
-				SequencingError::TGenotypeFloats P_bbarEdij_I_gdij(coretools::P(0.));
+				SequencingError::TGenotypeFloats P_bbarEdij_I_gdij(P(0.));
 				for (auto a = Base::min; a < Base::max; ++a) {
 					const auto aa              = genotype(a, a);
 					const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
 					P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-					_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[aa], P_bbar_I_aa_dij);
+					_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[aa]), P_bbar_I_aa_dij);
 
 					if (!isInvariant) for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
 						const auto P_bbar_I_ab_dij = _pmd.P_bbar(ab, d_ij, P_dij_I_bbar);
 						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[ab], P_bbar_I_ab_dij);
+						_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[ab]), P_bbar_I_ab_dij);
 					}
 				}
 				if (DoEps) _P_bbarEdij_I_gdijs.emplace_back(P_bbarEdij_I_gdij);
@@ -361,7 +362,6 @@ size_t TErrorEstimator::_calculateQ() {
 
 double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist,
 											  genometools::Ploidy Pl) {
-	using coretools::P;
 	using genometools::Base;
 	using genometools::Genotype;
 	using genometools::Ploidy;
@@ -383,45 +383,34 @@ double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, T
 
 	coretools::TSumLogProbability LL{};
 	for (const auto &site : sites) {
-		if (site.genotype == Genotype::NN) { // unknown genotype
-			const auto ref                             = site.refBase;
-			genometools::TGenotypeLikelihoods P_g_I_di = PgI_inits[Pl];
-			double sum                                 = 1.;
-			for (const auto &d_ij : site) {
-				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
-				const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
+		const auto ref = site.refBase;
+		auto P_g_I_di  = PgI_inits[Pl];
+		double sum     = 1.;
+		for (const auto &d_ij : site) {
+			const auto P_dij_I_bbar = _recal.P_dij(d_ij);
+			const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
 
-				LL.add(sum);
-				const double sum_inv = 1. / sum;
-				sum                  = 0.;
-				for (auto k = Base::min; k < Base::max; ++k) {
-					const auto kk = genometools::genotype(k, k);
-					P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
-					sum += P_g_I_di[kk];
-				}
-				if (Pl == genometools::Ploidy::diploid) {
-					for (const auto kl :
-					     {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
-						const auto k = genometools::first(kl);
-						const auto l = genometools::second(kl);
-						P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
-						sum += P_g_I_di[kl];
-					}
+			LL.add(sum);
+			const double sum_inv = 1. / sum;
+			sum                  = 0.;
+			for (auto k = Base::min; k < Base::max; ++k) {
+				const auto kk = genometools::genotype(k, k);
+				P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
+				sum += P_g_I_di[kk];
+			}
+			if (Pl == genometools::Ploidy::diploid) {
+				for (const auto kl :
+				     {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+					const auto k = genometools::first(kl);
+					const auto l = genometools::second(kl);
+					P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
+					sum += P_g_I_di[kl];
 				}
 			}
-			LL.add(genoDist->normalize_add(P_g_I_di, ref));
-			_P_g_I_dis.push_back(P_g_I_di);
-		} else { // known genotype.
-			_P_g_I_dis.emplace_back(P(0.));
-			_P_g_I_dis.back()[site.genotype] = P(1.); // Probability of correct genotype is 1
-			double P_g                       = 1.;
-			for (auto &d_ij : site) {
-				const auto L_eps = _recal.P_dij(d_ij);
-				const auto L_D   = _pmd.P_dij(d_ij, L_eps);
-				P_g *= genoDist->getGenotypeLikelihood(L_D, site.genotype);
-			}
-			LL.add(P_g);
 		}
+		LL.add(genoDist->normalize_add(P_g_I_di, ref));
+		_P_g_I_dis.emplace_back();
+		std::copy(P_g_I_di.begin(), P_g_I_di.end(), _P_g_I_dis.back().begin());
 	}
 	return LL.getSum();
 }

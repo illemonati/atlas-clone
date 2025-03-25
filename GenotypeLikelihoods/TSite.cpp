@@ -24,7 +24,6 @@ using genometools::TBaseCounts;
 void TSite::clear() noexcept {
 	_data.clear();
 	refBase  = genometools::Base::N;
-	genotype = genometools::Genotype::NN;
 }
 
 void TSite::add(const BAM::TSequencedData &data) { _data.push_back(data); }
