@@ -196,8 +196,10 @@ void TErrorEstimator::_identifyModels() {
 
 	const auto N = _dataTables.size();
 	_dataTables.clear();
-
-	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
+	_P_g_I_dis.resize(_regionSites.size());
+	for (size_t i = 0; i < _regionSites.size(); ++i) {
+		_P_g_I_dis[i].resize(_regionSites[i].size());
+	}
 	if (!_noEpsilon) _P_bbarEdij_I_gdijs.reserve(N);
 
 	logfile().endIndent();
@@ -206,13 +208,12 @@ void TErrorEstimator::_identifyModels() {
 void TErrorEstimator::_updatePbbar(bool DoEps) {
 	using genometools::genotype;
 	_P_bbarEdij_I_gdijs.clear();
-	size_t i     = 0;
 	for (size_t r = 0; r < _regionSites.size(); ++r) {
 		const auto &sites      = _regionSites[r];
 		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
-		for (const auto& site: sites) {
-			const auto &P_g_I_di = _P_g_I_dis[i++];
-			for (const auto &d_ij : site) {
+		for (size_t s = 0; s < sites.size(); ++s) {
+			const auto &P_g_I_di = _P_g_I_dis[r][s];
+			for (const auto &d_ij : sites[s]) {
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
@@ -336,13 +337,11 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 }
 
 double TErrorEstimator::_calculateLL_updatePg() {
-	_P_g_I_dis.clear();
-
 	double LL = 0.;
 	for (size_t r = 0; r < _regionSites.size(); ++r) {
 		const auto &sites = _regionSites[r];
 		auto &genoDist    = _genoDist[r];
-		LL += _calculateLL_updatePg(sites, genoDist.get(), genoDist->ploidy());
+		LL += _calculateLL_updatePg(r, sites, genoDist.get(), genoDist->ploidy());
 	}
 	if (!std::isfinite(LL)) UERROR("LL = ", LL, ", you may need to pool your readgroups!");
 	return LL;
@@ -360,7 +359,7 @@ size_t TErrorEstimator::_calculateQ() {
 	return nUpdated;
 }
 
-double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist,
+	double TErrorEstimator::_calculateLL_updatePg(size_t R, const std::vector<TSite> &sites, TGenotypeDistribution *genoDist,
 											  genometools::Ploidy Pl) {
 	using genometools::Base;
 	using genometools::Genotype;
@@ -382,7 +381,8 @@ double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, T
 	}();
 
 	coretools::TSumLogProbability LL{};
-	for (const auto &site : sites) {
+	for (size_t s = 0; s < sites.size(); ++s) {
+		const auto& site = sites[s];
 		const auto ref = site.refBase;
 		auto P_g_I_di  = PgI_inits[Pl];
 		double sum     = 1.;
@@ -409,8 +409,7 @@ double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, T
 			}
 		}
 		LL.add(genoDist->normalize_add(P_g_I_di, ref));
-		_P_g_I_dis.emplace_back();
-		std::copy(P_g_I_di.begin(), P_g_I_di.end(), _P_g_I_dis.back().begin());
+		std::copy(P_g_I_di.begin(), P_g_I_di.end(), _P_g_I_dis[R][s].begin());
 	}
 	return LL.getSum();
 }

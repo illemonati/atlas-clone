@@ -29,11 +29,11 @@ private:
 	// per region
 	std::vector<size_t> _refIDs;
 	std::vector<genometools::TBed> _regions;
-	std::vector<std::vector<TSite>> _regionSites;
-	std::vector<std::unique_ptr<TGenotypeDistribution>> _genoDist;
 
 	// per site
-	std::vector<SequencingError::TGenotypeFloats> _P_g_I_dis;
+	std::vector<std::unique_ptr<TGenotypeDistribution>> _genoDist;
+	std::vector<std::vector<TSite>> _regionSites;
+	std::vector<std::vector<SequencingError::TGenotypeFloats>> _P_g_I_dis;
 
 	// per read
 	std::vector<SequencingError::TGenotypeFloats> _P_bbarEdij_I_gdijs;
@@ -65,14 +65,13 @@ private:
 	bool _noEpsilon = false;
 
 	template<bool UpdateJF> void _calculateQ() {
-		size_t i  = 0;
 		size_t ij = 0;
 		for (size_t r = 0; r < _regionSites.size(); ++r) {
 			const auto &sites      = _regionSites[r];
 			const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
-			for (const auto &site : sites) {
-				const auto &P_g_I_di = _P_g_I_dis[i++];
-				for (auto &d_ij : site) {
+			for (size_t s = 0; s < sites.size(); ++s) {
+				const auto &P_g_I_di = _P_g_I_dis[r][s];
+				for (auto &d_ij : sites[s]) {
 					const auto &P_bbar_I_gdij = _P_bbarEdij_I_gdijs[ij++];
 					if (isInvariant)
 						_recal.model(d_ij).epsilon()->add<UpdateJF, true>(d_ij, P_g_I_di, P_bbar_I_gdij);
@@ -91,7 +90,7 @@ private:
 	size_t _calculateQ();
 	double _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
-	double _calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist, genometools::Ploidy Pl);
+	double _calculateLL_updatePg(size_t R, const std::vector<TSite> &sites, TGenotypeDistribution *genoDist, genometools::Ploidy Pl);
 
 	void _identifyModels();
 	void _runEM();
