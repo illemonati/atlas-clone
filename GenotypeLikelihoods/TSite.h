@@ -52,6 +52,7 @@ public:
 	std::string getBases() const;
 	std::vector<genometools::Base> sampleBases() const;
 	std::string getQualities() const;
+	const std::vector<BAM::TSequencedData>& data() const noexcept {return _data;}
 
 	genometools::TBaseCounts countAlleles() const;
 	coretools::TStrongArray<size_t, BAM::Mate> countMates() const;
