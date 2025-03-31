@@ -82,14 +82,14 @@ void TWindow::addReferenceBaseToSites(const genometools::TAlleles &Alleles) {
 // TWindow: add alignments and fill sites
 //-------------------------------------------------------
 
-void TWindow::downsample(size_t UpToDepth, bool Shuffle) {
+void TWindow::downsampleSites(size_t UpToDepth, bool Shuffle) {
 	for (auto &s : _sites) {
 		if (Shuffle) s.shuffle();
 		s.downsample(UpToDepth);
 	}
 }
 
-void TWindow::downsample(coretools::Probability p) {
+void TWindow::downsampleSites(coretools::Probability p) {
 	for (auto &s : _sites) { s.downsample(p); }
 }
 
@@ -173,6 +173,7 @@ int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const Probabilit
 
 // public functions
 void TWindow::_clear(){
+	_depths.clear();
 	for(auto& s : _sites){
 		s.clear();
 	}
@@ -212,7 +213,7 @@ void TWindow::resize(size_t newLength) {
 	_clear();	
 };
 
-void TWindow::downsampleFromOther(const TWindow & other, const Probability & downsamplingProb){
+void TWindow::_downsampleFrom(const TWindow & other, const Probability & downsamplingProb){
 	_clear();
 
 	//set coordinates

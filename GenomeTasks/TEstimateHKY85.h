@@ -6,6 +6,7 @@
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
 #include "PMD/TModel.h"
+#include "coretools/Containers/TMultiVector.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TGenotypeDistribution.h"
@@ -32,15 +33,14 @@ private:
 	Sample _sample;
 
 	// genomeWide data
-	size_t _nRounds = 1;
 	struct TStats {
 		double NData    = 0;
 		size_t NMissing = 0;
 	};
 	TStats _stats_full;
 	std::vector<GenotypeLikelihoods::TSite> _sites_full;
-	std::vector<std::vector<std::vector<GenotypeLikelihoods::TSite>>> _sites_P;
-	std::vector<std::vector<TStats>> _stats_P;
+	coretools::TMultiVector<std::vector<GenotypeLikelihoods::TSite>> _sites_P;
+	coretools::TMultiVector<TStats> _stats_P;
 
 
 	void _handleGenomeWide(GenotypeLikelihoods::TWindow& window);

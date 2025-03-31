@@ -8,6 +8,7 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -44,6 +45,7 @@ public:
 private:
 	// alignment stacks and sites
 	std::vector<BAM::TAlignment> _usedAlignments;
+	std::vector<uint16_t> _depths;
 	std::vector<TSite> _sites;
 	std::vector<bool> _masked;
 	std::string _chrName;
@@ -69,11 +71,14 @@ private:
 	int _fillSitesDownsampling(std::vector<TSite> &sites, const coretools::Probability &downsamplingProb) const;
 	void _clear();
 
+	// void stealFromOther(TWindow & other);
+	void _downsampleFrom(const TWindow &other, const coretools::Probability &downsamplingProb);
+
 public:
 	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {};
 	TWindow(const TWindow &other, const coretools::Probability &downsamplingProb, size_t UpToDepth, bool Shuffle) {
-		downsampleFromOther(other, downsamplingProb);
-		downsample(UpToDepth, Shuffle);
+		_downsampleFrom(other, downsamplingProb);
+		downsampleSites(UpToDepth, Shuffle);
 	}
 
 	// Allow to set chromosome name when jumping
@@ -85,12 +90,9 @@ public:
 	void operator+=(size_t length);
 	void resize(size_t newLength);
 
-	void downsample(size_t UpToDepth, bool Shuffle);
-	void downsample(coretools::Probability p);
+	void downsampleSites(size_t UpToDepth, bool Shuffle);
+	void downsampleSites(coretools::Probability p);
 
-	// void stealFromOther(TWindow & other);
-	void downsampleFromOther(const TWindow &other, const coretools::Probability &downsamplingProb);
-	
 	void addReferenceBaseToSites(const genometools::TAlleles &Alleles);
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);
 

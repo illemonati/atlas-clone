@@ -256,8 +256,8 @@ void TBamWindows::fillSites(GenotypeLikelihoods::TWindow &Window) {
 	// fill sites
 	Window.fillSites(_alleles);
 	Window.addReferenceBaseToSites(_parser.reference());
-	if (_downProb != 0.) Window.downsample(_downProb);
-	Window.downsample(_upToDepth, _shuffleSites);
+	if (_downProb != 0.) Window.downsampleSites(_downProb);
+	Window.downsampleSites(_upToDepth, _shuffleSites);
 }
 
 }

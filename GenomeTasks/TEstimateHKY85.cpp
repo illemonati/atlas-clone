@@ -159,7 +159,7 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 
 	// downsample
 	if (_sample == Sample::reads) {
-		for (size_t r = 0; r < _nRounds; ++r) {
+		for (size_t r = 0; r < _sites_P.size(); ++r) {
 			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
 				const auto p = P(_depthOrProbs[i]);
 				auto &sites  = _sites_P[r][i];
@@ -264,9 +264,7 @@ void TEstimateHKY85::run() {
 		const auto pis = _genoDist->pis();
 
 		const auto nIT = _numEMIterations;
-		size_t r = 0;
-		while (!_sites_P.empty()) {
-			++r;
+		for (size_t r = 0; r < _sites_P.size(); ++r) {
 			logfile().list("Downsampling round ", r, ".");
 			if (_windows.considerRegions()) {
 				_out.write("regions", "Round", r);
@@ -282,7 +280,7 @@ void TEstimateHKY85::run() {
 			}
 
 			// downsampled
-			for (size_t i = 0; i < _sites_P.back().size(); ++i) {
+			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
 				constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{{"probability", "probability", "maximum depth"}};
 				logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[i], ".");
 				if (_sample == Sample::upToDepth) {
@@ -292,8 +290,8 @@ void TEstimateHKY85::run() {
 				}
 
 				if (_sample == Sample::reads) {
-					const auto &sites = _sites_P.back()[i];
-					const auto &stat  = _stats_P.back()[i];
+					const auto &sites = _sites_P[r][i];
+					const auto &stat  = _stats_P[r][i];
 
 					const auto LL_i = _runEM(sites);
 					_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
@@ -324,9 +322,6 @@ void TEstimateHKY85::run() {
 				}
 			}
 			_out.endln();
-			// release memory early
-			_sites_P.pop_back();
-			_stats_P.pop_back();
 		}
 	}
 }
@@ -395,22 +390,19 @@ TEstimateHKY85::TEstimateHKY85() {
 	if (_genomeWide) {
 		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
 		if (parameters().get("genomeWide").empty()) {
-			_nRounds = 1;
 			if (!_depthOrProbs.empty()) {
 				logfile().list("Will do one round of downsampling. (use 'genomeWide' to specify the number)");
+				_sites_P.reshape(1, _depthOrProbs.size());
+				_stats_P.reshape(1, _depthOrProbs.size());
 			}
 		} else {
 			if (_depthOrProbs.empty()) {
 				UERROR("Cannot du several rounds of downsampling without downsampling probabilities! Use 'prob' to specify.");
 			}
-			parameters().fill("genomeWide", _nRounds);
-			logfile().list("Will do ", _nRounds, " rounds of downsampling. (parameter 'genomeWide')");
-		}
-		for (size_t r = 0; r < _nRounds; ++r) {
-			_sites_P.emplace_back();
-			_stats_P.emplace_back();
-			_sites_P.back().resize(_depthOrProbs.size());
-			_stats_P.back().resize(_depthOrProbs.size());
+			const auto nRounds = parameters().get<size_t>("genomeWide");
+			logfile().list("Will do ", nRounds, " rounds of downsampling. (parameter 'genomeWide')");
+			_sites_P.reshape(nRounds, _depthOrProbs.size());
+			_stats_P.reshape(nRounds, _depthOrProbs.size());
 		}
 	} else {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
