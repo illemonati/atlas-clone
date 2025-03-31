@@ -27,8 +27,6 @@ template<typename T> class TNumericRange;
 }
 namespace genometools {
 class TBed;
-}
-namespace genometools {
 class TFastaReader;
 }
 
@@ -44,8 +42,9 @@ public:
 
 private:
 	// alignment stacks and sites
-	std::vector<BAM::TAlignment> _usedAlignments;
-	std::vector<uint16_t> _depths;
+	size_t _lastReadID = 0;
+	mutable std::vector<std::vector<uint32_t>> _readIDs;
+	std::vector<BAM::TAlignment> _overlap;
 	std::vector<TSite> _sites;
 	std::vector<bool> _masked;
 	std::string _chrName;
@@ -56,7 +55,6 @@ private:
 	mutable double _fractionRefIsN          = 0.;
 	mutable size_t _numSitesWithData        = 0;
 
-	size_t _numReadsInWindow = 0;
 	size_t _numMaskedSites   = 0;
 	bool _passedFilters      = false;
 	bool _referenceBaseAdded = false;
@@ -65,30 +63,20 @@ private:
 
 	// fill sites and clean
 	size_t _findFirstPositionWithinWindow(const BAM::TAlignment &Alignment) const;
-	void _fillSites(std::vector<TSite> &sites, const genometools::TAlleles& Alleles);
-	void _fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites) const;
-	void _fillSites(BAM::TAlignment &alignment, std::vector<TSite> &sites, const genometools::TAlleles &alleles);
+	void _fillSites(const BAM::TAlignment &alignment);
+	void _fillSites(BAM::TAlignment &alignment, const genometools::TAlleles &alleles);
 	int _fillSitesDownsampling(std::vector<TSite> &sites, const coretools::Probability &downsamplingProb) const;
-	void _clear();
 
 	// void stealFromOther(TWindow & other);
 	void _downsampleFrom(const TWindow &other, const coretools::Probability &downsamplingProb);
 
 public:
-	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {};
-	TWindow(const TWindow &other, const coretools::Probability &downsamplingProb, size_t UpToDepth, bool Shuffle) {
-		_downsampleFrom(other, downsamplingProb);
-		downsampleSites(UpToDepth, Shuffle);
-	}
+	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {}
+	TWindow(const TWindow &other, const coretools::Probability &downsamplingProb, size_t UpToDepth, bool Shuffle); 
 
 	// Allow to set chromosome name when jumping
-	using genometools::TGenomeWindow::move;
 	void move(const genometools::TGenomeWindow &Window);
 	void move(const TWindow &Window, std::string_view ChrName);
-
-	// move / expand on same chromosome
-	void operator+=(size_t length);
-	void resize(size_t newLength);
 
 	void downsampleSites(size_t UpToDepth, bool Shuffle);
 	void downsampleSites(coretools::Probability p);
@@ -102,14 +90,14 @@ public:
 	void applyDepthFilter(const coretools::TNumericRange<size_t> &DepthRange);
 
 	// getters
-	TSite &operator[](size_t internalPos) noexcept { return _sites[internalPos]; };
-	const TSite &operator[](size_t internalPos) const noexcept { return _sites[internalPos]; };
-	const std::string &chrName() const noexcept { return _chrName; };
-	genometools::TGenomePosition position(size_t internalPos) const noexcept { return from() + internalPos; };
-	size_t positionOnChr(size_t internalPos) const noexcept { return from().position() + internalPos; };
-	bool isMasked(size_t internalPos) const noexcept {return _masked[internalPos];}
+	TSite &operator[](size_t internalPos) noexcept { return _sites[internalPos]; }
+	const TSite &operator[](size_t internalPos) const noexcept { return _sites[internalPos]; }
+	const std::string &chrName() const noexcept { return _chrName; }
+	genometools::TGenomePosition position(size_t internalPos) const noexcept { return from() + internalPos; }
+	size_t positionOnChr(size_t internalPos) const noexcept { return from().position() + internalPos; }
+	bool isMasked(size_t internalPos) const noexcept { return _masked[internalPos]; }
 
-	size_t numReadsInWindow() const noexcept { return _numReadsInWindow; };
+	size_t numReadsInWindow() const noexcept { return _lastReadID; }
 	double depth() const noexcept;
 
 	size_t numMaskedSites() const noexcept {
@@ -128,25 +116,22 @@ public:
 	}
 	void dataSummary() const noexcept;
 	bool filter(double maxFracMissing, double maxRefN);
-	bool passedFilters() const noexcept { return _passedFilters; };
+	bool passedFilters() const noexcept { return _passedFilters; }
 
 	// loop over sites
 	const std::vector<TSite>& sites() const noexcept {return _sites;}
 	iterator begin() noexcept { return _sites.begin(); };
-	const_iterator begin() const noexcept { return _sites.begin(); };
-	const_iterator cbegin() const noexcept { return _sites.cbegin(); };
+	const_iterator begin() const noexcept { return _sites.begin(); }
+	const_iterator cbegin() const noexcept { return _sites.cbegin(); }
 
-	iterator end() noexcept { return _sites.end(); };
-	const_iterator end() const noexcept { return _sites.end(); };
-	const_iterator cend() const noexcept { return _sites.cend(); };
+	iterator end() noexcept { return _sites.end(); }
+	const_iterator end() const noexcept { return _sites.end(); }
+	const_iterator cend() const noexcept { return _sites.cend(); }
 
-	void addAlignment(const BAM::TAlignment& usedAlignment) {
-		_usedAlignments.push_back(usedAlignment);
-	}
-
+	void addAlignment(const BAM::TAlignment& usedAlignment);
 	void fillSites(const genometools::TAlleles& alleles);
 };
 
-};     // namespace GenotypeLikelihoods
+} // namespace GenotypeLikelihoods
 
 #endif /* TWINDOW_H_ */

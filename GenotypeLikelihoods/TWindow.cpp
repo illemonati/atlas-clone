@@ -76,11 +76,7 @@ void TWindow::addReferenceBaseToSites(const genometools::TAlleles &Alleles) {
 			}
 			_referenceBaseAdded = true;
 		}
-	};
-
-//-------------------------------------------------------
-// TWindow: add alignments and fill sites
-//-------------------------------------------------------
+}
 
 void TWindow::downsampleSites(size_t UpToDepth, bool Shuffle) {
 	for (auto &s : _sites) {
@@ -93,31 +89,20 @@ void TWindow::downsampleSites(coretools::Probability p) {
 	for (auto &s : _sites) { s.downsample(p); }
 }
 
+
 void TWindow::fillSites(const genometools::TAlleles& alleles){
-	_fillSites(_sites, alleles);
+	//_fillSites(_sites, alleles);
 	_masked.assign(_sites.size(), false);
 	_numMaskedSites = 0;
-	_numReadsInWindow = _usedAlignments.size();
 }
 
-void TWindow::_fillSites(std::vector<TSite> &Sites, const genometools::TAlleles& Alleles) {
-	// _sites may have a size, but all sites are empty!
-	assert(std::all_of(_sites.begin(), _sites.end(), [](const auto& site){return site.empty();}));
-	Sites.resize(size());
-
-	//add reads in usedAlignments to sites in window
-	for(auto & a : _usedAlignments){
-		//now fill
-		if (Alleles) {
-			_fillSites(a, Sites, Alleles);
-		} else {
-			_fillSites(a, Sites);
-		}
-	}
+void TWindow::addAlignment(const BAM::TAlignment &aln) {
+	_fillSites(aln);
+	++_lastReadID;
+	if (aln.to() > to()) _overlap.push_back(aln);
 }
 
-void TWindow::_fillSites(BAM::TAlignment &alignment, std::vector<TSite> &sites,
-							   const genometools::TAlleles &Alleles) {
+void TWindow::_fillSites(BAM::TAlignment &alignment, const genometools::TAlleles &Alleles) {
 	size_t p = _findFirstPositionWithinWindow(alignment);
 
 	// position in window where first one = 0
@@ -132,12 +117,15 @@ void TWindow::_fillSites(BAM::TAlignment &alignment, std::vector<TSite> &sites,
 
 			// find position in thesePos
 			while (it != Alleles.end() && it->position < alignment.positionInRef(p)) ++it;
-			if (it != Alleles.end() && it->position == alignment.positionInRef(p)) { sites[internalPos].add(alignment[p]); }
+			if (it != Alleles.end() && it->position == alignment.positionInRef(p)) {
+				_sites[internalPos].add(alignment[p]);
+				_readIDs[internalPos].push_back(_lastReadID);
+			}
 		}
 	}
 }
 
-void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &sites) const {
+void TWindow::_fillSites(const BAM::TAlignment &alignment) {
 	// position in window where first one = 0
 	// p is at first position of read in window
 	for (size_t p = _findFirstPositionWithinWindow(alignment); p < alignment.parsedLength(); ++p) {
@@ -151,7 +139,8 @@ void TWindow::_fillSites(const BAM::TAlignment &alignment, std::vector<TSite> &s
 		// if read extends past window length
 		if (posInWindow >= size()) break; // since part of the read maps to next window
 
-		sites[posInWindow].add(alignment[p]);
+		_sites[posInWindow].add(alignment[p]);
+		_readIDs[posInWindow].push_back(_lastReadID);
 	}
 }
 
@@ -159,95 +148,80 @@ int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const Probabilit
 	sites.resize(size());
 	for (size_t i = 0; i < size(); ++i) sites[i].refBase = _sites[i].refBase;
 
-	//add reads in usedAlignments to sites in window
+	std::vector<bool> keep(_lastReadID);
 	int counter = 0;
-	for(auto& a : _usedAlignments){
-		//fill if alignment is to be used
-		if(randomGenerator().getRand() < downsamplingProb){
-			_fillSites(a, sites);
+	for (size_t i = 0; i < keep.size(); ++i) {
+		if (randomGenerator().getRand() < downsamplingProb) {
+			keep[i] = true;
 			++counter;
+		}
+	}
+	for (size_t i = 0; i < size(); ++i) {
+		for (size_t j = 0; j < _sites[i].depth(); ++j) {
+			if (keep[_readIDs[i][j]]) {
+				sites[i].add(_sites[i][j]);
+			}
 		}
 	}
 	return counter;
 }
 
-// public functions
-void TWindow::_clear(){
-	_depths.clear();
-	for(auto& s : _sites){
-		s.clear();
+void TWindow::move(const genometools::TGenomeWindow & Window) {
+	genometools::TGenomeWindow::move(Window);
+	_sites.resize(size());
+	_readIDs.resize(size());
+	for (size_t i = 0; i < size(); ++i) {
+		_sites[i].clear();
+		_readIDs[i].clear();
 	}
-	_masked.assign(_sites.size(), false);
-
-	_usedAlignments.erase(
-		std::remove_if(_usedAlignments.begin(), _usedAlignments.end(),
-					   [t = to(), f = from()](const auto &a) { return a.from() >= t || a.to() <= f; }),
-		_usedAlignments.end());
+	_masked.assign(size(), false);
 
 	_depth              = 0.0;
 	_numSitesWithData   = 0;
-	_numReadsInWindow   = 0;
 	_fractionRefIsN     = -1.0;
 	_referenceBaseAdded = false;
 	_passedFilters      = false;
-}
 
-void TWindow::move(const genometools::TGenomeWindow & Window) {
-	genometools::TGenomeWindow::move(Window);
-	_clear();
+	_lastReadID = 0;
+	for(auto & a : _overlap){
+		_fillSites(a);
+		++_lastReadID;
+	}
+	_overlap.clear();
 }
 
 void TWindow::move(const TWindow & Window, std::string_view ChrName){
-	move(Window);
 	_chrName = ChrName;
-	_clear();
+	move(Window);
 }
 
-void TWindow::operator+=(size_t length){
-	genometools::TGenomeWindow::operator+=(length);
-	_clear();	
-}
-
-void TWindow::resize(size_t newLength) {	
-	genometools::TGenomeWindow::resize(newLength);
-	_clear();	
-};
-
-void TWindow::_downsampleFrom(const TWindow & other, const Probability & downsamplingProb){
-	_clear();
-
+TWindow::TWindow(const TWindow &other, const coretools::Probability &downsamplingProb, size_t UpToDepth, bool Shuffle) {
 	//set coordinates
 	move(other, other.chrName());
 
 	//fill sites by downsampling
-	_numReadsInWindow = other._fillSitesDownsampling(_sites, downsamplingProb);
+	_lastReadID = other._fillSitesDownsampling(_sites, downsamplingProb);
 	_masked.assign(_sites.size(), false);
 
-	//calc depth
+	downsampleSites(UpToDepth, Shuffle);
 	_calcDepth();
-};
+}
 
-//--------------------------------------------
-// TWindow: getters
-//--------------------------------------------
 double TWindow::depth() const noexcept {
 	_calcDepth();
 	return _depth;
-};
+}
 
 void TWindow::dataSummary() const noexcept{
 	_calcDepth();
 	using coretools::instances::logfile;
-	logfile().conclude("Read data from ",  _numReadsInWindow, " reads.");
+	logfile().conclude("Read data from ",  numReadsInWindow(), " reads.");
 	logfile().conclude("Sequencing depth is ", _depth, ".");
 	logfile().conclude(_fractionDepthAtLeastTwo * 100, "% of all sites are covered at least twice.");
 	logfile().conclude(_fractionMissing * 100, "% of all sites have no data.");
 	if (_referenceBaseAdded) logfile().conclude(_fractionRefIsN * 100, "% of all sites have Ref = N.");
-};
+}
 
-//--------------------------------------------
-// TWindow: filter, downsample etc.
-//--------------------------------------------
 bool TWindow::filter(double maxFracMissing, double maxRefN){
 	_calcDepth();
 
@@ -266,7 +240,7 @@ bool TWindow::filter(double maxFracMissing, double maxRefN){
 	}
 
 	return _passedFilters;
-};
+}
 
 void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & reference) {
 	if(!_referenceBaseAdded && reference.isOpen()){
@@ -276,7 +250,7 @@ void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & referenc
 		}
 		_referenceBaseAdded = true;
 	}
-};
+}
 
 size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 	if (doInverseMasking) {
@@ -315,7 +289,7 @@ size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		}
 	}
 	return _numMaskedSites;
-};
+}
 
 void TWindow::maskCpG(const genometools::TFastaReader & reference){
 	using genometools::Base;
@@ -331,8 +305,7 @@ void TWindow::maskCpG(const genometools::TFastaReader & reference){
 			++_numMaskedSites;
 		}
 	}
-};
-
+}
 
 genometools::TBaseProbabilities TWindow::estimateBaseFrequencies() const{
 	//estimate initial base frequencies
@@ -341,8 +314,7 @@ genometools::TBaseProbabilities TWindow::estimateBaseFrequencies() const{
 		bd += s.baseFrequencies();
 	}
 	return genometools::TBaseProbabilities::normalize(bd);
-};
-
+}
 
 void TWindow::applyDepthFilter(const coretools::TNumericRange<size_t> & DepthRange){
 	for (size_t i = 0; i < size(); ++i) {
@@ -352,6 +324,6 @@ void TWindow::applyDepthFilter(const coretools::TNumericRange<size_t> & DepthRan
 			++_numMaskedSites;
 		}
 	}
-};
+}
 
-}; //end namespace
+} //end namespace
