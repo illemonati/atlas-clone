@@ -63,9 +63,10 @@ private:
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
 
-	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
+	void _addSites(const GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 
 	void _bootstrapThetaEstimation(size_t TotMaskedSites);
+
 public:
 	TEstimateTheta();
 	void run();

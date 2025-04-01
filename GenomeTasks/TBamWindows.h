@@ -27,6 +27,7 @@ class TBamWindows {
 	bool _applyDepthFilter;
 	bool _filterCpG;
 	bool _shuffleSites = false;
+	bool _allowDownsampling=false;
 
 	coretools::TNumericRange<size_t> _depthFilter;
 
@@ -61,6 +62,8 @@ public:
 	const std::vector<genometools::TGenomeWindow>& operator[](size_t refID) const noexcept {return _windows[refID];}
 	size_t uptoDepth() const noexcept {return _upToDepth;}
 	bool shuffleSites() const noexcept {return _shuffleSites;}
+	bool allowDownsampling() const noexcept {return _allowDownsampling;}
+	void allowDownsampling(bool Yes) noexcept {_allowDownsampling = Yes;}
 	size_t windowSize() const noexcept {return _windowSize;}
 	bool considerRegions() const noexcept {return _considerRegions;}
 	const genometools::TAlleles& alleles() const noexcept {return _alleles;}

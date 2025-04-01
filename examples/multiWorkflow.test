@@ -58,28 +58,28 @@ for i in $(seq 0 $nD); do
 	L="${N}$M"
 	name="$(printf "%0.2d" $depth)x"
 	out="${name}_simulate"
-#	$atlas --task simulate --RGInfo "workflow.json" \
-#		--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.0075 \
-#		--chrLength $L --depth $depth --ploidy 2 \
-#		--fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
-	bam=$out.bam
-	fasta=$out.fasta
+	$atlas --task simulate --RGInfo "workflow.json" \
+		--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.0075 \
+		--chrLength $L --depth $depth --ploidy 2 \
+		--fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
+       bam=$out.bam
+       fasta=$out.fasta
 
-	out="${name}_merge"
-#	$atlas --task mergeOverlappingReads --mergingMethod middle --bam $bam \
-#		   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
-	bam=${out}_merged.bam 
+       out="${name}_merge"
+	$atlas --task mergeOverlappingReads --mergingMethod middle --bam $bam \
+		   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
+       bam=${out}_merged.bam 
 
-	out="${name}_bd"
-#	$atlas --task BAMDiagnostics --bam $bam --writeMates \
-#		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
+       out="${name}_bd"
+	$atlas --task BAMDiagnostics --bam $bam --writeMates \
+		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
-	out=${name}_HK85reads_truth
-#	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 5 \
-#		--prob $probs --sample reads \
-#		--bam $bam --fasta $fasta  --chr "chr1" \
-#		--RGInfo workflow.json \
-#		--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
+       out=${name}_HK85reads_truth
+	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 5 \
+		--prob $probs --sample reads \
+		--bam $bam --fasta $fasta  --chr "chr1" \
+		--RGInfo workflow.json \
+		--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_ee
 	$(which time) -v $atlas --task estimateErrors --minDeltaLL $delta \

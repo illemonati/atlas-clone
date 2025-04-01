@@ -42,12 +42,14 @@ public:
 
 private:
 	// alignment stacks and sites
-	size_t _lastReadID = 0;
-	mutable std::vector<std::vector<uint32_t>> _readIDs;
+	std::vector<std::vector<uint32_t>> _readIDs;
 	std::vector<BAM::TAlignment> _overlap;
 	std::vector<TSite> _sites;
 	std::vector<bool> _masked;
 	std::string _chrName;
+
+	size_t _lastReadID = 0;
+	bool _tagSites     = false;
 
 	mutable double _depth                   = 0;
 	mutable double _fractionMissing         = 0.;
@@ -64,21 +66,23 @@ private:
 	// fill sites and clean
 	size_t _findFirstPositionWithinWindow(const BAM::TAlignment &Alignment) const;
 	void _fillSites(const BAM::TAlignment &alignment);
-	void _fillSites(BAM::TAlignment &alignment, const genometools::TAlleles &alleles);
-	int _fillSitesDownsampling(std::vector<TSite> &sites, const coretools::Probability &downsamplingProb) const;
 
 	// void stealFromOther(TWindow & other);
 	void _downsampleFrom(const TWindow &other, const coretools::Probability &downsamplingProb);
 
+	TWindow() = default;
+
 public:
 	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {}
-	TWindow(const TWindow &other, const coretools::Probability &downsamplingProb, size_t UpToDepth, bool Shuffle); 
+
+	TWindow downsampleReads(const coretools::Probability &downsamplingProb) const;
 
 	// Allow to set chromosome name when jumping
 	void move(const genometools::TGenomeWindow &Window);
 	void move(const TWindow &Window, std::string_view ChrName);
 
-	void downsampleSites(size_t UpToDepth, bool Shuffle);
+	void limitDepth(size_t UpToDepth, bool Shuffle);
+	void limitSites(const genometools::TAlleles& alleles);
 	void downsampleSites(coretools::Probability p);
 
 	void addReferenceBaseToSites(const genometools::TAlleles &Alleles);
@@ -118,8 +122,12 @@ public:
 	bool filter(double maxFracMissing, double maxRefN);
 	bool passedFilters() const noexcept { return _passedFilters; }
 
+	void allowDownsampling(bool Yes=true) {_tagSites = Yes;}
+
 	// loop over sites
 	const std::vector<TSite>& sites() const noexcept {return _sites;}
+	const std::vector<std::vector<uint32_t>>& readIDs() const noexcept {return _readIDs;}
+
 	iterator begin() noexcept { return _sites.begin(); };
 	const_iterator begin() const noexcept { return _sites.begin(); }
 	const_iterator cbegin() const noexcept { return _sites.cbegin(); }
@@ -129,7 +137,6 @@ public:
 	const_iterator cend() const noexcept { return _sites.cend(); }
 
 	void addAlignment(const BAM::TAlignment& usedAlignment);
-	void fillSites(const genometools::TAlleles& alleles);
 };
 
 } // namespace GenotypeLikelihoods

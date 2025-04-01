@@ -254,10 +254,10 @@ void TBamWindows::filter(GenotypeLikelihoods::TWindow &Window) {
 
 void TBamWindows::fillSites(GenotypeLikelihoods::TWindow &Window) {
 	// fill sites
-	Window.fillSites(_alleles);
+	if (_alleles) Window.limitSites(_alleles);
 	Window.addReferenceBaseToSites(_parser.reference());
 	if (_downProb != 0.) Window.downsampleSites(_downProb);
-	Window.downsampleSites(_upToDepth, _shuffleSites);
+	Window.limitDepth(_upToDepth, _shuffleSites);
 }
 
 }
