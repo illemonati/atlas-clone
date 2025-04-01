@@ -82,7 +82,7 @@ void TWindow::addReferenceBaseToSites(const genometools::TAlleles &Alleles) {
 void TWindow::limitDepth(size_t UpToDepth, bool Shuffle) {
 	for (auto &s : _sites) {
 		if (Shuffle) s.shuffle();
-		s.downsample(UpToDepth);
+		s.limitDepth(UpToDepth);
 	}
 }
 
@@ -168,7 +168,7 @@ TWindow TWindow::downsampleReads(const coretools::Probability &downsamplingProb)
 	other._sites.resize(size());
 	for (size_t i = 0; i < size(); ++i) other._sites[i].refBase = _sites[i].refBase;
 
-	std::vector<bool> keep(_lastReadID);
+	std::vector<bool> keep(_lastReadID, false);
 	other._lastReadID = 0;
 	for (size_t i = 0; i < keep.size(); ++i) {
 		if (randomGenerator().getRand() < downsamplingProb) {

@@ -6,11 +6,13 @@
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Ploidy.h"
+#include <iterator>
 #include <memory>
 
 namespace GenomeTasks {
@@ -148,37 +150,20 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 	_totMaskedSites += window.numMaskedSites();
 
 	// full P
-	for (const auto &site : window) {
-		_stats_full.NData += site.depth();
+	for (size_t i = 0; i < window.size(); ++i) {
+		const auto &site = window[i];
+		_stats.NData += site.depth();
 		if (site.empty() || site.refBase == Base::N) {
-			++_stats_full.NMissing;
+			++_stats.NMissing;
 		} else {
-			_sites_full.push_back(site);
-		}
-	}
-
-	// downsample
-	if (_sample == Sample::reads) {
-		for (size_t r = 0; r < _sites_P.size(); ++r) {
-			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-				const auto p = P(_depthOrProbs[i]);
-				auto &sites  = _sites_P[r][i];
-				auto &stat   = _stats_P[r][i];
-
-				logfile().list("Downsampling reads to probability ", p, ".");
-				const auto downsampled = window.downsampleReads(p);
-
-				for (const auto &site : downsampled) {
-					stat.NData += site.depth();
-					if (site.empty() || site.refBase == Base::N) {
-						++stat.NMissing;
-					} else {
-						sites.push_back(site);
-					}
-				}
+			_sites.push_back(site);
+			if (_downSample()) {
+				_readIDs.push_back();
+				for (const auto id : window.readIDs()[i]) { _readIDs.push_back(id + _lastReadID); }
 			}
 		}
 	}
+	_lastReadID += window.numReadsInWindow();
 }
 
 void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
@@ -221,7 +206,7 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 					site.downsample(p);
 				} else /* _sample == Sample::upTo */ {
 					const int d = int(dOrP);
-					site.downsample(d);
+					site.limitDepth(d);
 				}
 				depth += site.depth();
 				if (!site.empty()) ++withData;
@@ -248,80 +233,108 @@ void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	}
 }
 
-void TEstimateHKY85::run() {
+void TEstimateHKY85::_handleGenomeWide() {
 	using BAM::End;
+	using coretools::instances::randomGenerator;
 	using GenotypeLikelihoods::PMD::Type;
-	_traverseBAMWindows();
-	if (_genomeWide) {
-		_openFile();
-		const auto NSites = _totSites - _totMaskedSites;
-		//full
+	using std::back_inserter;
 
-		logfile().list("Using full data.");
-		const auto LL  = _runEM(_sites_full);
-		const auto pis = _genoDist->pis();
+	_openFile();
+	const auto NSites = _totSites - _totMaskedSites;
 
-		const auto nIT = _numEMIterations;
-		for (size_t r = 0; r < _sites_P.size(); ++r) {
-			logfile().list("Downsampling round ", r, ".");
-			if (_windows.considerRegions()) {
-				_out.write("regions", "Round", r);
+	// full
+	logfile().list("Using full data.");
+	const auto LL  = _runEM(_sites);
+	const auto pis = _genoDist->pis();
+
+	const auto nIT = _numEMIterations;
+	for (size_t r = 0; r < _nRounds; ++r) {
+		logfile().list("Downsampling round ", r, ".");
+		if (_windows.considerRegions()) {
+			_out.write("regions", "Round", r);
+		} else {
+			_out.write("genome-wide", "Round", r);
+		}
+		_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
+		           double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
+		if (_pmd) {
+			_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
+			           _pmd->psi()->vals(End::from3, Type::CT).front(),
+			           _pmd->psi()->vals(End::from3, Type::GA).front());
+		}
+
+		std::vector<bool> keep;
+		std::vector<GenotypeLikelihoods::TSite> sites_p;
+
+		if (_downSample()) {
+			sites_p.resize(_sites.size());
+			for (size_t i = 0; i < _sites.size(); ++i) { sites_p[i].refBase = _sites[i].refBase; }
+		}
+
+		// downsampled
+		for (size_t p = 0; p < _depthOrProbs.size(); ++p) {
+			const auto prob = P(_depthOrProbs[p]);
+
+			constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
+			    {"probability", "probability", "maximum depth"}};
+			logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[p], ".");
+
+			if (_sample == Sample::upToDepth) {
+				_numEMIterations =
+				    std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / _depthOrProbs[p]); // may need a bit longer
 			} else {
-				_out.write("genome-wide", "Round", r);
+				_numEMIterations = std::min<size_t>(10 * nIT, nIT / _depthOrProbs[p]); // may need a bit longer
 			}
-			_out.write(_stats_full.NData / NSites, NSites, _totSites - _stats_full.NMissing,
-					   double(_stats_full.NMissing - _totMaskedSites) / NSites, pis, LL);
+
+			size_t depth    = 0;
+			size_t withData = 0;
+			if (_sample == Sample::reads) {
+				keep.clear();
+				keep.resize(_lastReadID, false);
+
+				for (size_t k = 0; k < keep.size(); ++k) {
+					if (randomGenerator().getRand() < prob) { keep[k] = true; }
+				}
+			}
+			for (size_t s = 0; s < _sites.size(); ++s) {
+				sites_p[s].data().clear(); // don't remove refBase
+				switch (_sample) {
+				case Sample::reads: {
+					for (size_t j = 0; j < _sites[s].depth(); ++j) {
+						if (keep[_readIDs[s][j]]) { sites_p[s].add(_sites[s][j]); }
+					}
+				} break;
+				case Sample::sites: {
+					for (size_t j = 0; j < _sites[s].depth(); ++j) {
+						if (randomGenerator().getRand() < prob) { sites_p[s].add(_sites[s][j]); }
+					}
+				} break;
+				default: { // Sample::upTodepth
+					const auto len = std::min<size_t>(prob, _sites[s].depth());
+					sites_p[s].data().reserve(len);
+					std::copy(_sites[s].begin(), _sites[s].begin() + len, std::back_inserter(sites_p[s].data()));
+				} break;
+				}
+				depth += sites_p[s].depth();
+				if (!sites_p[s].empty()) ++withData;
+			}
+
+			const auto LL_i = _runEM(sites_p);
+			_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
+			           LL_i);
 			if (_pmd) {
 				_out.write(
-					_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
-					_pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
+				    _pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
+				    _pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
 			}
-
-			// downsampled
-			for (size_t i = 0; i < _sites_P[r].size(); ++i) {
-				constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{{"probability", "probability", "maximum depth"}};
-				logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[i], ".");
-				if (_sample == Sample::upToDepth) {
-					_numEMIterations = std::min<size_t>(10*nIT, nIT*_depthOrProbs[0]/_depthOrProbs[i]); // may need a bit longer
-				} else {
-					_numEMIterations = std::min<size_t>(10*nIT, nIT/_depthOrProbs[i]); // may need a bit longer
-				}
-
-				if (_sample == Sample::reads) {
-					const auto &sites = _sites_P[r][i];
-					const auto &stat  = _stats_P[r][i];
-
-					const auto LL_i = _runEM(sites);
-					_out.write(stat.NData / NSites, NSites, _totSites - stat.NMissing,
-					           double(stat.NMissing - _totMaskedSites) / NSites, _genoDist->pis(), LL_i);
-				} else {
-					auto sites      = _sites_full;
-					size_t depth    = 0;
-					size_t withData = 0;
-					for (auto &site : sites) {
-						if (_sample == Sample::sites) {
-							const auto p = P(_depthOrProbs[i]);
-							site.downsample(p);
-						}else /* _sample == Sample::upTo */ {
-							const int d = int(_depthOrProbs[i]);
-							site.downsample(d);
-						}
-						depth += site.depth();
-						if (!site.empty()) ++withData;
-					}
-					const auto LL_p = _runEM(sites);
-					_out.write(double(depth)/NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(), LL_p);
-				}
-				if (_pmd) {
-					_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(),
-							   _pmd->psi()->vals(End::from5, Type::GA).front(),
-							   _pmd->psi()->vals(End::from3, Type::CT).front(),
-							   _pmd->psi()->vals(End::from3, Type::GA).front());
-				}
-			}
-			_out.endln();
 		}
+		_out.endln();
 	}
+}
+
+void TEstimateHKY85::run() {
+	_traverseBAMWindows();
+	if (_genomeWide) _handleGenomeWide();
 }
 
 TEstimateHKY85::TEstimateHKY85() {
@@ -388,19 +401,16 @@ TEstimateHKY85::TEstimateHKY85() {
 	if (_genomeWide) {
 		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
 		if (parameters().get("genomeWide").empty()) {
+			_nRounds = 1;
 			if (!_depthOrProbs.empty()) {
 				logfile().list("Will do one round of downsampling. (use 'genomeWide' to specify the number)");
-				_sites_P.reshape(1, _depthOrProbs.size());
-				_stats_P.reshape(1, _depthOrProbs.size());
 			}
 		} else {
 			if (_depthOrProbs.empty()) {
 				UERROR("Cannot du several rounds of downsampling without downsampling probabilities! Use 'prob' to specify.");
 			}
-			const auto nRounds = parameters().get<size_t>("genomeWide");
-			logfile().list("Will do ", nRounds, " rounds of downsampling. (parameter 'genomeWide')");
-			_sites_P.reshape(nRounds, _depthOrProbs.size());
-			_stats_P.reshape(nRounds, _depthOrProbs.size());
+			_nRounds = parameters().get<size_t>("genomeWide");
+			logfile().list("Will do ", _nRounds, " rounds of downsampling. (parameter 'genomeWide')");
 		}
 	} else {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");

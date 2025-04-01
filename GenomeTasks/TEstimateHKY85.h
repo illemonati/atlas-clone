@@ -6,7 +6,7 @@
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
 #include "PMD/TModel.h"
-#include "coretools/Containers/TMultiVector.h"
+#include "coretools/Containers/TNestedVector.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TGenotypeDistribution.h"
@@ -14,6 +14,7 @@
 #include <memory>
 
 namespace GenomeTasks {
+
 class TEstimateHKY85 final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	enum class Sample : size_t {min = 0, reads=min, sites, upToDepth, max};
@@ -26,6 +27,7 @@ private:
 	double _minDeltaLL;
 	size_t _totMaskedSites = 0;
 	size_t _totSites       = 0;
+	size_t _nRounds        = 1;
 
 	coretools::TOutputFile _out;
 	std::vector<double> _depthOrProbs;
@@ -37,14 +39,16 @@ private:
 		double NData    = 0;
 		size_t NMissing = 0;
 	};
-	TStats _stats_full;
-	std::vector<GenotypeLikelihoods::TSite> _sites_full;
-	coretools::TMultiVector<std::vector<GenotypeLikelihoods::TSite>> _sites_P;
-	coretools::TMultiVector<TStats> _stats_P;
+	TStats _stats;
+	std::vector<GenotypeLikelihoods::TSite> _sites;
+	coretools::TNestedVector<size_t> _readIDs;
+	size_t _lastReadID = 0;
 
+	bool _downSample() const noexcept {return !_depthOrProbs.empty();}
 
 	void _handleGenomeWide(GenotypeLikelihoods::TWindow& window);
 	void _handlePerWindow(GenotypeLikelihoods::TWindow& window);
+	void _handleGenomeWide();
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
 	void _startChromosome(const genometools::TChromosome&) override {}
