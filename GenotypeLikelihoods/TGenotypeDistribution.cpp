@@ -32,13 +32,13 @@ using coretools::instances::logfile;
 namespace impl {
 using coretools::TStrongArray;
 
-TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
+TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double Mu, double Theta_r, double Theta_g) {
 	using coretools::index;
 
-	const auto z                     = (1. - mu) / 2;
-	const arma::mat::fixed<4, 4> l   = {{-1., z, mu, z}, {z, -1., z, mu}, {mu, z, -1., z}, {z, mu, z, -1.}};
-	const arma::mat::fixed<4, 4> P_g = arma::expmat(theta_g * l);
-	const arma::mat::fixed<4, 4> P_r = arma::expmat(theta_r * l);
+	const auto z                     = (1. - Mu) / 2;
+	const arma::mat::fixed<4, 4> l   = {{-1., z, Mu, z}, {z, -1., z, Mu}, {Mu, z, -1., z}, {z, Mu, z, -1.}};
+	const arma::mat::fixed<4, 4> P_g = arma::expmat(Theta_g * l);
+	const arma::mat::fixed<4, 4> P_r = arma::expmat(Theta_r * l);
 
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> pi;
 	for (auto r = Base::min; r < Base::max; ++r) {
@@ -57,13 +57,13 @@ TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, doubl
 }
 
 
-double Q(double mu, double theta_r, double theta_g,
-		 const coretools::TStrongArray<TGenotypeData, genometools::Base> &lkhSum) {
+double Q(double Mu, double Theta_r, double Theta_g,
+		 const coretools::TStrongArray<TGenotypeData, genometools::Base> &LkhSum) {
 	try {
-		const auto pi = impl::piTable(mu, theta_r, theta_g);
+		const auto pi = impl::piTable(Mu, Theta_r, Theta_g);
 		double Q      = 0;
 		for (auto r = Base::min; r < Base::max; ++r) {
-			for (auto g = Genotype::min; g < Genotype::max; ++g) { Q += std::log(pi[r][g]) * lkhSum[r][g]; }
+			for (auto g = Genotype::min; g < Genotype::max; ++g) { Q += std::log(pi[r][g]) * LkhSum[r][g]; }
 		}
 		return Q;
 	} catch (...) {
@@ -71,12 +71,12 @@ double Q(double mu, double theta_r, double theta_g,
 	}
 }
 
-TStrongArray<TBaseProbabilities, genometools::Base>	piTable(double mu, double theta) {
+TStrongArray<TBaseProbabilities, genometools::Base>	piTable(double Mu, double Theta) {
 	using coretools::index;
 
-	const auto z                   = (1. - mu) / 2;
-	const arma::mat::fixed<4, 4> l = {{-1., z, mu, z}, {z, -1., z, mu}, {mu, z, -1., z}, {z, mu, z, -1.}};
-	const arma::mat::fixed<4, 4> P = arma::expmat(theta * l);
+	const auto z                   = (1. - Mu) / 2;
+	const arma::mat::fixed<4, 4> l = {{-1., z, Mu, z}, {z, -1., z, Mu}, {Mu, z, -1., z}, {z, Mu, z, -1.}};
+	const arma::mat::fixed<4, 4> P = arma::expmat(Theta * l);
 	coretools::TStrongArray<TBaseProbabilities, genometools::Base> pi;
 
 	for (auto r = Base::min; r < Base::max; ++r) {
@@ -89,21 +89,21 @@ TStrongArray<TBaseProbabilities, genometools::Base>	piTable(double mu, double th
 	return pi;
 }
 
-double Q(double mu, double theta, const coretools::TStrongArray<TBaseData, genometools::Base> &lkhSum) {
+double Q(double Mu, double Theta, const coretools::TStrongArray<TBaseData, genometools::Base> &LkhSum) {
 	try {
-		const auto pi = impl::piTable(mu, theta);
+		const auto pi = impl::piTable(Mu, Theta);
 		double Q      = 0;
 		for (auto r = Base::min; r < Base::max; ++r) {
-			for (auto b = Base::min; b < Base::max; ++b) { Q += std::log(pi[r][b]) * lkhSum[r][b]; }
+			for (auto b = Base::min; b < Base::max; ++b) { Q += std::log(pi[r][b]) * LkhSum[r][b]; }
 		}
 		return Q;
 	} catch (...) { return std::numeric_limits<double>::lowest(); }
 }
 
-double het(double mu, double theta) {
-	const auto z                     = (1. - mu) / 2;
-	const arma::mat::fixed<4, 4> l   = {{-1., z, mu, z}, {z, -1., z, mu}, {mu, z, -1., z}, {z, mu, z, -1.}};
-	const arma::mat::fixed<4, 4> P_g = arma::expmat(theta * l);
+double het(double Mu, double Theta) {
+	const auto z                     = (1. - Mu) / 2;
+	const arma::mat::fixed<4, 4> l   = {{-1., z, Mu, z}, {z, -1., z, Mu}, {Mu, z, -1., z}, {z, Mu, z, -1.}};
+	const arma::mat::fixed<4, 4> P_g = arma::expmat(Theta * l);
 
 	double hom = 0.;
 	for (size_t i = 0; i < 4; ++i) {
@@ -114,26 +114,43 @@ double het(double mu, double theta) {
 
 } // namespace impl
 
-TGenotypeLikelihoods THaploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return base2genotype<genometools::Ploidy::haploid>(baseLikelihoods);
-}
-coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-																   Genotype genotype) const {
-	// first == second if Haploid
-	return baseLikelihoods[genometools::first(genotype)];
+TGenotypeLikelihoods THaploidDistribution::P_dij(const TBaseLikelihoods &BaseLikelihoods) const {
+	return base2genotype<genometools::Ploidy::haploid>(BaseLikelihoods);
 }
 
-double THaploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) {
+coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &BaseLikelihoods,
+																   Genotype Genotype) const {
+	// first == second if Haploid
+	return BaseLikelihoods[genometools::first(Genotype)];
+}
+
+double THaploidDistribution::normalize_add(TGenotypeLikelihoods &Likelihoods, genometools::Base) {
 	double sum = 0.;
 	// only four
 	for(auto b = Base::min; b < Base::max; ++b) {
 		const auto g = genometools::genotype(b, b);
-		likelihoods[g] *= _pi[b];
-		sum += likelihoods[g];
+		Likelihoods[g] *= _pi[b];
+		sum += Likelihoods[g];
 	}
 	for(auto b = Base::min; b < Base::max; ++b) {
 		const auto g = genometools::genotype(b, b);
-		_piSum[b] += likelihoods[g].scale(sum);
+		_piSum[b] += Likelihoods[g].scale(sum);
+	}
+	return sum;
+}
+
+double THaploidDistribution::add(const TGenotypeLikelihoods &Likelihoods, genometools::Base) {
+	auto tmp = Likelihoods;
+	double sum = 0.;
+	// only four
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g = genometools::genotype(b, b);
+		tmp[g] *= _pi[b];
+		sum += tmp[g];
+	}
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g = genometools::genotype(b, b);
+		_piSum[b] += tmp[g].scale(sum);
 	}
 	return sum;
 }
@@ -165,26 +182,40 @@ void THaploidDistribution::reset() {
 	_pi = TBaseProbabilities::normalize(_piSum);
 }
 
-TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);
+TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &BaseLikelihoods) const {
+	return base2genotype<genometools::Ploidy::diploid>(BaseLikelihoods);
 }
 
-coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-																   Genotype genotype) const {
+coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &BaseLikelihoods,
+																   Genotype Genotype) const {
 	// if first == second, then 0.5*first + 0.5*first = first
-	return coretools::average(baseLikelihoods[genometools::first(genotype)],
-							  baseLikelihoods[genometools::second(genotype)]);
+	return coretools::average(BaseLikelihoods[genometools::first(Genotype)],
+							  BaseLikelihoods[genometools::second(Genotype)]);
 }
 
-double TDiploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) {
+double TDiploidDistribution::normalize_add(TGenotypeLikelihoods &Likelihoods, genometools::Base) {
 	double sum = 0;
 	// all 10
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		likelihoods[g] *= _pi[g];
-		sum += likelihoods[g];
+		Likelihoods[g] *= _pi[g];
+		sum += Likelihoods[g];
 	}
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		_piSum[g] += likelihoods[g].scale(sum);
+		_piSum[g] += Likelihoods[g].scale(sum);
+	}
+	return sum;
+}
+
+double TDiploidDistribution::add(const TGenotypeLikelihoods &Likelihoods, genometools::Base) {
+	auto tmp = Likelihoods;
+	double sum = 0;
+	// all 10
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		tmp[g] *= _pi[g];
+		sum += tmp[g];
+	}
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		_piSum[g] += tmp[g].scale(sum);
 	}
 	return sum;
 }
@@ -244,22 +275,36 @@ TGenotypeLikelihoods THKY85::P_dij(const TBaseLikelihoods &baseLikelihoods) cons
 	return base2genotype<genometools::Ploidy::diploid>(baseLikelihoods);
 }
 
-coretools::Probability THKY85::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-																   Genotype genotype) const {
+coretools::Probability THKY85::getGenotypeLikelihood(const TBaseLikelihoods &BaseLikelihoods,
+																   Genotype Genotype) const {
 	// if first == second, then 0.5*first + 0.5*first = first
-	return coretools::average(baseLikelihoods[genometools::first(genotype)],
-							  baseLikelihoods[genometools::second(genotype)]);
+	return coretools::average(BaseLikelihoods[genometools::first(Genotype)],
+							  BaseLikelihoods[genometools::second(Genotype)]);
 }
 
-double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {
+double THKY85::normalize_add(TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) {
 	double sum = 0;
 	// all 10
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		likelihoods[g] *= _pi[ref][g];
-		sum += likelihoods[g];
+		Likelihoods[g] *= _pi[Ref][g];
+		sum += Likelihoods[g];
 	}
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		_likelihoodSum[ref][g] += likelihoods[g].scale(sum);
+		_likelihoodSum[Ref][g] += Likelihoods[g].scale(sum);
+	}
+	return sum;
+}
+
+double THKY85::add(const TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) {
+	TGenotypeLikelihoods tmp(Likelihoods);
+	double sum = 0;
+	// all 10
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		tmp[g] *= _pi[Ref][g];
+		sum += tmp[g];
+	}
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		_likelihoodSum[Ref][g] += tmp[g].scale(sum);
 	}
 	return sum;
 }
@@ -319,28 +364,44 @@ void THKY85::reset() {
 	_pi      = impl::piTable(_mu, _theta_r, _theta_g);
 }
 
-TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
-	return base2genotype<genometools::Ploidy::haploid>(baseLikelihoods);
+TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &BaseLikelihoods) const {
+	return base2genotype<genometools::Ploidy::haploid>(BaseLikelihoods);
 }
 
-coretools::Probability THKY85_mono::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-																   Genotype genotype) const {
+coretools::Probability THKY85_mono::getGenotypeLikelihood(const TBaseLikelihoods &BaseLikelihoods,
+																   Genotype Genotype) const {
 	// if first == second, then 0.5*first + 0.5*first = first
-	return coretools::average(baseLikelihoods[genometools::first(genotype)],
-							  baseLikelihoods[genometools::second(genotype)]);
+	return coretools::average(BaseLikelihoods[genometools::first(Genotype)],
+							  BaseLikelihoods[genometools::second(Genotype)]);
 }
 
-double THKY85_mono::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {
+double THKY85_mono::normalize_add(TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) {
 	double sum = 0;
 	// all 10
 	for(auto b = Base::min; b < Base::max; ++b) {
 		const auto g    = genometools::genotype(b, b);
-		likelihoods[g] *= _pi[ref][b];
-		sum            += likelihoods[g];
+		Likelihoods[g] *= _pi[Ref][b];
+		sum            += Likelihoods[g];
 	}
 	for(auto b = Base::min; b < Base::max; ++b) {
 		const auto g = genometools::genotype(b, b);
-		_likelihoodSum[ref][b] += likelihoods[g].scale(sum);
+		_likelihoodSum[Ref][b] += Likelihoods[g].scale(sum);
+	}
+	return sum;
+}
+
+double THKY85_mono::add(const TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) {
+	auto tmp = Likelihoods;
+	double sum = 0;
+	// all 10
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g    = genometools::genotype(b, b);
+		tmp[g] *= _pi[Ref][b];
+		sum += tmp[g];
+	}
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g = genometools::genotype(b, b);
+		_likelihoodSum[Ref][b] += tmp[g].scale(sum);
 	}
 	return sum;
 }

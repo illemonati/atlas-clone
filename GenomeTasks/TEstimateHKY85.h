@@ -5,12 +5,12 @@
 #ifndef GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
-#include "PMD/TModel.h"
 #include "coretools/Containers/TNestedVector.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TGenotypeDistribution.h"
 #include "TBamWindowTraverser.h"
+#include "genometools/Genotypes/Base.h"
 #include <memory>
 
 namespace GenomeTasks {
@@ -20,7 +20,6 @@ private:
 	enum class Sample : size_t {min = 0, reads=min, sites, upToDepth, max};
 
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
-	std::unique_ptr<GenotypeLikelihoods::PMD::TWithPMD> _pmd;
 
 	// EM
 	size_t _numEMIterations;
@@ -33,6 +32,9 @@ private:
 	std::vector<double> _depthOrProbs;
 	bool _genomeWide = false;
 	Sample _sample;
+
+	std::vector<genometools::Base> _refBases;
+	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_ds;
 
 	// genomeWide data
 	struct TStats {
@@ -54,8 +56,9 @@ private:
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
 
-	double _runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites);
-	double _LL(const std::vector<GenotypeLikelihoods::TSite>& Sites);
+	void _addSites(const std::vector<GenotypeLikelihoods::TSite>& Sites);
+	double _runEM();
+	double _LL();
 
 	void _openFile();
 

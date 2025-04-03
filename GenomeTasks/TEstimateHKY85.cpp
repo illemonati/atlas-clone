@@ -23,9 +23,8 @@ using genometools::TGenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
 
-double TEstimateHKY85::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites) {
+void TEstimateHKY85::_addSites(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
 	const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
-
 	const auto PgI_init = [isInvariant]() {
 		TGenotypeLikelihoods Ps(P(1.));
 		if (isInvariant) {
@@ -39,18 +38,19 @@ double TEstimateHKY85::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites)
 		return Ps;
 	}();
 
-	coretools::TSumLogProbability LL{};
+	_refBases.reserve(_refBases.size() + Sites.size());
+	_P_g_I_ds.reserve(_P_g_I_ds.size() + Sites.size());
 	for (const auto &site : Sites) {
-		const auto ref = site.refBase;
-		if (site.empty() || ref == genometools::Base::N) continue;
+		if (site.empty() || site.refBase == genometools::Base::N) continue;
+
+		_refBases.push_back(site.refBase);
 		TGenotypeLikelihoods P_g_I_di = PgI_init;
 		double sum                    = 1.;
 
 		for (auto &d_ij : site) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _pmd ? _pmd->P_dij(d_ij, P_dij_I_bbar) : _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 
-			LL.add(sum);
 			const double sum_inv = 1. / sum;
 			sum                  = 0.;
 			for (auto k = Base::min; k < Base::max; ++k) {
@@ -68,42 +68,30 @@ double TEstimateHKY85::_LL(const std::vector<GenotypeLikelihoods::TSite> &Sites)
 				}
 			}
 		}
-		LL.add(_genoDist->normalize_add(P_g_I_di, ref));
-		if (_pmd) {
-			for (auto &d_ij : site) {
-				const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
-				_pmd->psi()->addCT(d_ij, P_g_I_di[Genotype::CC], _pmd->P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
-				_pmd->psi()->addGA(d_ij, P_g_I_di[Genotype::GG], _pmd->P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
+		_P_g_I_ds.push_back(P_g_I_di);
+	}
+}
 
-				if (!isInvariant)
-					for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
-						_pmd->psi()->addCT(d_ij, P_g_I_di[g], _pmd->P_b_bbar(g, d_ij, P_dij_I_bbar));
-					}
-				if (!isInvariant)
-					for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
-						_pmd->psi()->addGA(d_ij, P_g_I_di[g], _pmd->P_b_bbar(g, d_ij, P_dij_I_bbar));
-					}
-			}
-		}
+double TEstimateHKY85::_LL() {
+	coretools::TSumLogProbability LL{};
+	for (size_t i = 0; i < _refBases.size(); ++i) {
+		LL.add(_genoDist->add(_P_g_I_ds[i], _refBases[i]));
 	}
 	if (!std::isfinite(LL.getSum())) UERROR("LL = ", LL.getSum(), "!");
 	return LL.getSum();
 }
 
-double TEstimateHKY85::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
+double TEstimateHKY85::_runEM() {
 	using coretools::str::toString;
 	// run EM
 	_genoDist->reset();
-	if (_pmd) _pmd->psi()->reset(_genome.rgInfo()[0][BAM::RGInfo::InfoType::pmd]);
 
-	const auto s = _pmd ? " and PMD:" : ":";
-	logfile().startIndent("Estimating ", _genoDist->typeString(), s);
+	logfile().startIndent("Estimating ", _genoDist->typeString(), ":");
 	logfile().startIndent("Initial values:");
 	_genoDist->log();
-	if (_pmd) _pmd->psi()->log();
 
 	// calculate initial LL
-	double oldLL   = _LL(Sites);
+	double oldLL   = _LL();
 	double deltaLL = std::abs(oldLL);
 	logfile().list("log Likelihood = ", oldLL);
 	logfile().endIndent();
@@ -114,13 +102,11 @@ double TEstimateHKY85::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sit
 		logfile().addIndent();
 		logfile().number("EM Iteration:");
 		_genoDist->estimate();
-		if (_pmd) _pmd->psi()->estimate();
 
-		const double LL = _LL(Sites);
+		const double LL = _LL();
 		deltaLL         = LL - oldLL;
 
 		_genoDist->log();
-		if (_pmd) _pmd->psi()->log();
 		logfile().list("Log Likelihood = ", LL);
 		logfile().list("delta LL = ", deltaLL);
 
@@ -148,6 +134,7 @@ double TEstimateHKY85::_runEM(const std::vector<GenotypeLikelihoods::TSite>& Sit
 void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 	_totSites += window.size();
 	_totMaskedSites += window.numMaskedSites();
+	_addSites(window.sites());
 
 	// full P
 	for (size_t i = 0; i < window.size(); ++i) {
@@ -155,7 +142,7 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
 		_stats.NData += site.depth();
 		if (site.empty() || site.refBase == Base::N) {
 			++_stats.NMissing;
-		} else {
+		} else if (_downSample()) {
 			_sites.push_back(site);
 			if (_downSample()) {
 				_readIDs.push_back();
@@ -172,14 +159,11 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 	// full P
 
 	logfile().list("Using full data.");
-	const auto LL = _runEM(window.sites());
+	_addSites(window.sites());
+	const auto LL = _runEM();
 
 	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
 			   window.numSitesWithData(), window.fracMissing(), _genoDist->pis(), LL);
-	if (_pmd) {
-		_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
-				   _pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
-	}
 
 	// downsample
 	const auto nIT = _numEMIterations;
@@ -193,7 +177,10 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 			const coretools::Probability p = P(dOrP);
 			const auto downsampled = window.downsampleReads(p);
 
-			const auto LL_p  = _runEM(downsampled.sites());
+			_refBases.clear();
+			_P_g_I_ds.clear();
+			_addSites(downsampled.sites());
+			const auto LL_p  = _runEM();
 			_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
 			           downsampled.fracMissing(), _genoDist->pis(), LL_p);
 		} else {
@@ -211,13 +198,12 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
 				depth += site.depth();
 				if (!site.empty()) ++withData;
 			}
-			const auto LL_p  = _runEM(sites);
+			_refBases.clear();
+			_P_g_I_ds.clear();
+			_addSites(sites);
+			const auto LL_p  = _runEM();
 			_out.write(double(depth)/window.numSites(), window.numSites(), withData, double(window.numSites() - withData) / window.numSites(),
 					   _genoDist->pis(), LL_p);
-		}
-		if (_pmd) {
-			_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
-					   _pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
 		}
 	}
 	_numEMIterations = nIT;
@@ -244,32 +230,28 @@ void TEstimateHKY85::_handleGenomeWide() {
 
 	// full
 	logfile().list("Using full data.");
-	const auto LL  = _runEM(_sites);
+	const auto LL  = _runEM();
 	const auto pis = _genoDist->pis();
-
 	const auto nIT = _numEMIterations;
+
+	std::vector<bool> keep;
+	std::vector<GenotypeLikelihoods::TSite> sites_p;
+
+	if (_downSample()) {
+		sites_p.resize(_sites.size());
+		for (size_t i = 0; i < _sites.size(); ++i) { sites_p[i].refBase = _sites[i].refBase; }
+	}
+
 	for (size_t r = 0; r < _nRounds; ++r) {
-		logfile().list("Downsampling round ", r, ".");
+		logfile().list("Downsampling round ", r + 1, ".");
 		if (_windows.considerRegions()) {
-			_out.write("regions", "Round", r);
+			_out.write("regions", "Round", r + 1);
 		} else {
-			_out.write("genome-wide", "Round", r);
+			_out.write("genome-wide", "Round", r + 1);
 		}
 		_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
 		           double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
-		if (_pmd) {
-			_out.write(_pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
-			           _pmd->psi()->vals(End::from3, Type::CT).front(),
-			           _pmd->psi()->vals(End::from3, Type::GA).front());
-		}
 
-		std::vector<bool> keep;
-		std::vector<GenotypeLikelihoods::TSite> sites_p;
-
-		if (_downSample()) {
-			sites_p.resize(_sites.size());
-			for (size_t i = 0; i < _sites.size(); ++i) { sites_p[i].refBase = _sites[i].refBase; }
-		}
 
 		// downsampled
 		for (size_t p = 0; p < _depthOrProbs.size(); ++p) {
@@ -289,8 +271,7 @@ void TEstimateHKY85::_handleGenomeWide() {
 			size_t depth    = 0;
 			size_t withData = 0;
 			if (_sample == Sample::reads) {
-				keep.clear();
-				keep.resize(_lastReadID, false);
+				keep.assign(_lastReadID, false);
 
 				for (size_t k = 0; k < keep.size(); ++k) {
 					if (randomGenerator().getRand() < prob) { keep[k] = true; }
@@ -319,14 +300,12 @@ void TEstimateHKY85::_handleGenomeWide() {
 				if (!sites_p[s].empty()) ++withData;
 			}
 
-			const auto LL_i = _runEM(sites_p);
+			_refBases.clear();
+			_P_g_I_ds.clear();
+			_addSites(sites_p);
+			const auto LL_i = _runEM();
 			_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
 			           LL_i);
-			if (_pmd) {
-				_out.write(
-				    _pmd->psi()->vals(End::from5, Type::CT).front(), _pmd->psi()->vals(End::from5, Type::GA).front(),
-				    _pmd->psi()->vals(End::from3, Type::CT).front(), _pmd->psi()->vals(End::from3, Type::GA).front());
-			}
 		}
 		_out.endln();
 	}
@@ -340,14 +319,6 @@ void TEstimateHKY85::run() {
 TEstimateHKY85::TEstimateHKY85() {
 	using BAM::RGInfo::InfoType;
 	_windows.requireReference();
-
-	if (parameters().exists("doPMD")) {
-		logfile().list("Will re-estimate pmd per Window. (parameter 'doPMD')");
-		_pmd = std::make_unique<GenotypeLikelihoods::PMD::TWithPMD>();
-		_pmd->psi()->log();
-	} else {
-		logfile().list("Not re-estimating PMD. (use 'doPMD')");
-	}
 
 	_numEMIterations  = parameters().get<int>("iterations", 200);
 	_minDeltaLL       = parameters().get<double>("minDeltaLL", 1e-6);
@@ -427,7 +398,6 @@ void TEstimateHKY85::_openFile() {
 	header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"), toString(sp, "fracMissing")});
 	_genoDist->addHeader(header, sp); //, sp);
 	header.push_back(toString(sp, "LL"));
-	if (_pmd) header.insert(header.end(), {"CT5", "GA5", "CT3", "GA3"});
 
 	for (const auto p : _depthOrProbs) {
 		const auto sp = toString("p", p, "_");
@@ -435,7 +405,6 @@ void TEstimateHKY85::_openFile() {
 									 toString(sp, "fracMissing")});
 		_genoDist->addHeader(header, sp); //, sp);
 		header.push_back(toString(sp, "LL"));
-		if (_pmd) header.insert(header.end(), {toString(sp, "CT5"), toString(sp, "GA5"), toString(sp, "CT3"), toString(sp, "GA3")});
 	}
 
 	_out.open(_genome.outputName() + ".txt.gz");

@@ -22,10 +22,11 @@ class TGenotypeDistribution {
 public:
 	TGenotypeDistribution()          = default;
 	virtual ~TGenotypeDistribution() = default;
-	virtual genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const = 0;
-	virtual coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
-														 genometools::Genotype genotype) const                  = 0;
-	virtual double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base ref)         = 0;
+	virtual genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &BaseLikelihoods) const = 0;
+	virtual coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &BaseLikelihoods,
+														 genometools::Genotype Genotype) const                  = 0;
+	virtual double normalize_add(genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref)         = 0;
+	virtual double add(const genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Fef)             = 0;
 	virtual void estimate()                                                                                     = 0;
 	virtual std::string_view typeString() const noexcept                                                        = 0;
 	virtual void log() const                                                                                    = 0;
@@ -36,21 +37,21 @@ public:
 };
 
 template<genometools::Ploidy P>
-genometools::TGenotypeLikelihoods base2genotype(const genometools::TBaseLikelihoods &baseLikelihoods) {
+genometools::TGenotypeLikelihoods base2genotype(const genometools::TBaseLikelihoods &BaseLikelihoods) {
 	using genometools::Base;
 	using coretools::average;
 	constexpr auto P0 = coretools::P(0.);
 	if constexpr (P == genometools::Ploidy::haploid) {
-		return genometools::TGenotypeLikelihoods({baseLikelihoods[Base::A], P0, P0, P0, baseLikelihoods[Base::C], P0, P0,
-									 baseLikelihoods[Base::G], P0, baseLikelihoods[Base::T]});
+		return genometools::TGenotypeLikelihoods({BaseLikelihoods[Base::A], P0, P0, P0, BaseLikelihoods[Base::C], P0, P0,
+									 BaseLikelihoods[Base::G], P0, BaseLikelihoods[Base::T]});
 	} else {
 		return genometools::TGenotypeLikelihoods(
-			{baseLikelihoods[Base::A], average(baseLikelihoods[Base::A], baseLikelihoods[Base::C]),
-			 average(baseLikelihoods[Base::A], baseLikelihoods[Base::G]),
-			 average(baseLikelihoods[Base::A], baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
-			 average(baseLikelihoods[Base::C], baseLikelihoods[Base::G]),
-			 average(baseLikelihoods[Base::C], baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
-			 average(baseLikelihoods[Base::G], baseLikelihoods[Base::T]), baseLikelihoods[Base::T]});
+			{BaseLikelihoods[Base::A], average(BaseLikelihoods[Base::A], BaseLikelihoods[Base::C]),
+			 average(BaseLikelihoods[Base::A], BaseLikelihoods[Base::G]),
+			 average(BaseLikelihoods[Base::A], BaseLikelihoods[Base::T]), BaseLikelihoods[Base::C],
+			 average(BaseLikelihoods[Base::C], BaseLikelihoods[Base::G]),
+			 average(BaseLikelihoods[Base::C], BaseLikelihoods[Base::T]), BaseLikelihoods[Base::G],
+			 average(BaseLikelihoods[Base::G], BaseLikelihoods[Base::T]), BaseLikelihoods[Base::T]});
 	}
 }
 
@@ -60,10 +61,11 @@ class THaploidDistribution final : public TGenotypeDistribution {
 public:
 	static constexpr std::string_view name = "haploid";
 
-	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
-												 genometools::Genotype genotype) const override;
-	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &BaseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &BaseLikelihoods,
+												 genometools::Genotype Genotype) const override;
+	double normalize_add(genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
+	double add(const genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
@@ -82,10 +84,11 @@ class TDiploidDistribution final : public TGenotypeDistribution {
 public:
 	static constexpr std::string_view name = "diploid";
 
-	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
-												 genometools::Genotype genotype) const override;
-	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &BaseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &BaseLikelihoods,
+												 genometools::Genotype Genotype) const override;
+	double normalize_add(genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
+	double add(const genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
@@ -112,10 +115,11 @@ public:
 	static constexpr std::string_view name = "HKY85";
 	THKY85();
 
-	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
-												 genometools::Genotype genotype) const override;
-	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &BaseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &BaseLikelihoods,
+												 genometools::Genotype Genotype) const override;
+	double normalize_add(genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
+	double add(const genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
@@ -140,10 +144,11 @@ public:
 	static constexpr std::string_view name = "HKY85_mono";
 	THKY85_mono();
 
-	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &baseLikelihoods) const override;
-	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &baseLikelihoods,
-												 genometools::Genotype genotype) const override;
-	double normalize_add(genometools::TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &BaseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &BaseLikelihoods,
+												 genometools::Genotype Genotype) const override;
+	double normalize_add(genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
+	double add(const genometools::TGenotypeLikelihoods &Likelihoods, genometools::Base Ref) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
