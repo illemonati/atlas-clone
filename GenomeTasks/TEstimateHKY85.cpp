@@ -1,6 +1,5 @@
 #include "TEstimateHKY85.h"
 
-#include "PMD/TPsi.h"
 #include "TGenotypeDistribution.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
@@ -12,7 +11,6 @@
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Ploidy.h"
-#include <iterator>
 #include <memory>
 
 namespace GenomeTasks {
@@ -23,53 +21,107 @@ using genometools::TGenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
 
-void TEstimateHKY85::_addSites(const std::vector<GenotypeLikelihoods::TSite>& Sites) {
-	const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
-	const auto PgI_init = [isInvariant]() {
-		TGenotypeLikelihoods Ps(P(1.));
-		if (isInvariant) {
-			Ps[Genotype::AC] = P(0.);
-			Ps[Genotype::AG] = P(0.);
-			Ps[Genotype::AT] = P(0.);
-			Ps[Genotype::CG] = P(0.);
-			Ps[Genotype::CT] = P(0.);
-			Ps[Genotype::GT] = P(0.);
-		}
-		return Ps;
-	}();
-
-	_refBases.reserve(_refBases.size() + Sites.size());
-	_P_g_I_ds.reserve(_P_g_I_ds.size() + Sites.size());
-	for (const auto &site : Sites) {
+void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
+	_refBases.reserve(_refBases.size() + Window.sites().size());
+	_P_g_I_ds.reserve(_P_g_I_ds.size() + Window.sites().size());
+	for (size_t s = 0; s < Window.sites().size(); ++s) {
+		const auto &site = Window.sites()[s];
 		if (site.empty() || site.refBase == genometools::Base::N) continue;
 
 		_refBases.push_back(site.refBase);
-		TGenotypeLikelihoods P_g_I_di = PgI_init;
-		double sum                    = 1.;
+		_P_d_I_b.push_back();
+
+		TGenotypeLikelihoods P_g_I_di(P(1.));
+		double sum = 1.;
 
 		for (auto &d_ij : site) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
 			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			if (_downSample()) {
+				_P_d_I_b.push_back(P_dij_I_b);
+			}
 
-			const double sum_inv = 1. / sum;
-			sum                  = 0.;
-			for (auto k = Base::min; k < Base::max; ++k) {
-				const auto kk = genometools::genotype(k, k);
-				P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
-				sum          += P_g_I_di[kk];
-			}
-			if (!isInvariant) {
-				for (const auto kl :
-					 {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
-					const auto k  = genometools::first(kl);
-					const auto l  = genometools::second(kl);
-					P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
-					sum          += P_g_I_di[kl];
-				}
-			}
+			sum = _addToPg(P_g_I_di, P_dij_I_b, sum);
 		}
 		_P_g_I_ds.push_back(P_g_I_di);
+
+		if (_downSample() && _sample == Sample::reads) {
+			_readIDs.push_back();
+			for (const auto id : Window.readIDs()[s]) { _readIDs.push_back(id + _lastReadID); }
+		}
 	}
+}
+
+double TEstimateHKY85::_addToPg(TGenotypeLikelihoods& P_g_I_di, const genometools::TBaseLikelihoods &P_dij_I_b, double sum) {
+	const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
+	const double sum_inv = 1. / sum;
+	sum                  = 0.;
+	for (auto k = Base::min; k < Base::max; ++k) {
+		const auto kk = genometools::genotype(k, k);
+		P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
+		sum += P_g_I_di[kk];
+	}
+	if (!isInvariant) {
+		for (const auto kl : {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+			const auto k = genometools::first(kl);
+			const auto l = genometools::second(kl);
+			P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
+			sum += P_g_I_di[kl];
+		}
+	}
+
+	return sum;
+}
+
+std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
+	using coretools::instances::randomGenerator;
+
+	std::vector<bool> keep;
+	if (_sample == Sample::reads) {
+		keep.assign(_lastReadID, false);
+		for (size_t k = 0; k < keep.size(); ++k) {
+			if (randomGenerator().getRand() < ProbOrDepth) { keep[k] = true; }
+		}
+	}
+
+	_P_g_I_ds.clear();
+	size_t depth    = 0;
+	size_t withData = 0;
+	for (size_t s = 0; s < _P_d_I_b.size(); ++s) {
+		TGenotypeLikelihoods P_g_I_di(P(1.));
+		double sum = 1.;
+		size_t depth_s = 0;
+		switch (_sample) {
+		case Sample::reads: {
+			for (size_t j = 0; j < _P_d_I_b[s].size(); ++j) {
+				if (keep[_readIDs[s][j]]) {
+					++depth_s;
+					sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum);
+				}
+			}
+		} break;
+		case Sample::sites: {
+			for (size_t j = 0; j < _P_d_I_b[s].size(); ++j) {
+				if (randomGenerator().getRand() < ProbOrDepth) {
+					++depth_s;
+					sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum);
+				}
+			}
+		} break;
+		default: { // Sample::upTodepth
+
+			depth_s = std::min<size_t>(ProbOrDepth, _P_d_I_b[s].size());
+			for (size_t j = 0; j < depth_s; ++j) { sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum); }
+		} break;
+		}
+
+		_P_g_I_ds.push_back(P_g_I_di);
+		if (depth_s > 0) {
+			depth += depth_s;
+			++withData;
+		}
+	}
+	return {depth, withData};
 }
 
 double TEstimateHKY85::_LL() {
@@ -82,7 +134,6 @@ double TEstimateHKY85::_LL() {
 }
 
 double TEstimateHKY85::_runEM() {
-	using coretools::str::toString;
 	// run EM
 	_genoDist->reset();
 
@@ -131,83 +182,61 @@ double TEstimateHKY85::_runEM() {
 	return oldLL;
 }
 
-void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &window) {
-	_totSites += window.size();
-	_totMaskedSites += window.numMaskedSites();
-	_addSites(window.sites());
+void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &Window) {
+	_totSites += Window.size();
+	_totMaskedSites += Window.numMaskedSites();
+
+	_addSites(Window);
+	_lastReadID += Window.numReadsInWindow();
 
 	// full P
-	for (size_t i = 0; i < window.size(); ++i) {
-		const auto &site = window[i];
+	for (size_t i = 0; i < Window.size(); ++i) {
+		const auto &site = Window[i];
 		_stats.NData += site.depth();
 		if (site.empty() || site.refBase == Base::N) {
 			++_stats.NMissing;
-		} else if (_downSample()) {
-			_sites.push_back(site);
-			if (_downSample()) {
-				_readIDs.push_back();
-				for (const auto id : window.readIDs()[i]) { _readIDs.push_back(id + _lastReadID); }
-			}
 		}
 	}
-	_lastReadID += window.numReadsInWindow();
 }
 
-void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &window) {
-	using BAM::End;
-	using GenotypeLikelihoods::PMD::Type;
+void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	// full P
-
 	logfile().list("Using full data.");
-	_addSites(window.sites());
+
+	_refBases.clear();
+	_P_g_I_ds.clear();
+	_P_d_I_b.clear();
+	_readIDs.clear();
+	_lastReadID = 0;
+
+	_addSites(Window);
+	_lastReadID = Window.numReadsInWindow();
+
 	const auto LL = _runEM();
 
-	_out.write(window.chrName(), window.from().position(), window.to().position(), window.depth(), window.numSites(),
-			   window.numSitesWithData(), window.fracMissing(), _genoDist->pis(), LL);
+	_out.write(Window.chrName(), Window.from().position(), Window.to().position(), Window.depth(), Window.numSites(),
+	           Window.numSitesWithData(), Window.fracMissing(), _genoDist->pis(), LL);
 
 	// downsample
-	const auto nIT = _numEMIterations;
+	const auto nIT    = _numEMIterations;
+	const auto NSites = Window.numSites();
 	for (const auto dOrP : _depthOrProbs) {
-		constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{{"probability", "probability", "maximum depth"}};
+		constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
+		    {"probability", "probability", "maximum depth"}};
 		logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ".");
 
-		_numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
-
-		if (_sample == Sample::reads) {
-			const coretools::Probability p = P(dOrP);
-			const auto downsampled = window.downsampleReads(p);
-
-			_refBases.clear();
-			_P_g_I_ds.clear();
-			_addSites(downsampled.sites());
-			const auto LL_p  = _runEM();
-			_out.write(downsampled.depth(), downsampled.numSites(), downsampled.numSitesWithData(),
-			           downsampled.fracMissing(), _genoDist->pis(), LL_p);
+		if (_sample == Sample::upToDepth) {
+			_numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit longer
 		} else {
-			auto sites      = window.sites();
-			size_t depth    = 0;
-			size_t withData = 0;
-			for (auto &site : sites) {
-				if (_sample == Sample::sites) {
-					const coretools::Probability p = P(dOrP);
-					site.downsample(p);
-				} else /* _sample == Sample::upTo */ {
-					const int d = int(dOrP);
-					site.limitDepth(d);
-				}
-				depth += site.depth();
-				if (!site.empty()) ++withData;
-			}
-			_refBases.clear();
-			_P_g_I_ds.clear();
-			_addSites(sites);
-			const auto LL_p  = _runEM();
-			_out.write(double(depth)/window.numSites(), window.numSites(), withData, double(window.numSites() - withData) / window.numSites(),
-					   _genoDist->pis(), LL_p);
+			_numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
 		}
+
+		const auto [depth, withData] = _downsampeSites(dOrP);
+		const auto LL_i              = _runEM();
+		_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
+				   LL_i);
 	}
 	_numEMIterations = nIT;
-
 	_out.endln();
 }
 
@@ -220,11 +249,6 @@ void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 }
 
 void TEstimateHKY85::_handleGenomeWide() {
-	using BAM::End;
-	using coretools::instances::randomGenerator;
-	using GenotypeLikelihoods::PMD::Type;
-	using std::back_inserter;
-
 	_openFile();
 	const auto NSites = _totSites - _totMaskedSites;
 
@@ -233,14 +257,6 @@ void TEstimateHKY85::_handleGenomeWide() {
 	const auto LL  = _runEM();
 	const auto pis = _genoDist->pis();
 	const auto nIT = _numEMIterations;
-
-	std::vector<bool> keep;
-	std::vector<GenotypeLikelihoods::TSite> sites_p;
-
-	if (_downSample()) {
-		sites_p.resize(_sites.size());
-		for (size_t i = 0; i < _sites.size(); ++i) { sites_p[i].refBase = _sites[i].refBase; }
-	}
 
 	for (size_t r = 0; r < _nRounds; ++r) {
 		logfile().list("Downsampling round ", r + 1, ".");
@@ -252,11 +268,8 @@ void TEstimateHKY85::_handleGenomeWide() {
 		_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
 		           double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
 
-
 		// downsampled
 		for (size_t p = 0; p < _depthOrProbs.size(); ++p) {
-			const auto prob = P(_depthOrProbs[p]);
-
 			constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
 			    {"probability", "probability", "maximum depth"}};
 			logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[p], ".");
@@ -268,42 +281,8 @@ void TEstimateHKY85::_handleGenomeWide() {
 				_numEMIterations = std::min<size_t>(10 * nIT, nIT / _depthOrProbs[p]); // may need a bit longer
 			}
 
-			size_t depth    = 0;
-			size_t withData = 0;
-			if (_sample == Sample::reads) {
-				keep.assign(_lastReadID, false);
-
-				for (size_t k = 0; k < keep.size(); ++k) {
-					if (randomGenerator().getRand() < prob) { keep[k] = true; }
-				}
-			}
-			for (size_t s = 0; s < _sites.size(); ++s) {
-				sites_p[s].data().clear(); // don't remove refBase
-				switch (_sample) {
-				case Sample::reads: {
-					for (size_t j = 0; j < _sites[s].depth(); ++j) {
-						if (keep[_readIDs[s][j]]) { sites_p[s].add(_sites[s][j]); }
-					}
-				} break;
-				case Sample::sites: {
-					for (size_t j = 0; j < _sites[s].depth(); ++j) {
-						if (randomGenerator().getRand() < prob) { sites_p[s].add(_sites[s][j]); }
-					}
-				} break;
-				default: { // Sample::upTodepth
-					const auto len = std::min<size_t>(prob, _sites[s].depth());
-					sites_p[s].data().reserve(len);
-					std::copy(_sites[s].begin(), _sites[s].begin() + len, std::back_inserter(sites_p[s].data()));
-				} break;
-				}
-				depth += sites_p[s].depth();
-				if (!sites_p[s].empty()) ++withData;
-			}
-
-			_refBases.clear();
-			_P_g_I_ds.clear();
-			_addSites(sites_p);
-			const auto LL_i = _runEM();
+			const auto [depth, withData] = _downsampeSites(_depthOrProbs[p]);
+			const auto LL_i              = _runEM();
 			_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
 			           LL_i);
 		}
@@ -317,7 +296,6 @@ void TEstimateHKY85::run() {
 }
 
 TEstimateHKY85::TEstimateHKY85() {
-	using BAM::RGInfo::InfoType;
 	_windows.requireReference();
 
 	_numEMIterations  = parameters().get<int>("iterations", 200);

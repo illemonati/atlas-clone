@@ -11,6 +11,7 @@
 #include "TGenotypeDistribution.h"
 #include "TBamWindowTraverser.h"
 #include "genometools/Genotypes/Base.h"
+#include "genometools/Genotypes/Containers.h"
 #include <memory>
 
 namespace GenomeTasks {
@@ -42,8 +43,8 @@ private:
 		size_t NMissing = 0;
 	};
 	TStats _stats;
-	std::vector<GenotypeLikelihoods::TSite> _sites;
 	coretools::TNestedVector<size_t> _readIDs;
+	coretools::TNestedVector<genometools::TBaseLikelihoods> _P_d_I_b;
 	size_t _lastReadID = 0;
 
 	bool _downSample() const noexcept {return !_depthOrProbs.empty();}
@@ -56,7 +57,9 @@ private:
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
 
-	void _addSites(const std::vector<GenotypeLikelihoods::TSite>& Sites);
+	void _addSites(const GenotypeLikelihoods::TWindow &Window);
+	double _addToPg(genometools::TGenotypeLikelihoods& P_g_I_di, const genometools::TBaseLikelihoods &Pdb, double sum);
+	std::pair<size_t, size_t> _downsampeSites(double ProbOrDepth);
 	double _runEM();
 	double _LL();
 
