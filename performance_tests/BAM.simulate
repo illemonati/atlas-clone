@@ -5,10 +5,10 @@
 bname=$(basename $0)
 name=${bname%.simulate}
 out=$name/$name
-zeros="00007"
+M="000127"
 
 $atlas --task simulate \
-	   --chrLength 100$zeros,1$zeros --ploidy 2,1 --depth 10,7 \
+	   --chrLength 10$M,1$M --ploidy 2,1 --depth 10,7 \
 	   --baseFreq 0.2,0.23,0.27,0.3 --refDiv 0.05 --seqType paired \
 	   --frequency 0.2 --numReadGroups 2 \
 	   --seqCycles 100 --fragmentLength 'normal(200,100)[30,500]' \
