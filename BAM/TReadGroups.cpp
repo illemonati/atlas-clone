@@ -18,35 +18,6 @@ using coretools::instances::logfile;
 //---------------------------------------------------------------
 //TReadGroups
 //---------------------------------------------------------------
-TReadGroups::TReadGroups(){
-	_limitReadGroups = false;
-};
-
-TReadGroups::TReadGroups(const TReadGroups && other){
-	_readGroups = other._readGroups;
-	_limitReadGroups = other._limitReadGroups;
-	_fillLookupFromId();
-}
-
-TReadGroups::TReadGroups(const TReadGroups & other){
-	_readGroups = other._readGroups;
-	_limitReadGroups = other._limitReadGroups;
-	_fillLookupFromId();
-}
-
-TReadGroups& TReadGroups::operator=(const TReadGroups & other){
-	_readGroups = other._readGroups;
-	_limitReadGroups = other._limitReadGroups;
-	_fillLookupFromId();
-	return *this;
-}
-
-TReadGroups& TReadGroups::operator=(const TReadGroups && other){
-	_readGroups = std::move(other._readGroups);
-	_limitReadGroups = std::move(other._limitReadGroups);
-	_fillLookupFromId();
-	return *this;
-}
 
 std::vector<TReadGroup>::iterator TReadGroups::_getReadGroup(std::string_view Name){
 	auto rg = std::lower_bound(_readGroups.begin(),_readGroups.end(), Name);
@@ -169,22 +140,10 @@ bool TReadGroups::readGroupExists(std::string_view Name) const {
 	return _getReadGroup(Name) != _readGroups.cend();
 }
 
-bool TReadGroups::readGroupExists(size_t readGroupId) const {
-	return readGroupId < _readGroups.size();
-}
-
 //getters of specific entries
 const std::string& TReadGroups::getName(size_t ReadGroupId) const{
 	if(ReadGroupId >= _readGroups.size()) DEVERROR("No read group with number ", ReadGroupId, "!");
 	return _readGroups[_readGroupsById[ReadGroupId]].name_ID;
-}
-
-std::vector<std::string> TReadGroups::getNames(std::vector<size_t> & ReadGroupIds) const{
-	std::vector<std::string> names;
-	for(auto& r : ReadGroupIds){
-		names.push_back(getName(r));
-	}
-	return names;
 }
 
 //some additional tasks

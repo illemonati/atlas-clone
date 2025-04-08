@@ -61,7 +61,6 @@ public:
 	}
 	size_t lengthMapped() const noexcept { return _lengthAligned + _lengthDeleted + _lengthSkipped; }
 	std::string compileString() const;
-	explicit operator std::string() const;
 };
 
 }; // namespace BAM

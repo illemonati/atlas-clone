@@ -64,11 +64,6 @@ void TThetaEstimatorTemporaryFile::clean() {
 	}
 };
 
-bool TThetaEstimatorTemporaryFile::isEOF() {
-	if (!_isOpenForReading) return true;
-	return gzeof(_fp);
-}
-
 void TThetaEstimatorTemporaryFile::save(const TGenotypeLikelihoods &genoLik) {
 	if (!_isOpenForWriting) UERROR("Can not add data to '", _filename, "': file is closed!");
 
@@ -268,7 +263,7 @@ GenotypeLikelihoods::TGenotypeLikelihoods &TThetaEstimatorDataVector::_GL() { re
 //-------------------------------------------------------
 // TThetaEstimatorDataFile
 //-------------------------------------------------------
-	TThetaEstimatorDataFile::TThetaEstimatorDataFile(std::string TmpFileName) : TThetaEstimatorData(), _sites(TmpFileName) {
+	TThetaEstimatorDataFile::TThetaEstimatorDataFile(std::string_view TmpFileName) : TThetaEstimatorData(), _sites(TmpFileName) {
 	_dataFileName = TmpFileName;
 	_sites.openForWriting();
 };

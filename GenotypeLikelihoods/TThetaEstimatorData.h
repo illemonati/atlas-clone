@@ -37,14 +37,13 @@ private:
 	bool _wasWritten       = false;
 
 public:
-	TThetaEstimatorTemporaryFile(std::string Filename) : _filename(Filename) {}
+	TThetaEstimatorTemporaryFile(std::string_view Filename) : _filename(Filename) {}
 	~TThetaEstimatorTemporaryFile() { clean(); };
 
 	void openForWriting();
 	void openForReading();
 	void close();
 	void clean();
-	bool isEOF();
 
 	void save(const genometools::TGenotypeLikelihoods &genoLik);
 	bool read(genometools::TGenotypeLikelihoods &genoLik);
@@ -138,7 +137,7 @@ protected:
 	genometools::TGenotypeLikelihoods &_GL() override;
 
 public:
-	TThetaEstimatorDataFile(std::string TmpFileName);
+	TThetaEstimatorDataFile(std::string_view TmpFileName);
 	~TThetaEstimatorDataFile() { clear(); };
 
 };

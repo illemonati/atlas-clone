@@ -55,12 +55,6 @@ const TSpearmanGWASBootstraps& TSpearmanGWASBootstrapLibrary::get(size_t SampleS
 //TSpearmanGWASPopulation
 //------------------------------------------------
 
-void TSpearmanGWASPopulation::resize(size_t Size){
-	clear();
-	_data.reserve(Size);
-	_dosage.reserve(Size);
-}
-
 void TSpearmanGWASPopulation::clear(){
 	_data.clear();
 	_dosage.clear();

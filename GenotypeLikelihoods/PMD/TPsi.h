@@ -108,8 +108,6 @@ public:
 
 	BAM::RGInfo::TInfo info() const;
 
-	void reset(const BAM::RGInfo::TInfo & info);
-
 	template<Type From_To>
 	coretools::Probability prob(const BAM::TSequencedData &data) const noexcept {
 		using BAM::End;

@@ -340,10 +340,6 @@ bool TAlignment::isAlignedAtInternalPos(size_t internalPosition) const {
 	return _alignedPosition[internalPosition] >= 0;
 }
 
-uint32_t TAlignment::getLastInternalPos() const {
-	return (_alignedPosition.size()-1);
-}
-
 genometools::Base TAlignment::referenceAtInternalPos(size_t internalPosition) const {
 	assert(isAlignedAtInternalPos(internalPosition));
 	assert((size_t)_alignedPosition[internalPosition] < _referenceSequence.size());
@@ -427,18 +423,6 @@ void TAlignment::trimSoftClips(size_t maxNumberOfSoftClippedBases) {
 		// update cigar and length
 	_cigar.trimSoftClips(maxNumberOfSoftClippedBases);
 }
-
-
-void TAlignment::binQualityScoresIllumina() {
-	// make sure read is parsed
-	if (!_parsed)
-		DEVERROR("Read was not parsed!");
-
-	// bin quality scores as done by Illumina
-	for (auto &b : _data) { b.recalQuality = makeIllumina(b.recalQuality); }
-
-	_sequenceAndQualitiesChanged = true;
-};
 
 void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator) {
 	GLCalculator.recalibrateWithPMD(*this);

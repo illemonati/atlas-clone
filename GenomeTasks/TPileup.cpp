@@ -32,11 +32,6 @@ using coretools::TOutputFile;
 
 namespace impl {
 
-void addNames(std::vector<std::string> &vec) {
-	using GT = genometools::Genotype;
-	for (auto g = GT::min; g < GT::max; ++g) vec.push_back("P(D|" + genometools::toString(g) + ")");
-}
-
 bool parseField(std::set<std::string> &fields, const std::string &tag, const std::string &explanation) {
 	if (fields.find(tag) != fields.end()) {
 		logfile().list(explanation, " (", tag, ")");

@@ -16,12 +16,17 @@
 namespace Simulations {
 using coretools::instances::randomGenerator;
 using genometools::Base;
+
+namespace impl {
+constexpr size_t is_odd(size_t N) noexcept { return N & 1; }
+} // namespace impl
+
 //--------------------------------
 // Class to store and SFS
 //--------------------------------
 
-SFS::SFS(const std::string &filename) {
-	coretools::TInputFile in(filename.c_str(), coretools::FileType::NoHeader, coretools::str::whitespaces, "//");
+SFS::SFS(std::string_view filename) {
+	coretools::TInputFile in(filename, coretools::FileType::NoHeader, coretools::str::whitespaces, "//");
 
 	// first line reads "SHAPE=<x,y,z>", where x, y, z are dimensions per pop	
 	auto tmp = coretools::str::readBefore(coretools::str::readAfter(in.get(0), "<"), ">");
@@ -54,23 +59,6 @@ SFS::SFS(const std::string &filename) {
 	_sfsPicker.init(_sfs);
 }
 
-SFS::SFS(const SFS &other, double MonoFrac) {
-	// construct from other SFS, but rescale SFS to have a specific fraction of monomorphic sites
-	// now copy and rescale
-	_dimensions = other._dimensions;
-	_numChrPerPop = other._numChrPerPop;
-	_numChr = other._numChr;
-	double sum = 0.0;
-	_sfs.push_back(MonoFrac);
-	for (size_t i = 1; i < other._sfs.size(); ++i) {
-		_sfs.push_back(other._sfs[i]);
-		sum += other._sfs[i];
-	}
-	sum = sum / (1.0 - MonoFrac);
-	for (auto &s : _sfs) s /= sum;
-	_sfsPicker.init(_sfs);
-}
-
 SFS::SFS(size_t numChr, double theta) {
 	// generate sfs from theta
 	_numChrPerPop = { numChr };
@@ -84,16 +72,6 @@ SFS::SFS(size_t numChr, double theta) {
 	}
 	if (sum > 1.0) UERROR("The choice of theta and sample size results in too many mutations in the SFS!");
 	_sfs.front() = 1.0 - sum;
-	_sfsPicker.init(_sfs);
-}
-
-SFS::SFS(size_t numChr, size_t onlyThisBin) {
-	// set all to zero except this one bin
-	_numChrPerPop = { numChr };
-	_dimensions = { numChr + 1 };
-	_numChr = numChr;
-	_sfs.resize(numChr + 1, 0.);
-	_sfs[onlyThisBin] = 1.0;
 	_sfsPicker.init(_sfs);
 }
 
@@ -112,12 +90,6 @@ void SFS::writeToFile(std::string_view Filename, bool WriteLog) const {
 		}
 	}
 	out.endln();
-}
-
-namespace impl {
-
-constexpr size_t is_odd(size_t N) noexcept { return N & 1; }
-
 }
 
 void SFS::_setDerivedDiploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
@@ -180,12 +152,6 @@ size_t SFS::simulateSiteHaploid(size_t l, TSimulatorHaplotypes & haplotypes, Bas
 
 size_t SFS::simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived){
 	return _simulateSite(l, haplotypes, ancestral, derived, false);
-}
-
-double SFS::calcLLOneSite(const std::vector<double> &gl) {
-	double LL = 0.0;
-	for (size_t i = 0; i < _sfs.size(); ++i) LL += exp(gl[i]) * _sfs[i];
-	return log(LL);
 }
 
 } // namespace Simulations

@@ -17,24 +17,16 @@ namespace BAM{
 
 class TReadGroups {
 private:
-	const TReadGroup _noReadGroup;
+	TReadGroup _noReadGroup;
 	std::vector<TReadGroup> _readGroups;
 	std::vector<size_t> _readGroupsById;
-	bool _limitReadGroups;
+	bool _limitReadGroups = false;
 
 	std::vector<TReadGroup>::iterator _getReadGroup(std::string_view Name);
 	std::vector<TReadGroup>::const_iterator _getReadGroup(std::string_view Name) const;
 	void _fillLookupFromId();
 
 public:
-	TReadGroups();
-	~TReadGroups(){};
-
-	TReadGroups(const TReadGroups && other);
-	TReadGroups(const TReadGroups & other);
-	TReadGroups& operator=(const TReadGroups & other);
-	TReadGroups& operator=(const TReadGroups && other);
-
 	static constexpr size_t noReadGroupId = -1;
 
 	// add and remove read groups
@@ -53,7 +45,6 @@ public:
 	const TReadGroup& operator[](size_t readGroupId) const; //no checking
 
 	bool readGroupExists(std::string_view name) const;
-	bool readGroupExists(size_t readGroupId) const;
 
 	//looping over
 	std::vector<TReadGroup>::iterator begin(){ return _readGroups.begin(); };
@@ -66,7 +57,6 @@ public:
 		return getReadGroup(Identifier).inUse;
 	}
 	const std::string& getName (size_t readGroupId) const;
-	std::vector<std::string> getNames(std::vector<size_t> & readGroupIds) const;
 
 	//some additional tasks
 	void filterReadGroups(std::string_view readGroupList);

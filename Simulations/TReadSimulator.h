@@ -84,9 +84,6 @@ public:
 				   const GenotypeLikelihoods::SequencingError::RGModels &Recal);
 	virtual ~TReadSimulator();
 
-	void setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd);
-	void setContamination(double rate, TSimulatorReference *Source);
-
 	size_t simulate(const genometools::TGenomePosition &Position, const std::vector<genometools::TwoBase> &Haplotype,
 					const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
 

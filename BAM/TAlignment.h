@@ -123,7 +123,6 @@ public:
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; }
-	uint32_t getLastInternalPos() const;
 	bool isAlignedAtInternalPos(size_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
 	genometools::TGenomePosition positionInRef(size_t internalPosition) const;
@@ -189,7 +188,6 @@ public:
 	void trimRead(uint64_t trimmingLength3Prime, uint64_t trimmingLength5Prime);
 	void trimSoftClips();
 	void trimSoftClips(size_t maxNumberOfSoftClippedBases);
-	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
 	void downsampleAlignment(coretools::Probability fraction);
 
