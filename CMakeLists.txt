@@ -28,7 +28,6 @@ FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
   GIT_TAG           f95b848
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
-  GIT_SHALLOW       TRUE
 )
 
 include(FetchContent)
@@ -36,7 +35,6 @@ FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
   GIT_TAG           4cc40dd
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
-  GIT_SHALLOW       TRUE
 )
 
 include(FetchContent)
@@ -44,14 +42,12 @@ FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
   GIT_TAG           cbc5242
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
-  GIT_SHALLOW       TRUE
 )
 
 FetchContent_Declare(bamtools
   GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
   GIT_TAG           7c3abb4
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
-  GIT_SHALLOW       TRUE
 )
 
 FetchContent_MakeAvailable(coretools genometools stattools bamtools)
