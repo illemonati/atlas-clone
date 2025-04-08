@@ -54,7 +54,7 @@ L="${N}$k"
 probs="0.5,0.2,0.1,0.05"
 
 #for bias in 0.5 0.7 0.9; do
-for bias in 0.6; do
+for bias in 0.5; do
 	name=${bias/./_}
 	out="${name}_simulate"
 	$atlas --task simulate --RGInfo "workflow.json" \
@@ -92,17 +92,19 @@ for bias in 0.6; do
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_HK85reads_raw
-	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+	$(which time) -v $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
 		--bam $bam --fasta $fasta  --chr "chr1" \
 		--fixedSeed 20 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_HK85reads_truth
-	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+	$(which time) -v $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
 		--bam $bam --fasta $fasta  --chr "chr1" \
 		--RGInfo workflow.json \
 		--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
+
+	exit
 
 	out=${name}_ee
 	$atlas --task estimateErrors --minDeltaLL $delta \

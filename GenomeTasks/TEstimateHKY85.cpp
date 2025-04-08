@@ -10,7 +10,6 @@
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
-#include "genometools/Genotypes/Ploidy.h"
 #include <memory>
 
 namespace GenomeTasks {
@@ -19,7 +18,6 @@ using coretools::instances::parameters;
 using coretools::P;
 using genometools::TGenotypeLikelihoods;
 using genometools::Base;
-using genometools::Genotype;
 
 void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 	_refBases.reserve(_refBases.size() + Window.sites().size());
@@ -38,7 +36,7 @@ void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
 			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 			if (_downSample()) {
-				_P_d_I_b.push_back(P_dij_I_b);
+				_P_d_I_b.push_back(Standarray::standardize(P_dij_I_b));
 			}
 
 			sum = _addToPg(P_g_I_di, P_dij_I_b, sum);
@@ -50,27 +48,6 @@ void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 			for (const auto id : Window.readIDs()[s]) { _readIDs.push_back(id + _lastReadID); }
 		}
 	}
-}
-
-double TEstimateHKY85::_addToPg(TGenotypeLikelihoods& P_g_I_di, const genometools::TBaseLikelihoods &P_dij_I_b, double sum) {
-	const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
-	const double sum_inv = 1. / sum;
-	sum                  = 0.;
-	for (auto k = Base::min; k < Base::max; ++k) {
-		const auto kk = genometools::genotype(k, k);
-		P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
-		sum += P_g_I_di[kk];
-	}
-	if (!isInvariant) {
-		for (const auto kl : {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
-			const auto k = genometools::first(kl);
-			const auto l = genometools::second(kl);
-			P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
-			sum += P_g_I_di[kl];
-		}
-	}
-
-	return sum;
 }
 
 std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
