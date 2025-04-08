@@ -26,7 +26,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           a264573
+  GIT_TAG           750311a
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
   GIT_SHALLOW       TRUE
 )
@@ -34,7 +34,7 @@ FetchContent_Declare(coretools
 include(FetchContent)
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           1dcfe89
+  GIT_TAG           4cc40dd
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
   GIT_SHALLOW       TRUE
 )
@@ -42,7 +42,7 @@ FetchContent_Declare(genometools
 include(FetchContent)
 FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           02e9d8b
+  GIT_TAG           cbc5242
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
   GIT_SHALLOW       TRUE
 )
@@ -79,7 +79,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools hts)
+target_link_libraries(${PROJECT_NAME} PRIVATE coretools genometools stattools BamTools BamTools-utils hts)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
@@ -110,7 +110,7 @@ if(BUILD_TESTING)
 	Simulations
 	VCF)
 
-  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main hts)
+  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools genometools stattools BamTools BamTools-utils gtest_main hts)
   target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
   set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
   target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
