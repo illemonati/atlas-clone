@@ -124,12 +124,6 @@ void TTestBamFile::_iterateFlags() {
     } else _dummyFlag = 0;
 }
 
-void TTestBamFile::openOutput(const std::string & Filename){
-	//open BAM file for writing
-	_filename = Filename;
-	_bamFile = std::make_unique<TOutputBamFile>(_filename, _header, _chromosomes, _readGroups);
-};
-
 void TTestBamFile::closeOutput(){
 	_bamFile.reset();
 };
@@ -279,25 +273,13 @@ void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const c
     writeDummyAlignment(oneBase, oneQual, position, cigar);
 };
 
-void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition &position) {
-    writeDummyAlignment(oneBase, oneQual, position, _dummyLength);
-
-    // iterate length
-    _iterateLength();
-};
-
 //--------------------------------------
 // TTestBamFilePairedEnd
 //--------------------------------------
 
-TTestBamFilePairedEnd::TTestBamFilePairedEnd(const std::vector<size_t> ChrLength, size_t NumReadGroups) : TTestBamFile(ChrLength, NumReadGroups){
-    _dummyFlag = 1;
-}
-
 TTestBamFilePairedEnd::TTestBamFilePairedEnd(const std::string &Filename, const std::vector<size_t> ChrLength,
                                              size_t NumReadGroups) : TTestBamFile(Filename, ChrLength, NumReadGroups) {
     _dummyFlag = 1;
-
 }
 
 void TTestBamFilePairedEnd::_iterateFlags() {

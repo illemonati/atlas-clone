@@ -5,9 +5,9 @@
 bname=$(basename $0)
 name=${bname%.simulate}
 out=$name/$name
-zeros="00007"
+M="000127"
 
 $atlas --task simulate --vcf \
-	   --chrLength 100$zeros,1$zeros --ploidy 2,1 --depth 10,2 \
+	   --chrLength 10$M,1$M --ploidy 2,1 --depth 10,2 \
 	   --baseFreq 0.2,0.23,0.27,0.3 --refDiv 0.05 \
 	   --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null

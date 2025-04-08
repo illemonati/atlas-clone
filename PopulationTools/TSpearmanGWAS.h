@@ -74,8 +74,6 @@ private:
 	void _regressSpearmanAndAddRSSBootstrap(double &RSS_null, double &RSS_model, const std::vector<size_t> &Bootstraps);
 
 public:
-	TSpearmanGWASPopulation() = default;
-	void resize(size_t Size);
 	void clear();
 	void addSample(double data);
 	void finalizeDataReading();

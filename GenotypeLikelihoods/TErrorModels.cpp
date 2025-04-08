@@ -74,8 +74,6 @@ TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &sit
 	using genometools::Genotype;
 		
 	if (site.empty()) { return TGenotypeLikelihoods{coretools::P(1.)}; }
-	std::vector<TBaseLikelihoods> baseLikelihoods;
-	baseLikelihoods.reserve(site.depth());
 	// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 	TGenotypeLikelihoods ret{P(1.)};
 

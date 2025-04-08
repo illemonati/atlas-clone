@@ -18,10 +18,6 @@ constexpr size_t index(size_t i1, size_t i2, size_t i3, size_t i4, size_t N) noe
 }
 } // namespace impl
 
-TAllelicDepthCounts::TAllelicDepthCounts(size_t MaxAllelicDepth){
-	resize(MaxAllelicDepth);
-};
-
 void TAllelicDepthCounts::resize(size_t MaxAllelicDepth){
 	if(_size != MaxAllelicDepth + 1){
 		_size = MaxAllelicDepth + 1;
@@ -46,10 +42,6 @@ void TAllelicDepthCounts::addSite(const genometools::TBaseCounts & alleleCounts)
 		if (_counts.size() <= i) _counts.resize(i + 1, 0);
 		++_counts[i];
 	}
-};
-
-void TAllelicDepthCounts::addSiteZeroDepth(){
-	++_counts.front();
 };
 
 void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){

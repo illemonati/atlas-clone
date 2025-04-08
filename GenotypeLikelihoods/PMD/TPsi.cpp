@@ -283,26 +283,4 @@ void TPsi::log() const noexcept {
 	if (!hasAny) logfile().list("[]");
 }
 
-void TPsi::reset(const BAM::RGInfo::TInfo &info) {
-	for (auto e = End::min; e < End::max; ++e) {
-		for (auto t = Type::min; t < Type::max; ++t) {
-			_tables[e][t].clear();
-		}
-	}
-	_parse(info);
-
-	const auto stInit = []() {
-		SumType stInit{};
-		stInit.numDenom.num   = 0.;
-		stInit.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
-		return stInit;
-	}();
-
-	for (auto e = End::min; e < End::max; ++e) {
-		for (auto t = Type::min; t < Type::max; ++t) {
-			_tableSums[e][t].assign(_tables[e][t].size(), stInit);
-		}
-	}
-}
-
 } // namespace GenotypeLikelihoods::PMD

@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Math/TSubsamplePicker.h"
-
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
 
@@ -28,14 +26,12 @@ namespace GenotypeLikelihoods {
 //  Class that stores bases.
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
-private:
+public:
 	std::vector<BAM::TSequencedData> _data;
 public:
-	genometools::TGenotypeLikelihoods genotypeLikelihoods;
-	genometools::Base refBase      = genometools::Base::N;
-	genometools::Genotype genotype = genometools::Genotype::NN;
+	genometools::Base refBase = genometools::Base::N;
 
-	void clear() noexcept;
+	void clear() noexcept {_data.clear(); refBase = genometools::Base::N;};
 
 	// access
 	BAM::TSequencedData &operator[](size_t i) noexcept { return _data[i]; };
@@ -47,7 +43,7 @@ public:
 	void shuffle();
 
 	void downsample(coretools::Probability p);
-	void downsample(size_t UpToDepth);
+	void limitDepth(size_t UpToDepth);
 
 	// getters
 	bool empty() const noexcept { return _data.empty(); };
@@ -56,6 +52,8 @@ public:
 	std::string getBases() const;
 	std::vector<genometools::Base> sampleBases() const;
 	std::string getQualities() const;
+	const std::vector<BAM::TSequencedData>& data() const noexcept {return _data;}
+	std::vector<BAM::TSequencedData>& data() noexcept {return _data;}
 
 	genometools::TBaseCounts countAlleles() const;
 	coretools::TStrongArray<size_t, BAM::Mate> countMates() const;

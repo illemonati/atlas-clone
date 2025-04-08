@@ -35,7 +35,6 @@ private:
 
 	// function to initialize read groups
 	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
-	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies(const BAM::RGInfo::TReadGroupInfo & RGinfo);
 	void _determineMaxFragmentLength();
@@ -50,7 +49,6 @@ public:
 									   const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
 
 	// getters
-	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
 	[[nodiscard]] double averageReadLength() const { return _averageReadLength; };
 	BAM::TReadGroups& readGroups() { return _readGroups; };

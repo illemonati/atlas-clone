@@ -7,19 +7,35 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
+#include "genometools/Genotypes/Containers.h"
 #include "genometools/Genotypes/Ploidy.h"
 #include "coretools/Math/TSumLog.h"
 
 namespace GenotypeLikelihoods {
 
+using coretools::P;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using genometools::Genotype;
 using genometools::Base;
+using genometools::Genotype;
 
-//---------------------------------------------------------------
-// TErrorEstimator
-//---------------------------------------------------------------
+
+
+namespace impl {
+
+auto numSites(const GenotypeLikelihoods::TWindow &Window, size_t from, size_t to) {
+	struct {
+	size_t NData  = 0;
+	size_t NSites = 0;
+	} counter;
+	for (size_t i = from; i < to; ++i) {
+		counter.NSites += Window[i].depth() > 0;
+		counter.NData += Window[i].depth();
+	}
+	return counter;
+}
+} // namespace impl
+
 TErrorEstimator::TErrorEstimator()
 	: _recalMap("recal", _genome.bamFile().readGroups(), parameters().get<std::string>("poolRecal", "")),
 	  _pmdMap("PMD", _genome.bamFile().readGroups(), parameters().get<std::string>("poolPMD", "")),
@@ -40,10 +56,16 @@ TErrorEstimator::TErrorEstimator()
 		if (ploidies.size() == 1) ploidies.assign(beds.size(), ploidies.front());
 		if (ploidies.size() != beds.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
 
-		_regionSites.resize(beds.size());
+		const auto NRegions = beds.size();
+		_data.resize(NRegions);
+		_refBases.resize(NRegions);
+		_regions.reserve(NRegions);
+		_genoDist.reserve(NRegions);
 		for (size_t i = 0; i < beds.size(); ++i) {
-			const auto& bedFile   = beds[i];
-			_regions.emplace_back(bedFile, _genome.bamFile().chromosomes());
+			_regions.emplace_back(beds[i], _genome.bamFile().chromosomes());
+			const auto NSites   = _regions[i].length();
+			_data[i].reserve(NSites);
+			_refBases[i].reserve(NSites);
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -57,10 +79,16 @@ TErrorEstimator::TErrorEstimator()
 		if (ploidies.size() == 1) ploidies.assign(chrs.size(), ploidies.front());
 		if (ploidies.size() != chrs.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
 
-		_regionSites.resize(chrs.size());
+		const auto NRegions = chrs.size();
+		_data.resize(NRegions);
+		_refBases.resize(NRegions);
+		_regions.reserve(NRegions);
+		_genoDist.reserve(NRegions);
 		for (size_t i = 0; i < chrs.size(); ++i) {
-			const auto& chr   = chrs[i];
-			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chr));
+			const auto NSites = chrs[i].length();
+			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chrs[i]));
+			_data[i].reserve(NSites);
+			_refBases[i].reserve(NSites);
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -70,7 +98,8 @@ TErrorEstimator::TErrorEstimator()
 		}
 	} else {
 		if (ploidies.size() > 1) UERROR("You did not define any regions or chromosomes, only one ploidy can be given!");
-		_regionSites.emplace_back();
+		_data.emplace_back();
+		_refBases.emplace_back();
 		if (ploidies.front() == 1) {
 			_genoDist.push_back(std::make_unique<THKY85_mono>());
 		} else {
@@ -121,9 +150,9 @@ void TErrorEstimator::_identifyModels() {
 
 	size_t totSites = 0;
 	logfile().startIndent("Number of sites with data:");
-	for (size_t i = 0; i < _regionSites.size(); ++i) {
-		totSites += _regionSites[i].size();
-		logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
+	for (size_t i = 0; i < _data.size(); ++i) {
+		totSites += _data[i].size();
+		logfile().list("Region ", i + 1, ": ", _data[i].size());
 	}
 	logfile().endIndent();
 
@@ -132,9 +161,6 @@ void TErrorEstimator::_identifyModels() {
 	logfile().conclude("Number of bases: ", _dataTables.size());
 
 	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
-
-	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
-	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
@@ -193,48 +219,52 @@ void TErrorEstimator::_identifyModels() {
 		_psis.push_back(pmd.psi());
 		_psis.back()->estimateInit(_genome.outputName(), _minData);
 	}
+
+	_dataTables.clear();
+	_P_g_I_dis.resize(_data.size());
+	for (size_t i = 0; i < _data.size(); ++i) {
+		_P_g_I_dis[i].resize(_data[i].size());
+	}
+
 	logfile().endIndent();
 }
 
 void TErrorEstimator::_updatePbbar() {
 	using genometools::genotype;
-	_P_bbarEdij_I_gdijs.clear();
-	size_t i     = 0;
-	for (size_t r = 0; r < _regionSites.size(); ++r) {
-		const auto &sites      = _regionSites[r];
+	for (size_t r = 0; r < _NRegions(); ++r) {
 		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
-		for (const auto& site: sites) {
-			const auto &P_g_I_di = _P_g_I_dis[i++];
-			for (const auto &d_ij : site) {
-				_P_bbarEdij_I_gdijs.emplace_back(coretools::P(0.));
+		for (size_t s = 0; s < _NSites(r); ++s) {
+			const auto &P_g_I_di = _P_g_I_dis[r][s];
+			for (size_t d = 0; d < _NData(r, s); ++d) {
+				const auto &d_ij        = _data[r][s].get<0>()[d];
+				auto &P_bbarEdij_I_gdij = _data[r][s].get<1>()[d];
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
-				_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[Genotype::CC], _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
-				_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[Genotype::GG], _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[Genotype::CC]), _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[Genotype::GG]), _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
 
 				if (!isInvariant) for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
-						_pmd.model(d_ij).psi()->addCT(d_ij, P_g_I_di[g], _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 				if (!isInvariant) for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
-						_pmd.model(d_ij).psi()->addGA(d_ij, P_g_I_di[g], _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 
 				// Rho
-				auto &P_bbarEdij_I_gdij = _P_bbarEdij_I_gdijs.back();
 				for (auto a = Base::min; a < Base::max; ++a) {
 					const auto aa              = genotype(a, a);
 					const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
 					P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-					_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[aa], P_bbar_I_aa_dij);
+					_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[aa]), P_bbar_I_aa_dij);
 
 					if (!isInvariant) for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
 						const auto P_bbar_I_ab_dij = _pmd.P_bbar(ab, d_ij, P_dij_I_bbar);
 						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_recal.model(d_ij).rho()->add(d_ij, P_g_I_di[ab], P_bbar_I_ab_dij);
+						_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[ab]), P_bbar_I_ab_dij);
 					}
 				}
 			}
@@ -328,19 +358,6 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 	return deltaQTot;
 }
 
-double TErrorEstimator::_calculateLL_updatePg() {
-	_P_g_I_dis.clear();
-
-	double LL = 0.;
-	for (size_t r = 0; r < _regionSites.size(); ++r) {
-		const auto &sites = _regionSites[r];
-		auto &genoDist    = _genoDist[r];
-		LL += _calculateLL_updatePg(sites, genoDist.get(), genoDist->ploidy());
-	}
-	if (!std::isfinite(LL)) UERROR("LL = ", LL, ", you may need to pool your readgroups!");
-	return LL;
-}
-
 size_t TErrorEstimator::_calculateQ() {
 	_calculateQ<false>();
 	size_t nUpdated = 0;
@@ -353,9 +370,7 @@ size_t TErrorEstimator::_calculateQ() {
 	return nUpdated;
 }
 
-double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist,
-											  genometools::Ploidy Pl) {
-	using coretools::P;
+double TErrorEstimator::_calculateLL_updatePg() {
 	using genometools::Base;
 	using genometools::Genotype;
 	using genometools::Ploidy;
@@ -374,15 +389,18 @@ double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, T
 		Ps[Ploidy::haploid][Genotype::GT] = P(0.);
 		return Ps;
 	}();
-	const auto &PgI_init = PgI_inits[Pl];
 
-	coretools::TSumLogProbability LL{};
-	for (const auto &site : sites) {
-		if (site.genotype == Genotype::NN) { // unknown genotype
-			const auto ref                             = site.refBase;
-			genometools::TGenotypeLikelihoods P_g_I_di = PgI_init;
-			double sum                                 = 1.;
-			for (const auto &d_ij : site) {
+	double LLRes = 0.;
+	for (size_t r = 0; r < _NRegions(); ++r) {
+		const auto Pl     = _genoDist[r]->ploidy();
+
+		coretools::TSumLogProbability LL{};
+		for (size_t s = 0; s < _NSites(r); ++s) {
+			const auto ref   = _refBases[r][s];
+			auto P_g_I_di    = PgI_inits[Pl];
+			double sum       = 1.;
+			for (size_t d = 0; d < _NData(r, s); ++d) {
+				const auto &d_ij        = _data[r][s].get<0>()[d];
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 				const auto P_dij_I_b    = _pmd.P_dij(d_ij, P_dij_I_bbar);
 
@@ -404,21 +422,13 @@ double TErrorEstimator::_calculateLL_updatePg(const std::vector<TSite> &sites, T
 					}
 				}
 			}
-			LL.add(genoDist->normalize_add(P_g_I_di, ref));
-			_P_g_I_dis.push_back(P_g_I_di);
-		} else { // known genotype.
-			_P_g_I_dis.emplace_back(P(0.));
-			_P_g_I_dis.back()[site.genotype] = P(1.); // Probability of correct genotype is 1
-			double P_g                       = 1.;
-			for (auto &d_ij : site) {
-				const auto L_eps = _recal.P_dij(d_ij);
-				const auto L_D   = _pmd.P_dij(d_ij, L_eps);
-				P_g *= genoDist->getGenotypeLikelihood(L_D, site.genotype);
-			}
-			LL.add(P_g);
+			LL.add(_genoDist[r]->normalize_add(P_g_I_di, ref));
+			std::copy(P_g_I_di.begin(), P_g_I_di.end(), _P_g_I_dis[r][s].begin());
 		}
+		LLRes += LL.getSum();
 	}
-	return LL.getSum();
+	if (!std::isfinite(LLRes)) UERROR("LL = ", LLRes, ", you may need to pool your readgroups!");
+	return LLRes;
 }
 
 void TErrorEstimator::_writeModels(std::string_view Intro) {
@@ -531,6 +541,7 @@ void TErrorEstimator::estimate() {
 	// run EM
 	_runEM();
 
+
 	// writing final estimates
 	_recal.addToRGInfo(_genome.rgInfo());
 	_pmd.addToRGInfo(_genome.rgInfo());
@@ -557,7 +568,8 @@ void TErrorEstimator::calcLL() {
 void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 	if (Site.empty() || Site.refBase == Base::N) return;
 
-	_regionSites[Region].emplace_back(Site);
+	_refBases[Region].push_back(Site.refBase);
+	_data[Region].push_back<0>(Site.data());
 	_dataTables.add(Site);
 	for (const auto &data : Site) {
 		_pmd.model(data).psi()->add(data, Site.refBase);
@@ -572,6 +584,10 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
 				const size_t pStart = std::max(lb->from().position(), Window.from().position()) - Window.from().position();
 				const size_t pStop  = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
+				const auto counter  = impl::numSites(Window, pStart, pStop);
+				_data[r].reserve(_data[r].size() + counter.NSites);
+				_refBases[r].reserve(_refBases.size() + counter.NSites);
+				_data[r].reserveLength(_data[r].length() + counter.NData);
 				for (auto p = pStart; p < pStop; ++p) {
 					const auto s = Window[p];
 					_handleSite(Window[p], r);
@@ -586,6 +602,10 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 
 			region = std::distance(_refIDs.begin(), rIt);
 		}
+		const auto counter  = impl::numSites(Window, 0, Window.size());
+		_data[region].reserve(_data[region].size() + counter.NSites);
+		_refBases[region].reserve(_refBases.size() + counter.NSites);
+		_data[region].reserveLength(_data[region].length() + counter.NData);
 		for (const auto &s : Window) {
 			_handleSite(s, region);
 		}

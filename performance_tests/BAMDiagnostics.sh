@@ -6,6 +6,5 @@ bname=$(basename $0)
 name=${bname%.sh}
 out=$name/$name
 
-$atlas --task BAMDiagnostics --diagnosticsPerChromosome \
-	   --bam BAM/BAM.bam \
+$atlas --task BAMDiagnostics --perChromosome --bam BAM/BAM.bam \
 	   --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null

@@ -12,43 +12,6 @@ namespace GenomeTasks{
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-//-----------------------------------
-// TQualityDistribution
-//-----------------------------------
-void TQualityDistribution::_handleAlignment(BAM::TAlignment& alignment){
-	for(auto& b : alignment){
-		if(b.base != genometools::Base::N){
-			_qualDist.add(b.readGroupID, b.recalQuality.get());
-		}
-	}
-};
-
-void TQualityDistribution::compileQualityDistribution(){
-	//initialize counts
-	_qualDist.clear();
-	_qualDist.resize(_genome.bamFile().numReadGroups());
-
-	//traverseBAM
-	_traverseBAMPassedQC();
-
-	//print distribution
-	const auto filename = _genome.outputName() + "_qualityDistribution.h";
-	logfile().listFlush("Writing quality distribution to '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"readGroup", "quality", "counts"});
-
-	//get read group names
-	std::vector<std::string> readGroupNames;
-	_genome.bamFile().readGroups().fillVectorWithNames(readGroupNames);
-
-	//write combined
-	_qualDist.writeCombined(out, "allReadGroups");
-	_qualDist.write(out, readGroupNames);
-	logfile().done();
-};
-
-//-----------------------------------
-// TQualityTransformation
-//-----------------------------------
 TQualityTransformation::TQualityTransformation() {
 	//check what we compare
 	if(parameters().exists("RGInfo2")){

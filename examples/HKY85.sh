@@ -22,7 +22,7 @@ probs="0.2"
 out=windows
 $atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 \
 	   --bam simulate.bam --fasta simulate.fasta --chr chr1 \
-	   --recal $recal --pmd $pmd --window 65432 --doPMD \
+	   --recal $recal --pmd $pmd --window 65432 \
 	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout
 
 probs="0.5,0.2,0.1"
@@ -43,5 +43,5 @@ $atlas --task HKY85 --minDeltaLL 0.1 --genomeWide 2 \
 out=haplo
 $atlas --task HKY85 --genomeWide --minDeltaLL 0.1 \
 	   --bam simulate.bam --fasta simulate.fasta \
-	   --regions haplo.bed --ploidy 1 --recal $recal --pmd $pmd --doPMD \
+	   --regions haplo.bed --ploidy 1 --recal $recal --pmd $pmd \
 	   --fixedSeed 555 --out $out --logFile $out.out 2> $out.eout
