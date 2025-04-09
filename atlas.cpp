@@ -2,6 +2,7 @@
  * atlas.cpp
  */
 
+#include "TFastaToFastq.h"
 #include "TEstimateHKY85.h"
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
@@ -95,6 +96,8 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<PopulationTools::TF2Estimator>(groupName, "calculateF2", "Calculate F2 between samples, and within/between populations");
 	main.createGroupedTask<PopulationTools::TAncestralAlleleEstimator>(groupName, "ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 	main.createGroupedTask<PopulationTools::TSafEstimator>(groupName, "saf", "Estimating Site Allele Frequencies");	
+	main.createGroupedTask<PopulationTools::TFastaToFastq>(groupName, "fastaToFastq", "Printing a GLF file to screen");
+
 	}
 
 	//VCF
