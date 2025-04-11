@@ -10,7 +10,6 @@
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
-#include "genometools/Genotypes/Ploidy.h"
 #include <memory>
 
 namespace GenomeTasks {
@@ -19,7 +18,6 @@ using coretools::instances::parameters;
 using coretools::P;
 using genometools::TGenotypeLikelihoods;
 using genometools::Base;
-using genometools::Genotype;
 
 void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 	_refBases.reserve(_refBases.size() + Window.sites().size());
@@ -38,7 +36,7 @@ void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
 			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 			if (_downSample()) {
-				_P_d_I_b.push_back(P_dij_I_b);
+				_P_d_I_b.push_back(Standarray::standardize(P_dij_I_b));
 			}
 
 			sum = _addToPg(P_g_I_di, P_dij_I_b, sum);
@@ -50,27 +48,6 @@ void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 			for (const auto id : Window.readIDs()[s]) { _readIDs.push_back(id + _lastReadID); }
 		}
 	}
-}
-
-double TEstimateHKY85::_addToPg(TGenotypeLikelihoods& P_g_I_di, const genometools::TBaseLikelihoods &P_dij_I_b, double sum) {
-	const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
-	const double sum_inv = 1. / sum;
-	sum                  = 0.;
-	for (auto k = Base::min; k < Base::max; ++k) {
-		const auto kk = genometools::genotype(k, k);
-		P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
-		sum += P_g_I_di[kk];
-	}
-	if (!isInvariant) {
-		for (const auto kl : {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
-			const auto k = genometools::first(kl);
-			const auto l = genometools::second(kl);
-			P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
-			sum += P_g_I_di[kl];
-		}
-	}
-
-	return sum;
 }
 
 std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
@@ -134,10 +111,9 @@ double TEstimateHKY85::_LL() {
 }
 
 double TEstimateHKY85::_runEM() {
-	// run EM
 	_genoDist->reset();
-
 	logfile().startIndent("Estimating ", _genoDist->typeString(), ":");
+
 	logfile().startIndent("Initial values:");
 	_genoDist->log();
 
@@ -145,40 +121,34 @@ double TEstimateHKY85::_runEM() {
 	double oldLL   = _LL();
 	double deltaLL = std::abs(oldLL);
 	logfile().list("log Likelihood = ", oldLL);
-	logfile().endIndent();
+	logfile().endIndent(); // Initial values:
 
-	// running iterations
-	logfile().startNumbering("Running EM algorithm:");
-	for (size_t i = 0; i < _numEMIterations; ++i) {
-		logfile().addIndent();
-		logfile().number("EM Iteration:");
+	size_t i = 0;
+	for (i = 0; i < _numEMIterations; ++i) {
 		_genoDist->estimate();
 
 		const double LL = _LL();
 		deltaLL         = LL - oldLL;
-
-		_genoDist->log();
-		logfile().list("Log Likelihood = ", LL);
-		logfile().list("delta LL = ", deltaLL);
-
-		// check if we break based on LL
-		logfile().endIndent();
-		oldLL = LL;
-		if (i > 0 && deltaLL < _minDeltaLL) {
-			if (deltaLL < 0) logfile().warning("Negative LL!");
-			else logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
-			break;
-		}
+		oldLL           = LL;
+		if (i > 0 && deltaLL < _minDeltaLL) { break; }
 	}
 
-	if (deltaLL > _minDeltaLL) {
-		logfile().warning("EM has not converged after maximum number of iterations!");
+	logfile().startIndent("Final values after ", i + 1, " iterations:");
+	_genoDist->log();
+	logfile().list("Log Likelihood = ", oldLL);
+
+	if (deltaLL < 0) {
+		logfile().warning("Negative LL!");
 		oldLL = -std::numeric_limits<double>::infinity();
+	} else if (deltaLL > _minDeltaLL) {
+		logfile().warning("EM has not converged after maximum number of iterations!");
 	}
 
-	// finalize
-	logfile().endNumbering();
-	logfile().endIndent();
+	logfile().endIndent(); // Final values
+
+	logfile().list("delta LL = ", deltaLL);
+
+	logfile().endIndent(); // Estimating...
 	return oldLL;
 }
 
@@ -201,7 +171,7 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &Window) {
 
 void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	// full P
-	logfile().list("Using full data.");
+	logfile().startIndent("Using full data:");
 
 	_refBases.clear();
 	_P_g_I_ds.clear();
@@ -215,15 +185,16 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	const auto LL = _runEM();
 
 	_out.write(Window.chrName(), Window.from().position(), Window.to().position(), Window.depth(), Window.numSites(),
-	           Window.numSitesWithData(), Window.fracMissing(), _genoDist->pis(), LL);
+			   Window.numSitesWithData(), Window.fracMissing(), _genoDist->pis(), LL);
+	logfile().endIndent(); // Using full data
 
 	// downsample
 	const auto nIT    = _numEMIterations;
 	const auto NSites = Window.numSites();
 	for (const auto dOrP : _depthOrProbs) {
 		constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
-		    {"probability", "probability", "maximum depth"}};
-		logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ".");
+			{"probability", "probability", "maximum depth"}};
+		logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ":");
 
 		if (_sample == Sample::upToDepth) {
 			_numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit longer
@@ -235,6 +206,7 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 		const auto LL_i              = _runEM();
 		_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
 				   LL_i);
+		logfile().endIndent(); // Downsampling...
 	}
 	_numEMIterations = nIT;
 	_out.endln();
@@ -253,30 +225,31 @@ void TEstimateHKY85::_handleGenomeWide() {
 	const auto NSites = _totSites - _totMaskedSites;
 
 	// full
-	logfile().list("Using full data.");
+	logfile().startIndent("Using full data:");
 	const auto LL  = _runEM();
 	const auto pis = _genoDist->pis();
 	const auto nIT = _numEMIterations;
+	logfile().endIndent(); // Using full data
 
 	for (size_t r = 0; r < _nRounds; ++r) {
-		logfile().list("Downsampling round ", r + 1, ".");
+		logfile().startIndent("Downsampling round ", r + 1, ":");
 		if (_windows.considerRegions()) {
 			_out.write("regions", "Round", r + 1);
 		} else {
 			_out.write("genome-wide", "Round", r + 1);
 		}
 		_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
-		           double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
+				   double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
 
 		// downsampled
 		for (size_t p = 0; p < _depthOrProbs.size(); ++p) {
 			constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
-			    {"probability", "probability", "maximum depth"}};
-			logfile().list("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[p], ".");
+				{"probability", "probability", "maximum depth"}};
+			logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[p], ":");
 
 			if (_sample == Sample::upToDepth) {
 				_numEMIterations =
-				    std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / _depthOrProbs[p]); // may need a bit longer
+					std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / _depthOrProbs[p]); // may need a bit longer
 			} else {
 				_numEMIterations = std::min<size_t>(10 * nIT, nIT / _depthOrProbs[p]); // may need a bit longer
 			}
@@ -284,9 +257,11 @@ void TEstimateHKY85::_handleGenomeWide() {
 			const auto [depth, withData] = _downsampeSites(_depthOrProbs[p]);
 			const auto LL_i              = _runEM();
 			_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
-			           LL_i);
+					   LL_i);
+			logfile().endIndent(); // Downsampling reads...
 		}
 		_out.endln();
+		logfile().endIndent(); //Downsampling round...
 	}
 }
 
