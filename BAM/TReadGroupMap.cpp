@@ -1,4 +1,5 @@
 #include "TReadGroupMap.h"
+#include <filesystem>
 
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"

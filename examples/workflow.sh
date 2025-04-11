@@ -92,19 +92,17 @@ for bias in 0.5; do
 		--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_HK85reads_raw
-	$(which time) -v $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
 		--bam $bam --fasta $fasta  --chr "chr1" \
 		--fixedSeed 20 --out $out --logFile $out.out 2> $out.eout
 
 	out=${name}_HK85reads_truth
-	$(which time) -v $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
+	$atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 		--prob $probs --sample reads \
 		--bam $bam --fasta $fasta  --chr "chr1" \
 		--RGInfo workflow.json \
 		--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
-
-	exit
 
 	out=${name}_ee
 	$atlas --task estimateErrors --minDeltaLL $delta \
