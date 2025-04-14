@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 
+if (POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif (POLICY CMP0135)
+
 # Library
 add_library(hts SHARED IMPORTED GLOBAL)
 

@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Don't warn about missing policies!
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
+if (POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif (POLICY CMP0135)
 
 # Project
 project(atlas VERSION 1.0.0 LANGUAGES CXX)
@@ -26,27 +30,23 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 set(JSON on)
 FetchContent_Declare(coretools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           4b53f11
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
+  URL        https://bitbucket.org/wegmannlab/coretools/get/4b53f114ba0d6490b61c5d7ba3797b60b74effa7.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
 FetchContent_Declare(genometools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           7a6e65f
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
+  URL        https://bitbucket.org/wegmannlab/genometools/get/7a6e65fc26ff5d22b36c3696280f815e4c55e517.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
 FetchContent_Declare(stattools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           fb4f523
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
+  URL        https://bitbucket.org/wegmannlab/stattools/get/fb4f5232198ea712b6dc9b31fe5057041dd102c6.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
 FetchContent_Declare(bamtools
-  GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
-  GIT_TAG           7c3abb4
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
+  URL        https://bitbucket.org/wegmannlab/bamtools/get/7c3abb4e716e3646ad0f50f1ef5d04b13b3f2877.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 
 FetchContent_MakeAvailable(coretools genometools stattools bamtools)
