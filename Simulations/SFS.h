@@ -8,7 +8,6 @@
 #ifndef SFS_H_
 #define SFS_H_
 
-#include <string>
 #include <vector>
 
 #include "TSimulatorHaplotypes.h"
@@ -36,10 +35,8 @@ private:
 	size_t _simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, genometools::Base ancestral, genometools::Base derived, bool Haplo);
 
 public:
-	SFS(const std::string &filename);
-	SFS(const SFS &other, double MonoFrac);
+	SFS(std::string_view filename);
 	SFS(size_t numChr, double theta);
-	SFS(size_t numChr, size_t onlyThisBin);
 
 	size_t numChromosomes() const noexcept { return _numChr; };
 	double monoFrac() const noexcept { return _sfs.front(); };
@@ -47,8 +44,6 @@ public:
 
 	size_t simulateSiteDiploid(size_t L, TSimulatorHaplotypes & Haplotypes, genometools::Base Ancestral, genometools::Base Derived); 
 	size_t simulateSiteHaploid(size_t L, TSimulatorHaplotypes & Haplotypes, genometools::Base Ancestral, genometools::Base Derived);
-
-	double calcLLOneSite(const std::vector<double> &Gl);
 };
 } // namespace Simulations
 #endif /* SFS_H_ */

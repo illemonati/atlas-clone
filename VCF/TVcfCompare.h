@@ -31,14 +31,10 @@ public:
 	//add haploid genotypes
 	void add(const genometools::Base b1, const genometools::Base b2);
 	void addOtherMissing(const int sample, const genometools::Base b);
-	void addFirstMissing(const genometools::Base b2);
-	void addSecondMissing(const genometools::Base b1);
 
 	//add diploid genotypes
 	void add(const genometools::Genotype g1, const genometools::Genotype g2);
 	void addOtherMissing(const int sample, const genometools::Genotype g);
-	void addFirstMissing(const genometools::Genotype g2);
-	void addSecondMissing(const genometools::Genotype g1);
 
 	//add haploid / diploid combination of genotypes
 	void add(const genometools::Genotype g1, const genometools::Base b2);

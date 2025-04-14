@@ -225,19 +225,6 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &Alignment, const s
 	_recal[Alignment.mate()]->simulate(Alignment);
 }
 
-void TReadSimulator::setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd) {
-	_pmd = Pmd;
-}
-
-void TReadSimulator::setContamination(double rate, TSimulatorReference *source) {
-	_contaminationRate  = rate;
-	_contaminationSource = source;
-
-	// check
-	if (_contaminationRate < 0.0) UERROR("Contamination rate must be >= 0.0!");
-	if (_contaminationRate > 1.0) UERROR("Contamination rate must be <= 0.0!");
-}
-
 size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
 								const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile) {
 	// Do not simulate fraction of reads that will be duplicates

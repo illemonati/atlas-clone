@@ -39,6 +39,11 @@ public:
 	const TRecalDataTableOneReadGroup& operator[](size_t readGroupId) const;
 
 	void write(std::string_view Name) const;
+
+	void clear() {
+		// empty all memory!
+		std::vector<TRecalDataTableOneReadGroup>().swap(_tables);
+	};
 };
 
 }; // namespace GenotypeLikelihoods::RecalEstimatorTools

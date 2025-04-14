@@ -23,9 +23,6 @@ using coretools::instances::parameters;
 //------------------------------------------
 // TSoftClippingStatsFile
 //------------------------------------------
-TSoftClippingStatsFile::TSoftClippingStatsFile(const std::string &Filename, bool PrintSequences) {
-	open(Filename, PrintSequences);
-};
 
 void TSoftClippingStatsFile::open(const std::string &Filename, bool PrintSequences) {
 	_printSequences = PrintSequences;

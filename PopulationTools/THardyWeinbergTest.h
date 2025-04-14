@@ -43,7 +43,6 @@ public:
 	size_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
 	double operator[](size_t i) const { return _probs[i]; };
 	double sum(size_t upTo);
-	void print();
 };
 
 //------------------------------------------------
@@ -80,7 +79,6 @@ public:
 	void clear();
 	void add(const genometools::BiallelicGenotype & genotype);
 	size_t N() const;
-	size_t MAF() const;
 	size_t n_A() const;
 	size_t n_AB() const;
 };
@@ -94,8 +92,6 @@ private:
 	THWProbDB _probDB;
 
 public:
-	THWPopulations(){};
-	THWPopulations(size_t numPops);
 	void clear();
 	void resize(size_t numPops);
 	void add(size_t pop, const genometools::BiallelicGenotype & genotyp);

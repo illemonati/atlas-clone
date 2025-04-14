@@ -166,13 +166,7 @@ double THWHetProb::sum(size_t upTo){
 		sum += _probs[i];
 	}
 	return sum;
-};
-
-void THWHetProb::print(){
-	for(size_t i=0; i<_maxNumHetPlusOne; ++i){
-		std::cout << "P(n_AB = " << i << ") = " << _probs[i] << std::endl;
-	}
-};
+}
 
 //------------------------------------------------
 //THWHetProbDB
@@ -223,14 +217,6 @@ size_t THWGenotypes::N() const{
 	return _genoCounts[0] + _genoCounts[1] + _genoCounts[2];
 };
 
-size_t THWGenotypes::MAF() const{
-	if(_genoCounts[0] < _genoCounts[2]){
-		return 2*_genoCounts[0] + _genoCounts[1];
-	} else {
-		return 2*_genoCounts[2] + _genoCounts[1];
-	}
-};
-
 size_t THWGenotypes::n_A() const{
 	return 2*_genoCounts[0] + _genoCounts[1];
 };
@@ -242,10 +228,6 @@ size_t THWGenotypes::n_AB() const{
 //------------------------------------------------
 //THWPopulations
 //------------------------------------------------
-THWPopulations::THWPopulations(size_t numPops){
-	resize(numPops);
-};
-
 void THWPopulations::resize(size_t numPops){
 	_populations.resize(numPops);
 };

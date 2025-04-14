@@ -123,14 +123,6 @@ std::pair<size_t, size_t> TReadSimulators::simulate(const genometools::TGenomePo
 	const auto nSim = _readSimulators[RG]->simulate(Position, Haplotype, Reference, BamFile);
 	return {RG, nSim};
 }
-
-std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){
-	if (numRG() == 1) return _readSimulators.front();
-
-	return _readSimulators[_picker()];
-}
-
-
 } // end namespace Simulations
 
 

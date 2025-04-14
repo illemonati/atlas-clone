@@ -197,10 +197,6 @@ public:
 
     // size
     size_t numWindows(){ return _windows_visited.size(); };
-    // loop
-    std::vector<genometools::TGenomeWindow >::iterator begin(){ return _windows_visited.begin(); };
-    std::vector<genometools::TGenomeWindow >::iterator end(){ return _windows_visited.end(); };
-    // access
     genometools::TGenomeWindow& operator[](size_t pos){ return _windows_visited[pos]; };
 };
 

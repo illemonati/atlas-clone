@@ -28,8 +28,6 @@ private:
 	bool _printSequences = false;
 
 public:
-	TSoftClippingStatsFile() = default;
-	TSoftClippingStatsFile(const std::string &Filename, bool PrintSequences);
 	void open(const std::string &Filename, bool PrintSequences);
 	void write(const BAM::TBamFile &bamFile);
 };

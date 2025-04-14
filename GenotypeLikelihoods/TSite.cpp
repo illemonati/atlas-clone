@@ -21,12 +21,6 @@ using genometools::TBaseCounts;
 // TSite
 //-------------------------------------------------------
 
-void TSite::clear() noexcept {
-	_data.clear();
-	refBase  = genometools::Base::N;
-	genotype = genometools::Genotype::NN;
-}
-
 void TSite::add(const BAM::TSequencedData &data) { _data.push_back(data); }
 
 TBaseData TSite::baseFrequencies() const noexcept {
@@ -56,7 +50,7 @@ void TSite::shuffle() {
 	randomGenerator().shuffle(_data);
 }
 
-void TSite::downsample(size_t UpToDepth) {
+void TSite::limitDepth(size_t UpToDepth) {
 	if (UpToDepth < _data.size()) _data.resize(UpToDepth);
 }
 

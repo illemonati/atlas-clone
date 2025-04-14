@@ -37,52 +37,49 @@ public:
 	void endl();
 
 	TAlleleCountFile(std::string Filename);
-	virtual ~TAlleleCountFile(){};
+	virtual ~TAlleleCountFile() = default;
 };
 
 class TAlleleCountFileWithAlleles:public TAlleleCountFile{
 public:
-	virtual void writeHeader(genometools::TPopulationSamples & samples);
-	virtual void writeHeader(std::vector<std::string> populationNames);
-	virtual void writePosition(std::string, long){ DEVERROR("Need to provide alleles for this format!"); }
-	virtual void writePosition(std::string, std::string){ DEVERROR("Need to provide alleles for this format!"); }
-	virtual void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
+	void writeHeader(genometools::TPopulationSamples & samples) override;
+	void writeHeader(std::vector<std::string> populationNames) override;
+	void writePosition(std::string, long) override{ DEVERROR("Need to provide alleles for this format!"); }
+	void writePosition(std::string, std::string) override{ DEVERROR("Need to provide alleles for this format!"); }
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader) override;
 
 	TAlleleCountFileWithAlleles(std::string Filename):TAlleleCountFile(Filename){};
-	~TAlleleCountFileWithAlleles(){};
 };
 
 class TTreeMixFile:public TAlleleCountFile{
 public:
-	void writeHeader(genometools::TPopulationSamples & samples);
-	void writeHeader(std::vector<std::string> populationNames);
+	void writeHeader(genometools::TPopulationSamples & samples) override;
+	void writeHeader(std::vector<std::string> populationNames) override;
 
 	// do nothing, treemix does not need position
-	void writePosition(std::string, long) {}
-	void writePosition(std::string, std::string) {}
-	void writePosition(const genometools::TPopulationLikelihoodReaderLocus &){};
+	void writePosition(std::string, long) override {}
+	void writePosition(std::string, std::string) override {}
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus &) override{};
 
-	void writeCounts(int count, int numAlleles, int populationNum);
-	void writeCounts(std::string count, std::string numAlleles, int populationNum);
+	void writeCounts(int count, int numAlleles, int populationNum) override;
+	void writeCounts(std::string count, std::string numAlleles, int populationNum) override;
 
 	TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){};
-	~TTreeMixFile(){};
 
 };
 
 class TFlinkFile:public TAlleleCountFile{
 public:
-	void writeHeader(genometools::TPopulationSamples & samples);
-	void writeHeader(std::vector<std::string> populationNames);
-	void writePosition(std::string chr, long pos);
-	void writePosition(std::string chr, std::string pos);
-	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
-	void writeCounts(int count, int numAlleles, int populationNum);
-	void writeCounts(std::string count, std::string numAlleles, int populationNum);
+	void writeHeader(genometools::TPopulationSamples & samples) override;
+	void writeHeader(std::vector<std::string> populationNames) override;
+	void writePosition(std::string chr, long pos) override;
+	void writePosition(std::string chr, std::string pos) override;
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader) override;
+	void writeCounts(int count, int numAlleles, int populationNum) override;
+	void writeCounts(std::string count, std::string numAlleles, int populationNum) override;
 
 
 	TFlinkFile(std::string Filename):TAlleleCountFile(Filename){};
-	~TFlinkFile(){};
 
 };
 

@@ -18,14 +18,7 @@ namespace BAM{
 // TSamHeader_HD
 // Stores the HD line
 //---------------------------------
-TSamHeader_HD::TSamHeader_HD(){
-	_version_VN = "1.6";
-	_sortOrder_SO = "unknown";
-	_grouping_GO = "none";
-	_subSorting_SS = "";
-};
-
-void TSamHeader_HD::setSortOrder(const std::string SortOrder){
+void TSamHeader_HD::setSortOrder(std::string_view SortOrder){
 	//check if valid
 	if(SortOrder.empty()){
 		_sortOrder_SO = "unknown";
@@ -34,9 +27,9 @@ void TSamHeader_HD::setSortOrder(const std::string SortOrder){
 	} else {
 		UERROR("Unknow BAM sort order '", SortOrder, "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.");
 	}
-};
+}
 
-void TSamHeader_HD::setGrouping(const std::string Grouping){
+void TSamHeader_HD::setGrouping(std::string_view Grouping){
 	//check if valid
 	if(Grouping.empty()){
 		_grouping_GO = "none";
@@ -45,13 +38,11 @@ void TSamHeader_HD::setGrouping(const std::string Grouping){
 	} else {
 		UERROR("Unknow BAM grouping '", Grouping, "'! Must be either 'none', 'query', or 'reference'.");
 	}
-};
+}
 
-std::string TSamHeader_HD::compileSamHeader() const{
+std::string TSamHeader_HD::compileSamHeader() const {
 	std::string header = "@HD\tVN:" + _version_VN;
-	if(!_sortOrder_SO.empty()){
-		header += "\tSO:" + _sortOrder_SO;
-	}
+	if (!_sortOrder_SO.empty()) { header += "\tSO:" + _sortOrder_SO; }
 	if(!_grouping_GO.empty()){
 		header += "\tGO:" + _grouping_GO;
 	}
@@ -59,22 +50,13 @@ std::string TSamHeader_HD::compileSamHeader() const{
 		header += "\tSS:" + _subSorting_SS;
 	}
 	return header + "\n";
-};
+}
 
 //---------------------------------
 // TSamProgram
 // Stores programs used
 //---------------------------------
-TSamProgram::TSamProgram(const std::string ID, const std::string Name){
-	_ID = ID;
-	_name_PN = Name;
-	_hasPrevious = false;
-	_previous_PP = nullptr;
-	_hasNext = false;
-	_next_PP = nullptr;
-};
-
-TSamProgram::TSamProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version){
+TSamProgram::TSamProgram(std::string_view ID, std::string_view Name, std::string_view CommandLine, std::string_view Description, std::string_view Version){
 	_ID = ID;
 	_name_PN = Name;
 	_commandLine_CL = CommandLine;
@@ -120,41 +102,34 @@ std::string TSamProgram::compileSamHeader() const{
 	}
 
 	return header + '\n';
-};
+}
 
-bool operator<(const std::string & left, const TSamProgram & right){
+bool operator<(std::string_view left, const TSamProgram & right){
 	return left < right.id();
-};
+}
 
 //---------------------------------
 // TSamHeader
 // main class to interact with
 //---------------------------------
-void TSamHeader::set(const std::string Version,
-			 	 	 const std::string SortOrder,
-					 const std::string Grouping,
-					 const std::string SubSorting){
+void TSamHeader::set(std::string_view Version,
+			 	 	 std::string_view SortOrder,
+					 std::string_view Grouping,
+					 std::string_view SubSorting){
 	_HD.setVersion(Version);
 	_HD.setSortOrder(SortOrder);
 	_HD.setGrouping(Grouping);
 	_HD.setSubSorting(SubSorting);
 };
 
-void TSamHeader::addProgram(const std::string ID, const std::string Name){
-	auto it = _programs_PG.emplace(ID, Name);
-	if(!it.second){
-		UERROR("Failed to add program to BAM header: duplicate ID '", ID, "'!");
-	}
-};
-
-void TSamHeader::addProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version){
+void TSamHeader::addProgram(std::string_view ID, std::string_view Name, std::string_view CommandLine, std::string_view Description, std::string_view Version){
 	auto it = _programs_PG.emplace(ID, Name, CommandLine, Description, Version);
 	if(!it.second){
 		UERROR("Failed to add program to BAM header: duplicate ID '", ID, "'!");
 	}
 };
 
-void TSamHeader::addPreviousProgramInChain(const std::string ID, const std::string previousID){
+void TSamHeader::addPreviousProgramInChain(std::string_view ID, std::string_view previousID){
 	//search if previousID exists
 	auto prev = _programs_PG.find(previousID);
 	if(prev == _programs_PG.end()){

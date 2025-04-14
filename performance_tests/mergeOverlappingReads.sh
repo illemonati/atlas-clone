@@ -6,6 +6,5 @@ bname=$(basename $0)
 name=${bname%.sh}
 out=$name/$name
 
-$atlas --task pileup --histograms depth \
-	   --bam BAM/BAM.bam  --chr chr1 \
+$atlas --task mergeOverlappingReads --bam BAM/BAM.bam  \
 	   --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null

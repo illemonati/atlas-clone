@@ -11,8 +11,6 @@ namespace Simulations {
 
 class TSimulatorReference {
 private:
-
-	// fasta file
 	std::ofstream _fasta;
 	std::ofstream _fastaIndex;
 	long _oldOffset = 0;
@@ -24,16 +22,15 @@ private:
 	std::string _chrName = "";
 	bool _needsWriting   = false;
 
-	void _allocateStorage(long length);
 	void _closeFastaFile();
 	void _writeRefToFasta();
 
 public:
 	TSimulatorReference() = default;
-	TSimulatorReference(std::string Filename);
+	TSimulatorReference(std::string_view Filename);
 	~TSimulatorReference();
-	void open(std::string Filename);
-	void setChr(std::string ChrName, long ChrLength);
+	void open(std::string_view Filename);
+	void setChr(std::string_view ChrName, long ChrLength);
 	//	void simulateReferenceSequenceCurChromosome(float* cumulBaseFreq);
 
 	genometools::Base &operator[](size_t index) { return _ref[index]; }

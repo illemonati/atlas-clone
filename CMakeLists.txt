@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
 
+# Don't warn about missing policies!
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
+if (POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif (POLICY CMP0135)
 
 # Project
 project(atlas VERSION 1.0.0 LANGUAGES CXX)
@@ -27,30 +28,25 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   VCF/*.h VCF/*.cpp)
 
 include(FetchContent)
+set(JSON on)
 FetchContent_Declare(coretools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           69f747f
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
+  URL        https://bitbucket.org/wegmannlab/coretools/get/a33e8f7cc3083d5a196967e4708edb6c32014cdd.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
-include(FetchContent)
 FetchContent_Declare(genometools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           7dd2ea5
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
+  URL        https://bitbucket.org/wegmannlab/genometools/get/7a6e65fc26ff5d22b36c3696280f815e4c55e517.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
-include(FetchContent)
 FetchContent_Declare(stattools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           3eda8cc
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
+  URL        https://bitbucket.org/wegmannlab/stattools/get/fb4f5232198ea712b6dc9b31fe5057041dd102c6.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
 FetchContent_Declare(bamtools
-  GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
-  GIT_TAG           7c3abb4
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
+  URL        https://bitbucket.org/wegmannlab/bamtools/get/7c3abb4e716e3646ad0f50f1ef5d04b13b3f2877.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 
 FetchContent_MakeAvailable(coretools genometools stattools bamtools)
@@ -78,37 +74,40 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools hts)
+target_link_libraries(${PROJECT_NAME} PRIVATE coretools genometools stattools BamTools BamTools-utils hts)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
 target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO ARMA_WARN_LEVEL=0 DEVTOOLS)
 
-add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
+# Test
+if(BUILD_TESTING)
+  add_executable("${PROJECT_NAME}_unitTests")
 
-file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS 
-  BAM/tests/*.h BAM/tests/*.cpp
-  bamtools/tests/*
-  GenomeTasks/tests/*.h GenomeTasks/tests/*.cpp
-  GenotypeLikelihoods/tests/*.h GenotypeLikelihoods/tests/*.cpp
-  GLF/tests/*.h GLF/tests/*.cpp
-  PopulationTools/tests/*.h PopulationTools/tests/*.cpp
-  Simulations/tests/*.h Simulations/tests/*.cpp
-  VCF/tests/*.h VCF/tests/*.cpp)
+  file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS 
+	BAM/tests/*.h BAM/tests/*.cpp
+	bamtools/tests/*
+	GenomeTasks/tests/*.h GenomeTasks/tests/*.cpp
+	GenotypeLikelihoods/tests/*.h GenotypeLikelihoods/tests/*.cpp
+	GLF/tests/*.h GLF/tests/*.cpp
+	PopulationTools/tests/*.h PopulationTools/tests/*.cpp
+	Simulations/tests/*.h Simulations/tests/*.cpp
+	VCF/tests/*.h VCF/tests/*.cpp)
 
-target_sources("${PROJECT_NAME}_unitTests" PRIVATE ${CORE_SOURCES} ${TEST_SOURCES})
+  target_sources("${PROJECT_NAME}_unitTests" PRIVATE ${CORE_SOURCES} ${TEST_SOURCES})
 
-target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE 
-  BAM
-  GenomeTasks
-  GenotypeLikelihoods
-  GLF
-  PopulationTools
-  Simulations
-  VCF)
+  target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE 
+	BAM
+	GenomeTasks
+	GenotypeLikelihoods
+	GLF
+	PopulationTools
+	Simulations
+	VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main hts)
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
-target_compile_definitions("${PROJECT_NAME}_unitTests" PRIVATE WITH_ARMADILLO ARMA_WARN_LEVEL=0 DEVTOOLS)
+  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools genometools stattools BamTools BamTools-utils gtest_main hts)
+  target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+  set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+  target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
+  target_compile_definitions("${PROJECT_NAME}_unitTests" PRIVATE WITH_ARMADILLO ARMA_WARN_LEVEL=0 DEVTOOLS)
+endif()

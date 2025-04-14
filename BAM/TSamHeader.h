@@ -27,26 +27,24 @@ namespace BAM{
 // TSamHeader_HD
 // Stores the HD line
 //---------------------------------
-class TSamHeader_HD{
+struct TSamHeader_HD{
 private:
-	std::string _version_VN;
-	std::string _sortOrder_SO;
-	std::string _grouping_GO;
-	std::string _subSorting_SS;
+	std::string _version_VN    = "1.6";
+	std::string _sortOrder_SO  = "unknown";
+	std::string _grouping_GO   = "none";
+	std::string _subSorting_SS = "";
 
 public:
-	TSamHeader_HD();
-
-	void setVersion(const std::string Version){ _version_VN = Version; };
-	void setSortOrder(const std::string SortOrder);
-	void setGrouping(const std::string Grouping);
-	void setSubSorting(const std::string SubSorting){ _subSorting_SS = SubSorting; };
+	void setVersion(std::string_view Version){ _version_VN = Version; };
+	void setSortOrder(std::string_view SortOrder);
+	void setGrouping(std::string_view Grouping);
+	void setSubSorting(std::string_view SubSorting){ _subSorting_SS = SubSorting; };
 
 	//getters
-	std::string version() const{ return _version_VN; };
-	std::string sortOrder() const{ return _sortOrder_SO; };
-	std::string grouping() const{ return _grouping_GO; };
-	std::string subSorting() const{ return _subSorting_SS; };
+	const std::string& version() const noexcept { return _version_VN; };
+	const std::string& sortOrder() const noexcept { return _sortOrder_SO; };
+	const std::string& grouping() const noexcept { return _grouping_GO; };
+	const std::string& subSorting() const noexcept { return _subSorting_SS; };
 
 	std::string compileSamHeader() const;
 };
@@ -69,22 +67,22 @@ private:
 	mutable std::string _version_VN;
 
 public:
-	TSamProgram(const std::string ID, const std::string Name);
-	TSamProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
-	void addPrevious(const TSamProgram & Previous) const;
-	void addNext(const TSamProgram & Next) const;
+	TSamProgram(std::string_view ID, std::string_view Name, std::string_view CommandLine, std::string_view Description,
+				std::string_view Version);
+	void addPrevious(const TSamProgram &Previous) const;
+	void addNext(const TSamProgram &Next) const;
 	std::string id() const{ return _ID; };
 	std::string compileSamHeader() const;
 
 	bool operator<(const TSamProgram & other) const{
 		return this->_ID < other._ID;
 	};
-	bool operator<(const std::string & other) const{
+	bool operator<(std::string_view other) const{
 		return this->_ID < other;
 	};
 };
 
-bool operator<(const std::string & left, const TSamProgram & right);
+bool operator<(std::string_view left, const TSamProgram & right);
 
 //---------------------------------
 // TSamHeader
@@ -97,25 +95,25 @@ private:
 	std::vector<std::string> _comments_CO;
 
 public:
-	TSamHeader(){};
-	TSamHeader(const std::string Version, const std::string SortOrder, const std::string Grouping, const std::string SubSorting=""){
+	TSamHeader() = default;
+	TSamHeader(std::string_view Version, std::string_view SortOrder, std::string_view Grouping,
+			   std::string_view SubSorting = "") {
 		set(Version, SortOrder, Grouping, SubSorting);
 	};
 
 	//add info
-	void set(const std::string Version, const std::string SortOrder, const std::string Grouping, const std::string SubSorting="");
-	void addProgram(const std::string ID, const std::string Name);
-	void addProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
-	void addPreviousProgramInChain(const std::string ID, const std::string previousID);
-	void addComment(const std::string Comment){ _comments_CO.push_back(Comment); };
+	void set(std::string_view Version, std::string_view SortOrder, std::string_view Grouping, std::string_view SubSorting="");
+	void addProgram(std::string_view ID, std::string_view Name, std::string_view CommandLine, std::string_view Description, std::string_view Version);
+	void addPreviousProgramInChain(std::string_view ID, std::string_view previousID);
+	void addComment(std::string_view Comment){ _comments_CO.emplace_back(Comment); };
 	std::string compileSamHeader(const TReadGroups & ReadGroups) const;
 	std::string compileSamHeader(const TReadGroups & ReadGroups, const genometools::TChromosomes & Chromosomes) const;
 
     //getters
-    std::string version() const{ return _HD.version(); };
-    std::string sortOrder() const{ return _HD.sortOrder(); };
-    std::string grouping() const{ return _HD.grouping(); };
-    std::string subSorting() const{ return _HD.subSorting(); };
+    const std::string& version() const{ return _HD.version(); };
+    const std::string& sortOrder() const{ return _HD.sortOrder(); };
+    const std::string& grouping() const{ return _HD.grouping(); };
+    const std::string& subSorting() const{ return _HD.subSorting(); };
 };
 
 }; //end namespace

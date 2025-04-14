@@ -35,15 +35,6 @@ void TGenotypeComparisonTable::addOtherMissing(const int sample, const Base b){
 	}
 };
 
-
-void TGenotypeComparisonTable::addFirstMissing(const Base b2){
-	++_counts.back()[coretools::index(b2)];
-};
-
-void TGenotypeComparisonTable::addSecondMissing(const Base b1){
-	++_counts[coretools::index(b1)].back();
-};
-
 //add diploid genotypes
 void TGenotypeComparisonTable::add(Genotype g1, Genotype g2){
 	++_counts[_firstDiploidIndex + coretools::index(g1)][_firstDiploidIndex + coretools::index(g2)];
@@ -56,15 +47,6 @@ void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype 
 		++_counts.back()[_firstDiploidIndex + coretools::index(g)];
 	}
 };
-
-void TGenotypeComparisonTable::addFirstMissing(Genotype g2){
-	++_counts.back()[_firstDiploidIndex + coretools::index(g2)];
-};
-
-void TGenotypeComparisonTable::addSecondMissing(Genotype g1){
-	++_counts[_firstDiploidIndex + coretools::index(g1)].back();
-};
-
 
 //add haploid / diploid combination of genotypes
 void TGenotypeComparisonTable::add(const Genotype g1, const Base b2){

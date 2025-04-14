@@ -38,7 +38,6 @@ protected:
 
 public:
 	void fill(TSampleLikelihoods* data, uint32_t numSamples, bool resetMissing = false);
-	void write(gz::ogzstream & file);
 	size_t MLAlleleCount();
 	size_t Nalleles(){ return log_alleleFrequencyLikelihoods_h.size() - 1; };
 	const std::vector<coretools::LogProbability> & getLogAlleleFrequencyLikelihoods() const;

@@ -9,9 +9,11 @@
 #include <memory>
 #include <vector>
 
+#include "TSequencedData.h"
+#include "coretools/Containers/TNestedVector.h"
+#include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Ploidy.h"
 #include "genometools/TBed.h"
-#include "genometools/Genotypes/Containers.h"
 
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"
@@ -30,14 +32,14 @@ private:
 	// per region
 	std::vector<size_t> _refIDs;
 	std::vector<genometools::TBed> _regions;
-	std::vector<std::vector<TSite>> _regionSites;
 	std::vector<std::unique_ptr<TGenotypeDistribution>> _genoDist;
 
 	// per site
-	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_dis;
+	std::vector<std::vector<SequencingError::TGenotypeFloats>> _P_g_I_dis;
+	std::vector<std::vector<genometools::Base>> _refBases;
 
-	// per read
-	std::vector<genometools::TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
+	// per data
+	std::vector<coretools::TNestedVector<BAM::TSequencedData, SequencingError::TGenotypeFloats>> _data;
 
 	BAM::TReadGroupMap _recalMap;
 	BAM::TReadGroupMap _pmdMap;
@@ -65,20 +67,22 @@ private:
 	bool _noPsi     = false;
 	bool _noEpsilon = false;
 
+	size_t _NRegions() const noexcept {return _data.size();}
+	size_t _NSites(size_t Region) const noexcept {return _data[Region].size();}
+	size_t _NData(size_t Region, size_t Site) const noexcept {return _data[Region][Site].size();}
+
 	template<bool UpdateJF> void _calculateQ() {
-		size_t i  = 0;
-		size_t ij = 0;
-		for (size_t r = 0; r < _regionSites.size(); ++r) {
-			const auto &sites      = _regionSites[r];
+		for (size_t r = 0; r < _NRegions(); ++r) {
 			const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
-			for (const auto &site : sites) {
-				const auto &P_g_I_di = _P_g_I_dis[i++];
-				for (auto &d_ij : site) {
-					const auto &P_bbar_I_gdij = _P_bbarEdij_I_gdijs[ij++];
+			for (size_t s = 0; s < _NSites(r); ++s) {
+				const auto &P_g_I_di = _P_g_I_dis[r][s];
+				for (size_t d = 0; d < _NData(r, s); ++d) {
+					const auto &d_ij              = _data[r][s].get<0>()[d];
+					const auto &P_bbarEdij_I_gdij = _data[r][s].get<1>()[d];
 					if (isInvariant)
-						_recal.model(d_ij).epsilon()->add<UpdateJF, true>(d_ij, P_g_I_di, P_bbar_I_gdij);
+						_recal.model(d_ij).epsilon()->add<UpdateJF, true>(d_ij, P_g_I_di, P_bbarEdij_I_gdij);
 					else
-						_recal.model(d_ij).epsilon()->add<UpdateJF, false>(d_ij, P_g_I_di, P_bbar_I_gdij);
+						_recal.model(d_ij).epsilon()->add<UpdateJF, false>(d_ij, P_g_I_di, P_bbarEdij_I_gdij);
 				}
 			}
 		}
@@ -92,7 +96,7 @@ private:
 	size_t _calculateQ();
 	double _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
-	double _calculateLL_updatePg(const std::vector<TSite> &sites, TGenotypeDistribution *genoDist, genometools::Ploidy Pl);
+	double _calculateLL_updatePg(size_t R, const std::vector<TSite> &sites, TGenotypeDistribution *genoDist, genometools::Ploidy Pl);
 
 	void _identifyModels();
 	void _runEM();

@@ -87,7 +87,6 @@ public:
 	TTestBamFile(const std::vector<size_t> ChrLength, size_t NumReadGroups);
 	TTestBamFile(const std::string & Filename, const std::vector<size_t> ChrLength, size_t NumReadGroups);
 
-	void openOutput(const std::string & Filename);
 	void closeOutput();
 	void writeAlignment(const BAM::TAlignment & alignment);
 	// write dummy alignments where sequence and qualities are shuffled all the time
@@ -101,7 +100,6 @@ public:
     void writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, bool isReverseStrand);
     void writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition & position, const BAM::TCigar & cigar);
     void writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition & position, size_t length);
-    void writeDummyAlignment(const genometools::Base &oneBase, const coretools::PhredInt &oneQual, const genometools::TGenomePosition & position);
 
     //getters
 	std::string filename()const { return _filename; };
@@ -124,7 +122,6 @@ protected:
     BAM::TAlignment & _pickSecondMate(size_t refIDMate1, std::vector<bool> & used);
 
 public:
-    TTestBamFilePairedEnd(const std::vector<size_t> ChrLength, size_t NumReadGroups);
     TTestBamFilePairedEnd(const std::string & Filename, const std::vector<size_t> ChrLength, size_t NumReadGroups);
 
     void writeDummyAlignment(const genometools::TGenomePosition & position, const BAM::TCigar & cigar, size_t readGroup, bool isReverseStrand, bool complicatedSamFlag = false) override;

@@ -295,10 +295,6 @@ void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods *data, uint32_t nu
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream &file) {
-	for (const auto& afl: log_alleleFrequencyLikelihoods_h) file << "\t" << afl;
-};
-
 size_t TSiteAlleleFrequencyLikelihoods::MLAlleleCount() {
 	// return 0 in case of no data
 	if (Nalleles() == 0) return 0;

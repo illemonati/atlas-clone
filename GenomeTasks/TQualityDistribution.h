@@ -16,22 +16,6 @@
 
 namespace GenomeTasks{
 
-//-----------------------------------
-// TQualityDistribution
-//-----------------------------------
-class TQualityDistribution final : public TBamReadTraverser<ReadType::Parsed> {
-private:
-	coretools::TCountDistributionVector<> _qualDist;
-
-	void _handleAlignment(BAM::TAlignment& alignment) override;
-
-public:
-	void compileQualityDistribution();
-};
-
-//-----------------------------------
-// TQualityTransformation
-//-----------------------------------
 class TQualityTransformation final : public TBamReadTraverser<ReadType::Parsed> {
 private:
 	std::vector<coretools::TCountDistributionVector<>> _transformations;

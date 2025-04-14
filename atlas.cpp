@@ -130,7 +130,7 @@ void addTests(coretools::TMain & ){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	coretools::TMain main("ATLAS", "2.0.0-rc.8 (Release Candidate)", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
+	coretools::TMain main("ATLAS", "2.0.0-rc.10 (Release Candidate)", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
 
 	//add existing tasks
 	addTaks(main);

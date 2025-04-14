@@ -5,11 +5,11 @@
 namespace Simulations {
 using coretools::instances::logfile;
 
-TSimulatorReference::TSimulatorReference(std::string Filename){
+TSimulatorReference::TSimulatorReference(std::string_view Filename){
 	open(Filename);
 }
 
-void TSimulatorReference::open(std::string Filename){
+void TSimulatorReference::open(std::string_view Filename){
 	_filename = Filename;
 	// open FASTA file for reference sequences
 	logfile().list("Will write reference sequence to '" + _filename + "'.");
@@ -47,12 +47,7 @@ void TSimulatorReference::_writeRefToFasta() {
 	_needsWriting = false;
 }
 
-void TSimulatorReference::_allocateStorage(long length) {
-	// allocate storage
-	_ref.resize(length);
-}
-
-void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
+void TSimulatorReference::setChr(std::string_view ChrName, long ChrLength) {
 	if(!_fasta){
 		DEVERROR("Fasta file not opened yet!");
 	}

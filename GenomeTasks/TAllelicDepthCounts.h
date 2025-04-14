@@ -25,13 +25,9 @@ private:
 	std::vector<size_t> _counts;
 
 public:
-	TAllelicDepthCounts() = default;
-	TAllelicDepthCounts(size_t MaxAllelicDepth);
-
 	void resize(size_t MaxAllelicDepth);
 	void clear();
 	void addSite(const genometools::TBaseCounts & alleleCounts);
-	void addSiteZeroDepth();
 	void write(const std::string &filename, bool printEmpty);
 	size_t size() const noexcept {return _counts.size();}
 };

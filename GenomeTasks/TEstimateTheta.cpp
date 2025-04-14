@@ -56,7 +56,7 @@ void TEstimateThetaLLSurface::run() { _traverseBAMWindows(); };
 //-----------------------------------
 
 
-void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
+void TEstimateTheta::_addSites(const GenotypeLikelihoods::TWindow &window,
 									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for (auto &s : window) {
@@ -129,6 +129,7 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 
 	// create windows and estimators for downsamples
 	if (downSampleProbVector.size() > 0) {
+		_windows.allowDownsampling(true);
 		logfile().list("Will estimate theta after downsampling reads with probabilities " +
 					   coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
 		for (size_t i = 0; i < downSampleProbVector.size(); ++i) { estimators.emplace_back(_thetaEstimator); }
@@ -186,10 +187,9 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		GenotypeLikelihoods::TWindow destination(window, p, _windows.uptoDepth(), _windows.shuffleSites());
+		const auto destination = window.downsampleReads(p);
 		logfile().done();
 
-		_windows.filter(destination);
 		_addSites(destination, estimators[i]);
 
 		if (!_genomeWide) {

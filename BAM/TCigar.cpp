@@ -160,10 +160,6 @@ std::string TCigar::compileString() const{
 	return s;
 }
 
-TCigar::operator std::string() const {
-	return compileString();
-}
-
 void TCigar::clear() {
 	_cigar.clear();
 	_lengthAligned          = 0;
