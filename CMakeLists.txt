@@ -10,7 +10,7 @@ if (POLICY CMP0135)
 endif (POLICY CMP0135)
 
 # Project
-project(atlas VERSION 1.0.0 LANGUAGES CXX)
+project(atlas VERSION 2.0.0 LANGUAGES CXX)
 
 # Atlas
 add_executable(${PROJECT_NAME} atlas.cpp)
@@ -29,7 +29,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 
 include(FetchContent)
 FetchContent_Declare(coretools
-  URL        https://bitbucket.org/wegmannlab/coretools/get/11c7665698ddc9db061b013dfd4551d78e4ce60c.tar.gz
+  URL        https://bitbucket.org/wegmannlab/coretools/get/0c38702eb81dfde296975e38a96608098547d785.tar.gz
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -52,9 +52,15 @@ FetchContent_MakeAvailable(coretools genometools stattools bamtools)
 
 # htslib
 if(CONDA)
+  find_package(nlohmann_json REQUIRED)
   find_library(HTSLIB NAMES hts)
 else()
   include(htslib.cmake)
+  FetchContent_Declare(json
+	URL        https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz
+	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/json"
+  )
+  FetchContent_MakeAvailable(json)
 endif()
 
 find_package(OpenMP)
@@ -73,7 +79,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE coretools genometools stattools BamTools BamTools-utils hts)
+target_link_libraries(${PROJECT_NAME} PRIVATE coretools genometools stattools BamTools BamTools-utils hts nlohmann_json::nlohmann_json)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
@@ -104,7 +110,7 @@ if(BUILD_TESTING)
 	Simulations
 	VCF)
 
-  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools genometools stattools BamTools BamTools-utils gtest_main hts)
+  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools genometools stattools BamTools BamTools-utils hts nlohmann_json::nlohmann_json gtest_main )
   target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
   set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
   target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
