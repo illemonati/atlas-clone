@@ -28,9 +28,8 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   VCF/*.h VCF/*.cpp)
 
 include(FetchContent)
-set(JSON on)
 FetchContent_Declare(coretools
-  URL        https://bitbucket.org/wegmannlab/coretools/get/a33e8f7cc3083d5a196967e4708edb6c32014cdd.tar.gz
+  URL        https://bitbucket.org/wegmannlab/coretools/get/11c7665698ddc9db061b013dfd4551d78e4ce60c.tar.gz
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
