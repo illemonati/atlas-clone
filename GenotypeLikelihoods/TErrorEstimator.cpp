@@ -231,6 +231,7 @@ void TErrorEstimator::_identifyModels() {
 
 void TErrorEstimator::_updatePbbar() {
 	using genometools::genotype;
+	using PMD::Type;
 	for (size_t r = 0; r < _NRegions(); ++r) {
 		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
 		for (size_t s = 0; s < _NSites(r); ++s) {
@@ -241,14 +242,14 @@ void TErrorEstimator::_updatePbbar() {
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
-				_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[Genotype::CC]), _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
-				_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[Genotype::GG]), _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->add(Type::CT, d_ij, P(P_g_I_di[Genotype::CC]), _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->add(Type::GA, d_ij, P(P_g_I_di[Genotype::GG]), _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
 
 				if (!isInvariant) for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
-						_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->add(Type::CT, d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 				if (!isInvariant) for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
-						_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->add(Type::GA, d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 
 				// Rho

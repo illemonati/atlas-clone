@@ -29,7 +29,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 
 include(FetchContent)
 FetchContent_Declare(coretools
-  URL        https://bitbucket.org/wegmannlab/coretools/get/0c38702eb81dfde296975e38a96608098547d785.tar.gz
+  URL        https://bitbucket.org/wegmannlab/coretools/get/aa078bf7569d9c8710111a6f49988fefa5476f77.tar.gz
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
