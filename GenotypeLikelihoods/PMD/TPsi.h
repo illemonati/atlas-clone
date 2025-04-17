@@ -49,14 +49,14 @@ class TPsi {
 
 	size_t _nSingle = 0;
 	size_t _nPaired = 0;
+	size_t _S       = 5;
+	size_t _Cmax    = 0;
 
-	void _printTable(std::string_view FName);
-	void _initEnd(BAM::End e, int32_t MinData);
-	void _joinTables() noexcept;
+	void _printTable(std::string_view OutputName);
+	void _initEnd(size_t Idx, int32_t MinData);
+	void _joinTables(size_t From, size_t To) noexcept;
 	void _fromString(std::string_view Psi);
 	void _parse(const BAM::RGInfo::TInfo & info);
-
-
 	void _add(Type From_To, const BAM::TSequencedData &data, genometools::Base ref);
 
 public:
