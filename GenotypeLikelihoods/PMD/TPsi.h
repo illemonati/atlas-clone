@@ -58,6 +58,7 @@ class TPsi {
 	void _fromString(std::string_view Psi);
 	void _parse(const BAM::RGInfo::TInfo & info);
 	void _add(Type From_To, const BAM::TSequencedData &data, genometools::Base ref);
+	size_t _tIndex(const BAM::TSequencedData &data) const noexcept;
 
 public:
 

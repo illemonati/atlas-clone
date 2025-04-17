@@ -86,18 +86,32 @@ void TPsi::_fromString(std::string_view Psi) {
 	_parse(Info);
 }
 
-	TPsi::TPsi(): _tables(2) {
+TPsi::TPsi(): _tables(2) {
 	for (auto &t : _tables)
 		for (auto &v : t) v.emplace_back(0.);
+}
+
+size_t TPsi::_tIndex(const BAM::TSequencedData &data) const noexcept {
+	// 5'-end
+	if (_tables.size() == 1 || data.end() == BAM::End::from5) return 0;
+
+	// 3'-end
+	if (data.readLength() <= _Cmax - _S) return 1;
+
+	const auto tIndex = data.readLength() - (_Cmax - _S) + 1;
+	if (tIndex >= _tables.size()) return _tables.size() - 1;
+
+	return tIndex;
 }
 
 coretools::Probability TPsi::prob(Type From_To, const BAM::TSequencedData &data) const noexcept {
 	using BAM::End;
 	const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
 	const auto end      = data.get<BAM::Flags::Paired>() ? End::from5 : data.end();
+	const auto idx      = _tIndex(data);
 	const auto pos      = data.dist(end).pseudo();
 
-	const auto &table = _tables[index(end)][realType];
+	const auto &table = _tables[idx][realType];
 	if (pos >= table.size()) return table.back();
 	return table[pos];
 }
@@ -110,8 +124,9 @@ void TPsi::add(Type From_To, const BAM::TSequencedData &data, coretools::Probabi
 	using genometools::Base;
 
 	const auto end      = paired() ? End::from5 : data.end();
+	const auto idx      = _tIndex(data);
 	const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
-	auto &tSum          = _tableSums[index(end)][realType];
+	auto &tSum          = _tableSums[idx][realType];
 	if (tSum.empty()) return; // wrong pattern
 
 	const auto pos  = std::min<size_t>(tSum.size() - 1, data.dist(end).pseudo());
