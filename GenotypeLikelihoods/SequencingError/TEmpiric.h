@@ -185,7 +185,7 @@ public:
 		constexpr size_t Nmax = 3;
 
 		std::string ret = "[";
-		if constexpr (_N <= 2 * Nmax) {
+		if (numParameters() <= 2 * Nmax) {
 			// write all parameters
 			for (size_t i = 0; i < _iis.size(); ++i) {
 				if (_iis[i] != _nope) {
