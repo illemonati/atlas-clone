@@ -1,5 +1,6 @@
 #include "TPsi.h"
 
+#include "TReadGroupInfo.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
@@ -10,6 +11,8 @@
 #include "coretools/Types/probability.h"
 #include <cmath>
 #include <limits>
+
+#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods::PMD {
 using coretools::Probability;
@@ -73,6 +76,8 @@ void TPsi::_fromString(std::string_view Psi) {
 
 		const auto type      = impl::type(sType.substr(0, 2));
 		const auto end       = index(impl::end(sType.substr(2, 1)));
+		if (_tables.size() <= end) _tables.resize(end + 1);
+
 		const auto sFunction = readAfter(s, ':');
 		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
 		else _tables[end][type] = impl::empiric(sFunction);
@@ -82,7 +87,7 @@ void TPsi::_fromString(std::string_view Psi) {
 			if (v.empty()) v = {P(0.)};
 }
 
-	TPsi::TPsi(const BAM::RGInfo::TInfo &Info): _tables(2) {
+	TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 	_parse(Info);
 }
 
@@ -162,30 +167,39 @@ void TPsi::_add(Type From_To, const BAM::TSequencedData &data, genometools::Base
 }
 
 void TPsi::_parse(const BAM::RGInfo::TInfo & Info) {
+	using BAM::RGInfo::toString;
 	if (Info.is_string()) {
 		_fromString(Info.get<std::string_view>());
 	} else {
-		for (auto e = End::min; e < End::max; ++e) {
-			for (auto t = Type::min; t < Type::max; ++t) {
-				auto &v        = _tables[index(e)][t];
-				const auto key = impl::toString(t) + toString(e);
-				if (!Info.contains(key) || Info[key].empty()) {
-					v = {P(0.)};
-				} else {
-					if (Info[key].is_string()) {
-						const auto sFunction = Info[key].get<std::string_view>();
-						if (sFunction.find('*') != sFunction.npos)
-							v = impl::exp(sFunction);
-						else
-							v = impl::empiric(sFunction);
-					} else if (Info[key].is_array()) {
-						for (auto [k, d] : Info[key].items()) {
-							v.emplace_back(d);
-						}
-					} else {
-						UERROR("Cannot parse json-token ", Info, "!");
-					}
-				}
+		_S    = 0;
+		_Cmax = 0;
+		for (const auto &i : Info.items()) {
+			std::string_view k = i.key();
+			const auto type    = impl::type(k.substr(0, 2));
+			const auto end     = impl::end(k.substr(2, 1));
+			if (end == End::from3 && type == Type::CT) { // only count once
+				_Cmax = std::max(_Cmax, fromString<size_t>(k.substr(4)));
+				++_S;
+			}
+		}
+
+		_tables.resize(_S + 1);
+		for (const auto& i : Info.items()) {
+			std::string_view k = i.key();
+			const auto type    = impl::type(k.substr(0, 2));
+			const auto end     = impl::end(k.substr(2, 1));
+			const auto idx     = end == End::from5
+				? 0 : 1 + fromString<size_t>(k.substr(4)) - (_Cmax - _S);
+
+			auto &v = _tables[idx][type];
+
+			if (i.value().empty())
+				v = {P(0.)};
+			else if (i.value().is_number()) v = {P(i.value().get<double>())};
+			else if (i.value().is_array()) {
+				for (const auto &d : i.value()) { v.emplace_back(d); }
+			} else {
+				UERROR("Cannot parse json-token ", Info, "!");
 			}
 		}
 	}
@@ -321,7 +335,9 @@ void TPsi::log() const noexcept {
 
 	bool hasAny = false;
 	for (size_t i = 0; i < _tables.size(); ++i) {
-		const auto name = i == 0 ? "5" : toString("3_", _Cmax - _S - 1 + i);
+		const auto name = i == 0
+			? "5"
+			: _Cmax == 0 ? "3" : toString("3_", _Cmax - _S - 1 + i);
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[i][t];
 			hasAny        = true;
