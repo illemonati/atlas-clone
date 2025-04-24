@@ -40,7 +40,7 @@ void TReadGroupInfo::_setAllReadGroups(InfoType Info, TInfo Val) {
 
 void TReadGroupInfo::_setDefault(InfoType Info) {
 	// use default values
-	logfile().write("default value '", infos[Info].defaults, "' for all read groups. (set with '",
+	logfile().write("default value '", toString(infos[Info].defaults), "' for all read groups. (set with '",
 	                TReadGroupInfo::RGInfoArgument, "' or '", infos[Info].argument, "')");
 	_setAllReadGroups(Info, infos[Info].defaults);
 }
@@ -121,13 +121,12 @@ bool TReadGroupInfo::isParsed() const {
 	return false;
 }
 
-void TReadGroupInfo::_parse(const InfoType Info) {
+void TReadGroupInfo::_parse(InfoType Info) {
 	if (!_parsed[Info]) {
 		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
-		std::string arg = infos[Info].argument;
 
 		// check if info is provided on the command line -> overwrites file
-		if (parameters().exists(arg)) {
+		if (parameters().exists(infos[Info].argument)) {
 			_setFromCommandLine(Info);
 		} else {
 			// check if provided in file

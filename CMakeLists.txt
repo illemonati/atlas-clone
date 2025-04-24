@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Don't warn about missing policies!
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
+if (POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif (POLICY CMP0135)
 
 # Project
-project(atlas VERSION 1.0.0 LANGUAGES CXX)
+project(atlas VERSION 2.0.0 LANGUAGES CXX)
 
 # Atlas
 add_executable(${PROJECT_NAME} atlas.cpp)
@@ -25,38 +29,38 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 
 include(FetchContent)
 FetchContent_Declare(coretools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           750311a
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
+  URL        https://bitbucket.org/wegmannlab/coretools/get/0c38702eb81dfde296975e38a96608098547d785.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
-include(FetchContent)
 FetchContent_Declare(genometools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           4cc40dd
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
+  URL        https://bitbucket.org/wegmannlab/genometools/get/7a6e65fc26ff5d22b36c3696280f815e4c55e517.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
-include(FetchContent)
 FetchContent_Declare(stattools
-  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           cbc5242
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
+  URL        https://bitbucket.org/wegmannlab/stattools/get/fb4f5232198ea712b6dc9b31fe5057041dd102c6.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
 FetchContent_Declare(bamtools
-  GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
-  GIT_TAG           7c3abb4
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
+  URL        https://bitbucket.org/wegmannlab/bamtools/get/7c3abb4e716e3646ad0f50f1ef5d04b13b3f2877.tar.gz
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 
 FetchContent_MakeAvailable(coretools genometools stattools bamtools)
 
 # htslib
 if(CONDA)
+  find_package(nlohmann_json REQUIRED)
   find_library(HTSLIB NAMES hts)
 else()
   include(htslib.cmake)
+  FetchContent_Declare(json
+	URL        https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz
+	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/json"
+  )
+  FetchContent_MakeAvailable(json)
 endif()
 
 find_package(OpenMP)
@@ -75,7 +79,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE coretools genometools stattools BamTools BamTools-utils hts)
+target_link_libraries(${PROJECT_NAME} PRIVATE coretools genometools stattools BamTools BamTools-utils hts nlohmann_json::nlohmann_json)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
@@ -106,7 +110,7 @@ if(BUILD_TESTING)
 	Simulations
 	VCF)
 
-  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools genometools stattools BamTools BamTools-utils gtest_main hts)
+  target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools genometools stattools BamTools BamTools-utils hts nlohmann_json::nlohmann_json gtest_main )
   target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
   set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
   target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)

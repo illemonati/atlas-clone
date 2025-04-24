@@ -6,6 +6,7 @@
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
 #include "coretools/Containers/TNestedVector.h"
+#include "coretools/Containers/TStandarray.h"
 #include "coretools/Files/TOutputFile.h"
 
 #include "TGenotypeDistribution.h"
@@ -44,7 +45,8 @@ private:
 	};
 	TStats _stats;
 	coretools::TNestedVector<size_t> _readIDs;
-	coretools::TNestedVector<genometools::TBaseLikelihoods> _P_d_I_b;
+	using Standarray = coretools::TStrongStandarray<float, genometools::Base>;
+	coretools::TNestedVector<Standarray> _P_d_I_b;
 	size_t _lastReadID = 0;
 
 	bool _downSample() const noexcept {return !_depthOrProbs.empty();}
@@ -58,7 +60,30 @@ private:
 	void _endChromosome(const genometools::TChromosome&) override {}
 
 	void _addSites(const GenotypeLikelihoods::TWindow &Window);
-	double _addToPg(genometools::TGenotypeLikelihoods& P_g_I_di, const genometools::TBaseLikelihoods &Pdb, double sum);
+	template<typename Container>
+	double _addToPg(genometools::TGenotypeLikelihoods &P_g_I_di, const Container &P_dij_I_b, double sum) {
+		using genometools::Genotype;
+		using genometools::Base;
+		using coretools::P;
+		const auto isInvariant = _genoDist->ploidy() == genometools::Ploidy::haploid;
+		const double sum_inv   = 1. / sum;
+		sum                    = 0.;
+		for (auto k = Base::min; k < Base::max; ++k) {
+			const auto kk = genometools::genotype(k, k);
+			P_g_I_di[kk] *= P(P_dij_I_b[k] * sum_inv);
+			sum += P_g_I_di[kk];
+		}
+		if (!isInvariant) {
+			for (const auto kl : {Genotype::AC, Genotype::AG, Genotype::AT, Genotype::CG, Genotype::CT, Genotype::GT}) {
+				const auto k = genometools::first(kl);
+				const auto l = genometools::second(kl);
+				P_g_I_di[kl] *= P(0.5 * (P_dij_I_b[k] + P_dij_I_b[l]) * sum_inv);
+				sum += P_g_I_di[kl];
+			}
+		}
+
+		return sum;
+	}
 	std::pair<size_t, size_t> _downsampeSites(double ProbOrDepth);
 	double _runEM();
 	double _LL();

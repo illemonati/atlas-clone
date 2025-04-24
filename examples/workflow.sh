@@ -54,7 +54,7 @@ L="${N}$k"
 probs="0.5,0.2,0.1,0.05"
 
 #for bias in 0.5 0.7 0.9; do
-for bias in 0.6; do
+for bias in 0.5; do
 	name=${bias/./_}
 	out="${name}_simulate"
 	$atlas --task simulate --RGInfo "workflow.json" \

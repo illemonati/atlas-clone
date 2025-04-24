@@ -9,6 +9,7 @@
 
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
+#include "TReadGroupInfo.h"
 #include "TSimulatorReference.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -335,9 +336,10 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 //----------------------------------
 	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal){
+		using BAM::RGInfo::toString;
 
 	//num cycles
-	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
+		logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", toString(RGInfo[InfoType::cycles]));
 	auto& json = RGInfo[InfoType::cycles];
 
 	std::string err = "Unable to understand " + BAM::RGInfo::infos[InfoType::cycles].description + ": ";

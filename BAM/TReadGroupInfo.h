@@ -15,9 +15,9 @@
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Strings/toString.h"
 
 #include "TReadGroups.h"
+
 
 namespace BAM::RGInfo {
 
@@ -26,6 +26,10 @@ namespace BAM::RGInfo {
 //------------------------------------------------
 
 using TInfo = nlohmann::ordered_json;
+inline std::string toString(const nlohmann::ordered_json &val) {
+	if (val.is_string() || val.is_number()) { return val.get<std::string>(); }
+	return val.dump();
+}
 
 //------------------------------------------------
 // TInfoValue
@@ -94,8 +98,8 @@ public:
 
 	std::string getString(InfoType Info) const {
 		parse(_rgi, Info);
-		return coretools::str::toString(_info[Info]);
-	};
+		return toString(_info[Info]);
+	}
 
 	std::string name() const { return getString(InfoType::RGName); }
 
