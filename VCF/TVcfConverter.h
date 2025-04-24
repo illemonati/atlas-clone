@@ -16,9 +16,6 @@
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace genometools {
-class TBed;
-}
-namespace genometools {
 template<typename Type> class TPopulationLikehoodLocus;
 }
 

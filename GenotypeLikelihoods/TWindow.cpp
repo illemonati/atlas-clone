@@ -9,8 +9,8 @@
 #include "TSequencedData.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "genometools/TBed.h"
 #include "genometools/TFastaReader.h"
+#include "genometools/TBed.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/Main/TLog.h"
 

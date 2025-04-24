@@ -35,7 +35,7 @@ void TBamReadMask::setMasks(const genometools::TChromosomes &Chromosomes){
 		logfile().listFlush("Reading file ...");
 		_mask.parse(filename, Chromosomes);
 		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");		
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWithWindows(), " chromosomes.");		
 
 		// read porosity		
 		_porousProb = parameters().get("maskPorosity", coretools::Probability(0.0));

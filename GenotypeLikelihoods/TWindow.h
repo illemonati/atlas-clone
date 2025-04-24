@@ -15,7 +15,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
-
+#include "genometools/TBed.h" //TODO: forward declaration of TBed no longer works as TBed is an alias. Can that be fixed?
 #include "genometools/Genotypes/Containers.h"
 #include "TAlignment.h"
 #include "TSite.h"
@@ -26,7 +26,6 @@ namespace coretools {
 template<typename T> class TNumericRange;
 }
 namespace genometools {
-class TBed;
 class TFastaReader;
 }
 

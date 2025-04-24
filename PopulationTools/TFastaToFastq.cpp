@@ -23,7 +23,7 @@ namespace PopulationTools {
 
 
         genometools::TFastaReader reference(fastafile); 
-        genometools::TBed bed(bedfile); 
+        genometools::TBedWithInfo<double> bed(bedfile, reference.chromosomes()); 
 
         coretools::TOutputFile out(outname + ".fastq", "");
 
