@@ -1,7 +1,3 @@
-/*
- * PMD/TModels.h
- */
-
 #ifndef GENOTYPELIKELIHOODS_PMD_TPSI_H_
 #define GENOTYPELIKELIHOODS_PMD_TPSI_H_
 
@@ -49,8 +45,8 @@ class TPsi {
 
 	size_t _nSingle = 0;
 	size_t _nPaired = 0;
-	size_t _S       = 5;
-	size_t _Cmax    = 0;
+	size_t _S       = 0;
+	size_t _CMax    = 0;
 
 	void _printTable(std::string_view OutputName);
 	void _initEnd(size_t Idx, int32_t MinData);
@@ -63,7 +59,7 @@ class TPsi {
 public:
 
 	TPsi();
-	TPsi(const BAM::RGInfo::TInfo & info);
+	TPsi(const BAM::RGInfo::TInfo & Info) {_parse(Info);};
 
 	BAM::RGInfo::TInfo info() const;
 

@@ -1,28 +1,34 @@
 #include "TPsi.h"
 
-#include "TReadGroupInfo.h"
+#include <cmath>
+#include <limits>
+
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
-#include <cmath>
-#include <limits>
 
-#include "coretools/devtools.h"
+#include "TReadGroupInfo.h"
+#include "TSequencedData.h"
 
 namespace GenotypeLikelihoods::PMD {
-using coretools::Probability;
-using coretools::P;
-using coretools::index;
+
 using BAM::End;
+using coretools::index;
+using coretools::P;
+using coretools::Probability;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 using coretools::str::fromString;
-using coretools::str::toString;
 using coretools::str::readAfter;
 using coretools::str::readBefore;
+using coretools::str::toString;
 
 namespace impl {
 std::vector<Probability> exp(std::string_view sFunction, size_t N = 50) {
@@ -67,6 +73,20 @@ std::string toString(Type type) {
 
 } // namespace impl
 
+TPsi::TPsi() : _S(parameters().get("S", 0)), _CMax(parameters().get("CMax", 0)) {
+	if (_S > 0) {
+		logfile().list("Estimating ", _S, " fragment-length specific CT- and GA-PMD patters at 3'-end. (Parameter 'S')");
+	} else {
+		logfile().list("Estimating a single CT and GA-PMD pattern at 3'-end. (Use Paramter 'S')");
+	}
+
+	if (_CMax > 0) {
+		logfile().list("Assuming a maximum sequencing cycles of ", _CMax, ". (parameter 'CMax')");
+	} else {
+		logfile().list("Will assume longest read-length = maximum sequencing cycles.");
+	}
+}
+
 void TPsi::_fromString(std::string_view Psi) {
 	// CT5:0.1,0.09;GA3:0.3*exp()
 	coretools::str::TSplitter semi(Psi, ';');
@@ -87,23 +107,14 @@ void TPsi::_fromString(std::string_view Psi) {
 			if (v.empty()) v = {P(0.)};
 }
 
-	TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
-	_parse(Info);
-}
-
-TPsi::TPsi(): _tables(2) {
-	for (auto &t : _tables)
-		for (auto &v : t) v.emplace_back(0.);
-}
-
 size_t TPsi::_tIndex(const BAM::TSequencedData &data) const noexcept {
 	// 5'-end
 	if (_tables.size() == 1 || data.end() == BAM::End::from5) return 0;
 
 	// 3'-end
-	if (data.readLength() <= _Cmax - _S) return 1;
+	if (data.readLength() <= _CMax - _S) return 1;
 
-	const auto tIndex = data.readLength() - (_Cmax - _S) + 1;
+	const auto tIndex = data.readLength() - (_CMax - _S) + 1;
 	if (tIndex >= _tables.size()) return _tables.size() - 1;
 
 	return tIndex;
@@ -163,45 +174,6 @@ void TPsi::_add(Type From_To, const BAM::TSequencedData &data, genometools::Base
 	} else if (ref == to) {
 		if (base == from) tSum[pos].fromTo.toFrom += 1.;
 		tSum[pos].fromTo.toSum += 1.;
-	}
-}
-
-void TPsi::_parse(const BAM::RGInfo::TInfo & Info) {
-	using BAM::RGInfo::toString;
-	if (Info.is_string()) {
-		_fromString(Info.get<std::string_view>());
-	} else {
-		_S    = 0;
-		_Cmax = 0;
-		for (const auto &i : Info.items()) {
-			std::string_view k = i.key();
-			const auto type    = impl::type(k.substr(0, 2));
-			const auto end     = impl::end(k.substr(2, 1));
-			if (end == End::from3 && type == Type::CT) { // only count once
-				_Cmax = std::max(_Cmax, fromString<size_t>(k.substr(4)));
-				++_S;
-			}
-		}
-
-		_tables.resize(_S + 1);
-		for (const auto& i : Info.items()) {
-			std::string_view k = i.key();
-			const auto type    = impl::type(k.substr(0, 2));
-			const auto end     = impl::end(k.substr(2, 1));
-			const auto idx     = end == End::from5
-				? 0 : 1 + fromString<size_t>(k.substr(4)) - (_Cmax - _S);
-
-			auto &v = _tables[idx][type];
-
-			if (i.value().empty())
-				v = {P(0.)};
-			else if (i.value().is_number()) v = {P(i.value().get<double>())};
-			else if (i.value().is_array()) {
-				for (const auto &d : i.value()) { v.emplace_back(d); }
-			} else {
-				UERROR("Cannot parse json-token ", Info, "!");
-			}
-		}
 	}
 }
 
@@ -304,29 +276,120 @@ void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
 		_tables.resize(_tableSums.size());
 	} else {
 		logfile().list("Assuming single-ended reads.");
-		_Cmax = _tableSums.size();
-		for (size_t i = 2; i < _tableSums.size() - _S; ++i) _joinTables(i, 1);
-		_tableSums.erase(_tableSums.begin() + 2, _tableSums.end() - _S);
+		if (_CMax == 0) _CMax = _tableSums.size();
+
+		const auto maxJoin = std::min(_tableSums.size(), _CMax - _S);
+		for (size_t i = 2; i < maxJoin; ++i) _joinTables(i, 1);
+
+		// If cmax was set and is smaller than max readlength
+		for (size_t i = _tableSums.size() - 1; i > _CMax; --i) {
+			_joinTables(i, _CMax);
+			_tableSums.pop_back();
+		}
+
+		_tableSums.erase(_tableSums.begin() + 2, _tableSums.begin() + maxJoin);
 		_tables.resize(_tableSums.size());
 
-		for (size_t i = 1; i < _tableSums.size(); ++i) {
-			_initEnd(i, MinData);
-		}
+		for (size_t i = 1; i < _tableSums.size(); ++i) _initEnd(i, MinData);
 	}
 	_initEnd(0, MinData);
 }
 
 BAM::RGInfo::TInfo TPsi::info() const {
 	BAM::RGInfo::TInfo info;
-	for (size_t i = 0; i < _tables.size(); ++i) {
-		const auto name = i == 0 ? "5" : toString("3_", _Cmax - _S - 1 + i);
+
+	// CT5, GA5
+	for (auto t = Type::min; t < Type::max; ++t) {
+		const auto &v  = _tables[0][t];
+		const auto key = impl::toString(t) + "5";
+		for (auto p : v) info[key].push_back(p.get()); // explicit conversion from probability to double
+	}
+
+	// CT3, GA3
+	if (_tables.size() > 1) {
+		info["CMax"] = _CMax;
 		for (auto t = Type::min; t < Type::max; ++t) {
-			const auto &v  = _tables[i][t];
-			const auto key = impl::toString(t) + name;
-			for (auto p : v) info[key].push_back(p.get()); // explicit conversion from probability to double
+			const auto key = impl::toString(t) + "3";
+			for (size_t i = 1; i < _tables.size(); ++i) {
+				const auto name = i == 0 ? "5" : toString("3_", _CMax - _S - 1 + i);
+				const auto &v   = _tables[i][t];
+				for (auto p : v) info[key][i - 1].push_back(p.get()); // explicit conversion from probability to double
+			}
 		}
 	}
 	return info;
+}
+
+void TPsi::_parse(const BAM::RGInfo::TInfo &Info) {
+	using BAM::RGInfo::toString;
+	if (Info.is_string()) {
+		_fromString(Info.get<std::string_view>());
+	} else {
+		_CMax = Info.value("CMax", 0);
+		_S    = 0;
+
+		// from5
+		_tables.resize(1);
+		for (auto t = Type::min; t < Type::max; ++t) {
+			const auto k = impl::toString(t) + "5";
+			if (Info.contains(k)) {
+				if (Info[k].empty()) {
+					_tables[0][t] = {P(0.)};
+				} else if (Info[k].is_number()) {
+					const auto d = Info[k].get<double>();
+					if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+					_tables[0][t] = {P(d)};
+				} else if (Info[k].is_array()) {
+					for (const auto &d : Info[k]) {
+						if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+						_tables[0][t].emplace_back(d);
+					}
+				} else {
+					UERROR("Cannot parse json-token ", Info[k], "!");
+				}
+			} else {
+				_tables[0][t] = {P(0.)};
+			}
+		}
+		// from3
+		for (auto t = Type::min; t < Type::max; ++t) {
+			const auto k = impl::toString(t) + "3";
+			if (Info.contains(k)) {
+				if (_tables.size() < 2) _tables.resize(2);
+				if (Info[k].empty()) {
+					_tables[0][t] = {P(0.)};
+				} else if (Info[k].is_number()) {
+					const auto d = Info[k].get<double>();
+					if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+					_tables[0][t] = {P(d)};
+				} else if (Info[k].is_array()) {
+					if (Info[k][0].is_number()) {
+						for (const auto &d : Info[k]) {
+							if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+							_tables[1][t].emplace_back(d);
+						}
+					} else if (Info[k][0].is_array()) {
+						if (_CMax == 0) UERROR(k + "-PMD on 3'-end needs a Cmax value > 0!");
+						if (_S == 0) _S = Info[k].size() - 1;
+
+						if (_tables.size() < 2 + _S) _tables.resize(2 + _S);
+						for (size_t i = 1; i < _tables.size(); ++i) {
+							for (const auto &d : Info[k][i - 1]) {
+								if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+								_tables[i][t].emplace_back(d);
+							}
+						}
+					} else {
+						UERROR("Cannot parse json-token ", Info[k], "!");
+					}
+				} else {
+					UERROR("Cannot parse json-token ", Info[k], "!");
+				}
+			} else {
+				_tables[0][t] = {P(0.)};
+			}
+		}
+	}
 }
 
 void TPsi::log() const noexcept {
@@ -337,7 +400,7 @@ void TPsi::log() const noexcept {
 	for (size_t i = 0; i < _tables.size(); ++i) {
 		const auto name = i == 0
 			? "5"
-			: _Cmax == 0 ? "3" : toString("3_", _Cmax - _S - 1 + i);
+			: _CMax == 0 ? "3" : toString("3_", _CMax - _S - 1 + i);
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[i][t];
 			hasAny        = true;
