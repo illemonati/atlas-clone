@@ -2,7 +2,6 @@
  * atlas.cpp
  */
 
-#include "TFastaToFastq.h"
 #include "TEstimateHKY85.h"
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
