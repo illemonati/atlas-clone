@@ -52,6 +52,9 @@
 //simulations
 #include "TSimulator.h"
 
+//other
+#include "TPositionBasedLiftOver.h"
+
 void addTaks(coretools::TMain & main) {
 	//BAM
 	{
@@ -96,8 +99,6 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<PopulationTools::TF2Estimator>(groupName, "calculateF2", "Calculate F2 between samples, and within/between populations");
 	main.createGroupedTask<PopulationTools::TAncestralAlleleEstimator>(groupName, "ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 	main.createGroupedTask<PopulationTools::TSafEstimator>(groupName, "saf", "Estimating Site Allele Frequencies");	
-	main.createGroupedTask<PopulationTools::TFastaToFastq>(groupName, "fastaToFastq", "Printing a GLF file to screen");
-
 	}
 
 	//VCF
@@ -113,6 +114,12 @@ void addTaks(coretools::TMain & main) {
 	{
 	constexpr auto groupName = "Simulation";
 	main.createGroupedTask<Simulations::TSimulationRunner>(groupName, "simulate", "Simulate bam- or vcf-file[s]");
+	}
+
+	// other
+	{
+	constexpr auto groupName = "Other";
+	main.createGroupedTask<PopulationTools::TPositionBasedLiftOver>(groupName, "liftOver", "Position-based lift over from one reference to another");
 	}
 
 	// Debug tasks
