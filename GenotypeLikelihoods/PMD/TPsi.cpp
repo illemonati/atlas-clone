@@ -316,9 +316,6 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
 		else _tables[end][type] = impl::empiric(sFunction);
 	}
-	for (auto& t: _tables)
-		for (auto &v: t)
-			if (v.empty()) v = {P(0.)};
 	} else {
 		_CMax = Info.value("CMax", 0);
 		_S    = 0;
@@ -342,8 +339,6 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 				} else {
 					UERROR("Cannot parse json-token ", Info[k], "!");
 				}
-			} else {
-				_tables[0][t] = {P(0.)};
 			}
 		}
 
@@ -380,11 +375,11 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 				} else {
 					UERROR("Cannot parse json-token ", Info[k], "!");
 				}
-			} else {
-				_tables[1][t] = {P(0.)};
 			}
 		}
 	}
+	// at least one value
+	for (auto& t: _tables) for (auto &v: t) if (v.empty()) v = {P(0.)};
 }
 
 void TPsi::log() const noexcept {

@@ -57,12 +57,17 @@ echo '{
 		[0.33, 0.33, 0.0, 0.33],
 		[0.45, 0.45, 0.1, 0.0]]
     },
-    "pmd": "CT5:0.2*exp(-0.3*p)+0.05;GA5:0.05*exp(0*p)+0"
+    "pmd": {"CT5": [0.2, 0.1, 0.05, 0.025, 0.0125],
+            "CMax": 100,
+		    "GA3": [[0.2, 0.1, 0.05, 0.025, 0.0125],
+				  [0.1, 0.05, 0.025, 0.0125],
+				  [0.05, 0.025, 0.0125]]
+	}
   }
 }' > workflow.json
 
 delta=0.1
-N=10
+N=100
 
 if [ $1 ]; then
     N=$1
@@ -110,7 +115,7 @@ $atlas --task HKY85 --minDeltaLL $delta --genomeWide 10 \
 	--fixedSeed 21 --out $out --logFile $out.out 2> $out.eout
 
 out=ee
-$atlas --task estimateErrors --minDeltaLL $delta \
+$atlas --task estimateErrors --minDeltaLL $delta --S 2 --CMax 100 \
 	--bam $bam --fasta $fasta  --chr "chr1" \
 	--fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
