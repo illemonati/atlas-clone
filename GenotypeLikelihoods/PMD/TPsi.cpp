@@ -20,7 +20,6 @@
 namespace GenotypeLikelihoods::PMD {
 
 using BAM::End;
-using coretools::index;
 using coretools::P;
 using coretools::Probability;
 using coretools::instances::parameters;
@@ -60,9 +59,9 @@ Type type(std::string_view sType) {
 	UERROR("Type ", sType, " is not a recognized token!");
 }
 
-End end(std::string_view sEnd) {
-	if (sEnd == "5") return End::from5;
-	if (sEnd == "3") return End::from3;
+size_t end(std::string_view sEnd) {
+	if (sEnd == "5") return 0;
+	if (sEnd == "3") return 1;
 	UERROR("End ", sEnd, " is not a recognized token!");
 }
 
@@ -87,47 +86,27 @@ TPsi::TPsi() : _S(parameters().get("S", 0)), _CMax(parameters().get("CMax", 0)) 
 	}
 }
 
-void TPsi::_fromString(std::string_view Psi) {
-	// CT5:0.1,0.09;GA3:0.3*exp()
-	coretools::str::TSplitter semi(Psi, ';');
-	for (auto s: semi) {
-		const auto sType     = readBefore(s, ':');
-		if (sType.size() != 3) UERROR(sType, " is not a recognized token!");
-
-		const auto type      = impl::type(sType.substr(0, 2));
-		const auto end       = index(impl::end(sType.substr(2, 1)));
-		if (_tables.size() <= end) _tables.resize(end + 1);
-
-		const auto sFunction = readAfter(s, ':');
-		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
-		else _tables[end][type] = impl::empiric(sFunction);
-	}
-	for (auto& t: _tables)
-		for (auto &v: t)
-			if (v.empty()) v = {P(0.)};
-}
-
-size_t TPsi::_tIndex(const BAM::TSequencedData &data) const noexcept {
+std::pair<BAM::End, size_t> TPsi::_end_index(const BAM::TSequencedData &data) const noexcept {
+	const auto end = data.get<BAM::Flags::Paired>() ? End::from5 : data.end();
 	// 5'-end
-	if (_tables.size() == 1 || data.end() == BAM::End::from5) return 0;
+	if (end == BAM::End::from5) return {end, 0};
 
 	// 3'-end
-	if (data.readLength() <= _CMax - _S) return 1;
+	if (data.readLength() <= _CMax - _S) return {end, 1};
 
 	const auto tIndex = data.readLength() - (_CMax - _S) + 1;
-	if (tIndex >= _tables.size()) return _tables.size() - 1;
+	if (tIndex >= _tables.size()) return {end ,_tables.size() - 1};
 
-	return tIndex;
+	return {end, tIndex};
 }
 
 coretools::Probability TPsi::prob(Type From_To, const BAM::TSequencedData &data) const noexcept {
 	using BAM::End;
-	const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
-	const auto end      = data.get<BAM::Flags::Paired>() ? End::from5 : data.end();
-	const auto idx      = _tIndex(data);
-	const auto pos      = data.dist(end).pseudo();
+	const auto realType   = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
+	const auto [end, idx] = _end_index(data);
+	const auto pos        = data.dist(end).pseudo();
+	const auto &table     = _tables[idx][realType];
 
-	const auto &table = _tables[idx][realType];
 	if (pos >= table.size()) return table.back();
 	return table[pos];
 }
@@ -139,10 +118,9 @@ void TPsi::add(Type From_To, const BAM::TSequencedData &data, coretools::Probabi
 	using BAM::End;
 	using genometools::Base;
 
-	const auto end      = paired() ? End::from5 : data.end();
-	const auto idx      = _tIndex(data);
-	const auto realType = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
-	auto &tSum          = _tableSums[idx][realType];
+	const auto realType   = data.get<BAM::Flags::ReversedStrand>() ? _flip[From_To] : From_To;
+	const auto [end, idx] = _end_index(data);
+	auto &tSum            = _tableSums[idx][realType];
 	if (tSum.empty()) return; // wrong pattern
 
 	const auto pos  = std::min<size_t>(tSum.size() - 1, data.dist(end).pseudo());
@@ -199,6 +177,7 @@ void TPsi::estimate() noexcept {
 }
 
 void TPsi::_initEnd(size_t Idx, int32_t MinData) {
+	constexpr size_t minSize = 15; // minFragmentLenght / 2
 	constexpr double PMDmin = 1e-9;
 
 	coretools::TStrongArray<double, Type> sums{};
@@ -212,7 +191,7 @@ void TPsi::_initEnd(size_t Idx, int32_t MinData) {
 			continue;
 		}
 
-		while (tSum.size() > 1) {
+		while (tSum.size() > minSize) {
 			const auto &ts = tSum.back();
 			auto &ts_m     = *(tSum.end() - 2);
 
@@ -320,16 +299,32 @@ BAM::RGInfo::TInfo TPsi::info() const {
 	return info;
 }
 
-void TPsi::_parse(const BAM::RGInfo::TInfo &Info) {
+TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 	using BAM::RGInfo::toString;
+	_tables.resize(2); // at least
 	if (Info.is_string()) {
-		_fromString(Info.get<std::string_view>());
+	// CT5:0.1,0.09;GA3:0.3*exp()
+	coretools::str::TSplitter semi(Info.get<std::string_view>(), ';');
+	for (auto s: semi) {
+		const auto sType     = readBefore(s, ':');
+		if (sType.size() != 3) UERROR(sType, " is not a recognized token!");
+
+		const auto type = impl::type(sType.substr(0, 2));
+		const auto end  = impl::end(sType.substr(2, 1));
+
+		const auto sFunction = readAfter(s, ':');
+		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
+		else _tables[end][type] = impl::empiric(sFunction);
+	}
+	for (auto& t: _tables)
+		for (auto &v: t)
+			if (v.empty()) v = {P(0.)};
 	} else {
 		_CMax = Info.value("CMax", 0);
 		_S    = 0;
+		_tables.resize(2); // at least
 
 		// from5
-		_tables.resize(1);
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto k = impl::toString(t) + "5";
 			if (Info.contains(k)) {
@@ -351,17 +346,17 @@ void TPsi::_parse(const BAM::RGInfo::TInfo &Info) {
 				_tables[0][t] = {P(0.)};
 			}
 		}
+
 		// from3
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto k = impl::toString(t) + "3";
 			if (Info.contains(k)) {
-				if (_tables.size() < 2) _tables.resize(2);
 				if (Info[k].empty()) {
-					_tables[0][t] = {P(0.)};
+					_tables[1][t] = {P(0.)};
 				} else if (Info[k].is_number()) {
 					const auto d = Info[k].get<double>();
 					if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
-					_tables[0][t] = {P(d)};
+					_tables[1][t] = {P(d)};
 				} else if (Info[k].is_array()) {
 					if (Info[k][0].is_number()) {
 						for (const auto &d : Info[k]) {
@@ -369,7 +364,7 @@ void TPsi::_parse(const BAM::RGInfo::TInfo &Info) {
 							_tables[1][t].emplace_back(d);
 						}
 					} else if (Info[k][0].is_array()) {
-						if (_CMax == 0) UERROR(k + "-PMD on 3'-end needs a Cmax value > 0!");
+						if (_CMax == 0 && Info[k].size() > 1) UERROR("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
 						if (_S == 0) _S = Info[k].size() - 1;
 
 						if (_tables.size() < 2 + _S) _tables.resize(2 + _S);
@@ -386,7 +381,7 @@ void TPsi::_parse(const BAM::RGInfo::TInfo &Info) {
 					UERROR("Cannot parse json-token ", Info[k], "!");
 				}
 			} else {
-				_tables[0][t] = {P(0.)};
+				_tables[1][t] = {P(0.)};
 			}
 		}
 	}

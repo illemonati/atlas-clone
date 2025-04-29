@@ -51,15 +51,13 @@ class TPsi {
 	void _printTable(std::string_view OutputName);
 	void _initEnd(size_t Idx, int32_t MinData);
 	void _joinTables(size_t From, size_t To) noexcept;
-	void _fromString(std::string_view Psi);
-	void _parse(const BAM::RGInfo::TInfo & info);
 	void _add(Type From_To, const BAM::TSequencedData &data, genometools::Base ref);
-	size_t _tIndex(const BAM::TSequencedData &data) const noexcept;
+	std::pair<BAM::End, size_t> _end_index(const BAM::TSequencedData &data) const noexcept;
 
 public:
 
 	TPsi();
-	TPsi(const BAM::RGInfo::TInfo & Info) {_parse(Info);};
+	TPsi(const BAM::RGInfo::TInfo & Info);
 
 	BAM::RGInfo::TInfo info() const;
 
