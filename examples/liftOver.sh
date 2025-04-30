@@ -1,7 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --fixedSeed 44 --chrLength 1000{3} --depth 2
+. $(dirname $0)/simulate --fixedSeed 44 --chrLength 1000{3} --depth 0
 echo "$atlas"
 
 ######################################################
@@ -15,7 +15,8 @@ echo "$atlas"
 	echo "chr1 420 421 mapping4M1I6M"
 	echo "chr1 430 431 mapping6M1I4M"
 	echo "chr2 50 51 softclippingLeft"
-	echo "chr2 950 951 softclippingRight"
+	echo "chr2 850 851 softclippingRight"
+	echo "chr2 950 951 deletion"
 	echo "chr3 200 210 Info2"
 ) > liftOver.bed 
 
@@ -28,7 +29,7 @@ $atlas liftOver --mode Bed2Fastq --bed liftOver.bed --fasta simulate.fasta --fla
 	   --fixedSeed 42 --out $out --logFile $out.out 2> $out.eout
 	   
 # compare read names in fastq (chrLength = 1000, see above)
-awk -vflank=$flank -vdelim=$delim '{for(i=$2; i<$3; ++i){ start=i-flank; if(start < 0){start=0}; end=i+flank+1; if(end>1000){end = 1000}; print "@" $1 ":" start "-" end delim i-start+1 delim $4}}' liftOver.bed > expectedNames.txt
+awk -vflank=$flank -vdelim=$delim '{for(i=$2; i<$3; ++i){ start=i-flank; if(start < 0){start=0}; end=i+flank+1; if(end>1000){end = 1000}; print "@" $1 ":" start "-" end delim i-start delim $4}}' liftOver.bed > expectedNames.txt
 awk '$1~/@/' ${out}.fastq > atlasNames.txt
 diff expectedNames.txt atlasNames.txt >> $out.eout
 
@@ -46,15 +47,15 @@ diff expectedSequences.txt atlasSequences.txt >> $out.eout
 
 samtools view -H simulate.bam > testBam.sam # header
 ( 
-	echo "ch1:195-206${delim}6${delim}Info1 0 chr1 195 50 11M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1"  
-	echo "ch1:395-406${delim}6${delim}softclipping 0 chr1 395 50 3S6M2S * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # softclipping
-	echo "ch1:405-416${delim}6${delim}notMappedSoftClipping 0 chr1 405 50 10S1M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # not mapped at pos bc softclipping
-	echo "ch1:415-426${delim}6${delim}mapping4M1I6M 0 chr1 415 50 4M1I6M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # mapped with insertion
-	echo "ch1:425-436${delim}6${delim}notMappedInsertion 0 chr1 425 50 5M1I5M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # not mapped at pos bc insertion
-	echo "ch1:435-446${delim}6${delim}mapping6M1I4M 0 chr1 435 50 6M1I4M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # mapped with insertion
-	echo "ch2:45-56${delim}6${delim}softclippingLeft 0 chr2 45 50 2S9M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1"  # softclipping at start
-	echo "ch2:945-956${delim}6${delim}softclippingRight 0 chr2 945 50 8M3S * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # softclipping at end
-	echo "ch2:955-966${delim}6${delim}notMappedDeletion 0 chr2 955 50 5M1D6M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # deletion
+	echo "ch1:195-206${delim}5${delim}Info1 0 chr1 196 50 11M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1"  
+	echo "ch1:395-406${delim}5${delim}softclipping 0 chr1 396 50 3S6M2S * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # softclipping
+	echo "ch1:405-416${delim}5${delim}notMappedSoftClipping 0 chr1 406 50 10S1M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # not mapped at pos bc softclipping
+	echo "ch1:415-426${delim}5${delim}mapping4M1I6M 0 chr1 417 50 4M1I6M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # mapped with insertion
+	echo "ch1:425-436${delim}5${delim}notMappedInsertion 0 chr1 426 50 5M1I5M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # not mapped at pos bc insertion
+	echo "ch1:435-446${delim}5${delim}mapping6M1I4M 0 chr1 426 50 6M1I4M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # mapped with insertion
+	echo "ch2:45-56${delim}5${delim}softclippingLeft 0 chr2 46 50 2S9M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1"  # softclipping at start
+	echo "ch2:845-956${delim}5${delim}softclippingRight 0 chr2 846 50 8M3S * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # softclipping at end
+	echo "ch2:955-966${delim}5${delim}deletion 0 chr2 945 50 5M1D6M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # deletion
 	
 ) | tr ' ' '\t' >> testBam.sam
 
@@ -69,7 +70,7 @@ samtools view -bS testBam.sam > testBam.bam
 
 # running mode 2: Bam2Bed
 $atlas liftOver --mode Bam2Bed --bam testBam.bam \
-	   --fixedSeed 42 --out $out --logFile $out.out 2> $out.eout
+	   --fixedSeed 42 --out $out --logFile $out.out 2>> $out.eout
 
 
 # the initial bed file (liftOver.bed) after some formatting should be the same as the atlas output ($out.bed)

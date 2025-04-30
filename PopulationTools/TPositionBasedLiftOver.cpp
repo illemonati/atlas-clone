@@ -143,6 +143,9 @@ void TPositionBasedLiftOver::run(){
         TBedToFastq converter;
         converter.run();
     } else if (mode == impl::Bam2BedMode){
+        // make sure all reads are used, also those without RG
+        // TODO: is there a better way than this hack??
+        parameters().add("keepReadsWithoutRG"); 
         TBamToBed converter;
         converter.run();
     } else {

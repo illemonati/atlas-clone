@@ -44,7 +44,7 @@ public:
 	void disable() noexcept { _enabled = false; }
 	operator bool() const noexcept {return _enabled;}
 	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID, coretools::TOutputFile& Log);
-	void summary(size_t total, size_t readGroup) const;
+	bool summary(size_t total, size_t readGroup) const; // return true if a summary was written and false otherwise
 	void fillHeader(std::vector<std::string> &header) const; 
 	void printCounts(coretools::TOutputFile &out, size_t rg_ID) const;
 	void printCombinedCounts(coretools::TOutputFile &out) const;

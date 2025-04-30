@@ -129,8 +129,14 @@ public:
 		for (auto& f: _filters) if (f) f.printCounts(Out, rg_ID);
 	}
 
-	void summary(size_t Total, size_t ReadGroup) const {
-		for (auto& f: _filters) if (f) f.summary(Total, ReadGroup);
+	bool summary(size_t Total, size_t ReadGroup) const {
+		bool summaryWritten = false;
+		for (auto& f: _filters){
+			if (f){
+				summaryWritten = summaryWritten || f.summary(Total, ReadGroup);
+			} 
+		} 
+		return summaryWritten; //return true if at least one summary was written
 	}
 };
 } // namespace BAM

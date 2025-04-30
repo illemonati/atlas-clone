@@ -102,7 +102,7 @@ private:
 	void _writeFilteringStats(std::string_view outputName) const;
 
 public:
-	TBamFile(std::string_view Filename, size_t ID);
+	TBamFile(std::string_view Filename, size_t ID, bool EnableFilters = true);
 
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const noexcept { return _chromosomes; };
