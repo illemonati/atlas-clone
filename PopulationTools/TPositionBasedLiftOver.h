@@ -18,7 +18,6 @@ private:
 	genometools::TBedWithInfo<std::string> _outBed;
 	size_t _numPosNotAligned;
 	
-
 	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:

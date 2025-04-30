@@ -25,10 +25,11 @@ namespace impl{
 // TBedToFastq
 //--------------------------------------------
 
-void TBedToFastq::run(){      
+void TBedToFastq::run(){    
+    logfile().write("Creating FASTQ reads from Bed information (task=liftOver, mode=", impl::Bed2FastqMode, ")");
     // reading user input
     const auto fastaName = parameters().get("fasta"); 
-    logfile().listFlush("Will read reference from FASTA file '", fastaName, "'. (parameter 'fasta')");
+    logfile().list("Will read reference from FASTA file '", fastaName, "'. (parameter 'fasta')");
     genometools::TFastaReader reference(fastaName); 
     const genometools::TChromosomes& chrs = reference.chromosomes();
     
@@ -38,7 +39,7 @@ void TBedToFastq::run(){
     logfile().endIndent();
 
     const long flank = parameters().get("flank", 100);
-    logfile().write("Will write reads extendeding ", flank, " bases on both sides. (paramter 'flank').");
+    logfile().write("Will write reads extending ", flank, " bases on both sides. (parameter 'flank').");
     const auto outname = parameters().get("out", "ATLAS_" + impl::Bed2FastqMode);
     logfile().write("Will write output FASTQ to file '", outname, "'. (parameter 'out')");
 
@@ -58,7 +59,7 @@ void TBedToFastq::run(){
         for (size_t i = 0; i < b.size(); ++i) {                     
             const long start = std::max((long) 0, (long) b.fromOnChr() + (long) i - flank); // included
             const size_t end = std::min((size_t) chrs[b.refID()].length(), b.fromOnChr() + i + flank + 1); // not included
-            const size_t posInRead = b.fromOnChr() + i - start + 1;
+            const size_t posInRead = b.fromOnChr() + i - start; // 0-based for cigar string, same as bed
             const size_t seqLength = end - start;
 
             // write
@@ -66,6 +67,7 @@ void TBedToFastq::run(){
             out.writeln(reference.view(b.refID(), start, seqLength));
             out.writeln("+");
             out.writeln(std::string(seqLength, 'F'));
+            ++counter;
         }
         
         // report progress
@@ -85,24 +87,32 @@ void TBedToFastq::run(){
 void TBamToBed::_handleAlignment(BAM::TAlignment& alignment){
     
 
-    // read position to extrac from name    
+    // read position to extract from name    
     std::vector<std::string_view> vec;
     coretools::str::fillContainerFromString(alignment.name(), vec, impl::readNameDelimiter);
 
     if(vec.size() != 3){
-        UERROR("Unable to parse name of alignment '", alignment.name(), "': did you map a FASTQ file produced with task=BLAH mode=", impl::Bed2FastqMode, "?");
+        UERROR("Unable to parse name of alignment '", alignment.name(), "': did you map a FASTQ file produced with task=liftOver mode=", impl::Bed2FastqMode, "?");
     }
     
     size_t posInRead = coretools::str::fromString<size_t>(vec[1]);
+
+    logfile().startIndent("info: ", vec[2]);
+    logfile().list("posInRead: ", vec[1]);
+    logfile().list("position in ref:", alignment.positionInRef(posInRead));
+    logfile().list("full: ", alignment.positionInRef(posInRead)+alignment.cigar().lengthSoftClippedLeft());
+    logfile().endIndent();
+
+
     if(alignment.isAlignedAtInternalPos(posInRead)){
-        _outBed.add(alignment.positionInRef(posInRead), vec[2]);
+        _outBed.add(alignment.positionInRef(posInRead)+alignment.cigar().lengthSoftClippedLeft(), vec[2]);
     } else {
         ++_numPosNotAligned;
     }    
 }
 
 void TBamToBed::run(){
-    logfile().list("Extracting BED information from mapped reads (task=BLAH, mode=", impl::Bam2BedMode, ")");
+    logfile().write("Extracting BED information from mapped reads (task=liftOver, mode=", impl::Bam2BedMode, ")");
 
     // open output BED    
     std::string outname = parameters().get("out", "ATLAS_" + impl::Bam2BedMode);
@@ -133,7 +143,8 @@ void TPositionBasedLiftOver::run(){
         TBedToFastq converter;
         converter.run();
     } else if (mode == impl::Bam2BedMode){
-
+        TBamToBed converter;
+        converter.run();
     } else {
         UERROR("Unknown mode '", mode, "'! Accepted values are '", impl::Bed2FastqMode, "', and '", impl::Bam2BedMode, "'.");
     }
