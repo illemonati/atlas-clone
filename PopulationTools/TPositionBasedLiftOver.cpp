@@ -2,6 +2,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/fillContainer.h"
+#include "coretools/Strings/stringConversions.h"
 #include "genometools/TFastaReader.h"
 #include "genometools/TBed.h"
 #include "coretools/Files/TOutputFile.h"
@@ -72,11 +73,11 @@ void TBedToFastq::run(){
         
         // report progress
         if (counter >= nextPrint) {
-            logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
+            logfile().list("Parsed ", counter, " of ", bed.length(), " positions (", coretools::str::toPercentString(counter, bed.length()), ") in ", timer.formattedTime(), ".");
             nextPrint += dCounter;
         }
     }
-    logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");    
+    logfile().list("Parsed ", counter, " positions (100%) in ", timer.formattedTime(), ".");    
 }
 
 
