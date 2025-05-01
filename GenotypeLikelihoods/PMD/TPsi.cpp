@@ -255,16 +255,18 @@ void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
 		_tables.resize(_tableSums.size());
 	} else {
 		logfile().list("Assuming single-ended reads.");
-		if (_CMax == 0) _CMax = _tableSums.size();
+		if (_CMax == 0) _CMax = _tableSums.size() - 1;
+		logfile().list("Setting sequencing cycles to ", _CMax, ".");
 
-		const auto maxJoin = std::min(_tableSums.size(), _CMax - _S);
-		for (size_t i = 2; i < maxJoin; ++i) _joinTables(i, 1);
-
-		// If cmax was set and is smaller than max readlength
+		// If CMax was set by user and is smaller than max readlength
 		for (size_t i = _tableSums.size() - 1; i > _CMax; --i) {
 			_joinTables(i, _CMax);
 			_tableSums.pop_back();
 		}
+
+		// CMax + 1 -_S may be larger than size()
+		const auto maxJoin = std::min(_tableSums.size(), _CMax + 1 - _S);
+		for (size_t i = 2; i < maxJoin; ++i) _joinTables(i, 1);
 
 		_tableSums.erase(_tableSums.begin() + 2, _tableSums.begin() + maxJoin);
 		_tables.resize(_tableSums.size());
