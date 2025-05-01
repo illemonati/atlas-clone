@@ -48,7 +48,7 @@ void TBedToFastq::run(){
     coretools::TOutputFile out(outname + ".fastq", "");
     
     coretools::TTimer timer;
-    constexpr size_t dCounter = 100000;
+    constexpr size_t dCounter = 50000;
     size_t counter            = 0;    
     size_t nextPrint          = dCounter;
 
@@ -60,7 +60,7 @@ void TBedToFastq::run(){
         for (size_t i = 0; i < b.size(); ++i) {                     
             const long start = std::max((long) 0, (long) b.fromOnChr() + (long) i - flank); // included
             const size_t end = std::min((size_t) chrs[b.refID()].length(), b.fromOnChr() + i + flank + 1); // not included
-            const size_t posInRead = b.fromOnChr() + i - start; // 0-based for cigar string, same as bed
+            const size_t posInRead = b.fromOnChr() + i - start; // 0-based for cigar string
             const size_t seqLength = end - start;
 
             // write
@@ -97,13 +97,6 @@ void TBamToBed::_handleAlignment(BAM::TAlignment& alignment){
     }
     
     size_t posInRead = coretools::str::fromString<size_t>(vec[1]);
-
-    logfile().startIndent("info: ", vec[2]);
-    logfile().list("posInRead: ", vec[1]);
-    logfile().list("position in ref:", alignment.positionInRef(posInRead));
-    logfile().list("full: ", alignment.positionInRef(posInRead)+alignment.cigar().lengthSoftClippedLeft());
-    logfile().endIndent();
-
 
     if(alignment.isAlignedAtInternalPos(posInRead)){
         _outBed.add(alignment.positionInRef(posInRead)+alignment.cigar().lengthSoftClippedLeft(), vec[2]);
@@ -146,7 +139,7 @@ void TPositionBasedLiftOver::run(){
     } else if (mode == impl::Bam2BedMode){
         // make sure all reads are used, also those without RG
         // TODO: is there a better way than this hack??
-        parameters().add("keepReadsWithoutRG"); 
+        parameters().add("keepReadsWithoutRG");
         TBamToBed converter;
         converter.run();
     } else {

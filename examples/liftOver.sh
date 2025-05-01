@@ -47,23 +47,22 @@ diff expectedSequences.txt atlasSequences.txt >> $out.eout
 
 samtools view -H simulate.bam > testBam.sam # header
 ( 
-	echo "ch1:195-206${delim}5${delim}Info1 0 chr1 196 50 11M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1"  
-	echo "ch1:395-406${delim}5${delim}softclipping 0 chr1 396 50 3S6M2S * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # softclipping
-	echo "ch1:405-416${delim}5${delim}notMappedSoftClipping 0 chr1 406 50 10S1M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # not mapped at pos bc softclipping
-	echo "ch1:415-426${delim}5${delim}mapping4M1I6M 0 chr1 417 50 4M1I6M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # mapped with insertion
-	echo "ch1:425-436${delim}5${delim}notMappedInsertion 0 chr1 426 50 5M1I5M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # not mapped at pos bc insertion
-	echo "ch1:435-446${delim}5${delim}mapping6M1I4M 0 chr1 426 50 6M1I4M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # mapped with insertion
-	echo "ch2:45-56${delim}5${delim}softclippingLeft 0 chr2 46 50 2S9M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1"  # softclipping at start
-	echo "ch2:845-956${delim}5${delim}softclippingRight 0 chr2 846 50 8M3S * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # softclipping at end
-	echo "ch2:955-966${delim}5${delim}deletion 0 chr2 945 50 5M1D6M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" # deletion
+	echo "ch1:195-206${delim}5${delim}Info1 0 chr1 196 50 11M * 0 11 AAAAAAAAAAA 12345678901"  
+	echo "ch1:395-406${delim}5${delim}softclipping 0 chr1 396 50 3S6M2S * 0 11 AAAAAAAAAAA 12345678901" # softclipping
+	echo "ch1:405-416${delim}5${delim}notMappedSoftClipping 0 chr1 406 50 10S1M * 0 11 AAAAAAAAAAA 12345678901" # not mapped at pos bc softclipping
+	echo "ch1:415-426${delim}5${delim}mapping4M1I6M 0 chr1 417 50 4M1I6M * 0 11 AAAAAAAAAAA 12345678901" # mapped with insertion, starting position therefore shifted
+	echo "ch1:425-436${delim}5${delim}notMappedInsertion 0 chr1 426 50 5M1I5M * 0 11 AAAAAAAAAAA 12345678901" # not mapped at pos bc insertion
+	echo "ch1:435-446${delim}5${delim}mapping6M1I4M 0 chr1 426 50 6M1I4M * 0 11 AAAAAAAAAAA 12345678901" # mapped with insertion
+	echo "ch2:45-56${delim}5${delim}softclippingLeft 0 chr2 46 50 2S9M * 0 11 AAAAAAAAAAA 12345678901"  # softclipping at start
+	echo "ch2:845-856${delim}5${delim}softclippingRight 0 chr2 846 50 8M3S * 0 11 AAAAAAAAAAA 12345678901" # softclipping at end
+	echo "ch2:945-956${delim}5${delim}deletion 0 chr2 945 50 5M1D6M * 0 11 AAAAAAAAAAA 12345678901" # deletion
 	
 ) | tr ' ' '\t' >> testBam.sam
-
 
 for i in {0..9}; do
 	start=$(echo 195 + $i | bc)
 	end=$(echo 206 + $i | bc)
-	echo "ch3:${start}-${end}${delim}6${delim}Info2 0 chr3 $start 50 11M * 0 11 AAAAAAAAAAA 12345678901 RG:Z:SimReadGroup1" | tr ' ' '\t' >> testBam.sam
+	echo "ch3:${start}-${end}${delim}6${delim}Info2 0 chr3 $start 50 11M * 0 11 AAAAAAAAAAA 12345678901" | tr ' ' '\t' >> testBam.sam
 done
 
 samtools view -bS testBam.sam > testBam.bam
