@@ -18,18 +18,14 @@ private:
 
 	// reference storage
 	std::vector<genometools::Base> _ref;
-	long _chrLength      = 0;
 	std::string _chrName = "";
-	bool _needsWriting   = false;
 
 	void _closeFastaFile();
 	void _writeRefToFasta();
 
 public:
-	TSimulatorReference() = default;
 	TSimulatorReference(std::string_view Filename);
 	~TSimulatorReference();
-	void open(std::string_view Filename);
 	void setChr(std::string_view ChrName, long ChrLength);
 	//	void simulateReferenceSequenceCurChromosome(float* cumulBaseFreq);
 

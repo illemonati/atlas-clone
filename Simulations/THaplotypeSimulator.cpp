@@ -233,7 +233,8 @@ TSimulatorPair::TSimulatorPair() : THaplotypeRefDivSimulator() {
 	logfile().startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
 	// Initialize phis
-	parameters().fill("phi", _phis);
+
+	parameters().fill("phi", _phis, {1., 1., 1., 1., 1., 1., 1., 1., 1.});
 	if (_phis.size() != 9)
 		UERROR("Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, "
 			   "01/01, 01/02, 00/12, 01/22, 01/23");
@@ -443,9 +444,9 @@ TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THa
 		// initialize SFS from files
 		const bool folded = parameters().exists("folded");
 		_initializeSFS(chromosomes, sfsFileNames, folded);
-	} else if (parameters().exists("theta")) {
+	} else {
 		// parse theta from command line
-		auto thetas = parameters().get<std::vector<double>>("theta");
+		auto thetas = parameters().get<std::vector<double>>("theta", {0.001});
 		if (thetas.size() == 1) {
 			logfile().list("Will simulate from SFS with theta = ", thetas.front(), ".");
 			for (unsigned int _ = 1; _ < nChromosomes; ++_) thetas.push_back(thetas.front());
@@ -455,9 +456,7 @@ TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THa
 		}
 		const bool folded = parameters().exists("folded");
 		_initializeSFS(chromosomes, thetas, folded);
-	} else
-		UERROR("Either argument sfs or theta must be provided to simulate population samples!");
-
+	}
 	// done
 	logfile().endIndent();
 }

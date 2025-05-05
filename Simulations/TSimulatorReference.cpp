@@ -5,12 +5,7 @@
 namespace Simulations {
 using coretools::instances::logfile;
 
-TSimulatorReference::TSimulatorReference(std::string_view Filename){
-	open(Filename);
-}
-
-void TSimulatorReference::open(std::string_view Filename){
-	_filename = Filename;
+TSimulatorReference::TSimulatorReference(std::string_view Filename): _filename(Filename) {
 	// open FASTA file for reference sequences
 	logfile().list("Will write reference sequence to '" + _filename + "'.");
 	_fasta.open(_filename.c_str());
@@ -22,15 +17,16 @@ void TSimulatorReference::open(std::string_view Filename){
 }
 
 TSimulatorReference::~TSimulatorReference() {
-	if (_chrName != "" && _needsWriting) _writeRefToFasta();
+	_writeRefToFasta();
 	_fasta.close();
 	_fastaIndex.close();
 }
 
 void TSimulatorReference::_writeRefToFasta() {
+	if (_ref.empty()) return;
 	// write to fasta
 	_fasta << ">" << _chrName;
-	for (int l = 0; l < _chrLength; ++l) {
+	for (size_t l = 0; l < _ref.size(); ++l) {
 		if (l % 70 == 0) _fasta << "\n";
 		_fasta << _ref[l];
 	}
@@ -39,25 +35,18 @@ void TSimulatorReference::_writeRefToFasta() {
 	// add to index
 	std::string tmp = _chrName;
 	_oldOffset += _chrName.size() + 2;
-	_fastaIndex << coretools::str::extractBeforeWhiteSpace(tmp) << "\t" << _chrLength << "\t" << _oldOffset
+	_fastaIndex << coretools::str::extractBeforeWhiteSpace(tmp) << "\t" << _ref.size() << "\t" << _oldOffset
 				<< "\t70\t71\n";
-	_oldOffset += _chrLength + (int)(_chrLength / 70);
-	if (_chrLength % 70 != 0) _oldOffset += 1;
-
-	_needsWriting = false;
+	_oldOffset += _ref.size() + (int)(_ref.size() / 70);
+	if (_ref.size() % 70 != 0) _oldOffset += 1;
 }
 
 void TSimulatorReference::setChr(std::string_view ChrName, long ChrLength) {
-	if(!_fasta){
-		DEVERROR("Fasta file not opened yet!");
-	}
 	// write if not yet written
-	if (_chrName != "" && _needsWriting) _writeRefToFasta();
+	_writeRefToFasta();
 
 	// move to new chr
 	_chrName   = ChrName;
-	_chrLength = ChrLength;
-	_ref.resize(_chrLength);
-	_needsWriting = true;
+	_ref.resize(ChrLength);
 }
 }
