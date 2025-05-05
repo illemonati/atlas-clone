@@ -20,18 +20,16 @@ private:
 	std::vector<genometools::Base> _ref;
 	std::string _chrName = "";
 
-	void _closeFastaFile();
 	void _writeRefToFasta();
 
 public:
 	TSimulatorReference(std::string_view Filename);
 	~TSimulatorReference();
+
 	void setChr(std::string_view ChrName, long ChrLength);
-	//	void simulateReferenceSequenceCurChromosome(float* cumulBaseFreq);
 
 	genometools::Base &operator[](size_t index) { return _ref[index]; }
 	const genometools::Base &operator[](size_t index) const { return _ref[index]; }
-	const std::vector<genometools::Base> & reference() const {return _ref;}
 };
 }
 

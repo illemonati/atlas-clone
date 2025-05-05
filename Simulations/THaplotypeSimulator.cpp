@@ -406,7 +406,8 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 		if (randomGenerator().getRand() < _referenceN) {
 			reference[l] = Base::N;
 		} else if (c == 0) {
-			reference[l] = impl::mutateBase(reference[l], _cumulRef);
+			// b0 == b1 == b2 == b3
+			reference[l] = impl::mutateBase(b0, _cumulRef);
 		} else {
 			const int r   = randomGenerator().sample(4);
 			reference[l] = _genoTrans[c][g][r];
