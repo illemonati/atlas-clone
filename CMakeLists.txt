@@ -29,7 +29,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 
 include(FetchContent)
 FetchContent_Declare(coretools
-  URL        https://bitbucket.org/wegmannlab/coretools/get/aa078bf7569d9c8710111a6f49988fefa5476f77.tar.gz
+  URL        https://bitbucket.org/wegmannlab/coretools/get/5464ad67af2f5264b317ce5d436bf209135553df.tar.gz
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -39,7 +39,7 @@ FetchContent_Declare(genometools
 )
 
 FetchContent_Declare(stattools
-  URL        https://bitbucket.org/wegmannlab/stattools/get/fb4f5232198ea712b6dc9b31fe5057041dd102c6.tar.gz
+  URL        https://bitbucket.org/wegmannlab/stattools/get/be368b7504bbad7b27eab89aa2d14f6344c3832b.tar.gz
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
