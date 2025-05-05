@@ -40,7 +40,7 @@ private:
 	void _determineMaxFragmentLength();
 
 public:
-	TReadSimulators(std::string_view FileName, bool read);
+	TReadSimulators(std::string_view RGOutName, std::string_view RGInName);
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact

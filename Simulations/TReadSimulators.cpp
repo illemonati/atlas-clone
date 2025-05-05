@@ -67,10 +67,10 @@ void TReadSimulators::_determineMaxFragmentLength(){
 	}
 }
 
-TReadSimulators::TReadSimulators(std::string_view FileName, bool read){
+TReadSimulators::TReadSimulators(std::string_view RGOutName, std::string_view RGInName){
 	// Read sequencing parameters from RG Info / Command line
 	TReadGroupInfo RGinfo;
-	if (read) _readGroups = RGinfo.readReadGroups(FileName);
+	if (!RGInName.empty()) _readGroups = RGinfo.readReadGroups(RGInName);
 	else _readGroups = RGinfo.createReadGroups();
 
 	using BAM::RGInfo::InfoType;
@@ -111,7 +111,7 @@ TReadSimulators::TReadSimulators(std::string_view FileName, bool read){
 
 	//prepare simulations
 	_determineMaxFragmentLength();
-	RGinfo.write(FileName);
+	RGinfo.write(RGOutName);
 }
 
 std::pair<size_t, size_t> TReadSimulators::simulate(const genometools::TGenomePosition &Position,

@@ -224,14 +224,15 @@ TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 
 	//create read simulators
 	_readSimulators.reserve(filenames.size());
+	const auto rgOutName = _outname + "_RGInfo.json";
 	if(filenames.size() <= 1){
 		if(_haploSimulator->sampleSize() > 1){
 			logfile().startIndent("Using one set of sequencing parameters for all ", _haploSimulator->sampleSize(), " individuals:");
 		}
 		if (filenames.empty()) {
-			_readSimulators.emplace_back(_outname + "_RGInfo.json", false);
+			_readSimulators.emplace_back(rgOutName, "");
 		} else {
-			_readSimulators.emplace_back(filenames.front(), true);
+			_readSimulators.emplace_back(rgOutName, filenames.front());
 		}
 		if(_haploSimulator->sampleSize() > 1){
 			logfile().endIndent();
@@ -245,7 +246,7 @@ TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 
 		for(auto& s : filenames){
 			logfile().numberWithIndent("Sequencing parameters for individual 1");
-			_readSimulators.emplace_back(s, true);
+			_readSimulators.emplace_back(rgOutName, s);
 		}
 		logfile().endNumbering();
 		logfile().endIndent();
