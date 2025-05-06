@@ -154,6 +154,19 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
 
+
+	// check if we add a RG for reads without one
+	if(parameters().exists("keepReadsWithoutRG")){
+		std::string name = parameters().get("keepReadsWithoutRG");
+		if(name.empty()){
+			name = "RGForReadsWithoutReadGroup";
+		}		
+		logfile().list("Will put reads without read group into read group '", name, "'. (parameter 'keepReadsWithoutRG')");
+		_readGroups.addReadGroupForReadsWithoutReadGroup(name);
+	} else {
+		logfile().list("Will filter out all reads without read group. (keep with 'keepReadsWithoutRG')");
+	}	
+	
 	_filters.resize(_readGroups.size(), _chromosomes.size(), _filename);
 
 	// Set Limits:
@@ -176,18 +189,6 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 	} else {
 		_filters.disable(FilterType::ReadGroup);
 	}
-
-	// check if we add a RG for reads without one
-	if(parameters().exists("keepReadsWithoutRG")){
-		std::string name = parameters().get("keepReadsWithoutRG");
-		if(name.empty()){
-			name = "RGForReadsWithoutReadGroup";
-		}		
-		logfile().list("Will put reads without read group into read group '", name, "'. (parameter 'keepReadsWithoutRG')");
-		_readGroups.addReadGroupForReadsWithoutReadGroup(name);
-	} else {
-		logfile().list("Will filter out all reads without read group. (keep with 'keepReadsWithoutRG')");
-	}	
 
 	constexpr std::string_view downsample = "downsampleReads";
 	_downProb = parameters().get(downsample, coretools::P(0.));
