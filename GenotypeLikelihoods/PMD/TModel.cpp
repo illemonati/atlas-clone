@@ -56,11 +56,11 @@ TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedData &data,
 	switch (b) {
 	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
 	case Base::C: {
-		const auto pCT = _psi.prob<Type::CT>(data);
+		const auto pCT = _psi.prob(Type::CT, data);
 		return TBaseProbabilities::normalize({0., (1. - pCT) * P_dij_bbar[Base::C], 0., pCT * P_dij_bbar[Base::T]});
 	}
 	case Base::G: {
-		const auto pGA = _psi.prob<Type::GA>(data);
+		const auto pGA = _psi.prob(Type::GA, data);
 		return TBaseProbabilities::normalize({pGA * P_dij_bbar[Base::A], 0., (1. - pGA) * P_dij_bbar[Base::G], 0.});
 	}
 	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
@@ -95,8 +95,8 @@ double bbProbs(Base b, TBaseBaseProbabilities &probs, Probability pCT, Probabili
 
 TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedData &data,
 									const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	const auto pCT = _psi.prob<Type::CT>(data);
-	const auto pGA = _psi.prob<Type::GA>(data);
+	const auto pCT = _psi.prob(Type::CT, data);
+	const auto pGA = _psi.prob(Type::GA, data);
 
 	TBaseData Psum{0};
 	for (const auto b : {first(g), second(g)}) {
@@ -118,8 +118,8 @@ TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedData &data,
 
 TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedData &data,
 								const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	const auto pCT = _psi.prob<Type::CT>(data);
-	const auto pGA = _psi.prob<Type::GA>(data);
+	const auto pCT = _psi.prob(Type::CT, data);
+	const auto pGA = _psi.prob(Type::GA, data);
 
 	TBaseBaseProbabilities bbProbs{};
 	const double sum = genometools::isHomozygous(g)
@@ -131,8 +131,8 @@ TBaseBaseProbabilities TWithPMD::P_b_bbar(Genotype g, const BAM::TSequencedData 
 }
 
 TBaseLikelihoods TWithPMD::P_dij(const TSequencedData &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	const auto pCT = _psi.prob<Type::CT>(data);
-	const auto pGA = _psi.prob<Type::GA>(data);
+	const auto pCT = _psi.prob(Type::CT, data);
+	const auto pGA = _psi.prob(Type::GA, data);
 
 	TBaseLikelihoods Ps(P_dij_bbar);
 	Ps[Base::C] = P((1.0 - pCT) * P_dij_bbar[Base::C] + pCT * P_dij_bbar[Base::T]);
@@ -150,10 +150,10 @@ void TWithPMD::simulate(BAM::TAlignment &aln) const {
 		auto &base = d.base;
 
 		if (base == Base::C) {
-			const auto pCT = _psi.prob<Type::CT>(d);
+			const auto pCT = _psi.prob(Type::CT, d);
 			if (randomGenerator().getRand() < pCT) base = Base::T;
 		} else if (base == Base::G) {
-			const auto pGA = _psi.prob<Type::GA>(d);
+			const auto pGA = _psi.prob(Type::GA, d);
 			if (randomGenerator().getRand() < pGA) base = Base::A;
 		}
 	}

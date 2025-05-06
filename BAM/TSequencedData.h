@@ -66,6 +66,7 @@ struct TSequencedData {
 	constexpr Strand strand() const noexcept {return get<Flags::ReversedStrand>() ? Strand::Rev : Strand::Fwd;}
 	constexpr coretools::TPseudoInt dist(End E) const noexcept {return E==End::from5 ? distFrom5 : distFrom3;}
 	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousSequenced, sequenced());}
+	constexpr size_t readLength() const noexcept {return distFrom5.linear() + distFrom3.linear() + 1;}
 
 	// As sequenced by Machine
 	constexpr genometools::Base sequenced() const noexcept {
