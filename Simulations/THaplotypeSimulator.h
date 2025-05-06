@@ -75,6 +75,7 @@ class TSimulatorHKY85 final : public THaplotypeSimulator {
 private:
 	using Pickers = std::vector<coretools::TStrongArray<coretools::TRandomPicker, genometools::Base>>;
 
+	size_t _sampleSize = 1;
 	Pickers _pick_g;
 	Pickers _pick_r;
 
@@ -88,7 +89,7 @@ public:
 					const genometools::TChromosome &chromosome) override;
 
 	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
-	[[nodiscard]] size_t sampleSize() const noexcept override {return 1;}
+	[[nodiscard]] size_t sampleSize() const noexcept override {return _sampleSize;}
 };
 
 //---------------------------------------------------------
@@ -122,7 +123,7 @@ public:
 //---------------------------------------------------------
 class TSimulatorSFS final : public THaplotypeRefDivSimulator {
 private:
-	int _sampleSize;
+	size_t _sampleSize = 1;
 	std::vector<std::unique_ptr<SFS>> _sfs;
 	TSimulatorMutationtable _mutTable;
 
@@ -152,7 +153,7 @@ struct TSimulatorHWSite {
 
 class TSimulatorHW : public THaplotypeRefDivSimulator {
 private:
-	int _sampleSize;
+	size_t _sampleSize = 1.;
 	coretools::Probability _fracPoly;
 	double _alpha;
 	double _beta;

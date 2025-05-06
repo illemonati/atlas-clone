@@ -24,8 +24,6 @@
 #include "TReadSimulators.h"
 
 namespace Simulations {
-class TSimulatorBamFiles;
-
 // TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is
 // done now as it would allow for contaminated reads to have different characteristsics.
 
@@ -40,10 +38,10 @@ protected:
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
 	genometools::TChromosomes _chromosomes;
-
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
-	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) = 0;
+	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
+								   const TSimulatorReference &Reference, size_t avgDepth) = 0;
 
 public:
 	TSimulator(const std::string_view Method);
@@ -57,17 +55,15 @@ public:
 
 class TBAMSimulator : public TSimulator {
 protected:
-	// bam files
 	std::vector<TReadSimulators> _readSimulators; // one per sample
 	TSimulatorBamFiles _bamFiles;
 
-	// functions to simulate
 	void _simulateReadsForInd(const genometools::TChromosome &ThisChr, size_t Ind,
-									  const std::vector<genometools::TwoBase>& Haplotypes, const TSimulatorReference &Reference,
-									  TReadSimulators &ReadSimulator, size_t AvgDepth, BAM::TOutputBamFile &BamFile);
+							  const std::vector<genometools::TwoBase> &Haplotypes, const TSimulatorReference &Reference,
+							  TReadSimulators &ReadSimulator, size_t AvgDepth, BAM::TOutputBamFile &BamFile);
 
-	// simulate reads and write bam files
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
+						   const TSimulatorReference &Reference, size_t avgDepth) override;
 
 public:
 	TBAMSimulator(const std::string_view Method);
@@ -83,7 +79,8 @@ private:
 	std::unique_ptr<genometools::TVCFWriter> _vcf;
 
 protected:
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
+						   const TSimulatorReference &Reference, size_t avgDepth) override;
 
 public:
 	TVCFSimulator(const std::string &method);

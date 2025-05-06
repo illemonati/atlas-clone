@@ -6,19 +6,14 @@
 #include <vector>
 
 #include "genometools/Genotypes/Base.h"
+#include "genometools/TFastaWriter.h"
 
 namespace Simulations {
 
 class TSimulatorReference {
 private:
-	std::ofstream _fasta;
-	std::ofstream _fastaIndex;
-	long _oldOffset = 0;
-	std::string _filename;
-
-	// reference storage
+	genometools::TFastaWriter _writer;
 	std::vector<genometools::Base> _ref;
-	std::string _chrName = "";
 
 	void _writeRefToFasta();
 

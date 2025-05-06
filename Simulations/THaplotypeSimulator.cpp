@@ -149,6 +149,9 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 
 TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
 	// now theta
+	_sampleSize = parameters().get<int>("sampleSize", 1);	
+	logfile().list("Will generate data for ", _sampleSize, " samples. (parameter 'sampleSize')");
+
 	std::vector<double> thetas_g, thetas_r, mus;
 
 	parameters().fill("thetaG", thetas_g, {0.0001});
@@ -197,16 +200,14 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulat
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
 		const Base r = randomGenerator().pickOne(_cumulBaseFreq);
-		const Base R = Base(_pick_r[refID][r]());
-		const Base k = Base(_pick_g[refID][R]());
-		const Base l = Base(_pick_g[refID][R]());
+		for (size_t s = 0; s < _sampleSize; ++s) {
+			const Base R = Base(_pick_r[refID][r]());
+			const Base k = Base(_pick_g[refID][R]());
+			const Base l = Base(_pick_g[refID][R]());
 
-		if (randomGenerator().getRand() < _referenceN) {
-			reference[i] = Base::N;
-		} else {
-			reference[i] = r;
+			haplotypes[s][i] = genometools::twoBase(k, l);
 		}
-		haplotypes[0][i] = genometools::twoBase(k, l);
+		reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
 	}
 }
 
@@ -214,15 +215,12 @@ void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulat
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base ref = randomGenerator().pickOne(_cumulBaseFreq);
-		const Base R   = Base(_pick_r[refID][ref]());
-
-		if (randomGenerator().getRand() < _referenceN) {
-			reference[i] = Base::N;
-		} else {
-			reference[i] = ref;
+		const Base r = randomGenerator().pickOne(_cumulBaseFreq);
+		for (size_t s = 0; s < _sampleSize; ++s) {
+			const Base R     = Base(_pick_r[refID][r]());
+			haplotypes[s][i] = genometools::twoBase(R, R);
 		}
-		haplotypes[0][i] = genometools::twoBase(R, R);
+		reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
 	}
 }
 
@@ -647,11 +645,11 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &re
 void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, size_t locus,
 						  const TSimulatorHWSite &site) {
 	if (site.f == 0.0) {
-		for (int i = 0; i < _sampleSize; ++i) {
+		for (size_t i = 0; i < _sampleSize; ++i) {
 			haplotypes[i][locus] = genometools::twoBase(site.reference, site.reference);
 		}
 	} else {
-		for (int i = 0; i < _sampleSize; ++i) {
+		for (size_t i = 0; i < _sampleSize; ++i) {
 			haplotypes[i][locus] = genometools::twoBase(site.alternative, site.alternative);
 		}
 	}
@@ -670,7 +668,7 @@ void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 		// polymoprhic or not?
 		if (site.isPolymorphic) {
 			// simulate genotypes
-			for (int i = 0; i < _sampleSize; ++i) {
+			for (size_t i = 0; i < _sampleSize; ++i) {
 				if (randomGenerator().getRand() < site.f) {
 					haplotypes[i][l] = genometools::twoBase(site.alternative, site.alternative);
 				} else {
@@ -698,8 +696,8 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 			_fillCumulGenoProb(site.f);
 
 			// simulate genotypes
-			for (int i = 0; i < _sampleSize; ++i) {
-				int geno = randomGenerator().pickOne(_cumulGenoProb);
+			for (size_t i = 0; i < _sampleSize; ++i) {
+				size_t geno = randomGenerator().pickOne(_cumulGenoProb);
 				if (geno == 0) {
 					haplotypes[i][l] = genometools::twoBase(site.reference, site.reference);
 				} else if (geno == 1) {
@@ -717,92 +715,5 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 		}
 	}
 }
-
-//--------------------------------------------------------------------
-// Functions to simulate pooled data
-//--------------------------------------------------------------------
-// TODO: Need to switch to haplotype model
-
-/*
-void TSimulator::simulatePooledData(int sampleSize, SFS & sfs, std::string outname){
-	//open BAM file
-	openBamFile(outname + ".bam");
-
-	//open FASTA file for reference sequences
-	std::string filename = outname + ".fasta";
-	openFastaFile(filename);
-
-	//prepare variables
-	float* altFreq = NULL;
-	long numReads;
-	long chrLengthForStart;
-	double probReadPerSite;
-	int numReadsHere;
-	long numReadsSimulated;
-	initializeQualToErrorTable();
-
-	//open frequency file
-	filename = outname + "_frequencies.txt";
-	std::ofstream freqFile(filename.c_str());
-
-	//simulate sequences
-	int refId = 0;
-	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId){
-	logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
-
-	//simulate reference and alternative sequence
-	simulateReferenceAndAlternativeSequenceCurChromosome();
-
-	//simulate alternative frequencies (and write to file)
-	logfile->listFlush("Simulating alternative allele frequencies ...");
-	delete[] altFreq;
-	altFreq = new float[chrIt->length];
-	for(int l=0; l<chrIt->length; ++l){
-	altFreq[l] = sfs.getRandomFrequency(randomGenerator);
-	freqFile << chrIt->name << "\t" << l+1 << altFreq[l] << "\n";
-	}
-	logfile->done();
-
-	//simulating reads
-	numReads = chrIt->length * seqDepth / readLength;
-	chrLengthForStart = chrIt->length - readLength;
-	probReadPerSite = 1.0 / (double) chrLengthForStart;
-	numReadsSimulated = 0;
-	bamAlignment.RefID = refId;
-	int prog;
-	int oldProg = 0;
-	std::string progressString = "Simulating about " + toString(numReads) + " reads ...";
-	logfile->listFlush(progressString);
-	for(long l=0; l<chrLengthForStart; ++l){
-	//draw random number to get number of reads starting at this position
-	numReadsHere = randomGenerator->getBiomialRand(probReadPerSite, numReads);
-
-	//now simulate
-	if(numReadsHere > 0){
-	simulateReads(numReadsHere, l, altFreq);
-	numReadsSimulated += numReadsHere;
-
-	//report progress
-	prog = 100.0 * (float) numReadsSimulated / (float) numReads;
-	if(prog > oldProg){
-			oldProg = prog;
-			logfile->listOverFlush(progressString + "(" + toString(prog) + "%)");
-				}
-			}
-		}
-		logfile->overList(progressString + " done!  ");
-		logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
-		logfile->endIndent();
-	}
-
-	//close stuff
-	closeBamFile();
-	closeFastaFile();
-	freqFile.close();
-
-	//clear memory
-	delete[] altFreq;
-}
-*/
 
 } // namespace Simulations
