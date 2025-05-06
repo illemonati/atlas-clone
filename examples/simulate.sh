@@ -6,7 +6,7 @@ k="321"
 runSim() {
 	out="${1}$2"
 	$atlas --task simulate --numReadGroups 2 --type $2 --seqType paired --seqCycles 200 \
-		   --chrLength 50$k{2},30$k,40$k,60$k --ploidy 2{3},1,2 --depth 10,8{2},5{2} \
+		   --chrLength 50$k{2},30$k,40$k,60$k --ploidy 2{3},1,2 --depth 10,0,8,0.5{2} \
 		   --baseFreq 0.5,0.3,0.2,0 $3 \
 		   --fragmentLength 'fixed(500)' --baseQuality 'binomial(95,0.01)[0,93]' \
 		   --mappingQuality 'normal(60,10)[1,255]' --softClipping 'poisson(20)[0,50]' \

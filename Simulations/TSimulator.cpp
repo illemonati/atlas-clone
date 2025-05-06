@@ -29,7 +29,7 @@ using genometools::TGenomePosition;
 // Helper functions
 //---------------------------------------------------------
 
-namespace /* anonymous */ {
+namespace impl {
 std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(std::string_view Method, const TChromosomes &Chs) {
 	if (Method == TSimulatorOne::name) {
 		logfile().startIndent("Simulating a single individual (parameter 'type' = '", Method, "')");
@@ -55,10 +55,11 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(std::string_view Method,
 	logfile().endIndent();
 }
 
-std::vector<size_t> parse(const std::string & Argument, const std::string & Explanation, const std::vector<size_t>& Defaults){
+template<typename T>
+std::vector<T> parse(std::string_view Argument, std::string_view Explanation, const std::vector<T>& Defaults){
 	if(parameters().exists(Argument)){
-		const auto  res = parameters().get<std::vector<size_t>>(Argument);
-		if(res.empty()) UERROR("Issue understanding ", Explanation, " '", parameters().get(Argument), "' (parameter '" + Argument + "')!");
+		const auto  res = parameters().get<std::vector<T>>(Argument);
+		if(res.empty()) UERROR("Issue understanding ", Explanation, " '", parameters().get(Argument), "' (parameter '", Argument, "')!");
 
 		if(res.size() == 1){
 			logfile().list("Will use ", Explanation, " of ", res[0], ". (parameter '", Argument, "')");
@@ -83,20 +84,25 @@ void checkLength(Vec & vec, size_t numChr){
 	}
 }
 
-void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
+void makeChromosomes(TChromosomes & chs, std::vector<double> & depths){
 	//TODO: make it possible to initialize chromosomes from a file with length, ploidy and depth
 	logfile().startIndent("Parameters regarding chromosomes:");
 	chs.clear();
 	depths.clear();
 
 	//parse chr details
-	auto chrLengths = parse("chrLength", "chromosome length", {10000});
-	depths          = parse("depth", "sequencing depth", {5});
-	auto ploidies   = parse("ploidy", "ploidy", {2});
+	auto chrLengths = parse<size_t>("chrLength", "chromosome length", {10000});
+	depths          = parse<double>("depth", "sequencing depth", {5.});
+	auto ploidies   = parse<size_t>("ploidy", "ploidy", {2});
 
 	//check if ploidy is supported
 	for (auto &p : ploidies) {
 		if (p != 1 && p != 2) { UERROR("Currently only ploidy 1 (haploid) or 2 (diploid) is supported!"); }
+	}
+
+	//check depths
+	for (auto &d : depths) {
+		if (d < 0) { UERROR("Cannot simulate a depth of ", d, "!"); }
 	}
 
 	//check length
@@ -124,7 +130,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 	logfile().endIndent();
 }
 
-} // namespace
+} // namespace impl
 
 //---------------------------------------------------------
 // TSimulator
@@ -158,8 +164,8 @@ TSimulator::TSimulator(const std::string_view Method){
 	logfile().endIndent();
 
 	//parse sequencing depth
-	makeChromosomes(_chromosomes, _seqDepth);
-	_haploSimulator = makeHaploSimulator(Method, _chromosomes);
+	impl::makeChromosomes(_chromosomes, _seqDepth);
+	_haploSimulator = impl::makeHaploSimulator(Method, _chromosomes);
 }
 
 void TSimulator::runSimulations() {
@@ -265,7 +271,7 @@ TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 
 void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome,
 									  const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference &Reference,
-									  size_t AvgDepth) {
+									  double  AvgDepth) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
 	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
@@ -278,9 +284,9 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 void TBAMSimulator::_simulateReadsForInd(const genometools::TChromosome &thisChr, size_t Ind,
 										 const std::vector<genometools::TwoBase> &Haplotypes,
 										 const TSimulatorReference &Reference, TReadSimulators &ReadSimulators,
-										 size_t AvgDepth, BAM::TOutputBamFile &BamFile) {
+										 double AvgDepth, BAM::TOutputBamFile &BamFile) {
 	// Initialize probabilities to simulate reads
-	const size_t numReads          = thisChr.length() * AvgDepth / ReadSimulators.averageReadLength();
+	const size_t numReads          = std::lround(thisChr.length() * AvgDepth / ReadSimulators.averageReadLength());
 	const size_t chrLengthForStart = thisChr.length() - ReadSimulators.maxFragmentLength() + 1;
 	const coretools::Probability probReadPerSite{1.0 / chrLengthForStart};
 
@@ -411,7 +417,9 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	_vcf = std::make_unique<genometools::TVCFWriter>(filename, "ATLAS_simulations", sampleNames, _chromosomes, usePhredLikelihoods);
 }
 
-void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) {
+void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome,
+									  const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference &Reference,
+									  double AvgDepth) {
 	logfile().startIndent("Simulating genotype likelihoods:");
 
 	for (size_t l = 0; l < Chromosome.length(); ++l) {
@@ -427,7 +435,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 			const auto hap2 = second(Haplotypes[i][l]);
 
 			// simulate depth and genotype likelihoods
-			auto entry = simulate(genometools::biallelicGenotype(hap1, hap2, Reference[l], isDiploid), avgDepth);
+			auto entry = simulate(genometools::biallelicGenotype(hap1, hap2, Reference[l], isDiploid), AvgDepth);
 
 			// store
 			genotypeLikelihoods[i] = entry;
