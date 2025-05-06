@@ -28,8 +28,6 @@ class TCigar;
 class TOutputBamFile;
 }
 
-namespace Simulations { class TSimulatorReference; }
-
 namespace Simulations {
 
 
@@ -60,9 +58,7 @@ protected:
 	coretools::Probability _refBias;
 
 	std::array<size_t, 2> _refCount;
-
 	double _contaminationRate = 0.;
-	TSimulatorReference *_contaminationSource = nullptr;
 
 
 	// general functions
@@ -74,9 +70,9 @@ protected:
 								 bool FirstHaplo, size_t ReadLength, bool ReadIsContaminated);
 
 	virtual bool _simulate(const genometools::TGenomePosition &Position,
-						   const std::vector<genometools::TwoBase> &Haplotype,
-						   const TSimulatorReference &Reference)         = 0;
-	virtual void _writeSimulatedAlignments(BAM::TOutputBamFile &BamFile) = 0;
+	                       const std::vector<genometools::TwoBase> &Haplotype,
+						   coretools::TView<genometools::Base> Reference) = 0;
+	virtual void _writeSimulatedAlignments(BAM::TOutputBamFile &BamFile)  = 0;
 
 public:
 	TReadSimulator(const BAM::TReadGroup &ReadGroup, const BAM::RGInfo::TReadGroupInfoEntry &RGInfo,
@@ -85,7 +81,7 @@ public:
 	virtual ~TReadSimulator();
 
 	size_t simulate(const genometools::TGenomePosition &Position, const std::vector<genometools::TwoBase> &Haplotype,
-					const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
+					coretools::TView<genometools::Base> Reference, BAM::TOutputBamFile &BamFile);
 
 	const std::string& name() const noexcept { return _readGroup->name_ID; }
 	[[nodiscard]] virtual double meanReadLength() const = 0;
@@ -100,8 +96,9 @@ private:
 	BAM::TAlignment _alignment;
 	size_t _numCycles;
 
-	bool _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
-	void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) override;
+	bool _simulate(const genometools::TGenomePosition &Position, const std::vector<genometools::TwoBase> &Haplotype,
+				   coretools::TView<genometools::Base> Reference) override;
+	void _writeSimulatedAlignments(BAM::TOutputBamFile &BamFile) override;
 
 public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const BAM::RGInfo::TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
@@ -120,8 +117,9 @@ private:
 
 	std::array<size_t, 2> _numCycles;
 
-	bool _simulate(const genometools::TGenomePosition & Position, const std::vector<genometools::TwoBase> & Haplotype, const TSimulatorReference &Reference) override;
-	void _writeSimulatedAlignments(BAM::TOutputBamFile & BamFile) override;
+	bool _simulate(const genometools::TGenomePosition &Position, const std::vector<genometools::TwoBase> &Haplotype,
+				   coretools::TView<genometools::Base> Reference) override;
+	void _writeSimulatedAlignments(BAM::TOutputBamFile &BamFile) override;
 
 public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const BAM::RGInfo::TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);

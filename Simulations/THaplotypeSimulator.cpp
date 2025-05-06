@@ -11,7 +11,6 @@
 #include <armadillo>
 
 #include "SFS.h"
-#include "TSimulatorReference.h"
 
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -109,7 +108,7 @@ TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeRefDivSimulator()
 		UERROR("Number of theta values provided does not match number of chromosomes to simulate!");
 }
 
-void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	// fill mutation table
 	const TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
@@ -131,7 +130,7 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	}
 }
 
-void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	// now simulate genotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
@@ -195,7 +194,7 @@ TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
 	}
 }
 
-void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
@@ -211,7 +210,7 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulat
 	}
 }
 
-void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
@@ -362,7 +361,7 @@ void TSimulatorPair::_fillTables() {
 	}
 }
 
-void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						const genometools::TChromosome &chromosome) {
 	// first run diploid
 	simulateDiploid(haplotypes, reference, chromosome);
@@ -378,7 +377,7 @@ void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	}
 }
 
-void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						const genometools::TChromosome &chromosome) {
 	// run across loci
 	for (size_t l = 0; l < chromosome.length(); ++l) {
@@ -508,7 +507,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 	}
 }
 
-void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	// now simulate haplotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
@@ -535,7 +534,7 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	}
 }
 
-void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// pick alleles
@@ -608,7 +607,7 @@ void TSimulatorHW::_fillCumulGenoProb(double f) {
 	_cumulGenoProb[2]       = 1.0;
 }
 
-void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, size_t pos) {
+void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, coretools::TView<genometools::Base> reference, const std::string &chr, size_t pos) {
 	// simulate bases
 	site.reference   = genometools::Base(randomGenerator().pickOne(_cumulBaseFreq));
 	site.alternative = genometools::Base(randomGenerator().pickOne(_mutTable[site.reference]));
@@ -655,7 +654,7 @@ void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, 
 	}
 }
 
-void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						  const genometools::TChromosome &chromosome) {
 	// storage
 
@@ -681,7 +680,7 @@ void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 	}
 }
 
-void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						  const genometools::TChromosome &chromosome) {
 	// storage
 

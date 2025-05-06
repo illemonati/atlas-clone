@@ -13,6 +13,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/progressTools.h"
 #include "genometools/Genotypes/TFrequencies.h"
+#include "genometools/TFastaWriter.h"
 #include "genometools/VCF/VCF.h"
 
 namespace Simulations {
@@ -171,7 +172,8 @@ TSimulator::TSimulator(const std::string_view Method){
 void TSimulator::runSimulations() {
 	// prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(_haploSimulator->sampleSize());
-	TSimulatorReference reference(_outname + ".fasta");
+	genometools::TFastaWriter fastaFile(_outname + ".fasta", 70);
+	std::vector<genometools::Base> reference;
 
 	// open files to store extra info on sites
 	if (_writeTrueGenotypes) {
@@ -189,7 +191,9 @@ void TSimulator::runSimulations() {
 		logfile().startIndent("Simulating chromosome " + chr.name() + ":");
 
 		// update reference storage and update haplotype lengths
-		reference.setChr(chr.name(), chr.length());
+		
+		fastaFile.newContig(chr.name());
+		reference.resize(chr.length());
 		haplotypes.setLength(chr.length());
 
 		// simulate genotypes
@@ -212,6 +216,8 @@ void TSimulator::runSimulations() {
 
 		// write bam / vcf files!
 		_simulateAndWrite(chr, haplotypes, reference, _seqDepth[i]);
+		// write reference
+		fastaFile.write(reference);
 
 		// end of chromosome
 		logfile().endIndent();
@@ -270,7 +276,7 @@ TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 }
 
 void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome,
-									  const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference &Reference,
+									  const TSimulatorHaplotypes &Haplotypes, coretools::TView<genometools::Base> Reference,
 									  double  AvgDepth) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
@@ -283,7 +289,7 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 void TBAMSimulator::_simulateReadsForInd(const genometools::TChromosome &thisChr, size_t Ind,
 										 const std::vector<genometools::TwoBase> &Haplotypes,
-										 const TSimulatorReference &Reference, TReadSimulators &ReadSimulators,
+										 coretools::TView<genometools::Base> Reference, TReadSimulators &ReadSimulators,
 										 double AvgDepth, BAM::TOutputBamFile &BamFile) {
 	// Initialize probabilities to simulate reads
 	const size_t numReads          = std::lround(thisChr.length() * AvgDepth / ReadSimulators.averageReadLength());
@@ -418,7 +424,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 }
 
 void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome,
-									  const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference &Reference,
+									  const TSimulatorHaplotypes &Haplotypes, coretools::TView<genometools::Base> Reference,
 									  double AvgDepth) {
 	logfile().startIndent("Simulating genotype likelihoods:");
 

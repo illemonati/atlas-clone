@@ -16,10 +16,12 @@
 #include "TSimulatorHaplotypes.h"
 #include "TSimulatorMutationtable.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Containers/TView.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
 
 #include "SFS.h"
+#include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Containers.h"
 
 
@@ -36,8 +38,8 @@ protected:
 	THaplotypeSimulator();
 public:
 	virtual ~THaplotypeSimulator() = default;
-	virtual void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference, const genometools::TChromosome &chromosome) = 0;
-	virtual void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference, const genometools::TChromosome &chromosome) = 0;
+	virtual void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference, const genometools::TChromosome &chromosome) = 0;
+	virtual void simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference, const genometools::TChromosome &chromosome) = 0;
 
 	[[nodiscard]] virtual bool simulatesBiallelic() const noexcept = 0;
 	[[nodiscard]] virtual size_t sampleSize() const noexcept = 0;
@@ -62,9 +64,9 @@ public:
 	TSimulatorOne(size_t nChoromosomes);
 	static inline const std::string name = "one";
 
-	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
-	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
 
 	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
@@ -83,9 +85,9 @@ public:
 	TSimulatorHKY85(size_t nChoromosomes);
 	static inline const std::string name = "HKY85";
 
-	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
-	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
 
 	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
@@ -109,9 +111,9 @@ private:
 public:
 	TSimulatorPair();
 	static inline const std::string name = "pair";
-	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
-	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
 
 	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return false; };
@@ -132,9 +134,9 @@ private:
 public:
 	TSimulatorSFS(const genometools::TChromosomes& chromosomes);
 	static inline const std::string name = "SFS";
-	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
-	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
 
 	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
@@ -164,15 +166,15 @@ private:
 	coretools::TOutputFile _trueFreqFile;
 
 	void _fillCumulGenoProb(double f);
-	void _simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, size_t pos);
+	void _simulateSite(TSimulatorHWSite &site, coretools::TView<genometools::Base> reference, const std::string &chr, size_t pos);
 	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, size_t locus, const TSimulatorHWSite &site);
 
 public:
 	TSimulatorHW();
 	static inline const std::string name = "HW";
-	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 					const genometools::TChromosome &chromosome) override;
-	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 	                                const genometools::TChromosome &chromosome) override;
 
 	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };

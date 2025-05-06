@@ -10,7 +10,6 @@
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
 #include "TReadGroupInfo.h"
-#include "TSimulatorReference.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -30,7 +29,7 @@ using genometools::TwoBase;
 using genometools::TGenomePosition;
 
 namespace impl {
-std::pair<size_t, size_t> refDiff(const std::vector<TwoBase> &Haplotype, const TSimulatorReference &Reference, size_t Pos, size_t Len) {
+std::pair<size_t, size_t> refDiff(const std::vector<TwoBase> &Haplotype, coretools::TView<genometools::Base> Reference, size_t Pos, size_t Len) {
 	std::pair<size_t, size_t> Ns{};
 	for (size_t i = 0; i < Len; ++i) {
 		const auto pi = Pos + i;
@@ -227,7 +226,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &Alignment, const s
 }
 
 size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-								const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile) {
+								coretools::TView<genometools::Base> Reference, BAM::TOutputBamFile &BamFile) {
 	// Do not simulate fraction of reads that will be duplicates
 	if (_duplicationRate == 0.0) {
 		if (!_simulate(Position, Haplotype, Reference)) return 0;
@@ -283,7 +282,7 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 }
 
 bool TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-										const TSimulatorReference &Reference) {
+										coretools::TView<genometools::Base> Reference) {
 	const auto fragmentLength = _fragmentLengthDistr.sample();
 	const auto readLength     = std::min(fragmentLength, _numCycles);
 
@@ -411,13 +410,19 @@ void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 }
 
 bool TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-										const TSimulatorReference &Reference) {
+										coretools::TView<genometools::Base> Reference) {
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readLength1        = std::min(fragmentLength, _numCycles.front());
 	const auto readLength2        = std::min(fragmentLength, _numCycles.back());
 	const auto readIsContaminated = _simulateContamination();
 
 	const bool firstHaplo = randomGenerator().getRand() < 0.5;
+
+	_fwdStrand.move(Position);
+	_revStrand.move(_fwdStrand.from());
+	if(fragmentLength > _numCycles.back()){
+		_revStrand.advanceOnRef(fragmentLength - _numCycles.back());
+	}
 
 	const auto refDiff1 = impl::refDiff(Haplotype, Reference, _fwdStrand.position(), readLength1);
 	const auto refDiff2 = impl::refDiff(Haplotype, Reference, _revStrand.position(), readLength2);
@@ -442,14 +447,9 @@ bool TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const s
 		_refCount.back() += refDiff1.first + refDiff2.first;
 	}
 
-	_fwdStrand.move(Position);
 	_fwdStrand.setName(_getNextReadName());
 	_fwdStrand.setMappingQuality(_mappingQualityDist.sample());
 
-	_revStrand.move(_fwdStrand.from());
-	if(fragmentLength > _numCycles.back()){
-		_revStrand.advanceOnRef(fragmentLength - _numCycles.back());
-	}
 	_revStrand.setName(_fwdStrand.name());
 	_revStrand.setMappingQuality(_fwdStrand.mappingQuality());
 

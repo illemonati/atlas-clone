@@ -46,7 +46,7 @@ public:
 	//interact
 	std::pair<size_t, size_t> simulate(const genometools::TGenomePosition &Position,
 									   const std::vector<genometools::TwoBase> &Haplotype,
-									   const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
+									   coretools::TView<genometools::Base> Reference, BAM::TOutputBamFile &BamFile);
 
 	// getters
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
