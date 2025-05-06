@@ -44,12 +44,17 @@ void TReadGroups::_fillLookupFromId(){
 	for(size_t i = 0; i < _readGroups.size(); ++i){
 		_readGroupsById[_readGroups[i].id] = i;
 	}
-};
+}
+
+TReadGroups::TReadGroups() {
+	_readGroupIdForReadsWithoutReadGroup = noReadGroupId;
+}
 
 // add and remove read groups
 void TReadGroups::clear(){
 	_readGroups.clear();
 	_readGroupsById.clear();
+	_readGroupIdForReadsWithoutReadGroup = noReadGroupId;
 }
 
 TReadGroup& TReadGroups::add(std::string_view Name){
@@ -62,7 +67,7 @@ TReadGroup& TReadGroups::add(std::string_view Name){
 	} else {
 		return *rg;
 	}
-};
+}
 
 TReadGroup& TReadGroups::addAlternativeRG(std::string_view Name, std::string_view Original){
 	//getId original
@@ -84,21 +89,27 @@ TReadGroup& TReadGroups::addAlternativeRG(std::string_view Name, std::string_vie
 	_fillLookupFromId();
 
 	return *_getReadGroup(Name);
-};
+}
+void TReadGroups::addReadGroupForReadsWithoutReadGroup(std::string_view Name){
+	if(_readGroupIdForReadsWithoutReadGroup == noReadGroupId){
+		auto& rg = add(Name);
+		_readGroupIdForReadsWithoutReadGroup = rg.id;
+	}
+}
 
 size_t TReadGroups::size() const{
 	return _readGroups.size();
-};
+}
 
 bool TReadGroups::empty() const{
 	return _readGroups.empty();
-};
+}
 
 // access read groups
 size_t TReadGroups::getId(std::string_view Name) const {
 	auto rg = _getReadGroup(Name);
-	if(rg == _readGroups.end()){
-		return noReadGroupId;
+	if(rg == _readGroups.end()){		
+		return _readGroupIdForReadsWithoutReadGroup;
 	} else {
 		return rg->id;
 	}
@@ -109,7 +120,7 @@ const TReadGroup& TReadGroups::getReadGroup(std::string_view Name) const {
 	if(rg != _readGroups.end())
 		return *rg;
 	UERROR("Read Group '", Name, "' is not present in header of bam file!");
-};
+}
 
 TReadGroup& TReadGroups::getReadGroup(std::string_view Name){
 	auto rg = _getReadGroup(Name);
@@ -178,7 +189,7 @@ void TReadGroups::fillVectorWithNames(std::vector<std::string> & Vec) const{
 	for(auto& rg : _readGroups){
 		Vec[rg.id] = rg.name_ID;
 	}
-};
+}
 
 std::string TReadGroups::compileSamHeader() const{
 	std::string header;
@@ -186,7 +197,7 @@ std::string TReadGroups::compileSamHeader() const{
 		header += rg.compileSamHeader() + "\n";
 	}
 	return header;
-};
+}
 
 
 }; //end namespace

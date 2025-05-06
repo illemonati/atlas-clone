@@ -18,11 +18,13 @@ void TBamFilter::filterOut(std::string_view alignmentName, bool isSecondMate, si
 	if (Log.isOpen()) { Log.writeln(alignmentName, isSecondMate, _reason); }
 }
 
-void TBamFilter::summary(size_t total, size_t readGroup) const {
+bool TBamFilter::summary(size_t total, size_t readGroup) const {
 	if (readGroup < _counter.size() && _counter[readGroup].counts() > 0) {
 		logfile().list(_reason + ": ", _counter[readGroup].counts(),
 					   " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
+		return true;
 	}
+	return false;
 }
 
 void TBamFilter::fillHeader(std::vector<std::string> &header) const {

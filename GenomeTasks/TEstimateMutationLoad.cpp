@@ -175,7 +175,7 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 		logfile().listFlush("Reading BED file '", _fileName, "' (parameter 'bed') ...");
 		_bedFile.parse(_fileName, _genome.bamFile().chromosomes());
 		logfile().done();
-		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.NChrWindows(),
+		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.NChrWithWindows(),
 		                   " chromosomes.");
 		_parseFromBed = true;
 		logfile().endIndent();

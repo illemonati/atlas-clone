@@ -272,7 +272,7 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
 	region.parse(regionsFile, _genome.bamFile().chromosomes());
 	logfile().done();
-	logfile().conclude("Read ", region.size(),  " sites on ", region.NChrWindows(), " chromosomes.");
+	logfile().conclude("Read ", region.size(),  " sites on ", region.NChrWithWindows(), " chromosomes.");
 };
 
 void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, GenotypeLikelihoods::TThetaEstimatorData &Data, const genometools::TBed &Region) {

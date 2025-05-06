@@ -191,7 +191,7 @@ void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 		logfile().listFlush("Reading file ...");
 		_mask.parse(filename, Chromosomes);
 		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWithWindows(), " chromosomes.");
 		logfile().endIndent();
 	} else {
 		_doMasking       = false;

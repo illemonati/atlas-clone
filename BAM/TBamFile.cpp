@@ -100,7 +100,7 @@ void TBamFile::_fillReadGroups(){
 //--------------------------------------------------------
 // Functions for reading
 //--------------------------------------------------------
-TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), _ID(ID){
+TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _filename(Filename), _ID(ID), _filters(EnableFilters){
 
 	//open BAM file
 	logfile().list("Opening BAM file '", _filename, "'.");
@@ -154,6 +154,19 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
 
+
+	// check if we add a RG for reads without one
+	if(parameters().exists("keepReadsWithoutRG")){
+		std::string name = parameters().get("keepReadsWithoutRG");
+		if(name.empty()){
+			name = "RGForReadsWithoutReadGroup";
+		}		
+		logfile().list("Will put reads without read group into read group '", name, "'. (parameter 'keepReadsWithoutRG')");
+		_readGroups.addReadGroupForReadsWithoutReadGroup(name);
+	} else {
+		logfile().list("Will filter out all reads without read group. (keep with 'keepReadsWithoutRG')");
+	}	
+	
 	_filters.resize(_readGroups.size(), _chromosomes.size(), _filename);
 
 	// Set Limits:
@@ -316,7 +329,7 @@ bool TBamFile::readNextAlignment(){
 
 
 	//check if it has no read group
-	bool pass =false;
+	bool pass = false;
 	while (!pass) {
 		pass = true;
 		// get next alignment
@@ -528,10 +541,17 @@ void TBamFile::printSummary(std::string_view outputName) const {
 	//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
 	for (size_t rg = 0; rg < _readGroups.size(); rg++){
 		//logfile().newLine();
-		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
+		logfile().list("Number of reads filtered from read group '" + coretools::str::toString(_readGroups.getName(rg)) + "':");
 		logfile().addIndent();
-		if (rg < _numNotAligned.size() && _numNotAligned[rg] > 0) logfile().list("Not aligned: ", _numNotAligned[rg]);
-		_filters.summary(numFiltered, rg);
+		bool summaryWritten = false;
+		if (rg < _numNotAligned.size() && _numNotAligned[rg] > 0){
+			logfile().list("Not aligned: ", _numNotAligned[rg]);
+			summaryWritten = true;
+		} 
+		summaryWritten = summaryWritten || _filters.summary(numFiltered, rg);
+		if(!summaryWritten){
+			logfile().list("All reads passed filters");
+		}
 		logfile().endIndent();
 	}
 

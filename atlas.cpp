@@ -51,6 +51,9 @@
 //simulations
 #include "TSimulator.h"
 
+//other
+#include "TPositionBasedLiftOver.h"
+
 void addTaks(coretools::TMain & main) {
 	//BAM
 	{
@@ -112,6 +115,13 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<Simulations::TSimulationRunner>(groupName, "simulate", "Simulate bam- or vcf-file[s]");
 	}
 
+	/*other
+	{
+	constexpr auto groupName = "Other";
+	main.createGroupedTask<PopulationTools::TPositionBasedLiftOver>(groupName, "liftOver", "Position-based lift over from one reference to another");
+	}
+	*/
+
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
@@ -120,6 +130,8 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
 	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
 	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
+	main.createDebugTask<PopulationTools::TPositionBasedLiftOver>("liftOver", "Position-based lift over from one reference to another");
+
 };
 
 void addTests(coretools::TMain & ){
