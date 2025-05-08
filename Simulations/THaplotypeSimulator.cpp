@@ -11,7 +11,6 @@
 #include <armadillo>
 
 #include "SFS.h"
-#include "TSimulatorReference.h"
 
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -109,7 +108,7 @@ TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeRefDivSimulator()
 		UERROR("Number of theta values provided does not match number of chromosomes to simulate!");
 }
 
-void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	// fill mutation table
 	const TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
@@ -131,7 +130,7 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	}
 }
 
-void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	// now simulate genotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
@@ -147,8 +146,11 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	}
 }
 
-TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
+TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes, bool ReadFasta) : THaplotypeSimulator(), _readFasta(ReadFasta) {
 	// now theta
+	_sampleSize = parameters().get<int>("sampleSize", 1);	
+	logfile().list("Will generate data for ", _sampleSize, " samples. (parameter 'sampleSize')");
+
 	std::vector<double> thetas_g, thetas_r, mus;
 
 	parameters().fill("thetaG", thetas_g, {0.0001});
@@ -192,37 +194,32 @@ TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
 	}
 }
 
-void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base r = randomGenerator().pickOne(_cumulBaseFreq);
-		const Base R = Base(_pick_r[refID][r]());
-		const Base k = Base(_pick_g[refID][R]());
-		const Base l = Base(_pick_g[refID][R]());
+		const Base r = _readFasta ? reference[i] : randomGenerator().pickOne(_cumulBaseFreq);
+		for (size_t s = 0; s < _sampleSize; ++s) {
+			const Base R = Base(_pick_r[refID][r]());
+			const Base k = Base(_pick_g[refID][R]());
+			const Base l = Base(_pick_g[refID][R]());
 
-		if (randomGenerator().getRand() < _referenceN) {
-			reference[i] = Base::N;
-		} else {
-			reference[i] = r;
+			haplotypes[s][i] = genometools::twoBase(k, l);
 		}
-		haplotypes[0][i] = genometools::twoBase(k, l);
+		if (!_readFasta) reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
 	}
 }
 
-void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base ref = randomGenerator().pickOne(_cumulBaseFreq);
-		const Base R   = Base(_pick_r[refID][ref]());
-
-		if (randomGenerator().getRand() < _referenceN) {
-			reference[i] = Base::N;
-		} else {
-			reference[i] = ref;
+		const Base r = _readFasta ? reference[i] : randomGenerator().pickOne(_cumulBaseFreq);
+		for (size_t s = 0; s < _sampleSize; ++s) {
+			const Base R     = Base(_pick_r[refID][r]());
+			haplotypes[s][i] = genometools::twoBase(R, R);
 		}
-		haplotypes[0][i] = genometools::twoBase(R, R);
+		if (!_readFasta) reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
 	}
 }
 
@@ -233,7 +230,8 @@ TSimulatorPair::TSimulatorPair() : THaplotypeRefDivSimulator() {
 	logfile().startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
 	// Initialize phis
-	parameters().fill("phi", _phis);
+
+	parameters().fill("phi", _phis, {1., 1., 1., 1., 1., 1., 1., 1., 1.});
 	if (_phis.size() != 9)
 		UERROR("Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, "
 			   "01/01, 01/02, 00/12, 01/22, 01/23");
@@ -363,7 +361,7 @@ void TSimulatorPair::_fillTables() {
 	}
 }
 
-void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						const genometools::TChromosome &chromosome) {
 	// first run diploid
 	simulateDiploid(haplotypes, reference, chromosome);
@@ -379,7 +377,7 @@ void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	}
 }
 
-void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						const genometools::TChromosome &chromosome) {
 	// run across loci
 	for (size_t l = 0; l < chromosome.length(); ++l) {
@@ -405,7 +403,8 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 		if (randomGenerator().getRand() < _referenceN) {
 			reference[l] = Base::N;
 		} else if (c == 0) {
-			reference[l] = impl::mutateBase(reference[l], _cumulRef);
+			// b0 == b1 == b2 == b3
+			reference[l] = impl::mutateBase(b0, _cumulRef);
 		} else {
 			const int r   = randomGenerator().sample(4);
 			reference[l] = _genoTrans[c][g][r];
@@ -443,9 +442,9 @@ TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THa
 		// initialize SFS from files
 		const bool folded = parameters().exists("folded");
 		_initializeSFS(chromosomes, sfsFileNames, folded);
-	} else if (parameters().exists("theta")) {
+	} else {
 		// parse theta from command line
-		auto thetas = parameters().get<std::vector<double>>("theta");
+		auto thetas = parameters().get<std::vector<double>>("theta", {0.001});
 		if (thetas.size() == 1) {
 			logfile().list("Will simulate from SFS with theta = ", thetas.front(), ".");
 			for (unsigned int _ = 1; _ < nChromosomes; ++_) thetas.push_back(thetas.front());
@@ -455,9 +454,7 @@ TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THa
 		}
 		const bool folded = parameters().exists("folded");
 		_initializeSFS(chromosomes, thetas, folded);
-	} else
-		UERROR("Either argument sfs or theta must be provided to simulate population samples!");
-
+	}
 	// done
 	logfile().endIndent();
 }
@@ -510,7 +507,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 	}
 }
 
-void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	// now simulate haplotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
@@ -537,7 +534,7 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	}
 }
 
-void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						   const genometools::TChromosome &chromosome) {
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// pick alleles
@@ -610,7 +607,7 @@ void TSimulatorHW::_fillCumulGenoProb(double f) {
 	_cumulGenoProb[2]       = 1.0;
 }
 
-void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, size_t pos) {
+void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, coretools::TView<genometools::Base> reference, const std::string &chr, size_t pos) {
 	// simulate bases
 	site.reference   = genometools::Base(randomGenerator().pickOne(_cumulBaseFreq));
 	site.alternative = genometools::Base(randomGenerator().pickOne(_mutTable[site.reference]));
@@ -647,17 +644,17 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &re
 void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, size_t locus,
 						  const TSimulatorHWSite &site) {
 	if (site.f == 0.0) {
-		for (int i = 0; i < _sampleSize; ++i) {
+		for (size_t i = 0; i < _sampleSize; ++i) {
 			haplotypes[i][locus] = genometools::twoBase(site.reference, site.reference);
 		}
 	} else {
-		for (int i = 0; i < _sampleSize; ++i) {
+		for (size_t i = 0; i < _sampleSize; ++i) {
 			haplotypes[i][locus] = genometools::twoBase(site.alternative, site.alternative);
 		}
 	}
 }
 
-void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						  const genometools::TChromosome &chromosome) {
 	// storage
 
@@ -670,7 +667,7 @@ void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 		// polymoprhic or not?
 		if (site.isPolymorphic) {
 			// simulate genotypes
-			for (int i = 0; i < _sampleSize; ++i) {
+			for (size_t i = 0; i < _sampleSize; ++i) {
 				if (randomGenerator().getRand() < site.f) {
 					haplotypes[i][l] = genometools::twoBase(site.alternative, site.alternative);
 				} else {
@@ -683,7 +680,7 @@ void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 	}
 }
 
-void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
 						  const genometools::TChromosome &chromosome) {
 	// storage
 
@@ -698,8 +695,8 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 			_fillCumulGenoProb(site.f);
 
 			// simulate genotypes
-			for (int i = 0; i < _sampleSize; ++i) {
-				int geno = randomGenerator().pickOne(_cumulGenoProb);
+			for (size_t i = 0; i < _sampleSize; ++i) {
+				size_t geno = randomGenerator().pickOne(_cumulGenoProb);
 				if (geno == 0) {
 					haplotypes[i][l] = genometools::twoBase(site.reference, site.reference);
 				} else if (geno == 1) {
@@ -717,92 +714,5 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 		}
 	}
 }
-
-//--------------------------------------------------------------------
-// Functions to simulate pooled data
-//--------------------------------------------------------------------
-// TODO: Need to switch to haplotype model
-
-/*
-void TSimulator::simulatePooledData(int sampleSize, SFS & sfs, std::string outname){
-	//open BAM file
-	openBamFile(outname + ".bam");
-
-	//open FASTA file for reference sequences
-	std::string filename = outname + ".fasta";
-	openFastaFile(filename);
-
-	//prepare variables
-	float* altFreq = NULL;
-	long numReads;
-	long chrLengthForStart;
-	double probReadPerSite;
-	int numReadsHere;
-	long numReadsSimulated;
-	initializeQualToErrorTable();
-
-	//open frequency file
-	filename = outname + "_frequencies.txt";
-	std::ofstream freqFile(filename.c_str());
-
-	//simulate sequences
-	int refId = 0;
-	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId){
-	logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
-
-	//simulate reference and alternative sequence
-	simulateReferenceAndAlternativeSequenceCurChromosome();
-
-	//simulate alternative frequencies (and write to file)
-	logfile->listFlush("Simulating alternative allele frequencies ...");
-	delete[] altFreq;
-	altFreq = new float[chrIt->length];
-	for(int l=0; l<chrIt->length; ++l){
-	altFreq[l] = sfs.getRandomFrequency(randomGenerator);
-	freqFile << chrIt->name << "\t" << l+1 << altFreq[l] << "\n";
-	}
-	logfile->done();
-
-	//simulating reads
-	numReads = chrIt->length * seqDepth / readLength;
-	chrLengthForStart = chrIt->length - readLength;
-	probReadPerSite = 1.0 / (double) chrLengthForStart;
-	numReadsSimulated = 0;
-	bamAlignment.RefID = refId;
-	int prog;
-	int oldProg = 0;
-	std::string progressString = "Simulating about " + toString(numReads) + " reads ...";
-	logfile->listFlush(progressString);
-	for(long l=0; l<chrLengthForStart; ++l){
-	//draw random number to get number of reads starting at this position
-	numReadsHere = randomGenerator->getBiomialRand(probReadPerSite, numReads);
-
-	//now simulate
-	if(numReadsHere > 0){
-	simulateReads(numReadsHere, l, altFreq);
-	numReadsSimulated += numReadsHere;
-
-	//report progress
-	prog = 100.0 * (float) numReadsSimulated / (float) numReads;
-	if(prog > oldProg){
-			oldProg = prog;
-			logfile->listOverFlush(progressString + "(" + toString(prog) + "%)");
-				}
-			}
-		}
-		logfile->overList(progressString + " done!  ");
-		logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
-		logfile->endIndent();
-	}
-
-	//close stuff
-	closeBamFile();
-	closeFastaFile();
-	freqFile.close();
-
-	//clear memory
-	delete[] altFreq;
-}
-*/
 
 } // namespace Simulations

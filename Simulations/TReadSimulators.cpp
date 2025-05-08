@@ -116,7 +116,7 @@ TReadSimulators::TReadSimulators(std::string_view RGOutName, std::string_view RG
 
 std::pair<size_t, size_t> TReadSimulators::simulate(const genometools::TGenomePosition &Position,
 													const std::vector<genometools::TwoBase> &Haplotype,
-													const TSimulatorReference &Reference,
+													coretools::TView<genometools::Base> Reference,
 													BAM::TOutputBamFile &BamFile) {
 	// sample which simulator to use
 	const auto RG   = numRG() == 1 ? 0 : _picker();

@@ -1,7 +1,6 @@
 #include "TSimulatorHaplotypes.h"
 
 #include "TSimulatorAlleleIndex.h"
-#include "TSimulatorReference.h"
 #include "coretools/Strings/toString.h"
 
 namespace Simulations {
@@ -22,7 +21,7 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string_view Filename) {
 	_trueGenoVCF.endln();
 }
 
-void TSimulatorHaplotypes::writeTrueGenotypes(std::string_view ChrName, const TSimulatorReference &Ref) {
+void TSimulatorHaplotypes::writeTrueGenotypes(std::string_view ChrName, coretools::TView<genometools::Base> Ref) {
 	// prepare allele storage
 	TSimulatorAlleleIndex index;
 	std::string genoString;
