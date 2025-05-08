@@ -57,7 +57,7 @@ protected:
 	coretools::Probability _baseN;
 	coretools::Probability _refBias;
 
-	std::array<size_t, 2> _refCount;
+	std::array<size_t, 2> _refCount{};
 	double _contaminationRate = 0.;
 
 

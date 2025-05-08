@@ -18,6 +18,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
+#include "genometools/TFastaReader.h"
 #include "genometools/VCF/TVCFWriter.h"
 #include "THaplotypeSimulator.h"
 #include "TReadSimulators.h"
@@ -33,12 +34,14 @@ namespace Simulations {
 class TSimulator {
 protected:
 	std::string _outname;
+	genometools::TFastaReader _fasta;
 	std::vector<double> _seqDepth; //depth per chromosome
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
 	genometools::TChromosomes _chromosomes;
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
+	void _makeChromosomes();
 	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
 								   coretools::TView<genometools::Base> Reference, double avgDepth) = 0;
 

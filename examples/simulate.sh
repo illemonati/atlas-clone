@@ -26,3 +26,6 @@ for t in "HKY85" "SFS" "HW" ; do
 	runSim "multi" $t "--sampleSize 3"
 done
 
+out="fromFasta"
+$atlas --task simulate --type HKY85 --fasta singleHKY85.fasta \
+		   --out $out --logFile $out.out 2> $out.eout
