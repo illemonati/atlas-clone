@@ -11,7 +11,7 @@ runSim() {
 		   --fragmentLength 'fixed(500)' --baseQuality 'binomial(95,0.01)[0,93]' \
 		   --mappingQuality 'normal(60,10)[1,255]' --softClipping 'poisson(20)[0,50]' \
 		   --pmd 'CT5:0.2*exp(-0.2*p)+0.02;GA3:0.3' --frequency 0.2 --fixedSeed 234 \
-		   --out $out --logFile $out.out 2> $out.eout
+		   --fixedSeed 234 --out $out --logFile $out.out 2> $out.eout
 }
 
 for t in "one" "pair"; do
@@ -26,6 +26,18 @@ for t in "HKY85" "SFS" "HW" ; do
 	runSim "multi" $t "--sampleSize 3"
 done
 
+echo ">test1" > in.fasta
+for i in {1..1111}; do
+	echo "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" >> in.fasta
+	echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" >> in.fasta
+	echo "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG" >> in.fasta
+	echo "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT" >> in.fasta
+done
+echo ">test2" >> in.fasta
+for i in {1..333}; do
+	echo "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT" >> in.fasta
+done
+
 out="fromFasta"
-$atlas --task simulate --type HKY85 --fasta singleHKY85.fasta \
-		   --out $out --logFile $out.out 2> $out.eout
+$atlas --task simulate --fasta in.fasta \
+		   --fixedSeed 432 --out $out --logFile $out.out 2> $out.eout

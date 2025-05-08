@@ -34,7 +34,7 @@ namespace Simulations {
 class TSimulator {
 protected:
 	std::string _outname;
-	genometools::TFastaReader _fasta;
+	genometools::TFastaReader _fastaReader;
 	std::vector<double> _seqDepth; //depth per chromosome
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
@@ -42,6 +42,7 @@ protected:
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
 	void _makeChromosomes();
+	std::unique_ptr<THaplotypeSimulator> _makeHaploSimulator(std::string_view Method);
 	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
 								   coretools::TView<genometools::Base> Reference, double avgDepth) = 0;
 
@@ -92,16 +93,17 @@ struct TSimulationRunner {
 	void run() {
 		using coretools::instances::parameters;
 		using coretools::instances::logfile;
-		// initialize simulator
-		auto method = parameters().get<std::string>("type", "one");
+		// default type ist "one" if no fasta is given, HKY85 otherwise
+		const auto type =
+			parameters().get("type", parameters().exists("fasta") ? TSimulatorHKY85::name : TSimulatorOne::name);
 
 		if (parameters().exists("vcf")) {
 			logfile().startIndent("Simulating VCF Files:");
-			auto simulator = TVCFSimulator{method};
+			auto simulator = TVCFSimulator{type};
 			simulator.runSimulations();
 		} else { // default: BAM simulator
 			logfile().startIndent("Simulating BAM Files:");
-			auto simulator = TBAMSimulator{method};
+			auto simulator = TBAMSimulator{type};
 			simulator.runSimulations();
 		}
 

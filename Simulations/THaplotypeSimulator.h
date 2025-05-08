@@ -78,11 +78,12 @@ private:
 	using Pickers = std::vector<coretools::TStrongArray<coretools::TRandomPicker, genometools::Base>>;
 
 	size_t _sampleSize = 1;
+	bool _readFasta    = false;
 	Pickers _pick_g;
 	Pickers _pick_r;
 
 public:
-	TSimulatorHKY85(size_t nChoromosomes);
+	TSimulatorHKY85(size_t nChoromosomes, bool ReadFasta);
 	static inline const std::string name = "HKY85";
 
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,

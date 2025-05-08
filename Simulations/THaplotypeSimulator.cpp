@@ -146,7 +146,7 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools:
 	}
 }
 
-TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes) : THaplotypeSimulator() {
+TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes, bool ReadFasta) : THaplotypeSimulator(), _readFasta(ReadFasta) {
 	// now theta
 	_sampleSize = parameters().get<int>("sampleSize", 1);	
 	logfile().list("Will generate data for ", _sampleSize, " samples. (parameter 'sampleSize')");
@@ -198,7 +198,7 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretool
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base r = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base r = _readFasta ? reference[i] : randomGenerator().pickOne(_cumulBaseFreq);
 		for (size_t s = 0; s < _sampleSize; ++s) {
 			const Base R = Base(_pick_r[refID][r]());
 			const Base k = Base(_pick_g[refID][R]());
@@ -206,7 +206,7 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretool
 
 			haplotypes[s][i] = genometools::twoBase(k, l);
 		}
-		reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
+		if (!_readFasta) reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
 	}
 }
 
@@ -214,12 +214,12 @@ void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretool
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base r = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base r = _readFasta ? reference[i] : randomGenerator().pickOne(_cumulBaseFreq);
 		for (size_t s = 0; s < _sampleSize; ++s) {
 			const Base R     = Base(_pick_r[refID][r]());
 			haplotypes[s][i] = genometools::twoBase(R, R);
 		}
-		reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
+		if (!_readFasta) reference[i] = randomGenerator().getRand() < _referenceN ? Base::N : r;
 	}
 }
 
