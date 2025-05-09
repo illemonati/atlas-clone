@@ -163,7 +163,7 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 	//  2) from a BED file and the reference
 	if (parameters().exists("alleles")) {
 		_fileName = parameters().get("alleles");
-		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), false);
+		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), genometools::Morphic::Mono);
 		_parseFromBed = false;
 	} else if (parameters().exists("bed")) {
 		logfile().startIndent("Limiting analysis to sites listed in BED file:");

@@ -1219,9 +1219,7 @@ TCall::TCall() {
 
 	//limit to sites with known alleles?
 	if(parameters().exists("alleles")){
-		logfile().startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
-		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes());
-		logfile().endIndent();
+		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), genometools::Morphic::Both);
 	} else {
 		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
@@ -1284,7 +1282,9 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 			TSite& site = window[internalPos];
 			site.refBase = it->ref;
 			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
-			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
+
+			if (it->alt == Base::N) _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik);
+			else _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
 		}
 	}
 };

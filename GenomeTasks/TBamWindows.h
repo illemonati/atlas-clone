@@ -52,7 +52,7 @@ class TBamWindows {
 
 public:
 	TBamWindows(const genometools::TChromosomes& chromosomes);
-	void openSiteSubset(const std::string &filename, const genometools::TChromosomes& chromosomes, bool polymoprhic = true);
+	void openSiteSubset(const std::string &filename, const genometools::TChromosomes& chromosomes, genometools::Morphic Morph = genometools::Morphic::Poly);
 	void fillSites(GenotypeLikelihoods::TWindow &window);
 	void filter(GenotypeLikelihoods::TWindow &window);
 

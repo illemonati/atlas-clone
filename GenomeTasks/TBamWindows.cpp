@@ -199,9 +199,9 @@ void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 	}
 }
 
-void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, bool polymorphic) {
+void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, genometools::Morphic Morph) {
 	//report
-	if(polymorphic){
+	if(Morph == genometools::Morphic::Poly || Morph == genometools::Morphic::Both){
 		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
 	} else {
 		logfile().startIndent("Limiting analysis to sites with known allele (parameter '", paramName, "'):");
@@ -218,8 +218,7 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 			   "') and masks (parameter 'mask') can not be used at the same time!");
 
 	const auto filename = parameters().get(paramName);
-	auto morphic = polymorphic ? genometools::Morphic::Poly : genometools::Morphic::Mono;
-	_alleles.parse(filename, Chromosomes, morphic);
+	_alleles.parse(filename, Chromosomes, Morph);
 
 	logfile().endIndent();
 }
