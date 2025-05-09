@@ -25,16 +25,19 @@ $atlas --task majorMinor --glf $allSamples --method Skotte \
 	   --minMAF 0.05 --maxThreads 1 --bgz --minSamplesWithData 83 \
 	   --fixedSeed 132 --out $out --logFile $out.out 2> $out.eout
 
+ls *.glf.gz > glflist.txt
+ls *.glf.gz | sed 's/GLF_simulate_//g' | sed 's/\.glf\.gz//g' > indlist.txt
+
 out="Skotte_fasta"
 $atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
-	   --glf $allSamples --fasta simulate.fasta \
+	   --glf glflist.txt --sampleNames indlist.txt --fasta simulate.fasta \
 	   --minMAF 0.05 --maxThreads 1 --bgz \
 	   --fixedSeed 134 --out $out --logFile $out.out 2> $out.eout
 
 out="MLE_fasta"
 $atlas --task majorMinor --method MLE --minSamplesWithData 83 \
 	   --glf $allSamples --fasta simulate.fasta \
-	   --minMAF 0.05 --maxThreads 1 --bgz \
+	   --minMAF 0.05 --noVCFHeader \
 	   --fixedSeed 135 --out $out --logFile $out.out 2> $out.eout
 
 echo "chr pos ref alt" > alleles.txt

@@ -547,12 +547,18 @@ template<typename Estimator> void iterate(double maxF) {
 #endif
 
 	// open vcf file
+	const bool writeHeader = !parameters().exists("noVCFHeader");
+	if (writeHeader) {
+		logfile().list("Will print VCF header. (use 'noVCFHeader' not to print)");
+	} else {
+		logfile().list("Will not print VCF header. (parameter 'noVCFHeader')");
+	}
 	genometools::TVCFWriter vcf =
 		coretools::instances::parameters().exists("bgz")
 			? genometools::TVCFWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller",
-									  glfReader.sampleNames(), glfReader.chromosomes(), usePhredLikelihoods)
+									  glfReader.sampleNames(), glfReader.chromosomes(), usePhredLikelihoods, writeHeader)
 			: genometools::TVCFWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNames(),
-									  glfReader.chromosomes(), usePhredLikelihoods);
+									  glfReader.chromosomes(), usePhredLikelihoods, writeHeader);
 
 	// vars
 	logfile().startIndent("Parsing through glf files:");
@@ -628,7 +634,7 @@ template<typename Estimator> void iterate(double maxF) {
 	logfile().list("Reached end of glf files!");
 	logfile().list("Parsed a total of ", counter, " positions, filtered: ", counterF, " (", (100.*counterF)/counter, "%).");
 	logfile().removeIndent();
-};
+}
 
 //---------------------------------------------------
 // TMajorMinor
@@ -650,4 +656,4 @@ void TMajorMinor::run() {
 	}
 }
 
-}; // namespace PopulationTools
+} // namespace PopulationTools

@@ -66,6 +66,7 @@ for i in {0..9}; do
 done
 
 samtools view -bS testBam.sam > testBam.bam
+rm testBam.sam
 
 # running mode 2: Bam2Bed
 $atlas liftOver --mode Bam2Bed --bam testBam.bam \
