@@ -120,8 +120,8 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 // TPileup
 //---------------------------------
 TPileup::TPileup() {
-	_onlySummary = parameters().exists("onlySummaries");
-	if (!_onlySummary) {
+	_onlyHistograms = parameters().exists("onlyHistograms");
+	if (!_onlyHistograms) {
 		// open output file
 		const std::string filename = _genome.front().outputName() + "_pileup.txt.gz";
 		logfile().list("Writing pileup to file '", filename, "'.");
@@ -215,16 +215,10 @@ TPileup::TPileup() {
 		}
 	}
 
-	if (parameters().exists("histograms") || _onlySummary) {
+	if (parameters().exists("histograms") || _onlyHistograms) {
 		logfile().startIndent("Will print the following histograms (parameter 'histograms'):");
 		const auto tmp = parameters().get<std::vector<std::string>>("histograms", {"depth", "qualities", "contexts"});
 		std::set<std::string> histograms(tmp.begin(), tmp.end());
-
-		if (histograms.empty()) {
-			histograms.emplace("depth");
-			histograms.emplace("qualities");
-			histograms.emplace("contexts");
-		}
 
 		_histSettings.set<Hist::Depths>(impl::parseField(histograms, "depth", "Sequencing depth"));
 		_histSettings.set<Hist::Quality>(impl::parseField(histograms, "qualities", "Base qualities"));
@@ -238,12 +232,12 @@ TPileup::TPileup() {
 		if (!histograms.empty()) {
 			if (histograms.size() == 1) {
 				UERROR("Unknown histogram '", *histograms.begin(),
-				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'strandMate' and 'contexts'.");
+				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'prevBases' and 'contexts'.");
 			} else {
 				std::string f;
 				for (auto i : histograms) { f += '\'' + i + "', "; }
 				UERROR("Unknown histograms: ", f.substr(0, f.size() - 2),
-				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'strandMate' and 'contexts'.");
+				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'prevBases' and 'contexts'.");
 			}
 		}
 		if (_histSettings.get<Hist::Depths>()) {
@@ -354,7 +348,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			}
 		}
 
-		if ((_printSettings.get<Print::OnlySitesWithData>() && site.empty()) || _onlySummary) continue;
+		if ((_printSettings.get<Print::OnlySitesWithData>() && site.empty()) || _onlyHistograms) continue;
 		_out.write(window.chrName(), window.positionOnChr(pos) + 1); // positions are zero-based internally
 
 		if (_windows.parser().reference()) { _out.write(site.refBase); }

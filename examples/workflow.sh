@@ -93,7 +93,7 @@ $atlas --task mergeOverlappingReads --mergingMethod middle --bam $bam \
 bam=${out}_merged.bam 
 
 out="pileup"
-$atlas --task pileup --onlySummaries --histograms depth,transitions \
+$atlas --task pileup --onlyHistograms --histograms depth,transitions \
 	--bam $bam --fasta $fasta \
 	--fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
