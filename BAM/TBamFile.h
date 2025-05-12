@@ -119,6 +119,7 @@ public:
 	void setExternalFilterReason(std::string_view reason);
 
 	//get filter status
+	const TBamFilters& filters() const noexcept {return _filters;}
 	const TBamFilter& filter(FilterType t) const noexcept {return _filters[t];}
 
 	//reading

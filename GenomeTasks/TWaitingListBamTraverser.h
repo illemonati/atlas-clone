@@ -26,7 +26,7 @@ private:
 	TBamReadMask _masks;
 
 protected:
-	TGenome _genome;
+	TGenome _genome{true};
 	TParser _parser;
 
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates

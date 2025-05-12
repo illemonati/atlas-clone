@@ -59,18 +59,16 @@ class TBamWindowTraverser {
 
 	static GType _initGenome() {
 		if constexpr (isSingle) {
-			return {BAM::TBamFilters(true)};
+			return {true};
 		} else {
 			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
 			const auto filter = BAM::TBamFilters(true);
 			std::vector<TGenome> vec;
 			vec.reserve(bams.size());
-			if (bams.size() == 1) {
-				vec.emplace_back(bams.front(), filter);
-			} else {
-				for (size_t i = 0; i < bams.size(); ++i) {
-					vec.emplace_back(bams[i], filter, i);
-				}
+			vec.emplace_back(bams.front(), true, 0);
+			for (size_t i = 1; i < bams.size(); ++i) {
+				vec.emplace_back(bams[i], false, i);
+				vec.back().bamFile().setFilters(vec.front().bamFile().filters());
 			}
 			return vec;
 		}

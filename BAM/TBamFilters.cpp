@@ -11,7 +11,7 @@ using coretools::instances::parameters;
 
 TBamFilters::TBamFilters(bool Enable) {
 	enable(FilterType::MappedLength, coretools::TNumericRange<size_t>(0, true, 500, true),
-		   "MappedLength outside [0, 500]");
+		   "MappedLength outside [0,500]");
 
 	// MappedLength doesn't count as enabled
 	_enabled = false;
@@ -32,7 +32,7 @@ TBamFilters::TBamFilters(bool Enable) {
 		// set default
 		mappingLengthRange.set(0, true, 500, true);
 	}
-	enable(FilterType::MappedLength, mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString());
+	enable(FilterType::MappedLength, mappingLengthRange, "MappedLength outside " + mappingLengthRange.rangeString());
 
 	logfile().list("Mapped length: restrict to range " + mappingLengthRange.rangeString() +
 				   ". (parameter 'filterMappingLength')");
@@ -52,7 +52,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::Duplicate);
 			logfile().list("Duplicate reads: keep. (parameter 'keepDuplicates')");
 		} else {
-			enable(FilterType::Duplicate, "Duplicate");
+			enable(FilterType::Duplicate, "Duplicates");
 			logfile().list("Duplicate reads: filter out. (use 'keepDuplicates' to keep)");
 		}
 
@@ -77,7 +77,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::ImproperPairs);
 			logfile().list("Improper pairs: keep. (parameter 'keepImproperPairs')");
 		} else {
-			enable(FilterType::ImproperPairs, "ImproperPair");
+			enable(FilterType::ImproperPairs, "Improper pairs");
 			logfile().list("Improper pairs: filter out. (use 'keepImproperPairs' to keep)");
 		}
 
@@ -86,7 +86,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::Unmapped);
 			logfile().list("Unmapped reads: keep. (parameter 'keepUnmappedReads')");
 		} else {
-			enable(FilterType::Unmapped, "Unmapped");
+			enable(FilterType::Unmapped, "Unmapped reads");
 			logfile().list("Unmapped reads: filter out. (use 'keepUnmappedReads' to keep)");
 		}
 
@@ -95,7 +95,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::FailedQC);
 			logfile().list("Failed QC: keep. (parameter 'keepFailedQC')");
 		} else {
-			enable(FilterType::FailedQC, "FailedQC");
+			enable(FilterType::FailedQC, "Failed QC");
 			logfile().list("Failed QC: filter out. (use 'keepFailedQC' to keep)");
 		}
 
@@ -104,7 +104,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::Secondary);
 			logfile().list("Secondary reads: keep. (parameter 'keepSecondaryReads')");
 		} else {
-			enable(FilterType::Secondary, "SecondaryAlignment");
+			enable(FilterType::Secondary, "Secondary reads");
 			logfile().list("Secondary reads: filter out. (use 'keepSecondaryReads' to keep)");
 		}
 
@@ -113,7 +113,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			disable(FilterType::Supplementary);
 			logfile().list("Supplementary reads: keep. (parameter 'keepSupplementaryReads')");
 		} else {
-			enable(FilterType::Supplementary, "SupplementaryAlignment");
+			enable(FilterType::Supplementary, "Supplementary reads");
 			logfile().list("Supplementary reads: filter out. (use 'keepSupplementaryReads' to keep)");
 		}
 
@@ -163,7 +163,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			logfile().list("Will filter out reads present in the file '" + blacklistFilename +
 						   "'. (parameter 'blacklist')");
 			_blacklist.addFromFile(blacklistFilename);
-			enable(FilterType::Blacklist, "Was in provided blacklist");
+			enable(FilterType::Blacklist, "Was in blacklist");
 		} else {
 			disable(FilterType::Blacklist);
 			logfile().list("Blacklist: keep all. (use 'blacklist' to provide a list and filter specific reads)");
@@ -174,7 +174,7 @@ TBamFilters::TBamFilters(bool Enable) {
 			TNumericRange<size_t> Range;
 			parameters().fill("filterMQ", Range);
 
-			enable(FilterType::MappingQuality, Range, "MappingQualityOutside" + Range.rangeString());
+			enable(FilterType::MappingQuality, Range, "Mapping quality outside " + Range.rangeString());
 			logfile().list("Mapping quality: restrict to range " + Range.rangeString() + ". (parameter 'filterMQ')");
 		} else {
 			disable(FilterType::MappingQuality);

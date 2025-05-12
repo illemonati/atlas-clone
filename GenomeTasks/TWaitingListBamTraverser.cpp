@@ -79,7 +79,7 @@ TWaitingAlignment TWaitingListBamTraverser::_nextAlignment() {
 }
 
 TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
-	: _genome(BAM::TBamFilters{true}) {
+	{
 	// max distance between mates
 	if (parameters().exists("dryRun")) {
 		logfile().list("Doing dry-run, no BAM file will be written. (parameter 'dryRun')");

@@ -48,9 +48,9 @@ friend class TBamDownsampler;
 // TBamDownsampler
 //-----------------------------------------
 class TBamDownsampler {
-	TGenome _genome;
+	TGenome _genome{false};
 	bool separateReads = false;
-	bool _writeN        = false;
+	bool _writeN       = false;
 	std::vector<double> _cumulProbs;
 	//lists to keep track of mates
 	std::map<std::string, uint16_t> _mateWasWritten;
