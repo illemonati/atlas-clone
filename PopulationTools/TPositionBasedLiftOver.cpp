@@ -114,17 +114,20 @@ void TBamToBed::run(){
     logfile().write("Will write output BED to file '", outname, "'. (parameter 'out')");
 
     _outBed.setChromosomes(_genome.bamFile().chromosomes());
-    _numPosNotAligned = 0;
+    auto _numPosNotAligned = 0;
 
 	// traverse BAM
 	_traverseBAMPassedQC();
 
+  
     // report and write BED    
+    _outBed.sortAndIndexWindows(true);
     _outBed.write(outname);
     logfile().conclude("Wrote a total of ", _outBed.size(), " positions.");
     if(_numPosNotAligned > 0){
         logfile().conclude("Ignored ", _numPosNotAligned, ", positions that did not align.");
     }
+
 }
 
 //--------------------------------------------

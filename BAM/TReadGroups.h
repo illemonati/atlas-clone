@@ -21,7 +21,7 @@ private:
 	std::vector<TReadGroup> _readGroups;
 	std::vector<size_t> _readGroupsById;
 	bool _limitReadGroups = false;
-	int _readGroupIdForReadsWithoutReadGroup; // is noReadGroupId if it does not exist (default)
+	size_t _readGroupIdForReadsWithoutReadGroup; // is noReadGroupId if it does not exist (default)
 
 	std::vector<TReadGroup>::iterator _getReadGroup(std::string_view Name);
 	std::vector<TReadGroup>::const_iterator _getReadGroup(std::string_view Name) const;
