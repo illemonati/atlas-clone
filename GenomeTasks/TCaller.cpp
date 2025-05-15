@@ -1277,7 +1277,7 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 			site.refBase = it->ref;
 			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
 
-			if (it->alt == Base::N) _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik);
+			if (it->alt == Base::N || it->ref == Base::N) _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik);
 			else _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
 		}
 	}

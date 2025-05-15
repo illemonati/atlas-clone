@@ -154,10 +154,12 @@ void TSpearmanGWASPopulation::bootstrap(std::vector<double>& RSS_null, std::vect
 
 // read data
 std::map<std::string, double> TSpearmanGWAS::_readDataIntoMap(std::string_view Filename){	
+	using genometools::defaults::sampleNames;
+	using genometools::defaults::populationNames;
 	TInputFile in(Filename, coretools::FileType::Header);
 
 	// get sample and data columns
-	size_t sampleIdx = in.indexOfFirstMatch(genometools::defaultColumnNames_sample);
+	size_t sampleIdx = in.indexOfFirstMatch(sampleNames);
 	int dataIdx = -1;
 	if(parameters().exists("dataCol")){
 		// user provided column name
@@ -167,8 +169,8 @@ std::map<std::string, double> TSpearmanGWAS::_readDataIntoMap(std::string_view F
 	} else {
 		// use first column in file that is not sample nor population
 		for(size_t i = 0; i < in.numCols(); ++i){
-			if(std::find(genometools::defaultColumnNames_sample.begin(), genometools::defaultColumnNames_sample.end(), in.header()[i]) == genometools::defaultColumnNames_sample.end()
-			&& std::find(genometools::defaultColumnNames_population.begin(), genometools::defaultColumnNames_population.end(), in.header()[i]) == genometools::defaultColumnNames_population.end()){
+			if(std::find(sampleNames.begin(), sampleNames.end(), in.header()[i]) == sampleNames.end()
+			&& std::find(populationNames.begin(), populationNames.end(), in.header()[i]) == populationNames.end()){
 				//column is not a sample or population
 				dataIdx = i;								
 				logfile().list("Reading data from column '", in.header()[i], "' of file '", Filename, "'. (specify column with 'dataCol') ");
@@ -263,9 +265,12 @@ void TSpearmanGWAS::run(){
 	reader.openVCF(_vcfFilename);
 	logfile().endIndent();
 
-	//open output file	
-	std::vector<std::string> header = {genometools::defaultColumnNames_chromosome[0], genometools::defaultColumnNames_position[0], genometools::defaultColumnNames_reference[0], genometools::defaultColumnNames_alternative[0], "F", "p", "p_bootstrap"};	
-	TOutputFile out(_outname, header);	
+	// open output file
+	using namespace genometools::defaults;
+	constexpr std::array<std::string_view, 7> header = {
+		chromosomeNames[0], positionNames[0], referenceNames[0], alternativeNames[0], "F", "p", "p_bootstrap"};
+
+	TOutputFile out(_outname, header);
 
 	// prepare bootstrap library
 	SpearmanGWASimpl::TSpearmanGWASBootstrapLibrary bootstrapLib(_numBootstraps);	
