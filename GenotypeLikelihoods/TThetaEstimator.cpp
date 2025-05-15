@@ -8,7 +8,7 @@
 #include "TThetaEstimator.h"
 
 #include "TErrorModels.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -715,11 +715,10 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 	// open MCMC output file
 	ouputName += "_thetaRatioMCMC.txt.gz";
 	logfile().list("Will write MCMC chain to file '" + ouputName + "'.");
-	gz::ogzstream out(ouputName.c_str());
-	if (!out) UERROR("Failed to open file '", ouputName, "' for writing!");
+	coretools::TLineWriter out(ouputName);
 
 	// write header
-	out << "log_theta_1\tlog_theta_2\tlog_phi\n";
+	out.writeln("log_theta_1\tlog_theta_2\tlog_phi");
 
 	// now run chain with sampling
 	_clearCounters();
@@ -731,7 +730,7 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 
 		// print to file
 		if (i % _thinning == 0) {
-			out << _theta.logTheta << "\t" << _theta2.logTheta << "\t" << _theta.logTheta - _theta2.logTheta << "\n";
+			out.writeln(_theta.logTheta, "\t", _theta2.logTheta, "\t", _theta.logTheta - _theta2.logTheta);
 		}
 
 		// print progress

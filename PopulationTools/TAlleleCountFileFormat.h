@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace genometools { class TPopulationSamples; }
@@ -21,7 +21,7 @@ namespace PopulationTools{
 class TAlleleCountFile{
 protected:
 	std::string filename;
-	gz::ogzstream outFile;
+	coretools::TLineWriter outFile;
 	std::string sep;
 
 

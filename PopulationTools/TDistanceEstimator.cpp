@@ -6,7 +6,7 @@
  */
 
 #include "TDistanceEstimator.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
@@ -547,12 +547,10 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 
 	//open output file
 	std::string filename = _outputName + "_distanceEstimates.txt.gz";
-	gz::ogzstream out(filename.c_str());
-	if(!out)
-		UERROR("Failed to open output file '", filename, "'!");
+	coretools::TLineWriter out(filename);
 
 	//write header to output file
-	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreqaa/aa\tfreqaa/ab\tfreqab/aa\tfreqaa/bb\tfreqab/ab\tfreqab/ac\tfreqaa/bc\tfreqab/cc\tfreqab/cd\tgeneticDist\n";
+	out.writeln("individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreqaa/aa\tfreqaa/ab\tfreqab/aa\tfreqaa/bb\tfreqab/ab\tfreqab/ac\tfreqaa/bc\tfreqab/cc\tfreqab/cd\tgeneticDist");
 
 	//prepare storage for distance matrix
 	std::vector<double> distMatrix;
@@ -565,7 +563,7 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 			logfile().startIndent("Estimating distance between individuals ", g1+1, " (" + _GLFs.sampleName(g1), ") and ", g2+1, " (", _GLFs.sampleName(g2), "):");
 
 			//write names to file
-			out << _GLFs.sampleName(g1) << "\t" << _GLFs.sampleName(g2);
+			out.write(_GLFs.sampleName(g1), "\t", _GLFs.sampleName(g2));
 
 			//run estimation
 			_estimateDistanceGenomeWide(EM_object, _GLFs[g1], _GLFs[g2], out);
@@ -581,22 +579,20 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 
 	//open matrix file
 	filename = _outputName + "_distanceMatrix.txt";
-	std::ofstream distMatrixFile(filename.c_str());
-	if(!distMatrixFile)
-		UERROR("Failed to open output file '", filename, "'!");
+	coretools::TLineWriter distMatrixFile(filename);
 
 	//write header to matrix file
-	distMatrixFile << "/";
+	distMatrixFile.write("/");
 	for(size_t g=0; g<numGLFs; ++g)
-		distMatrixFile << "\t" << _GLFs.sampleName(g);
-	distMatrixFile << "\n";
+		distMatrixFile.write("\t",_GLFs.sampleName(g));
+	distMatrixFile.endln();
 
 	//write rows
 	for(size_t g1 = 0; g1 < numGLFs; ++g1){
-		distMatrixFile << _GLFs.sampleName(g1);
+		distMatrixFile.write(_GLFs.sampleName(g1));
 		for(size_t g2 = 0; g2 < numGLFs; ++g2)
-			distMatrixFile << "\t" << distMatrix[g1*numGLFs + g2];
-		distMatrixFile << "\n";
+			distMatrixFile.write("\t",distMatrix[g1*numGLFs + g2]);
+		distMatrixFile.endln();
 	}
 
 	//close file
@@ -647,7 +643,7 @@ void TDistanceEstimator::_readCommonSites(GenotypeQualityVector & genoQual1, Gen
 	}
 };
 
-void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out){
+void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, coretools::TLineWriter & out){
 	//initialize storage for two windows
 	logfile().listFlush("Reading common sites ...");
 	GenotypeQualityVector genoQual1, genoQual2;
@@ -713,11 +709,10 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 	genoQual2.resize(windowLen);
 
 	//open output file
-	gz::ogzstream out(filename.c_str());
-	if(!out) UERROR("Failed to open file '", filename, "' for writing!");
+	coretools::TLineWriter out(filename.c_str());
 
 	//write header to output file
-	out << "chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
+	out.writeln("chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist");
 
 	//prepare variables
 	genometools::TGenomeWindow window;
@@ -766,37 +761,37 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 //--------------------------------------------
 // Writing estimates
 //--------------------------------------------
-void TDistanceEstimator::_writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object){
-	out << Chr.name() << "\t" << Window.from().position() + 1 << "\t" << Window.to().position(); //internal position is zero-based
+void TDistanceEstimator::_writeDistanceEstimates(coretools::TLineWriter & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object){
+	out.write(Chr.name(),"\t",Window.from().position() + 1,"\t",Window.to().position()); //internal position is zero-based
 	_writeDistanceEstimates(out, numsitesWithData, EM_object);
 };
 
-void TDistanceEstimator::_writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
+void TDistanceEstimator::_writeDistanceEstimates(coretools::TLineWriter & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
 	using coretools::index;
-	out << "\t" << numsitesWithData;
+	out.write("\t",numsitesWithData);
 	//write pi
 	for(Base b = Base::min; b < Base::max; ++b){
-		out << "\t" << EM_object.pi()[b];
+		out.write("\t",EM_object.pi()[b]);
 	}
 	//write phi
 	for(DistancePhi p = DistancePhi::min; p < DistancePhi::max; ++p){
-		out << "\t" << EM_object.phi()[p];
+		out.write("\t",EM_object.phi()[p]);
 	}
 	//write distance
-	out << "\t" << EM_object.distance();
-	out << "\n";
+	out.write("\t",EM_object.distance());
+	out.endln();
 };
 
-void TDistanceEstimator::_writeDistanceEstimatesNoData(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window){
-	out << Chr.name() << "\t" << Window.from().position() + 1 << "\t" << Window.to().position() << "\t"; //internal position is zero-based
+void TDistanceEstimator::_writeDistanceEstimatesNoData(coretools::TLineWriter & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window){
+	out.write(Chr.name(),"\t",Window.from().position() + 1,"\t",Window.to().position(),"\t"); //internal position is zero-based
 	_writeDistanceEstimatesNoData(out);
 };
 
-void TDistanceEstimator::_writeDistanceEstimatesNoData(gz::ogzstream & out){
-	out << "\t0";
+void TDistanceEstimator::_writeDistanceEstimatesNoData(coretools::TLineWriter & out){
+	out.write("\t0");
 	for(int i=0; i<14; ++i)
-		out << "\t-";
-	out << "\n";
+		out.write("\t-");
+	out.endln();
 };
 
 }; //end namespace

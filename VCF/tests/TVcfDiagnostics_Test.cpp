@@ -5,7 +5,7 @@
 #include "TVcfDiagnostics.h"
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Files/TInputRcpp.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/Genotypes/BiallelicGenotype.h"
@@ -23,23 +23,23 @@ class TVCFDiagnosticsTest : public testing::Test {
 protected:
 	std::vector<std::string> sampleNames = {"Indiv1", "Indiv2", "Indiv3", "Indiv4", "Indiv5"};
 
-	static void _writeHeader(gz::ogzstream &VCF, const std::vector<std::string> &SampleNames) {
+	static void _writeHeader(coretools::TLineWriter &VCF, const std::vector<std::string> &SampleNames) {
 		// write info
-		VCF << "##fileformat=VCFv4.2\n";
-		VCF << "##source=Simulation\n";
-		VCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-		VCF << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
-		VCF << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
-		VCF << "##FORMAT=<ID=DP,Number=G,Type=Integer,Description=\"Depth at site\">\n";
+		VCF.writeln("##fileformat=VCFv4.2");
+		VCF.writeln("##source=Simulation");
+		VCF.writeln("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">");
+		VCF.writeln("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">");
+		VCF.writeln("##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">");
+		VCF.writeln("##FORMAT=<ID=DP,Number=G,Type=Integer,Description=\"Depth at site\">");
 
 		// write header
-		VCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-		for (const auto &SampleName : SampleNames) { VCF << "\t" << SampleName; }
+		VCF.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+		for (const auto &SampleName : SampleNames) { VCF.write("\t", SampleName); }
 	}
 
-	static void _writeCell(gz::ogzstream &VCF, BiallelicGenotype Genotype) {
+	static void _writeCell(coretools::TLineWriter &VCF, BiallelicGenotype Genotype) {
 		// write to vcf
-		VCF << "\t" << toString(Genotype) << ":0:0,0,0:100";
+		VCF.write("\t", toString(Genotype), ":0:0,0,0:100");
 	};
 
 public:
@@ -57,16 +57,16 @@ public:
 
 	void writeVcfFile(const std::vector<std::string> &Chromosomes,
 	                  const std::vector<std::vector<BiallelicGenotype>> &Genotypes) {
-		gz::ogzstream vcf;
-		vcf.open(filename.c_str());
+		coretools::TLineWriter vcf;
+		vcf.open(filename);
 		_writeHeader(vcf, sampleNames);
 
 		size_t linearIndex = 0;
 		for (size_t l = 0; l < numLoci; ++l) {
-			vcf << '\n' << Chromosomes[l] << '\t' << l + 1 << "\t.\tA\tC\t50\t.\t.\tGT:GQ:PL:DP";
+			vcf.write('\n',Chromosomes[l],'\t',l + 1,"\t.\tA\tC\t50\t.\t.\tGT:GQ:PL:DP");
 			for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) { _writeCell(vcf, Genotypes[l][i]); }
 		}
-		vcf << "\n";
+		vcf.endln();
 		vcf.close();
 	}
 };

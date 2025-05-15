@@ -13,6 +13,7 @@
 
 #include "TBamWindowTraverser.h"
 #include "TGenotypePrior.h"
+#include "coretools/Files/TLineWriter.h"
 #include "genometools/VCF/TVCFFields.h"
 #include "genometools/Genotypes/Containers.h"
 
@@ -56,8 +57,7 @@ protected:
 
 	//output file
 	std::string _filename;
-	gz::ogzstream _vcf;
-	bool _vcfOpen;
+	coretools::TLineWriter _vcf;
 	std::string _genotypeFormatString;
 
 	//temp variables for calling

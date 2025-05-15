@@ -79,7 +79,6 @@ TCaller::TCaller(){
 	_missingGenotype = ".";
 
 	//vcf file
-	_vcfOpen = false;
 
 	//set acceptable tags
 	_setAcceptableFields(&_VCFInfoFields, "DP");
@@ -209,32 +208,27 @@ void TCaller::initializeOutput(){
 void TCaller::openVCF(const std::string FilenameTag, const std::string sampleName){
 	_filename = FilenameTag  + _filenameExtention + ".gz";
 	logfile().list("Writing calls to VCF file '" + _filename + "'.");
-	_vcf.open(_filename.c_str());
-	if(!_vcf) UERROR("Failed to open VCF file '", _filename, "' for writing!");
-	_vcfOpen = true;
+	_vcf.open(_filename);
 
 	//write header
 	_writeVCFHeader(sampleName);
-};
+}
 
-void TCaller::closeVCF(){
-	if(_vcfOpen){
-		_vcf.close();
-		_vcfOpen = false;
-	}
-};
+void TCaller::closeVCF() {
+	if (_vcf.isOpen()) _vcf.close();
+}
 
 void TCaller::_writeVCFHeader(const std::string & sampleName){
 	//write header
-	_vcf << "##fileformat=VCFv4.2\n";
-	_vcf << "##source=atlas\n";
+	_vcf.writeln("##fileformat=VCFv4.2");
+	_vcf.writeln("##source=atlas");
 
 	//write INFO and GENOTYPE fields
 	_VCFInfoFields.writeVCFHeader(_vcf);
 	_VCFGenotypeFields.writeVCFHeader(_vcf);
 
 	//write column header
-	_vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sampleName << "\n";
+	_vcf.writeln("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t",sampleName);
 };
 
 //-------------------------------------------------------------------------------------------
@@ -344,11 +338,11 @@ std::string TCaller::_composeVCFString(std::vector<std::string (TCaller::*)(cons
 
 void TCaller::_writeAlternativeAllelesToVCF(){
 	if(_altAlleles.size() == 0){
-		_vcf << '.';
+		_vcf.write(".");
 	} else {
-		_vcf << _altAlleles[0];
+		_vcf.write(_altAlleles[0]);
 		for(size_t i=1; i<_altAlleles.size(); ++i)
-			_vcf << ',' << _altAlleles[i];
+			_vcf.write(',',_altAlleles[i]);
 	}
 };
 
@@ -358,23 +352,23 @@ void TCaller::_writeCallToVCF(const std::string & chr, const long pos, const TSi
 		_altAlleles.clear();
 
 	//write chr, position and (no) variant ID
-	_vcf << chr << '\t' << pos + 1 << "\t.\t"; //all internal positions are zero-based!
+	_vcf.write(chr,'\t',pos + 1,"\t.\t"); //all internal positions are zero-based!
 
 	//write reference and alternative alleles
-	_vcf << site.refBase << "\t";
+	_vcf.write(site.refBase,"\t");
 	_writeAlternativeAllelesToVCF();
 
 	//write (no) variant quality and (no) filter
-	_vcf << "\t.\t.";
+	_vcf.write("\t.\t.");
 
 	//write info fields
-	_vcf << '\t' << _composeVCFString(_VCFInfoFunctionsVec, site, genotypeLikelihoods);
+	_vcf.write('\t',_composeVCFString(_VCFInfoFunctionsVec, site, genotypeLikelihoods));
 
 	//write genotype fields
-	_vcf << '\t' << _genotypeFormatString << '\t' << _composeVCFString(_VCFGenotypeFunctionsVec, site, genotypeLikelihoods);
+	_vcf.write('\t',_genotypeFormatString,'\t',_composeVCFString(_VCFGenotypeFunctionsVec, site, genotypeLikelihoods));
 
 	//end with new line
-	_vcf << '\n';
+	_vcf.endln();
 
 	//clean up storage
 	_clearAfterCall();
@@ -382,7 +376,7 @@ void TCaller::_writeCallToVCF(const std::string & chr, const long pos, const TSi
 
 void TCaller::_writeMissingDataToVCF(const TSite & site){
 	if(_printSitesWithNoData)
-		_vcf << "\t.\t" << site.refBase << "\t.\t.\t.\t.\tGT:DP\t" << _missingGenotype << ":0";
+		_vcf.write("\t.\t",site.refBase,"\t.\t.\t.\t.\tGT:DP\t",_missingGenotype,":0");
 };
 
 void TCaller::_clearAfterCall(){

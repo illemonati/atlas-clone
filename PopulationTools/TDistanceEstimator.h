@@ -14,6 +14,7 @@
 
 #include "coretools/Containers/TStrongArray.h"
 
+#include "coretools/Files/TLineWriter.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Containers.h"
 
@@ -160,15 +161,15 @@ private:
 	void _moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
 	void _advance(genometools::TGLFReader & g1, genometools::TGLFReader & g2);
 	void _readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, genometools::TGLFReader & g1, genometools::TGLFReader & g2);
-	void _estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, gz::ogzstream & out);
+	void _estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, coretools::TLineWriter & out);
 
 	void _estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
 	void _estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, genometools::TGLFReader & g1, genometools::TGLFReader & g2, uint32_t windowLen);
 
-	void _writeDistanceEstimates(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
-	void _writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
-	void _writeDistanceEstimatesNoData(gz::ogzstream & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window);
-	void _writeDistanceEstimatesNoData(gz::ogzstream & out);
+	void _writeDistanceEstimates(coretools::TLineWriter & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void _writeDistanceEstimates(coretools::TLineWriter & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void _writeDistanceEstimatesNoData(coretools::TLineWriter & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window);
+	void _writeDistanceEstimatesNoData(coretools::TLineWriter & out);
 
 public:
 	TDistanceEstimator();

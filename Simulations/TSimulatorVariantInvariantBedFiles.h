@@ -2,16 +2,16 @@
 #define TSIMULATORVARIANTINVARIANTBEDFILES_H_
 
 #include "TSimulatorHaplotypes.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 
 namespace Simulations {
 
 class TSimulatorVariantInvariantBedFiles {
 private:
-	gz::ogzstream variantSitesFile;
-	gz::ogzstream invariantSitesFile;
+	coretools::TLineWriter variantSitesFile;
+	coretools::TLineWriter invariantSitesFile;
 
-	void openFile(gz::ogzstream &file, const std::string filename);
+	void openFile(coretools::TLineWriter &file, const std::string filename);
 	void close();
 
 public:
