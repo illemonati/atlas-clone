@@ -194,7 +194,7 @@ void TReadGroups::fillVectorWithNames(std::vector<std::string> & Vec) const{
 std::string TReadGroups::compileSamHeader() const{
 	std::string header;
 	for(auto& rg : _readGroups){
-		header += rg.compileSamHeader() + "\n";
+		if (rg.writeToHeader) header += rg.compileSamHeader() + "\n";
 	}
 	return header;
 }

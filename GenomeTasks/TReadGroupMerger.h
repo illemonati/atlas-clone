@@ -20,7 +20,7 @@ namespace GenomeTasks{
 class TReadGroupMerger {
 private:
 	TGenome _genome{false};
-	std::vector<size_t> readGroupMap;
+	std::vector<size_t> _readGroupMap;
 public:
 	TReadGroupMerger();
 	void run();

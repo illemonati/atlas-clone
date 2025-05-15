@@ -10,7 +10,6 @@
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TParameters.h"
 
-
 namespace GenomeTasks{
 using coretools::instances::logfile;
 using coretools::instances::parameters;
@@ -19,14 +18,13 @@ TReadGroupMerger::TReadGroupMerger() {
 	BAM::TReadGroups& readGroups = _genome.bamFile().readGroupsMutable();
 
 	//read read groups to be merged
-	std::string filename = parameters().get<std::string>("readGroups");
+	const auto filename = parameters().get("readGroups");
 	logfile().startIndent("Reading read groups to be merged from file '" + filename + "':");
 
-
 	//create map oldId -> new Id. Fill with identity.
-	readGroupMap.resize(readGroups.size());
+	_readGroupMap.resize(readGroups.size());
 	for(size_t i=0; i<readGroups.size(); ++i){
-		readGroupMap[i] = i;
+		_readGroupMap[i] = i;
 	}
 
 	//parse file and construct new read groups in new header object
@@ -44,15 +42,11 @@ TReadGroupMerger::TReadGroupMerger() {
 				UERROR("Read group '", file.get(i), "' is listed multiple times in file '", filename, "'!");
 			}
 
-			uint16_t oldId = readGroups.getId(file.get(i));
+			const auto oldId = readGroups.getId(file.get(i));
 
 			// set not to write to header
 			readGroups.removeFromHeader(oldId);
-
-			// update map
-			readGroupMap[oldId] = newId;
-
-			// report
+			_readGroupMap[oldId] = newId;
 			logfile().list(file.get(i));
 		}
 		logfile().endIndent();
@@ -61,19 +55,19 @@ TReadGroupMerger::TReadGroupMerger() {
 	//report unaffected read groups
 	std::vector<std::string> unaffectedReadGroups;
 	for(size_t i=0; i<readGroups.size(); ++i){
-		if(readGroupMap[i] ==  i){
-			unaffectedReadGroups.emplace_back(readGroups.getName(i));
+		if(_readGroupMap[i] ==  i){
+			unaffectedReadGroups.push_back(readGroups.getName(i));
 		}
 	}
 
 	if(unaffectedReadGroups.size() > 0){
 		logfile().startIndent("The following read groups will be kept as is:");
-		for(auto& s : unaffectedReadGroups){
+		for(const auto& s : unaffectedReadGroups){
 			logfile().list(s);
 		}
 		logfile().endIndent();
 	}
-};
+}
 
 void TReadGroupMerger::run(){
 	//open a bam file for writing
@@ -82,13 +76,12 @@ void TReadGroupMerger::run(){
 	//now parse through bam file and write alignments
 	_genome.bamFile().startProgressReporting();
 	while(_genome.bamFile().readNextAlignmentThatPassesFilters()){
-		_genome.bamFile().curSetNewReadGroup(readGroupMap[_genome.bamFile().curReadGroupID()]);
+		_genome.bamFile().curSetNewReadGroup(_readGroupMap[_genome.bamFile().curReadGroupID()]);
 		_genome.bamFile().writeCurAlignment(outBam);
 
-		//report
 		_genome.bamFile().printProgress();
 	}
 	_genome.bamFile().printEndWithSummary(_genome.outputName());
-};
+}
 
-}; // end namespace
+} // end namespace

@@ -64,10 +64,7 @@ public:
 
 	//some additional tasks
 	void filterReadGroups(std::string_view readGroupList);
-	template <typename T> void removeFromHeader(T Identifier){
-		auto rg = getReadGroup(Identifier);
-		rg.writeToHeader = false;
-	}
+	template<typename T> void removeFromHeader(T Identifier) { getReadGroup(Identifier).writeToHeader = false; }
 
 	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
