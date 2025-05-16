@@ -158,9 +158,9 @@ void TErrorEstimator::_identifyModels() {
 
 	logfile().conclude("Total number of sites: ", totSites);
 	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
-	logfile().conclude("Number of bases: ", _dataTables.size());
 
-	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
+
+	logfile().conclude("Number of bases: ", _dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
@@ -178,22 +178,27 @@ void TErrorEstimator::_identifyModels() {
 
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			constexpr coretools::TStrongArray<std::string_view, Mate> sMates{{"First", "Second"}};
-			const auto &table = _dataTables[rg][mate];
-			logfile().list(sMates[mate], " mate: ", table.size(), " bases.");
-			if (table.size() > 0) {
+			const auto &table             = _dataTables[rg][mate];
+			constexpr size_t minNSites_g1 = 1000;
+			if (table.size() > 0 && table.nSites_g1() < minNSites_g1) {
+				logfile().warning(sMates[mate], " mate only has ", table.nSites_g1(), " < ", minNSites_g1,
+								  " sites with depth > 1, will not estimate this model!");
+				for (auto i : _recalMap.readGroupsPooledWith(rg)) { _recal.reset(i, mate); }
+			} else if (table.size() == 0) {
+				for (auto i : _recalMap.readGroupsPooledWith(rg)) { _recal.reset(i, mate); }
+			} else {
+				logfile().list(sMates[mate], " mate: ", table.size(), " bases, ", table.nSites_g1(),
+							   " sites with depth > 1.");
 				auto &recal = _recal.RGModel(rg)[mate];
 				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
 
 				recal->epsilon()->init(table, _minData);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
-			} else {
-				for (auto i: _recalMap.readGroupsPooledWith(rg)) {
-					_recal.reset(i, mate);
-				}
 			}
 		}
-		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+		if (_dataTables[rg][Mate::second].size() == 0)
+			logfile().list("Assuming single-ended read.");
 		else logfile().list("Assuming paired-ended read.");
 		logfile().endIndent();
 	}
@@ -258,19 +263,38 @@ void TErrorEstimator::_updatePbbar() {
 					const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
 					P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-					_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[aa]), P_bbar_I_aa_dij);
+					_recal.model(d_ij).addtoRho(d_ij, P(P_g_I_di[aa]), P_bbar_I_aa_dij);
 
 					if (!isInvariant) for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
 						const auto P_bbar_I_ab_dij = _pmd.P_bbar(ab, d_ij, P_dij_I_bbar);
 						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[ab]), P_bbar_I_ab_dij);
+						_recal.model(d_ij).addtoRho(d_ij, P(P_g_I_di[ab]), P_bbar_I_ab_dij);
 					}
 				}
 			}
 		}
 	}
+}
+
+void TErrorEstimator::_calculateQ(bool UpdateJF) {
+	for (size_t r = 0; r < _NRegions(); ++r) {
+		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
+		for (size_t s = 0; s < _NSites(r); ++s) {
+			const auto &P_g_I_di = _P_g_I_dis[r][s];
+			for (size_t d = 0; d < _NData(r, s); ++d) {
+				const auto &d_ij              = _data[r][s].get<0>()[d];
+				const auto &P_bbarEdij_I_gdij = _data[r][s].get<1>()[d];
+				_recal.model(d_ij).addToEpsilon(d_ij, P_g_I_di, P_bbarEdij_I_gdij, UpdateJF, isInvariant);
+			}
+		}
+	}
+}
+
+void TErrorEstimator::_solveDerivative() {
+	_calculateQ(true);
+	for (auto &e : _epsilons) e->solveJxF();
 }
 
 double TErrorEstimator::_updateEpsilon(double deltaLL) {
@@ -317,7 +341,7 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 				logfile().startIndent("Proposing new epsilon with backtracking = 1/2^", shift, " for models", sModels);
 			}
 
-			nUpdated = _calculateQ();
+			nUpdated = _updateModels();
 			if (nUpdated == nTot) {
 				logfile().list(toString(nUpdated), "/", nTot, " models accepted.");
 				logfile().endIndent();
@@ -359,15 +383,16 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 	return deltaQTot;
 }
 
-size_t TErrorEstimator::_calculateQ() {
-	_calculateQ<false>();
+size_t TErrorEstimator::_updateModels() {
+	_calculateQ(false);
 	size_t nUpdated = 0;
 	for (size_t i = 0; i < _epsilons.size(); ++i) {
-		const auto& e = _epsilons[i];
-		const auto u = e->acceptOrReject();
+		const auto &e = _epsilons[i];
+		const auto u  = e->acceptOrReject();
 		if (!u) { logfile().list("Model ", i, " not accepted! delta Q: ", e->deltaQ(), "."); }
+		nUpdated += u;
 	}
-	for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
+	//for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
 	return nUpdated;
 }
 
@@ -541,7 +566,6 @@ void TErrorEstimator::estimate() {
 
 	// run EM
 	_runEM();
-
 
 	// writing final estimates
 	_recal.addToRGInfo(_genome.rgInfo());
