@@ -8,6 +8,7 @@
 #ifndef TCALLER_H_
 #define TCALLER_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -301,6 +302,7 @@ class TCall final:public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<TCaller> _caller;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
+	int64_t _RefN = -1;
 
 	void _initializeGenotypePrior();
 	void _call(GenotypeLikelihoods::TWindow& window);

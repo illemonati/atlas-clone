@@ -8,6 +8,8 @@
 #include "TCaller.h"
 #include "GenotypeFunctions.h"
 #include "TSite.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/mathFunctions.h"
@@ -1214,6 +1216,12 @@ TCall::TCall() {
 	//limit to sites with known alleles?
 	if(parameters().exists("alleles")){
 		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), genometools::Morphic::Both);
+		_RefN = parameters().exists("allowRefN") ? 0 : -1;
+		if (_RefN >= 0) {
+			logfile().list("Allowing cases where Ref = N and Alt != N, treated as N/N. (parameter 'allowRefN')");
+		} else {
+			logfile().list("Not allowing cases where Ref = N and Alt != N. (use 'allowRefN' to allow)");
+		}
 	} else {
 		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
@@ -1277,6 +1285,16 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 			site.refBase = it->ref;
 			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
 
+			if (it->ref == Base::N && it->alt != Base::N) {
+				if (_RefN >= 0) {
+					++_RefN;
+				} else {
+					UERROR("In position ", it->position.asFormattedString(_genome.bamFile().chromosomes()),
+						   ", Ref = N but Alt = ", it->alt,
+						   ", this case is not supported! Use parameter 'allowRefN' to treat as N/N");
+				}
+			}
+
 			if (it->alt == Base::N || it->ref == Base::N) _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik);
 			else _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
 		}
@@ -1301,6 +1319,9 @@ void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
 
 void TCall::run(){
 	_traverseBAMWindows();
+	if (_RefN >= 0) {
+		logfile().list("Number of sites where Ref = N and Alt != N: ", _RefN, ".");
+	}
 };
 
 }; // end namespace
