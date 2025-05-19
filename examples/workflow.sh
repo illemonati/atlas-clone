@@ -6,7 +6,8 @@ echo '{
   "paired": {
   "readGroup": "paired",
   "seqType": "paired",
-  "seqCycles": "100",
+  "seqCycles": 100,
+  "frequency": 0.6,
   "fragmentLength": "normal(50,50)[30,1025]",
   "baseQuality": "categorical(12:1,22:1,27:2,32:2,37:3,41:100)",
   "mappingQuality": "normal(70,10)[30,60]",
@@ -40,7 +41,8 @@ echo '{
   },"single": {
   "readGroup": "single",
   "seqType": "single",
-  "seqCycles": "100",
+  "seqCycles": "150",
+  "frequency": "0.4",
   "fragmentLength": "normal(100,70)[30,100]",
   "baseQuality": "categorical(12:1,22:1,27:2,32:2,37:3,41:100)",
   "mappingQuality": "normal(70,10)[30,60]",

@@ -250,7 +250,6 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 //----------------------------------
 	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal) {
-
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
 	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
@@ -333,12 +332,12 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal){
 		using BAM::RGInfo::toString;
 
 	//num cycles
-		logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", toString(RGInfo[InfoType::cycles]));
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", toString(RGInfo[InfoType::cycles]));
 	auto& json = RGInfo[InfoType::cycles];
 
 	std::string err = "Unable to understand " + BAM::RGInfo::infos[InfoType::cycles].description + ": ";
@@ -362,10 +361,10 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 			UERROR(errRange);
 		}
 	} else if(json.is_number()){
-		if(json[0].get<int>() < 1 || json[0].get<int>() > 65535){
+		if(json.get<int>() < 1 || json.get<int>() > 65535){
 			UERROR(errRange);
 		}
-		_numCycles[0] = json[0].get<int>();
+		_numCycles[0] = json.get<int>();
 		_numCycles[1] = _numCycles[0];
 	} else if(json.is_string()){
 		std::string ss = json.get<std::string>();
