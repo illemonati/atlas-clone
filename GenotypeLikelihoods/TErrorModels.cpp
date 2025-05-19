@@ -59,8 +59,7 @@ void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
 double TErrorModels::calculateLogPMDS(const BAM::TSequencedData &data, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
 	const TBaseLikelihoods baseLikelihoodsNoPMD = _recal.P_dij(data);
-
-	const TBaseLikelihoods baseLikelihoods = _pmd.P_dij(data, baseLikelihoodsNoPMD);
+	const TBaseLikelihoods baseLikelihoods      = _pmd.P_dij(data, baseLikelihoodsNoPMD);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
 	const TBaseLikelihoods tmpBaseData = fromError(ref, pi);

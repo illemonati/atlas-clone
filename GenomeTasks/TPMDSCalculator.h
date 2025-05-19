@@ -26,6 +26,9 @@ private:
 	coretools::TNumericRange<double> _filterRange;
 	BAM::TOutputBamFile _outBam;
 
+	std::vector<size_t> _dPMDs_pos;
+	std::vector<size_t> _dPMDs_neg;
+
 	double _calculatePMDS(BAM::TAlignment& alignment);
 	void _handleAlignment(BAM::TAlignment& alignment) override;
 

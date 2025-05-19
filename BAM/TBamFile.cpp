@@ -280,6 +280,10 @@ bool TBamFile::_applyFilters() {
 		return  true;
 	} 
 
+
+	float pmds = 3.;
+	_curBamAlignment.GetTag("DS", pmds);
+
 	// apply regular filters
 	return _filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name,
 						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
