@@ -16,4 +16,7 @@ for strand in single double; do
 
 	$atlas --task PMDS --bam $strand.bam --fasta $strand.fasta --pmd $pmd \
 		   --fixedSeed 5 --out $strand --logFile $strand.out 2> $strand.eout
+
+	$atlas --task filterBAM --bam ${strand}_PMDS.bam --filterPMDS 0 \
+		   --fixedSeed 6 --out filter$strand --logFile filter$strand.out 2> filter$strand.eout
 done

@@ -281,45 +281,45 @@ bool TBamFile::_applyFilters() {
 	} 
 
 
-	float pmds = 3.;
-	_curBamAlignment.GetTag("DS", pmds);
+	float PMDS = -1e20;
 
 	// apply regular filters
 	return _filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
 		   _filters.pass(FilterType::SoftClippedRation,
-						 static_cast<double>(_curCigar.lengthSoftClipped()) / _curCigar.lengthRead() <=
-							 _filters.softClipRation(),
-						 _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(),
-						 _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Blacklist, !_filters.blacklist().isInBlacklist(_curBamAlignment.Name),
-						 _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::LongerThanFragment,
+						 double(_curCigar.lengthSoftClipped()) / _curCigar.lengthRead() <= _filters.softClipRation(),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::PMDS, !_curBamAlignment.GetTag("DS", PMDS) || PMDS < _filters.PMDSmax(),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Blacklist, !_filters.blacklist().isInBlacklist(_curBamAlignment.Name),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::LongerThanFragment,
 	                     !_curBamAlignment.IsProperPair() ||
 	                         abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()),
 	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());

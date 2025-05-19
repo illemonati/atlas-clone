@@ -1,5 +1,6 @@
 #include "TBamFilters.h"
 
+#include "TSequencedData.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
@@ -70,6 +71,16 @@ TBamFilters::TBamFilters(bool Enable) {
 		} else {
 			disable(FilterType::SoftClippedRation);
 			logfile().list("Soft clipped reads: keep. (use 'filterSoftClips' to filter out)");
+		}
+
+		// PMDS
+		if (parameters().exists("filterPMDS")) {
+			_PMDSmax = parameters().get<double>("filterPMDS");
+			enable(FilterType::PMDS, coretools::str::toString("PMDS greater ", _PMDSmax));
+			logfile().list("PMD score: filter out if PMDS > ", _PMDSmax, ". (parameter 'filterPMDS')");
+		} else {
+			disable(FilterType::PMDS);
+			logfile().list("PMD score: keep all. (use 'filterPMDS' to set treshold)");
 		}
 
 		// improper pairs

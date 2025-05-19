@@ -21,6 +21,7 @@ enum class FilterType : size_t {
 	maxRange,
 	Duplicate = maxRange,
 	SoftClippedRation,
+	PMDS,
 	ImproperPairs,
 	Unmapped,
 	FailedQC,
@@ -50,6 +51,7 @@ class TBamFilters {
 	coretools::TStrongArray<coretools::TNumericRange<size_t>, FilterType, coretools::index(FilterType::maxRange)> _ranges;
 	TAlignmentList _blacklist;
 	double _softClipRatio = 1.;
+	double _PMDSmax       = 1e20;
 	bool _enabled         = false;
 
 public:
@@ -59,6 +61,7 @@ public:
 	bool enabled() const noexcept {return _enabled;}
 
 	double softClipRation() const noexcept {return _softClipRatio;}
+	double PMDSmax() const noexcept {return _PMDSmax;}
 	const TAlignmentList& blacklist() const noexcept {return _blacklist;}
 
 	void resize(size_t numRG, size_t numChrom, std::string_view Filename);
