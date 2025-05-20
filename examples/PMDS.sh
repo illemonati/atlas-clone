@@ -11,12 +11,18 @@ for strand in single double; do
 	pmd="CT5:$pmdBig;CT3:$pmdBig"
 	[ $strand == "double" ] && pmd="CT5:$pmdSmall"
 
-	. $(dirname $0)/simulate --pmd $pmd  --fixedSeed 7 \
+	. $(dirname $0)/simulate --pmd $pmd  --fixedSeed 3 \
 		--out $strand --logFile simulate_$strand.out
 
-	$atlas --task PMDS --bam $strand.bam --fasta $strand.fasta --pmd $pmd \
-		   --fixedSeed 5 --out $strand --logFile $strand.out 2> $strand.eout
+	out=filternoPMDS$strand
+	$atlas --task filterBAM --bam ${strand}.bam --filterPMDS 0.5 \
+		   --fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
-	$atlas --task filterBAM --bam ${strand}_PMDS.bam --filterPMDS 0 \
-		   --fixedSeed 6 --out filter$strand --logFile filter$strand.out 2> filter$strand.eout
+	out=PMDS$strand
+	$atlas --task PMDS --bam $strand.bam --fasta $strand.fasta --pmd $pmd \
+		   --fixedSeed 5 --out $out --logFile $out.out 2> $out.eout
+
+	out=filterPMDS$strand
+	$atlas --task filterBAM --bam PMDS${strand}_PMDS.bam --filterPMDS 0.5 \
+		   --fixedSeed 6 --out $out --logFile $out.out 2> $out.eout
 done

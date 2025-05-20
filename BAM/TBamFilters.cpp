@@ -76,7 +76,7 @@ TBamFilters::TBamFilters(bool Enable) {
 		// PMDS
 		if (parameters().exists("filterPMDS")) {
 			_PMDSmax = parameters().get<double>("filterPMDS");
-			enable(FilterType::PMDS, coretools::str::toString("PMDS greater ", _PMDSmax));
+			enable(FilterType::PMDS, coretools::str::toString("PMDS > ", _PMDSmax));
 			logfile().list("PMD score: filter out if PMDS > ", _PMDSmax, ". (parameter 'filterPMDS')");
 		} else {
 			disable(FilterType::PMDS);
