@@ -22,7 +22,7 @@ allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
 out="majorMinor"
 $atlas --task majorMinor --glf $allSamples --method Skotte \
-	   --minMAF 0.05 --maxThreads 1 --bgz --minSamplesWithData 83 \
+	   --minMAF 0.05 --bgz --minSamplesWithData 83 \
 	   --fixedSeed 132 --out $out --logFile $out.out 2> $out.eout
 
 ls *.glf.gz > glflist.txt
@@ -31,7 +31,7 @@ ls *.glf.gz | sed 's/GLF_simulate_//g' | sed 's/\.glf\.gz//g' > indlist.txt
 out="Skotte_fasta"
 $atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
 	   --glf glflist.txt --sampleNames indlist.txt --fasta simulate.fasta \
-	   --minMAF 0.05 --maxThreads 1 --bgz \
+	   --minMAF 0.05 --bgz \
 	   --fixedSeed 134 --out $out --logFile $out.out 2> $out.eout
 
 out="MLE_fasta"
@@ -46,5 +46,5 @@ gunzip -c Skotte_fasta.vcf.gz | grep -v "^##" | awk '{if (NR % 3 == 0) {print $1
 out="alleles"
 $atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
 	   --glf $allSamples --alleles alleles.txt \
-	   --minMAF 0.05 --maxThreads 1 \
+	   --minMAF 0.05 \
 	   --fixedSeed 136 --out $out --logFile $out.out 2> $out.eout
