@@ -300,7 +300,7 @@ class TVcfToGenotypeTruthSetFile : public TVcfFileConverter {
 	//      - genotypes encoded as 0,1,2 or NA
 
 private:
-	std::vector<genometools::TBedWriter> _bedFiles;
+	std::vector<genometools::TBed> _bedFiles;
 	coretools::TOutputFile _genFile;
 
 	bool _first                        = true;
