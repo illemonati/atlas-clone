@@ -471,7 +471,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 			/*// save true SFS
 			const auto filename = outname + "_trueSFS_chr" + coretools::str::toString(chromosomes[i].refID() + 1) + ".txt";
 			_sfs.back()->writeToFile(filename);*/
-			DEVERROR("Folded SFS currently not supported.");
+			throw coretools::TDevError("Folded SFS currently not supported.");
 		} else
 			_sfs.push_back(std::make_unique<SFS>(chromosomes[i].ploidy() * _sampleSize, (float)thetas[i]));
 
@@ -493,7 +493,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 					sfsFileNames[i] + "' ...");
 		if (folded){
 			//_sfs.push_back(std::make_unique<SFSfolded>(sfsFileNames[i]));
-			DEVERROR("Folded SFS currently not supported.");
+			throw coretools::TDevError("Folded SFS currently not supported.");
 		} else {
 			_sfs.push_back(std::make_unique<SFS>(sfsFileNames[i]));
 		}

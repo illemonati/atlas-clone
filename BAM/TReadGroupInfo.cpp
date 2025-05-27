@@ -104,7 +104,7 @@ void TReadGroupInfo::_readFile(std::string_view Filename) {
 }
 
 void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups &ReadGroups) {
-	if (!_info.empty()) { DEVERROR("Read group info already read!"); }
+	DEV_ASSERT(_info.empty());
 
 	// create read group info entries
 	_info.reserve(ReadGroups.size());
@@ -153,7 +153,7 @@ TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups &ReadGroups, std::string_v
 
 // or: read info and fill TReadGroups (used for simulations)
 BAM::TReadGroups TReadGroupInfo::createReadGroups() {
-	if (!_info.empty()) { DEVERROR("Read group info already read!"); }
+	DEV_ASSERT(_info.empty());
 
 	const auto numRG = parameters().get<coretools::StrictlyPositiveInt>(numRGArgument, 1);
 	if (numRG == 1) {
@@ -172,7 +172,7 @@ BAM::TReadGroups TReadGroupInfo::createReadGroups() {
 }
 
 BAM::TReadGroups TReadGroupInfo::readReadGroups(std::string_view FileName) {
-	if (!_info.empty()) { DEVERROR("Read group info already read!"); }
+	DEV_ASSERT(_info.empty());
 
 	// create empty read groups
 	_readFile(FileName);

@@ -34,7 +34,7 @@ void writeTransformed(Covariates C, uint8_t Value, coretools::TOutputFile & OFil
 	case Covariates::Position:
 		OFile.write(coretools::TPseudoInt::fromPseudo(Value).linear());
 		break;
-	default: DEVERROR("This Covariate does not exist");
+	default: throw coretools::TDevError("This Covariate does not exist");
 	}
 }
 }

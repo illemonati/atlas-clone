@@ -14,10 +14,8 @@ void TSimulatorBamFiles::open(size_t NumFiles, const std::string & Outname, std:
 				       const genometools::TChromosomes &Chromosomes) {
 	coretools::instances::logfile().startIndent("Preparing BAM files for output:");
 
-	if (NumFiles < 1) DEVERROR("Can not open less than one BAM file!");
-	if(ReadSimulators.size() > 1 && ReadSimulators.size() != NumFiles){
-		DEVERROR("Number of read simulators does not match number of files!");
-	}
+	DEV_ASSERT(NumFiles > 0);
+	DEV_ASSERT(ReadSimulators.size() == 1 || ReadSimulators.size() == NumFiles);
 	if (Chromosomes.size() < 1) UERROR("Can not open a BAM file without specified chromosomes!");
 
 	//create header

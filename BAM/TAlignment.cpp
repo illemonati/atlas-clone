@@ -97,11 +97,10 @@ void TAlignment::_setCigar(const TCigar &Cigar){
 }
 
 void TAlignment::_parseBasesQualities() {
+	DEV_ASSERT(_sequence.size() == _qualities.size());
 	using genometools::char2base;
 	using coretools::TLogInt;
-	if (_sequence.size() != _qualities.size()) {
-		DEVERROR("Sequence and Qualities are of different legth!");
-	}
+
 	// initialize
 	const auto common = [&](){
 		// set mapping quality and whether read is first or second
@@ -309,9 +308,8 @@ void TAlignment::addReference(const genometools::TFastaReader &fasta) {
 
 void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 									  const std::vector<PhredInt> &Qualities) {
-	if (Cigar.lengthRead() != Sequence.size() || Cigar.lengthRead() != Qualities.size()) {
-		DEVERROR("length of CIGAR, Sequences and Qualities do not match!");
-	}
+	DEV_ASSERT(Cigar.lengthRead() == Sequence.size() && Cigar.lengthRead() == Qualities.size());
+
 	_setCigar(Cigar);
 
 	// parse bases and qualities

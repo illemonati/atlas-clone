@@ -153,7 +153,8 @@ bool TReadGroups::readGroupExists(std::string_view Name) const {
 
 //getters of specific entries
 const std::string& TReadGroups::getName(size_t ReadGroupId) const{
-	if(ReadGroupId >= _readGroups.size()) DEVERROR("No read group with number ", ReadGroupId, "!");
+	DEV_ASSERT(ReadGroupId < _readGroups.size());
+
 	return _readGroups[_readGroupsById[ReadGroupId]].name_ID;
 }
 

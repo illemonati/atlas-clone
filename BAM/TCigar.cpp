@@ -10,6 +10,7 @@
 #include <algorithm>
 
 namespace BAM {
+using coretools::TDevError;
 
 //----------------------------------------------------------
 // TCigar
@@ -57,7 +58,7 @@ void TCigar::_compileLengths() {
 		case '=':
 		case 'X': _lengthAligned += c.length; break;
 		case 'S': break;
-		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		default: throw TDevError("Error parsing cigar '", compileString(), "'.");
 		}
 	}
 	if (_cigar.front().type == 'S') _lengthSoftClippedLeft = _cigar.front().length;
@@ -85,8 +86,7 @@ size_t TCigar::removeMappedLeft(size_t Length) {
 void TCigar::removeMappedRight(size_t Length) {
 	if (Length == 0) return;
 
-	if (Length > lengthMapped())
-		DEVERROR("Cannot add ", Length, " Softclips to cigar '", compileString(), "'.");
+	DEV_ASSERT(Length <= lengthMapped());
 
 	CigarOperator softClipR('S', 0);
 	if (_cigar.back().type == 'S') {
@@ -124,10 +124,10 @@ void TCigar::removeMappedRight(size_t Length) {
 				Length = 0;
 			}
 			break;
-		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		default: throw TDevError("Error parsing cigar '", compileString(), "'.");
 		}
 	}
-	if (Length > 0) DEVERROR("Error parsing cigar '", compileString(), "'.");
+	DEV_ASSERT(Length == 0);
 	_cigar.push_back(softClipR);
 
 	if (_cigar.size() == 2 && _cigar.front().type == 'S' && _cigar.back().type == 'S') {

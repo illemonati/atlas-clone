@@ -469,10 +469,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
 		// working
-		if (refAllele != majorAllele && refAllele != minorAllele) {
-			DEVERROR("Locus ", l, ": reference allele (", refAllele, ") is not major (", majorAllele, ") nor minor (",
-					 minorAllele, ") allele!");
-		}
+		DEV_ASSERT(refAllele == majorAllele || refAllele == minorAllele);
 
 		// calculate variant quality
 		auto variantQuality = calculateVariantQuality(genotypeLikelihoods, majorAllele, refAllele, isDiploid);

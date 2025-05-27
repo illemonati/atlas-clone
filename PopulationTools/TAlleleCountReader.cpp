@@ -3,9 +3,8 @@
 namespace PopulationTools{
 
 void TAlleleCountReader::open(std::string_view filename){   
-    if(_file.isOpen()){
-        DEVERROR("Allele count file is already open!");
-    }
+	DEV_ASSERT(!_file.isOpen());
+
     _file.open(filename, coretools::FileType::Header);
     const auto header = _file.header();
 

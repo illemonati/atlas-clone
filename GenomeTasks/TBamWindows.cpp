@@ -200,6 +200,7 @@ void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 }
 
 void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, genometools::Morphic Morph) {
+	DEV_ASSERT(_alleles.empty());
 	//report
 	if(Morph == genometools::Morphic::Poly || Morph == genometools::Morphic::Both){
 		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
@@ -208,7 +209,6 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 	}
 	
 	// only allow for one subset to be active
-	if (!_alleles.empty()) { DEVERROR("Site subset already initialized!"); }
 
 	if (_considerRegions)
 		UERROR("Site subsets (parameter '", paramName,

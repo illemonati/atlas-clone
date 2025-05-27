@@ -593,9 +593,7 @@ TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth) : TCaller() {
 };
 
 bool TCallerConsensify::_callGenotype(const TSite & site, const TGenotypeLikelihoods &){
-	if(site.depth() > _downsampleDepth){
-		DEVERROR("depth > _downsampleDepth!");
-	}
+	DEV_ASSERT(site.depth() <= _downsampleDepth);
 
 	//get per allele counts
 	_countAlleles(site);
@@ -623,9 +621,7 @@ bool TCallerConsensify::_callGenotype(const TSite & site, const TGenotypeLikelih
 };
 
 bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, const TGenotypeLikelihoods &){
-	if(site.depth() > _downsampleDepth){
-		DEVERROR("depth > _downsampleDepth!");
-	}
+	DEV_ASSERT(site.depth() <= _downsampleDepth);
 
 	//get per allele counts
 	_countAlleles(site);

@@ -326,7 +326,7 @@ class TSkotte {
 				if (hasDiploid) {
 					return _iterate<false, true>(glfs, bestAC, maxF, minMAF);
 				} else {
-					DEVERROR("No Data!");
+					throw coretools::TDevError("No Data!");
 				}
 			}
 		}();
