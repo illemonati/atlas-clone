@@ -1,6 +1,7 @@
 #include "TSimulatorBamFiles.h"
 
 #include "TSamHeader.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 
 #include "genometools/GenomePositions/TChromosomes.h"
@@ -16,7 +17,7 @@ void TSimulatorBamFiles::open(size_t NumFiles, const std::string & Outname, std:
 
 	DEV_ASSERT(NumFiles > 0);
 	DEV_ASSERT(ReadSimulators.size() == 1 || ReadSimulators.size() == NumFiles);
-	if (Chromosomes.size() < 1) UERROR("Can not open a BAM file without specified chromosomes!");
+	coretools::user_assert(Chromosomes.size() > 0, "Can not open a BAM file without specified chromosomes!");
 
 	//create header
 	const BAM::TSamHeader header("1.6", "coordinate", "none");
@@ -75,8 +76,7 @@ TSimulatorBamFiles::~TSimulatorBamFiles() {
 }
 
 BAM::TOutputBamFile &TSimulatorBamFiles::operator[](size_t i) {
-	if (i >= _files.size()) UERROR("BAM file ", i, " does not exist!");
+	coretools::user_assert(i < _files.size(), "BAM file ", i, " does not exist!");
 	return _files[i];
 }
-
 }

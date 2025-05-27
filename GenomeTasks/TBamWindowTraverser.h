@@ -108,7 +108,7 @@ protected:
 		if constexpr (isSingle) {
 			_genome.bamFile().startProgressReporting();
 			if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) {
-				UERROR("No read of file '", _genome.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
+				throw coretools::TUserError("No read of file '", _genome.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
 			} 
 
 			logfile().startIndent("Traversing BAM file in windows:");
@@ -116,7 +116,7 @@ protected:
 			for (auto &g : _genome) {
 				g.bamFile().startProgressReporting(false);
 				if (!g.bamFile().readNextAlignmentThatPassesFilters()) {
-					UERROR("No read of file '", g.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
+					throw coretools::TUserError("No read of file '", g.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
 				}
 			}
 			std::string_view file = "files";

@@ -18,6 +18,7 @@ using coretools::str::toString;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
+using coretools::user_assert;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleFreqEstimatorHardyWeinberg                                                          //
@@ -135,9 +136,8 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	logfile().list("Will calculate the ", credibleInterval, " Credible Interval (credibleInterval).");
 	initialGridSize = parameters().get<int>("initialGridSize", 101);
 	logfile().list("Will use an initial grid of size ", initialGridSize, " to identify relevant frequency range (initialGridSize).");
-	if(initialGridSize < 3){
-		UERROR("Initial grid size must be >= 3!");
-	}
+	user_assert(initialGridSize >= 3, "Initial grid size must be >= 3!");
+
 	initialGridLast = initialGridSize - 1;
 	_initialGrid.resize(initialGridSize);
 	double step = 1.0 / (double) initialGridLast;
@@ -150,17 +150,15 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	//final grid
 	gridSize = parameters().get<int>("gridSize", 1001);
 	logfile().list("Will use a grid of size ", gridSize, " to calculate credible interval (gridSize).");
-	if(gridSize < 10){
-		UERROR("Initial grid size must be >= 10!");
-	}
+	user_assert(gridSize >= 10, "Initial grid size must be >= 10!");
+
 	gridLast = gridSize - 1;
 	logGridThreshold = parameters().get("logGridThreshold", 14.0);
 	logfile().list("Will use a threshold ", logGridThreshold, " to span the grid (logGridThreshold).");
-	if(logGridThreshold < 1.0){
-		UERROR("grid threshold must be >= 1.0!");
-	}
+	user_assert(logGridThreshold >= 1.0, "grid threshold must be >= 1.0!");
+
 	_grid.resize(gridSize);
-};
+}
 
 Probability TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampleLikelihoods* storage, size_t numSamplesInPopulation){
 	using BG = genometools::BiallelicGenotype;
@@ -463,7 +461,7 @@ void TAlleleFreqMCMCOutput::initialize(std::string popString, genometools::TPopu
 					popIndex.push_back(samples.populationIndex(name));
 					header.push_back(name);
 				} else {
-					UERROR("Can not write MCMC: population '", name, "' does not exist!");
+					throw coretools::TUserError("Can not write MCMC: population '", name, "' does not exist!");
 				}
 			}
 		}
@@ -582,8 +580,7 @@ void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools:
 };
 
 void TAlleleFreqEstimator::_openVCF() {
-	if(vcfRead)
-		UERROR("VCF already read!");
+	user_assert(!vcfRead, "VCF already read!");
 
 	//read samples
 	if(parameters().exists("samples"))
@@ -615,8 +612,8 @@ void TAlleleFreqEstimator::_closeVCF(){
 	//report final status
 	logfile().endIndent();
 	reader.concludeFilters();
-	if(reader.numAcceptedLoci() < 1)
-		UERROR("No usable loci in VCF file '", vcfFilename, "'!");
+	user_assert(reader.numAcceptedLoci() > 0, "No usable loci in VCF file '", vcfFilename, "'!");
+
 	logfile().endIndent();
 };
 
@@ -723,11 +720,11 @@ std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreqCompariso
 void TAlleleFreqEstimator::compareAlleleFreq(){
 	//open VCF for reading
 	_openVCF();
-	if(samples.numPopulations() < 2){
-		UERROR("Need to define at least 2 populations in samples file! Use 'task=alleleFreq' to estimate allele frequencies for a single population.");
-	}
+	user_assert(samples.numPopulations() >= 2,
+				"Need to define at least 2 populations in samples file! Use 'task=alleleFreq' to estimate allele "
+				"frequencies for a single population.");
 
-	//create Bayesian allele frequency estimator
+	// create Bayesian allele frequency estimator
 	TAlleleFreqEstimatorBayes BHWEstimator;
 
 	//genotype frequencies estimator
@@ -736,10 +733,9 @@ void TAlleleFreqEstimator::compareAlleleFreq(){
 	//variables for MCMC chains
 	int numIterations = parameters().get<int>("iterations", 100000);
 	double frac = parameters().get("proposalFrac", 3.0);
-	if(numIterations < 1)
-		UERROR("Cannot run MCMC for less than 1 iteration!");
-	if(frac <= 0.0)
-		UERROR("proposalFrac must be larger than 0!");
+	user_assert(numIterations > 0, "Cannot run MCMC for less than 1 iteration!");
+	user_assert(frac > 0, "proposalFrac must be larger than 0!");
+
 	logfile().list("Running MCMC for " + toString(numIterations) + " iterations with a propsal width of " + toString(frac) + " times the 90% confidence interval.");
 
 	//prepare MCMC storage

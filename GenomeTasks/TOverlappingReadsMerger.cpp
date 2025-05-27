@@ -99,7 +99,7 @@ TOverlappingReadsMerger::TOverlappingReadsMerger() : TWaitingListBamTraverser("_
 		_merger = std::make_unique<TMiddleMerger>();
 		logfile().list("Merging method: ", method, ", will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
 	} else {
-		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'keepFirst', 'keppSecond' or 'random'.");
+		throw coretools::TUserError("Unknown merging method ", method, "! Use 'none', 'middle', 'keepFirst', 'keppSecond' or 'random'.");
 	}
 
 	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){

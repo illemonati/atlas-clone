@@ -1,4 +1,5 @@
 #include "TAlleleCountReader.h"
+#include "coretools/Main/TError.h"
 
 namespace PopulationTools{
 
@@ -8,19 +9,18 @@ void TAlleleCountReader::open(std::string_view filename){
     _file.open(filename, coretools::FileType::Header);
     const auto header = _file.header();
 
-    if(header[0] != "chr" || header[1] != "pos"){
-        UERROR("Allele count file '", filename, "' lacks columns 'chr' and 'pos' at beginning! Are you providing the correct file?");
-    }
+	coretools::user_assert(header[0] == "chr" && header[1] == "pos", "Allele count file '", filename,
+						   "' lacks columns 'chr' and 'pos' at beginning! Are you providing the correct file?");
 
-    if(header[2] == "ref" && header[3] == "alt"){
-        _hasAlleles = true;
+	if (header[2] == "ref" && header[3] == "alt") {
+		_hasAlleles = true;
         _firstPopulationColumn = 4;
-    } else {
-        _hasAlleles = false;
+	} else {
+		_hasAlleles = false;
         _firstPopulationColumn = 2;
-    }
+	}
 
-    _populationNames.assign(header.begin() + _firstPopulationColumn, header.end());
+	_populationNames.assign(header.begin() + _firstPopulationColumn, header.end());
     _alleleCountVec._alleleCounts.resize(numPopulations());
 }
 

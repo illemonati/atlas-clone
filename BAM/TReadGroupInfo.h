@@ -202,7 +202,7 @@ public:
 			} else if (json.is_number()) {
 				Vec[i] = json.get<double>();
 			} else {
-				UERROR("Cannot interpret value '", json.dump(), "'!");
+				throw coretools::TUserError("Cannot interpret value '", json.dump(), "'!");
 			}
 		}
 	};

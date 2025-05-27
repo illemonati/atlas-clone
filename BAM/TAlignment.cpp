@@ -174,7 +174,7 @@ void TAlignment::_parseBasesQualities() {
 		case ('P'): break;
 
 		// invalid CIGAR op-code
-		default: UERROR("CIGAR operation '", cigarIter.type, "' not supported!");
+		default: throw coretools::TUserError("CIGAR operation '", cigarIter.type, "' not supported!");
 		}
 	}
 

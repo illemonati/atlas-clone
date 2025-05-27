@@ -1,5 +1,6 @@
 #include "TModels.h"
 #include "TReadGroupInfo.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods::PMD {
@@ -58,7 +59,7 @@ void TModels::log(size_t rgID) const {
 }
 
 void TModels::_pool(const BAM::TReadGroupMap& rgMap) {
-	if (!hasPMD()) UERROR("No point pooling models that do not recalibrate!");
+	coretools::user_assert(hasPMD(), "No point pooling models that do not recalibrate!");
 	for (size_t rg = 0; rg < _pModels.size(); ++rg) {
 		const auto pIndex = rgMap.pooledIndex(rg);
 		if (pIndex != rg) {

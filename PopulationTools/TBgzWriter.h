@@ -19,7 +19,7 @@ class TBGzWriter final : public coretools::TWriter {
 public:
 	TBGzWriter(std::string_view Filename, const char *Mode = "w")
 		: TWriter(Filename), _file(bgzf_open(name().c_str(), Mode)) {
-		if (!_file) { UERROR("Was not able to create file ", name(), ". Does the path exist?"); }
+		if (!_file) { throw coretools::TUserError("Was not able to create file ", name(), ". Does the path exist?"); }
 	}
 	~TBGzWriter() { bgzf_close(_file); }
 

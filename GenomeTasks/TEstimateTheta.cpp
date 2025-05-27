@@ -14,6 +14,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::str::toString;
+using coretools::user_assert;
 
 
 //-----------------------------------
@@ -22,7 +23,7 @@ using coretools::str::toString;
 TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TBamWindowTraverser() {
 	_steps = parameters().get<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
-	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
+	user_assert(_steps >= 2, "Th enumber of steps must be >= 2!");
 };
 
 void TEstimateThetaLLSurface::_handleWindow(GenotypeLikelihoods::TWindow& window) {
@@ -110,14 +111,14 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 			if (averageDepth >= it) {
 				downSampleProbVector.emplace_back(it / averageDepth);
 			} else {
-				UERROR("Average Depth must be equal or bigger than provided lists of depths");
+				throw coretools::TUserError("Average Depth must be equal or bigger than provided lists of depths");
 			}
 		}
 	} else {
 		downSampleProbVector.emplace_back(1.);
 	}
 
-	if (downSampleProbVector.empty()) UERROR("You need to specify at least one probability!");
+	user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
 
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
 	_printFullData = false;
@@ -296,7 +297,7 @@ void TEstimateThetaRatio::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer(), _region1);
 		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch (...) {
-		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
+		throw coretools::TUserError("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
 			   "regions or limiting to sites with a minimal depth (>=2 recommended).");
 	}
 	logfile().doneTime();

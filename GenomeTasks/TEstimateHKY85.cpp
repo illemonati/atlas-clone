@@ -16,6 +16,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::P;
+using coretools::user_assert;
 using genometools::TGenotypeLikelihoods;
 using genometools::Base;
 
@@ -106,8 +107,9 @@ double TEstimateHKY85::_LL() {
 	for (size_t i = 0; i < _refBases.size(); ++i) {
 		LL.add(_genoDist->add(_P_g_I_ds[i], _refBases[i]));
 	}
-	if (!std::isfinite(LL.getSum())) UERROR("LL = ", LL.getSum(), "!");
-	return LL.getSum();
+	const auto sum = LL.getSum();
+	user_assert(std::isfinite(sum), "LL = ", LL.getSum(), "!");
+	return sum;
 }
 
 double TEstimateHKY85::_runEM() {
@@ -286,7 +288,7 @@ TEstimateHKY85::TEstimateHKY85() {
 	} else if (ploidy == 1) {
 		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85_mono>();
 	} else {
-		UERROR("Cannot estimate a HK85 model with a ploidy of ", ploidy, "!");
+		throw coretools::TUserError("Cannot estimate a HK85 model with a ploidy of ", ploidy, "!");
 	}
 	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
 
@@ -303,16 +305,16 @@ TEstimateHKY85::TEstimateHKY85() {
 		} else if (type == "sites") {
 			_sample = Sample::sites;
 		} else if (type == "upToDepth") {
-			UERROR("Cannot combine ", type, " with prob");
+			throw coretools::TUserError("Cannot combine ", type, " with prob");
 		} else {
-			UERROR("Downsampling type ", type, " does not exist");
+			throw coretools::TUserError("Downsampling type ", type, " does not exist");
 		}
 		logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
 					   " with probabilities ", _depthOrProbs, ". (parameter 'prob')");
 	} else if (type == "upToDepth") {
 		const auto depths = parameters().get<std::vector<int>>("depth");
 		for (const auto depth : depths) {
-			if (depth < 1) UERROR("Must sample at least depth=1");
+			user_assert(depth > 0, "Must sample at least depth=1");
 			_depthOrProbs.push_back(double(depth));
 		}
 		_sample = Sample::upToDepth;
@@ -330,9 +332,7 @@ TEstimateHKY85::TEstimateHKY85() {
 				logfile().list("Will do one round of downsampling. (use 'genomeWide' to specify the number)");
 			}
 		} else {
-			if (_depthOrProbs.empty()) {
-				UERROR("Cannot du several rounds of downsampling without downsampling probabilities! Use 'prob' to specify.");
-			}
+			user_assert(!_depthOrProbs.empty(), "Cannot du several rounds of downsampling without downsampling probabilities! Use 'prob' to specify.");
 			_nRounds = parameters().get<size_t>("genomeWide");
 			logfile().list("Will do ", _nRounds, " rounds of downsampling. (parameter 'genomeWide')");
 		}

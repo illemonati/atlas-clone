@@ -7,6 +7,7 @@
 
 #include "TDistanceEstimator.h"
 #include "coretools/Files/TLineWriter.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
@@ -20,6 +21,7 @@ using genometools::Base;
 using coretools::Probability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 
 //----------------------------------------------------
 //TDistanceClass
@@ -127,8 +129,8 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 	if(parameters().exists("distWeights")){
 		logfile().list("Using user-provided distance weights.");
 		const auto vec = parameters().get<std::vector<double>>("distWeights");
-		if(vec.size() != 9)
-			UERROR("Wrong number of distance weights! Required are nine values for aa/aa, aa/ab, ab/aa, aa/bb, ab/ab, ab/ac, aa/bc, ab/cc, ab/cd");
+		user_assert(vec.size() == 9, "Wrong number of distance weights! Required are nine values for aa/aa, "
+									 "aa/ab, ab/aa, aa/bb, ab/ab, ab/ac, aa/bc, ab/cc, ab/cd");
 
 		_distanceObject = std::make_unique<TDistanceUser>(vec);
 
@@ -142,7 +144,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 		} else if(distType == "euclidian"){
 			_distanceObject = std::make_unique<TDistanceEuclidian>();
 		} else
-			UERROR("Unknown distance type '", distType, "'! Use either squaredDiff, euclidian, or probMismatch.");
+			throw coretools::TUserError("Unknown distance type '", distType, "'! Use either squaredDiff, euclidian, or probMismatch.");
 	}
 	logfile().conclude("Using distance weights " + coretools::str::concatenateString(_distanceObject->weights(), ", ") + ".");
 
@@ -151,8 +153,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 void TEMforDistanceEstimation::_guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	//check sizes are equal
 	using coretools::index;
-	if(genoQual1.size() != genoQual2.size())
-		UERROR("Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!");
+	user_assert(genoQual1.size() == genoQual2.size(), "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!");
 
 	//just estimate pi as average posterior probability
 	_pi.fill(0.0);
@@ -184,8 +185,7 @@ void TEMforDistanceEstimation::_guessPi(GenotypeQualityVector & genoQual1, Genot
 void TEMforDistanceEstimation::_guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	using coretools::index;
 	//check sizes are equal
-	if(genoQual1.size() != genoQual2.size())
-		UERROR("Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!");
+	user_assert(genoQual1.size() == genoQual2.size(), "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!");
 
 	//set to zero
 	_phi.fill(0.0);
@@ -490,7 +490,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 
 		//check if EM converged
 		logfile().done();
-		//UERROR("done!";
+
 		if(iter > 0 ){
 			LL_diff = LL - old_LL;
 			logfile().conclude("LL = ", LL, " (deltaLL = ", LL_diff, ").");
@@ -522,8 +522,7 @@ TDistanceEstimator::TDistanceEstimator(){
 	_outputName = coretools::instances::parameters().get<std::string>("out", "ATLAS");
 	coretools::instances::logfile().list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
 
-	if(_GLFs.size() < 2)
-		UERROR("At least two GLF files have to be provided to estimate distances!");
+	user_assert(_GLFs.size() >= 2, "At least two GLF files have to be provided to estimate distances!");
 }
 
 //------------------------------------------------------------------
@@ -672,8 +671,7 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 //--------------------------------------------
 void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen){
 	logfile().list("Will estimate genetic distance in windows of length ", windowLen, ".");
-	if(windowLen < 100)
-		UERROR("Window size must be at least 100bp!");
+	user_assert(windowLen >= 100, "Window size must be at least 100bp!");
 
 	//loop over all pairs
 	for(size_t g1=0; g1<(_GLFs.size() - 1); ++g1){

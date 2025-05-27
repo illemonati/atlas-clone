@@ -52,8 +52,7 @@ public:
 	void openOut(std::string_view outname){
 		coretools::instances::logfile().list("Writing count table to '", outname, "'.");
 		out.open(std::string(outname).c_str());
-		if(!out)
-			UERROR("Failed to open file '", outname, " for writing!");
+		coretools::user_assert(out.is_open(), "Failed to open file '", outname, " for writing!");
 	}
 
 	void writeTable(std::string & description, std::string & rowPrefix, std::string & colPrefix){

@@ -11,6 +11,7 @@
 
 namespace BAM {
 using coretools::TDevError;
+using coretools::user_assert;
 
 //----------------------------------------------------------
 // TCigar
@@ -18,7 +19,8 @@ using coretools::TDevError;
 //----------------------------------------------------------
 
 void TCigar::add(char Type, size_t Length) {
-	if (_lengthSoftClippedRight) { UERROR("Cigar string contains entries past soft clipping on right!"); }
+	user_assert(!_lengthSoftClippedRight, "Cigar string contains entries past soft clipping on right!");
+
 	if (Type == 'M' || Type == '=' || Type == 'X') {
 		_lengthAligned += Length;
 	} else if (Type == 'I') {
@@ -33,8 +35,8 @@ void TCigar::add(char Type, size_t Length) {
 		}
 	} else if (Type == 'N') {
 		_lengthSkipped += Length;
-	} else if (Type != 'H' && Type != 'P') {
-		UERROR("Unknown CIGAR operation '", Type, "'!");
+	} else {
+		throw coretools::TUserError("Unknown CIGAR operation '", Type, "'!");
 	}
 
 	// add to vector

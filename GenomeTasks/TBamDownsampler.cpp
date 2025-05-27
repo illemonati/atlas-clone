@@ -71,11 +71,11 @@ void TBamDownsampler::_readVectorOfDownsamplingProbabilities(){
             if(averageDepth >= it){
                 _probs.emplace_back(it / averageDepth);
             } else{
-                UERROR("Average Depth must be equal or bigger than provided lists of depths");
+                throw coretools::TUserError("Average Depth must be equal or bigger than provided lists of depths");
             }
         }
     } else {
-        UERROR("Either argument 'prob' or 'depth' must be provided!");
+        throw coretools::TUserError("Either argument 'prob' or 'depth' must be provided!");
     }
 	//get unique names
 	std::map <Probability, int> fracNames;
@@ -123,9 +123,8 @@ TBamDownsampler::TBamDownsampler() {
 		}
 		_cumulProbs.push_back(1.0); // always add an extra at end to ease search
 
-		if (sum > 1.0) { UERROR("Separation probabilities must sum to <= 1.0, not ", sum, "!"); }
-	}
-	else {
+		coretools::user_assert(sum <= 1.0, "Separation probabilities must sum to <= 1.0, not ", sum, "!");
+	} else {
 		filePrefix = _genome.outputName() + "_downsampled_";
 		// report
 		logfile().list("Will accept reads with probabilities (parameter 'prob'): " +

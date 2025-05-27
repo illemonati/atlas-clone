@@ -7,6 +7,7 @@
 
 #include "TPSMCInput.h"
 #include "GenotypeFunctions.h"
+#include "coretools/Main/TError.h"
 
 namespace GenomeTasks{
 
@@ -34,7 +35,7 @@ TPSMCInput::TPSMCInput() {
 	std::string outputFileName = _genome.outputName() + ".psmcfa";
 	logfile().list("Writing PSMC input file to '" + outputFileName + "'.");
 	_out.open(outputFileName.c_str());
-	if(!_out) UERROR("Failed to open output file '", outputFileName, "'!");
+	coretools::user_assert(_out.is_open(), "Failed to open output file '", outputFileName, "'!");
 	_nCharOnLine = 0;
 };
 

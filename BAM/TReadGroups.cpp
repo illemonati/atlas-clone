@@ -8,12 +8,14 @@
 
 #include "TReadGroups.h"
 
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/fillContainer.h"
 
 namespace BAM{
 
 using coretools::instances::logfile;
+using coretools::user_assert;
 
 //---------------------------------------------------------------
 //TReadGroups
@@ -74,9 +76,7 @@ TReadGroup& TReadGroups::addAlternativeRG(std::string_view Name, std::string_vie
 	const auto& rg = getReadGroup(Original);
 
 	//make sure new name does not yet exist
-	if(readGroupExists(Name)){
-		UERROR("Can not add truncated or merged read group '", Name, "': read group already exists!");
-	}
+	user_assert(!readGroupExists(Name), "Can not add truncated or merged read group '", Name, "': read group already exists!");
 
 	//make copy
 	TReadGroup newRg(rg);
@@ -117,28 +117,28 @@ size_t TReadGroups::getId(std::string_view Name) const {
 
 const TReadGroup& TReadGroups::getReadGroup(std::string_view Name) const {
 	auto rg = _getReadGroup(Name);
-	if(rg != _readGroups.end())
-		return *rg;
-	UERROR("Read Group '", Name, "' is not present in header of bam file!");
+	user_assert(rg != _readGroups.end(), "Read Group '", Name, "' is not present in header of bam file!");
+
+	return *rg;
 }
 
-TReadGroup& TReadGroups::getReadGroup(std::string_view Name){
+TReadGroup &TReadGroups::getReadGroup(std::string_view Name) {
 	auto rg = _getReadGroup(Name);
-	if(rg != _readGroups.end())
-		return *rg;
-	UERROR("Read Group '", Name, "' is not present in header of bam file!");
+
+	user_assert(rg != _readGroups.end(), "Read Group '", Name, "' is not present in header of bam file!");
+	return *rg;
 }
 
 const TReadGroup& TReadGroups::getReadGroup(size_t ReadGroupId) const {
 	if (ReadGroupId == noReadGroupId) return _noReadGroup;
-	if(ReadGroupId >= _readGroups.size())
-		UERROR("No read group with number ", ReadGroupId, "!");
+	user_assert(ReadGroupId < _readGroups.size(), "No read group with number ", ReadGroupId, "!");
+
 	return _readGroups[ _readGroupsById[ReadGroupId] ];
 }
 
 TReadGroup& TReadGroups::getReadGroup(size_t ReadGroupId){
-	if(ReadGroupId >= _readGroups.size())
-		UERROR("No read group with number ", ReadGroupId, "!");
+	user_assert(ReadGroupId < _readGroups.size(), "No read group with number ", ReadGroupId, "!");
+
 	return _readGroups[ _readGroupsById[ReadGroupId] ];
 }
 

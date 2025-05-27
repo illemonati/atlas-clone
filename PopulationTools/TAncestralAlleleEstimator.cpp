@@ -52,7 +52,7 @@ void TAncestralAlleleEstimator::run(){
     if (it != populationNames.end()){
         index = it - populationNames.begin();
     } else {
-        UERROR("Population '", population, "' was not found in alleleCounts file!");
+        throw coretools::TUserError("Population '", population, "' was not found in alleleCounts file!");
     }
     logfile().list("Using population '", populationNames[index],"' for estimation of ancestral allele. (parameter 'population')");
 

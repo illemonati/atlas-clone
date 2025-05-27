@@ -179,7 +179,7 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 				int numRef = coretools::str::fromString<int>(tmp[0]);
 				int numAlt = coretools::str::fromString<int>(tmp[1]);
 				if (numRef == 0 || numAlt == 0)
-					UERROR("Call at position ", _vcfFile.position(),
+					throw coretools::TUserError("Call at position ", _vcfFile.position(),
 						   " is heterozygous but reference or alternative allelic depth is 0!");
 				if (_vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP) {
 					logfile().warning("DP is " + toString(_vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) +
@@ -231,8 +231,8 @@ void TVcfDiagnostics::fixIntAsFloat() {
 	if (!_vcfFile.formatColExists("GP")) {
 		logfile().list("VCF File ", _vcfFile.filename(), " does not have a GP field!");
 		logfile().list("Will just copy the file");
-		if (!std::filesystem::copy_file(_vcfFile.filename(), outFile))
-			UERROR("Failed to copy '", _vcfFile.filename(), "' to '", outFile, "'!");
+		coretools::user_assert(std::filesystem::copy_file(_vcfFile.filename(), outFile), "Failed to copy '",
+							   _vcfFile.filename(), "' to '", outFile, "'!");
 		return;
 	}
 

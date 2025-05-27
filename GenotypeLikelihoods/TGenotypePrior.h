@@ -8,6 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 
 #include "TThetaEstimator.h"
@@ -92,7 +93,7 @@ public:
 	TGenotypePriorTheta(std::string thetaOutputName, double DefaultTheta) {
 		hasDefaultTheta = true;
 		defaultTheta    = DefaultTheta;
-		if (defaultTheta < 0.0) UERROR("Theta must be >= 0.0!");
+		coretools::user_assert(defaultTheta >= 0.0, "Theta must be >= 0.0!");
 		init(thetaOutputName);
 	};
 
@@ -118,7 +119,7 @@ public:
 				genometools::TBaseProbabilities freq{};
 				thetaEstimator->setBaseFreq(freq);
 			} else
-				UERROR("Please increase window size or provide a default theta!");
+				throw coretools::TUserError("Please increase window size or provide a default theta!");
 		}
 
 		// update prior

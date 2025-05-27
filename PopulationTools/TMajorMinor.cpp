@@ -638,7 +638,7 @@ void TMajorMinor::run() {
 					   ". (parameters method and maxF)");
 		iterate<TMLE>(maxF);
 	} else {
-		UERROR("Unknown MajorMinor method '", method, "'!");
+		throw coretools::TUserError("Unknown MajorMinor method '", method, "'!");
 	}
 }
 

@@ -2,6 +2,7 @@
 
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Files/TInputFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Math/mathFunctions.h"
@@ -179,11 +180,9 @@ std::map<std::string, double> TSpearmanGWAS::_readDataIntoMap(std::string_view F
 		}
 
 		// if no column was found: error!
-		if(dataIdx < 0){
-			UERROR("Sample file '", Filename, "' lacks a data column!");
-		}
+		coretools::user_assert(dataIdx >= 0, "Sample file '", Filename, "' lacks a data column!");
 	}
-	
+
 	// read into map
 	std::map<std::string, double> data;
 	for(; !in.empty(); in.popFront()){

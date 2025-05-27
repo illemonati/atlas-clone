@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Main/TError.h"
 #include "genometools/Genotypes/Base.h"
 #include "coretools/Files/TOutputFile.h"
 #include "genometools/Genotypes/Containers.h"
@@ -225,7 +226,7 @@ public:
 	coretools::TOutputFile &file() { return _out; };
 
 	void addEstimator(TThetaEstimator *Estimator, const std::string &Prefix) {
-		if (_out.isOpen()) { UERROR("Can not add estimators to an open TThetaOutputFile!"); }
+		coretools::user_assert(!_out.isOpen(), "Can not add estimators to an open TThetaOutputFile!");
 		_thetaEstimators.push_back(Estimator);
 		_prefixes.push_back(Prefix);
 	};

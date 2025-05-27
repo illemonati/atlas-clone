@@ -12,6 +12,7 @@
 
 #include "SFS.h"
 
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/concatenateString.h"
@@ -24,6 +25,7 @@ namespace Simulations {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
+using coretools::user_assert;
 using genometools::Base;
 using genometools::TBaseProbabilities;
 using coretools::P;
@@ -51,7 +53,7 @@ THaplotypeSimulator::THaplotypeSimulator(){
 	if(parameters().exists("baseFreq")){
 		std::vector<double> freq;
 		coretools::str::fillContainerFromString(parameters().get<std::string>("baseFreq"), freq, ',');
-		if (freq.size() != 4) UERROR("baseFreq vector must have size = 4!");
+		user_assert(freq.size() == 4, "baseFreq vector must have size = 4!");
 		std::array<double, 4> ar;
 		std::copy(freq.begin(), freq.end(), ar.begin());
 		_baseFreq = TBaseProbabilities::normalize(ar);
@@ -104,8 +106,8 @@ TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeRefDivSimulator()
 	}
 
 	// one theta per chromosome
-	if (_thetas.size() != nChoromosomes)
-		UERROR("Number of theta values provided does not match number of chromosomes to simulate!");
+	coretools::user_assert(_thetas.size() == nChoromosomes,
+						   "Number of theta values provided does not match number of chromosomes to simulate!");
 }
 
 void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
@@ -160,21 +162,21 @@ TSimulatorHKY85::TSimulatorHKY85(size_t nChoromosomes, bool ReadFasta) : THaplot
 	if (thetas_g.size() == 1) {
 		thetas_g.resize(nChoromosomes, thetas_g.front());
 	} else if (thetas_g.size() != nChoromosomes) {
-		UERROR("Number of theta_g values provided does not match number of chromosomes to simulate!");
+		throw coretools::TUserError("Number of theta_g values provided does not match number of chromosomes to simulate!");
 	}
 	logfile().list("Will simulate with the following theta_g values: ", thetas_g, ".");
 
 	if (thetas_r.size() == 1) {
 		thetas_r.resize(nChoromosomes, thetas_r.front());
 	} else if (thetas_r.size() != nChoromosomes) {
-		UERROR("Number of theta_r values provided does not match number of chromosomes to simulate!");
+		throw coretools::TUserError("Number of theta_r values provided does not match number of chromosomes to simulate!");
 	}
 	logfile().list("Will simulate with the following theta_r values: ", thetas_r, ".");
 
 	if (mus.size() == 1) {
 		mus.resize(nChoromosomes, mus.front());
 	} else if (mus.size() != nChoromosomes) {
-		UERROR("Number of mu values provided does not match number of chromosomes to simulate!");
+		throw coretools::TUserError("Number of mu values provided does not match number of chromosomes to simulate!");
 	}
 	logfile().list("Will simulate with the following mu values: ", mus, ".");
 
@@ -232,9 +234,9 @@ TSimulatorPair::TSimulatorPair() : THaplotypeRefDivSimulator() {
 	// Initialize phis
 
 	parameters().fill("phi", _phis, {1., 1., 1., 1., 1., 1., 1., 1., 1.});
-	if (_phis.size() != 9)
-		UERROR("Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, "
-			   "01/01, 01/02, 00/12, 01/22, 01/23");
+	user_assert(_phis.size() == 9,
+				"Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, "
+				"01/01, 01/02, 00/12, 01/22, 01/23");
 
 	// normalize phis
 	const double sum = std::accumulate(_phis.cbegin(), _phis.cend(), 0.);
@@ -259,8 +261,7 @@ void TSimulatorPair::_fillTables() {
 		_cumulGenoCaseFrequencies[i] = sum;
 	}
 	_cumulGenoCaseFrequencies.back() = 1.0;
-	if (fabs(sum - 1.0) > 0.0000000001)
-		UERROR("Phis do not sum to 1.0! They sum to ", sum, ".");
+	user_assert(fabs(sum - 1.0) <= 0.0000000001, "Phis do not sum to 1.0! They sum to ", sum, ".");
 
 	// case 0: aa/aa
 	//-----------------------------------------
@@ -436,8 +437,7 @@ TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THa
 		}
 
 		// check if numbe rof chromosomes given matches number of chromosomes
-		if (sfsFileNames.size() != nChromosomes)
-			UERROR("Number of SFS files does not match number of chromosomes!");
+		user_assert(sfsFileNames.size() == nChromosomes, "Number of SFS files does not match number of chromosomes!");
 
 		// initialize SFS from files
 		const bool folded = parameters().exists("folded");
@@ -460,7 +460,7 @@ TSimulatorSFS::TSimulatorSFS(const genometools::TChromosomes& chromosomes) : THa
 }
 
 void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas, bool folded) {
-	if (thetas.size() != chromosomes.size()) UERROR("Number of theta values does not match number of chromosomes!");
+	user_assert(thetas.size() == chromosomes.size(), "Number of theta values does not match number of chromosomes!");
 	const auto outname = parameters().get<std::string>("out", "ATLAS_simulations");
 
 	// generate SFS for each chromosome
@@ -485,7 +485,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 }
 
 void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<std::string> &sfsFileNames, bool folded) {
-	if (sfsFileNames.size() != chromosomes.size()) UERROR("Number of SFS files does not match number of chromosomes!");
+	user_assert(sfsFileNames.size() == chromosomes.size(), "Number of SFS files does not match number of chromosomes!");
 
 	// read the SFS of each chromosome from the corresponding file
 	for (size_t i = 0; i < chromosomes.size(); ++i) {
@@ -500,11 +500,10 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 		logfile().done();
 
 		const size_t nChrCopies = chromosomes[i].ploidy() * _sampleSize;
-		if (_sfs.back()->numChromosomes() != nChrCopies) {
-			UERROR("SFS does not match sample size! It contains data for ",
-							   (*_sfs.rbegin())->numChromosomes(), " instead of ", nChrCopies, " chromosomes (sum of ploidies across samples).");
-		}
-	}
+		user_assert(_sfs.back()->numChromosomes() == nChrCopies,
+					"SFS does not match sample size! It contains data for ", (*_sfs.rbegin())->numChromosomes(),
+					" instead of ", nChrCopies, " chromosomes (sum of ploidies across samples).");
+    }
 }
 
 void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretools::TView<genometools::Base> reference,
@@ -575,15 +574,15 @@ TSimulatorHW::TSimulatorHW()
 	logfile().startIndent("Parameters regarding Hardy-Weinberg equilibrium:");
 
 	logfile().list("Will simulate ", _fracPoly, " of all sites as polymorphic. (parameter fracPoly)");
-	if (_alpha <= 0.0) UERROR("Alpha must be > 0!");
-	if (_beta <= 0.0) UERROR("Beta must be > 0!");
+	user_assert(_alpha > 0.0, "Alpha must be > 0!");
+	user_assert(_beta > 0.0, "Beta must be > 0!");
 	logfile().list("Polymoprhic sites will have derived allele frequencies f~Beta(", _alpha, ", ", _beta,
 			   "). (parameters 'alpha', 'beta')");
 	if (_F == 0.0) {
 		logfile().list("Will assume no inbreeding. (parameter F=0)");
 	} else {
 		logfile().list("Will use an inbreeding coefficient of ", _F, ". (parameter F)");
-		if (_F < 0.0 || _F > 1.0) UERROR("Inbreeding coefficient F must be within [0,1]!");
+		user_assert(_F >= 0.0 && _F <= 1.0, "Inbreeding coefficient F must be within [0,1]!");
 	}
 
 	// write true allele freq?
