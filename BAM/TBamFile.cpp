@@ -18,6 +18,7 @@
 namespace BAM{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
 
 namespace impl {
 std::string millionReadsRead(size_t N) { return coretools::str::toStringWithPrecision((double) N / 1000000, 1); };
@@ -59,11 +60,9 @@ void TBamFile::_fillSamHeader(){
 }
 
 void TBamFile::_fillChromosomes(){
-	if(_bamHeader.Sequences.Size() < 1){
-		UERROR("No chromosomes present in BAM header!");
-	}
+	user_assert(_bamHeader.Sequences.Size() > 0, "No chromosomes present in BAM header!");
 
-	//make sure object is empty
+	// make sure object is empty
 	_chromosomes.clear();
 
 	//copy from BamHeader
@@ -105,7 +104,7 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 	//open BAM file
 	logfile().list("Opening BAM file '", _filename, "'.");
 	if (!_bamReader.Open(_filename))
-		UERROR("Failed to open BAM file '", Filename, "'!");
+		throw coretools::TUserError("Failed to open BAM file '", Filename, "'!");
 
 	//load or create index file
 	const std::string fnIndex1 = std::string(Filename).append(".bai");
@@ -114,16 +113,16 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 	if (std::filesystem::exists(fnIndex1)) {
 		logfile().list("Opening BAM index file '", fnIndex1, "'.");
 		if(!_bamReader.OpenIndex(fnIndex1))
-			UERROR("Failed to open BAM index file '", fnIndex1, "'!");
+			throw coretools::TUserError("Failed to open BAM index file '", fnIndex1, "'!");
 	}
 	else if (std::filesystem::exists(fnIndex2)) {
 		logfile().list("Opening BAM index file '", fnIndex2, "'.");
 		if (!_bamReader.OpenIndex(fnIndex2))
-			UERROR("Failed to open BAM index file '", fnIndex2, "'!");
+			throw coretools::TUserError("Failed to open BAM index file '", fnIndex2, "'!");
 	} else {
 		logfile().list("Creating BAM index file '", fnIndex1, "'.");
 		if (!_bamReader.CreateIndex())
-			UERROR("Failed to create BAM index file '", fnIndex1, "'!");
+			throw coretools::TUserError("Failed to create BAM index file '", fnIndex1, "'!");
 	}
 
 	//initialize bam stuff
@@ -365,9 +364,9 @@ bool TBamFile::readNextAlignment(){
 			if(_curChromosome == _chromosomes.end()){
 				//is chromosome not in header?
 				if(!_chromosomes.exists(_curBamAlignment.RefID)){
-					UERROR("Chromosome with refID ", _curBamAlignment.RefID, " is missing from BAM header!");
+					throw coretools::TUserError("Chromosome with refID ", _curBamAlignment.RefID, " is missing from BAM header!");
 				} else {
-					UERROR("BAM file not sorted!");
+					throw coretools::TUserError("BAM file not sorted!");
 				}
 			}
 		}
@@ -395,11 +394,12 @@ bool TBamFile::readNextAlignment(){
 	_curCigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
 
 	//check if BAM file is sorted
-	if(_curAlignmentPosition < _previousAlignmentPosition){
-		UERROR("BAM file must be sorted by position! Alignment '", _curBamAlignment.Name, "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position(), ")");
-	}
+	user_assert(_curAlignmentPosition >= _previousAlignmentPosition, "BAM file must be sorted by position! Alignment '",
+				_curBamAlignment.Name, "' is at position ", _curBamAlignment.Position,
+				", which is before the position of the previous alignment (", _previousAlignmentPosition.position(),
+				")");
 
-	//update per read group counter
+	// update per read group counter
 	if(_curReadGroupID != TReadGroups::noReadGroupId){
 		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
 	}

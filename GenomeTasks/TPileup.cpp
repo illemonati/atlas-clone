@@ -147,12 +147,12 @@ TPileup::TPileup() {
 		// check if unknown fields were given
 		if (!fields.empty()) {
 			if (fields.size() == 1) {
-				UERROR("Unknown field '", *fields.begin(),
+				throw coretools::TUserError("Unknown field '", *fields.begin(),
 				       "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.");
 			} else {
 				std::string f;
 				for (auto i : fields) { f += '\'' + i + "', "; }
-				UERROR("Unknown fields: ", f.substr(0, f.size() - 2),
+				throw coretools::TUserError("Unknown fields: ", f.substr(0, f.size() - 2),
 				       "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and "
 				       "'likelihoods'.");
 			}
@@ -231,12 +231,12 @@ TPileup::TPileup() {
 		// check if unknown fields were given
 		if (!histograms.empty()) {
 			if (histograms.size() == 1) {
-				UERROR("Unknown histogram '", *histograms.begin(),
+				throw coretools::TUserError("Unknown histogram '", *histograms.begin(),
 				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'prevBases' and 'contexts'.");
 			} else {
 				std::string f;
 				for (auto i : histograms) { f += '\'' + i + "', "; }
-				UERROR("Unknown histograms: ", f.substr(0, f.size() - 2),
+				throw coretools::TUserError("Unknown histograms: ", f.substr(0, f.size() - 2),
 				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'prevBases' and 'contexts'.");
 			}
 		}

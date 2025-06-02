@@ -8,6 +8,7 @@
 #include "SFS.h"
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/algorithms.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/fillContainer.h"
@@ -15,6 +16,7 @@
 
 namespace Simulations {
 using coretools::instances::randomGenerator;
+using coretools::user_assert;
 using genometools::Base;
 
 namespace impl {
@@ -44,11 +46,10 @@ SFS::SFS(std::string_view filename) {
 
 	// read linbe with values and check dimensionality
 	in.popFront();
-	if(in.numCols() != numCells){
-		UERROR("Error reading SFS from file '", filename, "': number of entries (", in.numCols(), ") does not match number of entries expected from dimensions (", numCells, ")!");
-	}
+	user_assert(in.numCols() == numCells, "Error reading SFS from file '", filename, "': number of entries (",
+				in.numCols(), ") does not match number of entries expected from dimensions (", numCells, ")!");
 
-	//read values
+	// read values
 	std::vector<double> vec;
 	for (size_t i = 0; i < in.numCols(); ++i){
 		vec.push_back(in.get<double>(i));
@@ -70,7 +71,7 @@ SFS::SFS(size_t numChr, double theta) {
 		_sfs.push_back(theta / i);
 		sum += _sfs.back();
 	}
-	if (sum > 1.0) UERROR("The choice of theta and sample size results in too many mutations in the SFS!");
+	user_assert(sum <= 1.0, "The choice of theta and sample size results in too many mutations in the SFS!");
 	_sfs.front() = 1.0 - sum;
 	_sfsPicker.init(_sfs);
 }

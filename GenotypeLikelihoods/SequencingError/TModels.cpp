@@ -6,6 +6,7 @@
  */
 
 #include "SequencingError/TModels.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods {
@@ -33,7 +34,7 @@ std::pair<std::string_view, std::string_view> epsRho(std::string_view s) {
 } // namespace impl
 
 void TModels::_pool(const BAM::TReadGroupMap& rgMap) {
-	if (!recalibrates()) UERROR("No point pooling models that do not recalibrate!");
+	coretools::user_assert(recalibrates(), "No point pooling models that do not recalibrate!");
 	for (size_t rg = 0; rg < _pModels.size(); ++rg) {
 		const auto pIndex = rgMap.pooledIndex(rg);
 		if (pIndex != rg) {

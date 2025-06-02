@@ -33,7 +33,7 @@ void TIlluminaIdentifier::_handleAlignment(){
 
     if(rgPUinName != _genome.bamFile().readGroups().getReadGroup(_genome.bamFile().curReadGroupID()).platformUnit_PU){
         size_t newId = _genome.bamFile().readGroups().getId(rgPU_rgID[rgPUinName]);
-        if(newId == BAM::TReadGroups::noReadGroupId) UERROR("Illumina read group name of read '" + _genome.bamFile().curName() + "' not found in header!");
+		coretools::user_assert(newId != BAM::TReadGroups::noReadGroupId, "Illumina read group name of read '" + _genome.bamFile().curName() + "' not found in header!");
         _genome.bamFile().curSetNewReadGroup(newId);
         _counter++;
     }

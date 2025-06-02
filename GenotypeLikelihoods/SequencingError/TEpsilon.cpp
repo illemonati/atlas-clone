@@ -128,7 +128,7 @@ void TEpsilon::solveJxF() {
 	_Jacobian = arma::symmatu(_Jacobian);
 	_maxF = std::max(std::abs(_F.max()), std::abs(_F.min())) / _numSitesAdded;
 	if (!solve(_JxF, _Jacobian, _F))
-		UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
+		throw coretools::TUserError("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
 		       _Jacobian);
 	_maxJxF = std::max(std::abs(_JxF.max()), std::abs(_JxF.min()));
 

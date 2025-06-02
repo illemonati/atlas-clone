@@ -94,7 +94,7 @@ struct TMaskCreator {
 			TCreateVariantBedMask mask;
 			mask.createVariantMask();
 		} else {
-			UERROR("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'variant' and 'nonRef'.");
+			throw coretools::TUserError("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'variant' and 'nonRef'.");
 		}
 	};
 };

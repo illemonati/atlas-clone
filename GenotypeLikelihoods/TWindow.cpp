@@ -159,7 +159,7 @@ void TWindow::move(const TWindow & Window, std::string_view ChrName){
 	move(Window);
 }
 TWindow TWindow::downsampleReads(const coretools::Probability &downsamplingProb) const {
-	if (!_tagSites) DEVERROR("Cannot downsample reads with tagging sites!");
+	DEV_ASSERT(_tagSites);
 
 	TWindow other;
 	other.move(*this, chrName());

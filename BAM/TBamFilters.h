@@ -103,7 +103,8 @@ public:
 		
 	}
 	void enable(FilterType Filter, const coretools::TNumericRange<size_t> & Range, std::string_view Reason) {
-		if (Filter >= FilterType::maxRange) DEVERROR("Cannot Do Rangefilter on Type ", coretools::index(Filter), "!");
+		DEV_ASSERT(Filter < FilterType::maxRange);
+
 		_ranges[Filter] = Range;
 		enable(Filter, Reason);
 	}

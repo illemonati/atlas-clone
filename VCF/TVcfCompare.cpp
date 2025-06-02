@@ -7,6 +7,7 @@
 
 #include "TVcfCompare.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
@@ -18,6 +19,7 @@ using genometools::Genotype;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::str::toString;
+using coretools::user_assert;
 
 //--------------------------------------------------------------
 // TGenotypeComparisonTable
@@ -118,8 +120,7 @@ TVcfComapreVCF::TVcfComapreVCF(std::string_view filename, std::string_view sampl
 	//move to first position
 	_vcfFile->next();
 
-	if(_vcfFile->eof)
-		UERROR("Vcf file '", filename, "' is empty!");
+	coretools::user_assert(!_vcfFile->eof, "Vcf file '", filename, "' is empty!");
 
 	//store first chr
 	_parsedChromosomes.push_back(_vcfFile->chr());
@@ -183,14 +184,12 @@ TVcfCompare::TVcfCompare() {
 
 	//currently only implemented for comparing two VCFs
 	if (fileNames.size() == 1) {
-		if (sampleNames.size() != 2) {
-			UERROR("VCF comparison requires either one file and two sample names (not ", sampleNames.size(), "), or two files and one sample name!");
-		}
+		user_assert(sampleNames.size() == 2,
+							   "VCF comparison requires either one file and two sample names (not ", sampleNames.size(),
+							   "), or two files and one sample name!");
 	} else if (fileNames.size() == 2) {
 		const auto sampleSize = sampleNames.size();
-		if (sampleSize < 1 || sampleSize > 2) {
-			UERROR("VCF comparison requires either one file and two sample names (not ", sampleNames.size(), "), or two files and one sample name!");
-		}
+		user_assert(sampleSize == 1 || sampleSize == 2, "VCF comparison requires either one file and two sample names (not ", sampleSize, "), or two files and one sample name!");
 	}
 	// back is either same as front or the 2nd one, depending whether size = 1 or 2
 	_vcfFiles.emplace_back(fileNames.front(), sampleNames.front());
@@ -321,7 +320,7 @@ void TVcfCompare::run(){
 				addToOtherMissing(counts, 1);
 				_vcfFiles[1].next();
 			} else {
-				UERROR("Chromosomes differ between the two VCF files!");
+				throw coretools::TUserError("Chromosomes differ between the two VCF files!");
 			}
 		}
 

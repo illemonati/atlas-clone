@@ -4,6 +4,7 @@
  */
 #include "TErrorEstimator.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
@@ -16,10 +17,9 @@ namespace GenotypeLikelihoods {
 using coretools::P;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 using genometools::Base;
 using genometools::Genotype;
-
-
 
 namespace impl {
 
@@ -47,14 +47,12 @@ TErrorEstimator::TErrorEstimator()
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
 
-	if (parameters().exists("bed")) {
-		UERROR("--bed is deprecated! use --regions instead.");
-	}
+	user_assert(!parameters().exists("bed"), "--bed is deprecated! use --regions instead.");
 	if (parameters().exists("regions")) {
 		std::vector<std::string> beds;
 		parameters().fill("regions", beds);
 		if (ploidies.size() == 1) ploidies.assign(beds.size(), ploidies.front());
-		if (ploidies.size() != beds.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
+		user_assert(ploidies.size() == beds.size(), "You need to give as many ploidies as chromosomes, or only one ploidy!");
 
 		const auto NRegions = beds.size();
 		_data.resize(NRegions);
@@ -77,7 +75,7 @@ TErrorEstimator::TErrorEstimator()
 		std::vector<std::string> chrs;
 		parameters().fill("chr", chrs);
 		if (ploidies.size() == 1) ploidies.assign(chrs.size(), ploidies.front());
-		if (ploidies.size() != chrs.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
+		user_assert(ploidies.size() == chrs.size(), "You need to give as many ploidies as chromosomes, or only one ploidy!");
 
 		const auto NRegions = chrs.size();
 		_data.resize(NRegions);
@@ -97,7 +95,8 @@ TErrorEstimator::TErrorEstimator()
 			}
 		}
 	} else {
-		if (ploidies.size() > 1) UERROR("You did not define any regions or chromosomes, only one ploidy can be given!");
+		user_assert(ploidies.size() <= 1,
+					"You did not define any regions or chromosomes, only one ploidy can be given!");
 		_data.emplace_back();
 		_refBases.emplace_back();
 		if (ploidies.front() == 1) {
@@ -190,7 +189,7 @@ void TErrorEstimator::_identifyModels() {
 				logfile().list(sMates[mate], " mate: ", table.size(), " bases, ", table.nSites_g1(),
 							   " sites with depth > 1.");
 				auto &recal = _recal.RGModel(rg)[mate];
-				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
+				user_assert(recal->recalibrates(), "Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
 
 				recal->epsilon()->init(table, _minData);
 				_epsilons.push_back(recal->epsilon());
@@ -208,7 +207,7 @@ void TErrorEstimator::_identifyModels() {
 		logfile().listFlush("Readgroup ", rg);
 
 		auto &pmd = _pmd.model(rg);
-		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
+		user_assert(pmd.hasPMD(), "Cannot estimate PMD for readgroup ", rg, "!");
 
 		const auto& pooledWith = _pmdMap.readGroupsPooledWith(rg);
 		if (pooledWith.size() > 1) {
@@ -453,7 +452,7 @@ double TErrorEstimator::_calculateLL_updatePg() {
 		}
 		LLRes += LL.getSum();
 	}
-	if (!std::isfinite(LLRes)) UERROR("LL = ", LLRes, ", you may need to pool your readgroups!");
+	user_assert(std::isfinite(LLRes), "LL = ", LLRes, ", you may need to pool your readgroups!");
 	return LLRes;
 }
 

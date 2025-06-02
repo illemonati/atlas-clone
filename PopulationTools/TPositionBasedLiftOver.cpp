@@ -92,13 +92,12 @@ void TBamToBed::_handleAlignment(BAM::TAlignment& alignment){
     std::vector<std::string_view> vec;
     coretools::str::fillContainerFromString(alignment.name(), vec, impl::readNameDelimiter);
 
-    if(vec.size() != 3){
-        UERROR("Unable to parse name of alignment '", alignment.name(), "': did you map a FASTQ file produced with task=liftOver mode=", impl::Bed2FastqMode, "?");
-    }
-    
-    size_t posInRead = coretools::str::fromString<size_t>(vec[1]);
+	coretools::user_assert(vec.size() == 3, "Unable to parse name of alignment '", alignment.name(),
+						   "': did you map a FASTQ file produced with task=liftOver mode=", impl::Bed2FastqMode, "?");
 
-    if(alignment.isAlignedAtInternalPos(posInRead)){
+	size_t posInRead = coretools::str::fromString<size_t>(vec[1]);
+
+	if(alignment.isAlignedAtInternalPos(posInRead)){
         _outBed.add(alignment.positionInRef(posInRead)+alignment.cigar().lengthSoftClippedLeft(), vec[2]);
     } else {
         ++_numPosNotAligned;
@@ -143,7 +142,7 @@ void TPositionBasedLiftOver::run(){
         TBamToBed converter;
         converter.run();
     } else {
-        UERROR("Unknown mode '", mode, "'! Accepted values are '", impl::Bed2FastqMode, "', and '", impl::Bam2BedMode, "'.");
+        throw coretools::TUserError("Unknown mode '", mode, "'! Accepted values are '", impl::Bed2FastqMode, "', and '", impl::Bam2BedMode, "'.");
     }
 }
 

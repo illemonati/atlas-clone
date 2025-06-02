@@ -10,6 +10,7 @@
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
 #include "TReadGroupInfo.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -24,6 +25,7 @@ using coretools::instances::randomGenerator;
 using coretools::instances::parameters;
 using coretools::probdist::TCategoricalDistribution;
 using coretools::P;
+using coretools::user_assert;
 using genometools::Base;
 using genometools::TwoBase;
 using genometools::TGenomePosition;
@@ -102,7 +104,7 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup &ReadGroup, const TReadGrou
 	if(RGInfo.has(InfoType::duplicationRate)){
 		coretools::str::fromString(RGInfo.getString(InfoType::duplicationRate), _duplicationRate, "duplication rate is not within [0,1]!");
 		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
-		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
+		user_assert(_duplicationRate <= 0.5, "Duplication rate must be within [0.0, 0.5]!");
 		_duplicationRateAmongSimulated = P(_duplicationRate / (_duplicationRate.complement()));
 	}
 
@@ -177,7 +179,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &Alignment, const s
 											 bool ReadIsContaminated) {
 
 	assert(ReadLength > 0);
-	if (ReadIsContaminated) UERROR("contaminated Reads not implemented yet!");
+	user_assert(!ReadIsContaminated, "contaminated Reads not implemented yet!");
 	// prepare vector of bases
 	std::vector<Base> bases;
 	BAM::TCigar cigar;
@@ -259,18 +261,17 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 	std::string errRange = err + "expect a single integer within [1,65535].";
 
 	if(json.is_number()){
-		if(json.get<int>() < 1 || json.get<int>() > 65535){
-			UERROR(errRange);
-		}
+		user_assert(json.get<int>() >= 1 && json.get<int>() <= 65535, errRange);
+
 		_numCycles = json.get<int>();
 	} else if(json.is_array() && json.size() != 1){
-		UERROR(errRange);
+		throw coretools::TUserError(errRange);
 	} else if(json.is_string()){
 		coretools::str::fromString(json.get<std::string>(), _numCycles, err);
 	} else if(json.is_array() && json.size() == 1){
 		coretools::str::fromString(json[0].get<std::string>(), _numCycles, err);
 	} else {
-		UERROR(errRange);
+		throw coretools::TUserError(errRange);
 	}
 
 	_alignment.setReadGroup(_readGroup->id);
@@ -347,22 +348,22 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 	if(json.is_array()){
 		if(json.size() == 1){
 			if(json[0].get<int>() < 1 || json[0].get<int>() > 65535){
-				UERROR(errRange);
+				throw coretools::TUserError(errRange);
 			}
 			_numCycles[0] = json[0].get<int>();
 			_numCycles[1] = _numCycles[0];
 		} else if(json.size() == 2){
 			if(json[0].get<int>() < 1 || json[1].get<int>() > 65535 || json[1].get<int>() < 1 || json[1].get<int>() > 65535){
-				UERROR(errRange);
+				throw coretools::TUserError(errRange);
 			}
 			_numCycles[0] = json[0].get<int>();
 			_numCycles[1] = json[1].get<int>();
 		} else {
-			UERROR(errRange);
+			throw coretools::TUserError(errRange);
 		}
 	} else if(json.is_number()){
 		if(json.get<int>() < 1 || json.get<int>() > 65535){
-			UERROR(errRange);
+			throw coretools::TUserError(errRange);
 		}
 		_numCycles[0] = json.get<int>();
 		_numCycles[1] = _numCycles[0];
@@ -378,7 +379,7 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 			_numCycles[1] = _numCycles[0];
 		}
 	} else {
-		UERROR(errRange);
+		throw coretools::TUserError(errRange);
 	}
 
 	// set Alignment properties

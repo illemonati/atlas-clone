@@ -9,6 +9,7 @@ namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 
 TBamWindows::TBamWindows(const genometools::TChromosomes& Chromosomes)  {
 	_parser.openReference(); // non-mandatory
@@ -22,7 +23,7 @@ TBamWindows::TBamWindows(const genometools::TChromosomes& Chromosomes)  {
 }
 
 void TBamWindows::requireReference() const {
-	if (!_parser.reference().isOpen())  UERROR("No reference provided! (Use parameter fasta to provide a reference)");
+	user_assert(_parser.reference().isOpen(), "No reference provided! (Use parameter fasta to provide a reference)");
 }
 
 void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromosomes) {
@@ -77,7 +78,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 		if (parameters().exists("limitWindows"))
 			logfile().list("Will limit analysis to the first ", limit,
 						" windows per chromosome. (parameter 'limitWindows')");
-		if (limit <= skip) UERROR("limitWindows has to be larger than skipWindows!");
+		user_assert(limit > skip, "limitWindows has to be larger than skipWindows!");
 
 		for (const auto& chr: Chromosomes) {
 			if (!chr.inUse()) continue;
@@ -114,7 +115,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 void TBamWindows::_setWindowFilters() {
 	// filter for missing reference
 	_maxMissing = parameters().get<double>("maxMissing", 1.0);
-	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
+	user_assert(_maxMissing >= 0.0 && _maxMissing <= 1.0, "maxMissing must be within [0, 1]!");
 	if (_maxMissing < 1.0) {
 		logfile().list("Will filter out windows with a missing data fraction > ", _maxMissing,
 					   ". (parameter 'maxMissing')");
@@ -123,9 +124,8 @@ void TBamWindows::_setWindowFilters() {
 	}
 
 	_maxRefN = parameters().get<double>("maxRefN", 1.0);
-	if (_maxRefN < 0.0 || _maxRefN > 1.0) UERROR("maxRefN must be within interval [0,1]!");
-	if (_maxRefN < 1.0 && !_parser.reference().isOpen())
-		UERROR("Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
+	user_assert(_maxRefN >= 0.0 && _maxRefN <= 1.0, "maxRefN must be within interval [0,1]!");
+	user_assert(_maxRefN == 1.0 || _parser.reference().isOpen(), "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			   "(use 'fasta' to provide a reference)");
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > ", _maxRefN,
 				   ". (parameter 'maxRefN')");
@@ -173,7 +173,7 @@ void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 		std::string filename;
 		if (parameters().exists("mask")) {
 			// mask
-			if (parameters().exists("regions")) UERROR("Cannot use mask and regions at the same time.");
+			user_assert(!parameters().exists("regions"), "Cannot use mask and regions at the same time.");
 			filename = parameters().get<std::string>("mask");
 			logfile().startIndent("Will mask all sites listed in BED file '" + filename + "':");
 			_doMasking       = true;
@@ -200,6 +200,7 @@ void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
 }
 
 void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, genometools::Morphic Morph) {
+	DEV_ASSERT(_alleles.empty());
 	//report
 	if(Morph == genometools::Morphic::Poly || Morph == genometools::Morphic::Both){
 		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
@@ -208,14 +209,11 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 	}
 	
 	// only allow for one subset to be active
-	if (!_alleles.empty()) { DEVERROR("Site subset already initialized!"); }
 
-	if (_considerRegions)
-		UERROR("Site subsets (parameter '", paramName,
-			   "') and regions (parameter 'regions') can not be used at the same time!");
-	if (_doMasking)
-		UERROR("Site subsets (parameter '", paramName,
-			   "') and masks (parameter 'mask') can not be used at the same time!");
+	user_assert(!_considerRegions, "Site subsets (parameter '", paramName,
+				"') and regions (parameter 'regions') can not be used at the same time!");
+	user_assert(!_doMasking, "Site subsets (parameter '", paramName,
+				"') and masks (parameter 'mask') can not be used at the same time!");
 
 	const auto filename = parameters().get(paramName);
 	_alleles.parse(filename, Chromosomes, Morph);

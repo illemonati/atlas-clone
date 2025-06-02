@@ -24,6 +24,7 @@ using coretools::P;
 using coretools::Probability;
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
 using coretools::str::fromString;
 using coretools::str::readAfter;
 using coretools::str::readBefore;
@@ -56,13 +57,13 @@ std::vector<Probability> empiric(std::string_view sFunction) {
 Type type(std::string_view sType) {
 	if (sType == "CT") return Type::CT;
 	if (sType == "GA") return Type::GA;
-	UERROR("Type ", sType, " is not a recognized token!");
+	throw coretools::TUserError("Type ", sType, " is not a recognized token!");
 }
 
 size_t end(std::string_view sEnd) {
 	if (sEnd == "5") return 0;
 	if (sEnd == "3") return 1;
-	UERROR("End ", sEnd, " is not a recognized token!");
+	throw coretools::TUserError("End ", sEnd, " is not a recognized token!");
 }
 
 std::string toString(Type type) {
@@ -309,7 +310,7 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 	coretools::str::TSplitter semi(Info.get<std::string_view>(), ';');
 	for (auto s: semi) {
 		const auto sType     = readBefore(s, ':');
-		if (sType.size() != 3) UERROR(sType, " is not a recognized token!");
+		user_assert(sType.size() == 3, sType, " is not a recognized token!");
 
 		const auto type = impl::type(sType.substr(0, 2));
 		const auto end  = impl::end(sType.substr(2, 1));
@@ -331,15 +332,15 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 					_tables[0][t] = {P(0.)};
 				} else if (Info[k].is_number()) {
 					const auto d = Info[k].get<double>();
-					if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+					user_assert(d >= 0 && d <= 1, "PMD must be between 0 and 1!");
 					_tables[0][t] = {P(d)};
 				} else if (Info[k].is_array()) {
 					for (const auto &d : Info[k]) {
-						if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+						user_assert(d >= 0 && d <= 1, "PMD must be between 0 and 1!");
 						_tables[0][t].emplace_back(d);
 					}
 				} else {
-					UERROR("Cannot parse json-token ", Info[k], "!");
+					throw coretools::TUserError("Cannot parse json-token ", Info[k], "!");
 				}
 			}
 		}
@@ -352,30 +353,31 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 					_tables[1][t] = {P(0.)};
 				} else if (Info[k].is_number()) {
 					const auto d = Info[k].get<double>();
-					if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+					user_assert(d >= 0 && d <= 1, "PMD must be between 0 and 1!");
+
 					_tables[1][t] = {P(d)};
 				} else if (Info[k].is_array()) {
 					if (Info[k][0].is_number()) {
 						for (const auto &d : Info[k]) {
-							if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+							user_assert(d >= 0 && d <= 1, "PMD must be between 0 and 1!");
 							_tables[1][t].emplace_back(d);
 						}
 					} else if (Info[k][0].is_array()) {
-						if (_CMax == 0 && Info[k].size() > 1) UERROR("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
+						if (_CMax == 0 && Info[k].size() > 1) throw coretools::TUserError("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
 						if (_S == 0) _S = Info[k].size() - 1;
 
 						if (_tables.size() < 2 + _S) _tables.resize(2 + _S);
 						for (size_t i = 1; i < _tables.size(); ++i) {
 							for (const auto &d : Info[k][i - 1]) {
-								if (d > 1 || d < 0) UERROR("PMD must be between 0 and 1!");
+								user_assert(d >= 0 && d <= 1, "PMD must be between 0 and 1!");
 								_tables[i][t].emplace_back(d);
 							}
 						}
 					} else {
-						UERROR("Cannot parse json-token ", Info[k], "!");
+						throw coretools::TUserError("Cannot parse json-token ", Info[k], "!");
 					}
 				} else {
-					UERROR("Cannot parse json-token ", Info[k], "!");
+					throw coretools::TUserError("Cannot parse json-token ", Info[k], "!");
 				}
 			}
 		}

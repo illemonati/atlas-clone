@@ -3,6 +3,7 @@
  */
 
 #include "TEstimateMutationLoad.h"
+#include "coretools/Main/TError.h"
 #include "stattools/EM/TEM.h"
 
 namespace GenomeTasks {
@@ -150,7 +151,7 @@ void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) 
 			}
 		}
 	} catch (...) {
-		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
+		throw coretools::TUserError("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
 	}
 	logfile().doneTime();
 };
@@ -180,7 +181,7 @@ TEstimateMutationLoad::TEstimateMutationLoad()  {
 		_parseFromBed = true;
 		logfile().endIndent();
 	} else {
-		UERROR("Sites and preferred allele must be specified either using 'alleles' or 'bed'!");
+		throw coretools::TUserError("Sites and preferred allele must be specified either using 'alleles' or 'bed'!");
 	}
 };
 
@@ -189,7 +190,7 @@ void TEstimateMutationLoad::run() {
 	_traverseBAMWindows();
 
 	// check if sufficient sites
-	if (_sites.size() == 0) { UERROR("No sites were kept after traversing BAM file!"); }
+	coretools::user_assert(_sites.size() != 0, "No sites were kept after traversing BAM file!");
 
 	// now run estimation
 	MutationLoad::TMutationLoadEMPrior prior(_sites);

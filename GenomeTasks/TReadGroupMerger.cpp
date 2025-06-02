@@ -13,6 +13,7 @@
 namespace GenomeTasks{
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 
 TReadGroupMerger::TReadGroupMerger() {
 	BAM::TReadGroups& readGroups = _genome.bamFile().readGroupsMutable();
@@ -30,7 +31,7 @@ TReadGroupMerger::TReadGroupMerger() {
 	//parse file and construct new read groups in new header object
 	std::set<std::string> readGroupsMerged;
 	for (coretools::TInputFile file(filename.c_str(), coretools::FileType::NoHeader); !file.empty(); file.popFront()) {
-		if (file.numCols() < 2) UERROR("Wrong number of entries on line ", file.curLine(), " in file '", filename, "'!");
+		user_assert(file.numCols() >= 2, "Wrong number of entries on line ", file.curLine(), " in file '", filename, "'!");
 
 		// create new read group
 		uint16_t newId = readGroups.add(file.get(0)).id;
@@ -39,7 +40,7 @@ TReadGroupMerger::TReadGroupMerger() {
 		for (size_t i = 1; i < file.numCols(); ++i) {
 			// check for duplicates
 			if (!readGroupsMerged.emplace(file.get(i)).second) {
-				UERROR("Read group '", file.get(i), "' is listed multiple times in file '", filename, "'!");
+				throw coretools::TUserError("Read group '", file.get(i), "' is listed multiple times in file '", filename, "'!");
 			}
 
 			const auto oldId = readGroups.getId(file.get(i));

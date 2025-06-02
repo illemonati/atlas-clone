@@ -94,8 +94,7 @@ void TPolymorphicWindowIdentifier::run() {
     //report final status
 	logfile().endIndent();
 	reader.concludeFilters();
-	if(reader.numAcceptedLoci() < 1)
-		UERROR("No usable loci in VCF file '", vcfFilename, "'!");
+	coretools::user_assert(reader.numAcceptedLoci() > 0, "No usable loci in VCF file '", vcfFilename, "'!");
 
 	//print global stats
 	logfile().conclude(totalPolymorphicWindows, " of ", totalWindowsChecked, " windows were found polymoprhic (", 100.0 * (double) totalPolymorphicWindows / (double) totalWindowsChecked, "%).");

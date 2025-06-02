@@ -89,14 +89,14 @@ protected:
 	void _fillGenotypeFieldFunctionPointers();
 	virtual std::string _getVCFGenotypeString_GT(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual std::string _getVCFGenotypeString_DP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
 	virtual std::string _getVCFGenotypeString_AD(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function  not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function  not defined for base class TCaller!"); };
 
 	//write VCF
 	std::string _composeVCFString(std::vector<std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);

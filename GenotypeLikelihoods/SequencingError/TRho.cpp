@@ -1,6 +1,7 @@
 #include "TRho.h"
 
 #include "TSequencedData.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringManipulations.h"
@@ -13,6 +14,7 @@ using genometools::Base;
 using genometools::TBaseProbabilities;
 using coretools::str::TSplitter;
 using coretools::str::strip;
+using coretools::user_assert;
 
 TRho::TRho(std::string_view Def) {
 	using coretools::str::toString;
@@ -25,14 +27,14 @@ TRho::TRho(std::string_view Def) {
 	TSplitter spl(Def, ';');
 	size_t i = 0;
 	for (auto s: spl) {
-		if (i >= 4) UERROR("Too many rows given for rho, needed only 4!");
+		user_assert(i < 4, "Too many rows given for rho, needed only 4!");
 
 		std::array<double, 4> ar;
 		TSplitter spl2(strip(s, "[]"), ',');
 		size_t j = 0;
 
 		for (auto ss : spl2) {
-			if (j >= ar.size()) UERROR("Too many rho values given for row ", i, ", needed ", ar.size(), "!");
+			user_assert(j < ar.size(), "Too many rho values given for row ", i, ", needed ", ar.size(), "!");
 
 			if (strip(ss) == "-") {
 				ar[j] = 0.;
@@ -41,13 +43,13 @@ TRho::TRho(std::string_view Def) {
 			}
 			++j;
 		}
-		if (j < ar.size()) UERROR("Too few(", j, ") rho values given, needed ", ar.size(), "!");
+		user_assert(j == ar.size(), "Too few(", j, ") rho values given, needed ", ar.size(), "!");
 
 		ar[i]         = 0.;
 		_rho[Base(i)] = TBaseProbabilities::normalize(ar);
 		++i;
 	}
-	if (i < 4) UERROR("Too few rows given for rho, needed 4, not ", i, "!");
+	user_assert(i == 4, "Too few rows given for rho, needed 4, not ", i, "!");
 }
 
 TRho::TRho(const BAM::RGInfo::TInfo &info) {

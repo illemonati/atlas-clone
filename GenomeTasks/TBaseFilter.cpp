@@ -10,13 +10,16 @@ namespace GenomeTasks {
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
+
 //---------------------------------------------------------------
 //TQualityFilter
 //---------------------------------------------------------------
 TQualityFilter::TQualityFilter() {
 	if(parameters().exists("filterBaseQual")){
 		parameters().fill("filterBaseQual", _range);
-		if (_range.within(coretools::PhredInt::highest())){ UERROR("Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"); }
+		user_assert(!_range.within(coretools::PhredInt::highest()), "Base quality filter of 0 is not allowed (parameter 'filterBaseQual')");
+
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
 		_range.set(coretools::PhredInt(1), true, coretools::PhredInt(93), true);
@@ -40,18 +43,15 @@ TContextFilter::TContextFilter(){
 
 		if(contexts.size() > 0){
 			for(auto& c : contexts){
-				if(c.size() != 2){
-					UERROR("Context ", c, " does not consist of two bases! (parameter 'ignoreContexts')");
-				}
+				user_assert(c.size() == 2, "Context ", c, " does not consist of two bases! (parameter 'ignoreContexts')");
 
 				const Base first  = char2base(c[0]);
 				const Base second = char2base(c[1]);
 
-				if(base2char(first) != c[0] || base2char(second) != c[1]){
-					UERROR("Unable to understand context '", c, "'!  (parameter 'ignoreContexts')");
-				}
+				user_assert(base2char(first) == c[0] && base2char(second) == c[1], "Unable to understand context '", c,
+							"'!  (parameter 'ignoreContexts')");
 
-				//save context
+				// save context
 				_keptContexts[baseContext(first, second)] = false;
 			}
 

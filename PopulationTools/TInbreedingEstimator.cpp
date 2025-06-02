@@ -235,7 +235,7 @@ double TInbreedingEstimatorPrior::getSumLogPriorDensity(const Storage &Data) con
 	return sum;
 }
 
-void TInbreedingEstimatorPrior::_simulateUnderPrior(Storage *) { DEVERROR("Use Atlas simulator instead."); }
+void TInbreedingEstimatorPrior::_simulateUnderPrior(Storage *) { throw coretools::TDevError("Use Atlas simulator instead."); }
 
 //------------------------------------------
 // TInbreedingEstimatorModel

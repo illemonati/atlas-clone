@@ -3,6 +3,7 @@
 //
 
 #include "TVcfConverter.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TParameters.h"
 
 #include "coretools/Strings/splitters.h"
@@ -11,6 +12,7 @@ namespace VCF {
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
 
 //------------------------------------------
 // TVcfConverter
@@ -168,10 +170,10 @@ void TVcfBeagleNew::run() {
 		if (line.substr(0, plString.size()) == plString) hasPL = true;
 	}
 
-	if (!hasGL && !hasPL) UERROR("vcf file needs field GL or PL");
+	user_assert(hasGL || hasPL, "vcf file needs field GL or PL");
 
 	// Print header
-	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
+	user_assert(lineReader.front().substr(0, 6) == "#CHROM", "vcf file needs header");
 
 	// open gzFile
 	coretools::TOutputFile ofile(outName, "\t");
@@ -200,7 +202,7 @@ void TVcfBeagleNew::run() {
 		++nGL;
 		if (format.front() == "GL") break;
 	}
-	if (format.empty()) UERROR("FORMAT string neets GL");
+	user_assert(!format.empty(), "FORMAT string neets GL");
 
 	for (; !lineReader.empty(); lineReader.popFront()) {
 		TSplitter line{lineReader.front(), '\t'};

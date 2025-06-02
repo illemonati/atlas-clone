@@ -8,6 +8,7 @@
 #include "TSimulator.h"
 
 #include "coretools/Containers/TView.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/progressTools.h"
@@ -23,6 +24,7 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using coretools::str::toString;
+using coretools::user_assert;
 using genometools::Base;
 using genometools::TGenomePosition;
 
@@ -35,7 +37,7 @@ template<typename T>
 std::vector<T> parse(std::string_view Argument, std::string_view Explanation, const std::vector<T>& Defaults){
 	if(parameters().exists(Argument)){
 		const auto  res = parameters().get<std::vector<T>>(Argument);
-		if(res.empty()) UERROR("Issue understanding ", Explanation, " '", parameters().get(Argument), "' (parameter '", Argument, "')!");
+		user_assert(!res.empty(), "Issue understanding ", Explanation, " '", parameters().get(Argument), "' (parameter '", Argument, "')!");
 
 		if(res.size() == 1){
 			logfile().list("Will use ", Explanation, " of ", res[0], ". (parameter '", Argument, "')");
@@ -55,7 +57,7 @@ void checkLength(Vec & vec, size_t numChr){
 		if(vec.size() == 1){
 			vec.resize(numChr, vec.front());
 		} else {
-			UERROR("Number of chromosomes implied by chrLength, ploidy and depth does not match!");
+			throw coretools::TUserError("Number of chromosomes implied by chrLength, ploidy and depth does not match!");
 		}
 	}
 }
@@ -87,7 +89,7 @@ std::unique_ptr<THaplotypeSimulator> TSimulator::_makeHaploSimulator(std::string
 		logfile().startIndent("Simulating individuals under Hardy-Weinberg (parameter 'type' = '", Method, "')");
 		return std::make_unique<TSimulatorHW>();
 	}
-	UERROR("Unknown simulation method '", Method, "'! Use '", TSimulatorOne::name, "', '", TSimulatorPair::name, "', '", TSimulatorSFS::name, "' or '", TSimulatorHW::name, "'");
+	throw coretools::TUserError("Unknown simulation method '", Method, "'! Use '", TSimulatorOne::name, "', '", TSimulatorPair::name, "', '", TSimulatorSFS::name, "' or '", TSimulatorHW::name, "'");
 	logfile().endIndent();
 }
 
@@ -102,12 +104,12 @@ void TSimulator::_makeChromosomes(){
 
 	//check if ploidy is supported
 	for (auto &p : ploidies) {
-		if (p != 1 && p != 2) { UERROR("Currently only ploidy 1 (haploid) or 2 (diploid) is supported!"); }
+		user_assert(p == 1 || p == 2, "Currently only ploidy 1 (haploid) or 2 (diploid) is supported!");
 	}
 
 	//check depths
 	for (auto &d : _seqDepth) {
-		if (d < 0) { UERROR("Cannot simulate a depth of ", d, "!"); }
+		user_assert(d >= 0, "Cannot simulate a depth of ", d, "!");
 	}
 
 	if (!_fastaReader.isOpen()) {
@@ -170,7 +172,7 @@ TSimulator::TSimulator(const std::string_view Method){
 
 	const auto fastaName = parameters().get("fasta", "");
 	if (!fastaName.empty()) {
-		if (Method != TSimulatorHKY85::name) UERROR("Cannot simulate type '", Method, "' with input fasta-file. Use type = '", TSimulatorHKY85::name, "'!");
+		user_assert(Method == TSimulatorHKY85::name, "Cannot simulate type '", Method, "' with input fasta-file. Use type = '", TSimulatorHKY85::name, "'!");
 		_fastaReader.open(fastaName);
 		logfile().list("Will simulate with input fasta-file '", fastaName, "'.");
 	}
@@ -266,9 +268,7 @@ TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 	} else {
 		logfile().startNumbering("Using individual-specific sequencing parameters:");
 		//check sizes matches sample size
-		if(_haploSimulator->sampleSize() != filenames.size()){
-			UERROR("Number of read group info files does not match sample size!");
-		}
+		user_assert(_haploSimulator->sampleSize() == filenames.size(), "Number of read group info files does not match sample size!");
 
 		for(auto& s : filenames){
 			logfile().numberWithIndent("Sequencing parameters for individual 1");
@@ -281,9 +281,7 @@ TBAMSimulator::TBAMSimulator(std::string_view Method) : TSimulator(Method) {
 	//check if read length match chr length
 	for(auto& chr : _chromosomes){
 		for(auto& rs : _readSimulators){
-			if(rs.maxFragmentLength() > chr.length()){
-				UERROR("Length of chromosome '", chr.name(), "' is less than the max fragment length of some read groups!");
-			}
+			user_assert(rs.maxFragmentLength() <= chr.length(), "Length of chromosome '", chr.name(), "' is less than the max fragment length of some read groups!");
 		}
 	}
 	_bamFiles.open(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
@@ -407,14 +405,12 @@ auto calculateVariantQuality(coretools::TConstView<genometools::TVCFEntry> Genot
 
 TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	// check if method is compatible with VCF: only allow bi-allelic haplotype simulators
-	if (!_haploSimulator->simulatesBiallelic()) {
-		UERROR(
-			"Can not simulate VCF files with method '", method,
-			"': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate "
-			"BAM files instead.");
-	}
+	user_assert(
+		_haploSimulator->simulatesBiallelic(), "Can not simulate VCF files with method '", method,
+		"': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate "
+		"BAM files instead.");
 
-	// read simulation parameters
+    // read simulation parameters
 	_error = parameters().get("error", coretools::P(0.05));
 	logfile().list("Will use a per allele genotyping error rate of ", _error, ".");
 
@@ -469,10 +465,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
 		// working
-		if (refAllele != majorAllele && refAllele != minorAllele) {
-			DEVERROR("Locus ", l, ": reference allele (", refAllele, ") is not major (", majorAllele, ") nor minor (",
-					 minorAllele, ") allele!");
-		}
+		DEV_ASSERT(refAllele == majorAllele || refAllele == minorAllele);
 
 		// calculate variant quality
 		auto variantQuality = calculateVariantQuality(genotypeLikelihoods, majorAllele, refAllele, isDiploid);

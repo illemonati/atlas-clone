@@ -66,8 +66,8 @@ struct TNoRecal final : public TModel {
 				  const genometools::TBaseProbabilities &) noexcept override {}
 	void addToEpsilon(const BAM::TSequencedData &, const TGenotypeFloats &, const TGenotypeFloats &, bool,
 					  bool) noexcept override {}
-	TRho *rho() override { DEVERROR("TNoRecal does not have rho!"); }
-	TEpsilon *epsilon() override {DEVERROR("TNoRecal does not have epsilon!");}
+	TRho *rho() override { throw coretools::TDevError("TNoRecal does not have rho!"); }
+	TEpsilon *epsilon() override {throw coretools::TDevError("TNoRecal does not have epsilon!");}
 };
 
 //------------------------------------------------
