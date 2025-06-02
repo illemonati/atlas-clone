@@ -15,6 +15,8 @@ project(atlas VERSION 2.0.0 LANGUAGES CXX)
 # Atlas
 add_executable(${PROJECT_NAME} atlas.cpp)
 
+set(PARALLEL OFF)
+
 file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   BAM/*.h BAM/*.cpp
   GenomeTasks/*.h GenomeTasks/*.cpp
@@ -30,19 +32,19 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           22bd349
+  GIT_TAG           2b02e5e
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG           301d039
+  GIT_TAG           800c85c
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
 FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           b4e2f2d
+  GIT_TAG           bae5da9
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
@@ -64,11 +66,6 @@ else()
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/json"
   )
   FetchContent_MakeAvailable(json)
-endif()
-
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})

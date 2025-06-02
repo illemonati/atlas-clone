@@ -21,7 +21,7 @@ namespace GenomeTasks{
 //--------------------------------------
 class TCreateBedMask : public TBamWindowTraverser<WindowType::SingleBam> {
 protected:
-	genometools::TBedWriter _bed;
+	genometools::TBed _bed;
 	uint32_t _minDepth;
 
 	void _createMask(const std::string fileTag);
