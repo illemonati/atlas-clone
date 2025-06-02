@@ -188,7 +188,7 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		const auto destination = window.downsampleReads(p);
+		const auto destination = window.downsampleReads(p, _windows.regions());
 		logfile().done();
 
 		_addSites(destination, estimators[i]);

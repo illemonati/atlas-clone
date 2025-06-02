@@ -50,7 +50,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 		for (auto &window: windows) {
 			const auto& chr = Chromosomes[window.refID()];
 			if (!chr.inUse() || (_alleles && !_alleles.overlaps(window)) ||
-				(_considerRegions && !_mask.overlaps(window))) {
+				(considerRegions() && !_regions.overlaps(window))) {
 				logfile().list("Ignoring window [", window.from().position(), ", ", window.to().position(), "] on chr ", chr.name(), "!");
 				continue;
 			}
@@ -90,7 +90,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 
 			for (genometools::TGenomeWindow window(from, _windowSize); window.from() < to; window += _windowSize) {
 				if ((_alleles && !_alleles.overlaps(window)) ||
-					(_considerRegions && !_mask.overlaps(window))) {
+					(considerRegions() && !_regions.overlaps(window))) {
 					continue;
 				}
 				if (window.to() > chr.to()) window.resize(chr.to() - window.from());
@@ -167,35 +167,21 @@ void TBamWindows::_setSiteFilters() {
 	}
 }
 
-void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
+void TBamWindows::_setMasks(const genometools::TChromosomes &Chromosomes) {
 	// normal mask
-	if (parameters().exists("mask") || parameters().exists("regions")) {
-		std::string filename;
-		if (parameters().exists("mask")) {
-			// mask
-			user_assert(!parameters().exists("regions"), "Cannot use mask and regions at the same time.");
-			filename = parameters().get<std::string>("mask");
-			logfile().startIndent("Will mask all sites listed in BED file '" + filename + "':");
-			_doMasking       = true;
-			_considerRegions = false;
-		} else {
-			// regions
-			filename = parameters().get<std::string>("regions");
-			logfile().startIndent("Will limit analysis to sites listed in BED file '" + filename +
-								  "' (parameter 'regions'):");
-			_doMasking       = false;
-			_considerRegions = true;
-		}
+	if (parameters().exists("mask")) {
+		user_assert(!parameters().exists("regions"), "Cannot use mask and regions at the same time.");
+		const auto maskFile = parameters().get("mask");
+		logfile().list("Will mask all sites listed in BED file '", maskFile, "':");
+		_regions.parse(maskFile, Chromosomes);
+		// flip mask to get regions
+		_regions.flip(Chromosomes);
+	} else if (parameters().exists("regions")){// regions
+		const auto regionsFile =parameters().get<std::string>("regions");
 
-		// read file
-		logfile().listFlush("Reading file ...");
-		_mask.parse(filename, Chromosomes);
-		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWithWindows(), " chromosomes.");
-		logfile().endIndent();
-	} else {
-		_doMasking       = false;
-		_considerRegions = false;
+		logfile().list("Will limit analysis to sites listed in BED file '", regionsFile,
+							  "' (parameter 'regions'):");
+		_regions.parse(regionsFile, Chromosomes);
 	}
 }
 
@@ -210,10 +196,8 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 	
 	// only allow for one subset to be active
 
-	user_assert(!_considerRegions, "Site subsets (parameter '", paramName,
-				"') and regions (parameter 'regions') can not be used at the same time!");
-	user_assert(!_doMasking, "Site subsets (parameter '", paramName,
-				"') and masks (parameter 'mask') can not be used at the same time!");
+	user_assert(!considerRegions(), "Site subsets (parameter '", paramName,
+				"') and regions (parameter 'regions' or 'mask') can not be used at the same time!");
 
 	const auto filename = parameters().get(paramName);
 	_alleles.parse(filename, Chromosomes, Morph);
@@ -224,15 +208,6 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 void TBamWindows::filter(GenotypeLikelihoods::TWindow &Window) {
 	// apply site-specific filters
 	if (Window.numReadsInWindow() > 0) {
-		// apply masks and filters
-		if (_doMasking) {
-			const auto N = Window.applyMask(_mask, _considerRegions);
-			logfile().list("Masking ", N, " sites.");
-		} else if (_considerRegions) {
-			const auto N = Window.applyMask(_mask, _considerRegions);
-			logfile().list("Masking ", N, " sites outside regions.");
-		}
-
 		// filter sites
 		if (_applyDepthFilter) { Window.applyDepthFilter(_depthFilter); }
 		if (_filterCpG) { Window.maskCpG(_parser.reference()); }

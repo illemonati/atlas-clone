@@ -74,11 +74,11 @@ private:
 public:
 	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {}
 
-	TWindow downsampleReads(const coretools::Probability &downsamplingProb) const;
+	TWindow downsampleReads(const coretools::Probability &downsamplingProb, const genometools::TBed &Mask) const;
 
 	// Allow to set chromosome name when jumping
-	void move(const genometools::TGenomeWindow &Window);
-	void move(const TWindow &Window, std::string_view ChrName);
+	void move(const genometools::TGenomeWindow &Window, const genometools::TBed &Mask);
+	void move(const TWindow &Window, std::string_view ChrName, const genometools::TBed &Mask);
 
 	void limitDepth(size_t UpToDepth, bool Shuffle);
 	void limitSites(const genometools::TAlleles& alleles);
@@ -87,7 +87,7 @@ public:
 	void addReferenceBaseToSites(const genometools::TAlleles &Alleles);
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);
 
-	size_t applyMask(genometools::TBed &mask, bool doInverseMasking);
+	void setRegions(const genometools::TBed &Mask);
 	void maskCpG(const genometools::TFastaReader &reference);
 	genometools::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const coretools::TNumericRange<size_t> &DepthRange);

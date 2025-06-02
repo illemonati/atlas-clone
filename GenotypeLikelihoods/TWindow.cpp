@@ -123,12 +123,14 @@ void TWindow::_fillSites(const BAM::TAlignment &alignment) {
 		// if read extends past window length
 		if (posInWindow >= size()) break; // since part of the read maps to next window
 
-		_sites[posInWindow].add(alignment[p]);
-		if (_tagSites) _readIDs[posInWindow].push_back(_lastReadID);
+		if (!_masked[posInWindow]) {
+			_sites[posInWindow].add(alignment[p]);
+			if (_tagSites) _readIDs[posInWindow].push_back(_lastReadID);
+		} 
 	}
 }
 
-void TWindow::move(const genometools::TGenomeWindow & Window) {
+void TWindow::move(const genometools::TGenomeWindow & Window, const genometools::TBed &Mask) {
 	genometools::TGenomeWindow::move(Window);
 	_sites.resize(size());
 	for (auto& s: _sites) s.clear();
@@ -139,6 +141,7 @@ void TWindow::move(const genometools::TGenomeWindow & Window) {
 	}
 	_masked.assign(size(), false);
 	_numMaskedSites = 0;
+	if (!Mask.empty()) setRegions(Mask);
 
 	_depth              = 0.0;
 	_numSitesWithData   = 0;
@@ -154,15 +157,15 @@ void TWindow::move(const genometools::TGenomeWindow & Window) {
 	_overlap.clear();
 }
 
-void TWindow::move(const TWindow & Window, std::string_view ChrName){
+void TWindow::move(const TWindow & Window, std::string_view ChrName, const genometools::TBed &Mask){
 	_chrName = ChrName;
-	move(Window);
+	move(Window, Mask);
 }
-TWindow TWindow::downsampleReads(const coretools::Probability &downsamplingProb) const {
+	TWindow TWindow::downsampleReads(const coretools::Probability &downsamplingProb, const genometools::TBed &Mask) const {
 	DEV_ASSERT(_tagSites);
 
 	TWindow other;
-	other.move(*this, chrName());
+	other.move(*this, chrName(), Mask);
 
 	// fill downsampled sites
 	other._sites.resize(size());
@@ -235,43 +238,25 @@ void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & referenc
 	}
 }
 
-size_t TWindow::applyMask(genometools::TBed & mask, bool doInverseMasking){
-	if (doInverseMasking) {
-		//only keep sites in BED
-		auto pos = from();
-		//size_t pos = from().position();
-		auto it = mask.begin(*this);
-		while(it != mask.end() && overlaps(*it)){
-			//mask until start of BED window
-			for(; pos < it->from() && pos < to(); ++pos){
-				_sites[pos - from()].clear();
-				_masked[pos - from()] = true;
-				++_numMaskedSites;
-			}
-			//jump to end of BED window
-			pos = it->to();
-			++it;
-		}
-		//clear until end of window
-		for(; pos < to(); ++pos){
-			_sites[pos - from()].clear();
+void TWindow::setRegions(const genometools::TBed &Mask) {
+	// only keep sites in BED
+	auto pos = from();
+	// size_t pos = from().position();
+	for (auto it  = Mask.begin(*this); it != Mask.end() && overlaps(*it); ++it) {
+		// mask until start of BED window
+		for (; pos < it->from() && pos < to(); ++pos) {
 			_masked[pos - from()] = true;
 			++_numMaskedSites;
 		}
-	} else {
-		//mask all sites in BED
-		auto it = mask.begin(*this);
-		while(it != mask.end() && overlaps(*it)){
-
-			for(genometools::TGenomePosition s = std::max(it->from(), from()); s < std::min(it->to(), to()); ++s){
-				_sites[s - from()].clear();
-				_masked[s - from()] = true;
-				++_numMaskedSites;
-			}
-			++it;
-		}
+		// jump to end of BED window
+		pos = it->to();
 	}
-	return _numMaskedSites;
+	// clear until end of window
+	for (; pos < to(); ++pos) {
+		_masked[pos - from()] = true;
+		++_numMaskedSites;
+	}
+	logfile().list("Masking ", _numMaskedSites, " sites.");
 }
 
 void TWindow::maskCpG(const genometools::TFastaReader & reference){

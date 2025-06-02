@@ -18,17 +18,21 @@ class TBamWindows {
 	TParser _parser;
 
 	// window filters
-	double _maxMissing;
-	double _maxRefN;
+	double _maxMissing = 1.;
+	double _maxRefN    = 1.;
 
-	bool _doMasking;
-	genometools::TBed _mask;
+	genometools::TBed _regions;
+	genometools::TAlleles _alleles;
 
-	bool _applyDepthFilter;
-	bool _filterCpG;
-	bool _shuffleSites = false;
-	bool _allowDownsampling=false;
+	bool _applyDepthFilter  = false;
+	bool _filterCpG         = false;
+	bool _shuffleSites      = false;
+	bool _allowDownsampling = false;
 
+	size_t _upToDepth       = 1000;
+	size_t _windowSize      = 1000000;
+
+	coretools::Probability _downProb{};
 	coretools::TNumericRange<size_t> _depthFilter;
 
 	// contructor functions
@@ -36,19 +40,6 @@ class TBamWindows {
 	void _setWindowFilters();
 	void _setSiteFilters();
 	void _setMasks(const genometools::TChromosomes& chromosomes);
-
-	// window params
-	size_t _windowSize;
-
-	// mask
-	bool _considerRegions;
-
-	// sites
-	genometools::TAlleles _alleles;
-
-	// site filters
-	size_t _upToDepth;
-	coretools::Probability _downProb;
 
 public:
 	TBamWindows(const genometools::TChromosomes& chromosomes);
@@ -65,8 +56,9 @@ public:
 	bool allowDownsampling() const noexcept {return _allowDownsampling;}
 	void allowDownsampling(bool Yes) noexcept {_allowDownsampling = Yes;}
 	size_t windowSize() const noexcept {return _windowSize;}
-	bool considerRegions() const noexcept {return _considerRegions;}
+	bool considerRegions() const noexcept {return !_regions.empty();}
 	const genometools::TAlleles& alleles() const noexcept {return _alleles;}
+	const genometools::TBed& regions() const noexcept {return _regions;};
 };
 } // namespace GenomeTasks
 
