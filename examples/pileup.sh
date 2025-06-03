@@ -46,7 +46,7 @@ $atlas --task pileup --shuffleSites --fields "bases" --downsampleSites 0.5 \
 	   --fixedSeed 174 --out $out --logFile $out.out 2> $out.eout
 
 out="printAll"
-$atlas --task pileup --printAll \
+$atlas --task pileup --printAll --mask bed.bed \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --window window.txt  --readUpToDepth 97 \
 	   --histograms depth,allelicDepth,contexts,qualities,transitions,prevBases \
