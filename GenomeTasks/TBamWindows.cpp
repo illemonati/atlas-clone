@@ -2,6 +2,7 @@
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/TAlleles.h"
 
@@ -169,19 +170,29 @@ void TBamWindows::_setSiteFilters() {
 
 void TBamWindows::_setMasks(const genometools::TChromosomes &Chromosomes) {
 	// normal mask
+	if (parameters().exists("regions")) { // regions
+		const auto regionsFile = parameters().get("regions");
+
+		logfile().list("Will limit analysis to sites listed in BED file '", regionsFile, "' (parameter 'regions'):");
+		_regions.parse(regionsFile, Chromosomes);
+	}
 	if (parameters().exists("mask")) {
-		user_assert(!parameters().exists("regions"), "Cannot use mask and regions at the same time.");
 		const auto maskFile = parameters().get("mask");
 		logfile().list("Will mask all sites listed in BED file '", maskFile, "':");
-		_regions.parse(maskFile, Chromosomes);
-		// flip mask to get regions
-		_regions.flip(Chromosomes);
-	} else if (parameters().exists("regions")){// regions
-		const auto regionsFile =parameters().get<std::string>("regions");
+		if (!parameters().exists("regions")) {
+			_regions.parse(maskFile, Chromosomes);
 
-		logfile().list("Will limit analysis to sites listed in BED file '", regionsFile,
-							  "' (parameter 'regions'):");
-		_regions.parse(regionsFile, Chromosomes);
+			// flip mask to get regions
+			_regions.flip(Chromosomes);
+		} else {
+			genometools::TBed mask;
+			mask.parse(maskFile, Chromosomes);
+			_regions.addMask(mask);
+			auto fName = coretools::str::toString(coretools::str::readBeforeLast(parameters().get("regions"), '.'),
+												  "_masked.bed");
+			logfile().list("Will write masked regions-file to '", fName, "'.");
+			_regions.write(fName);
+		}
 	}
 }
 
