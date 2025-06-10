@@ -21,21 +21,6 @@ using coretools::user_assert;
 using genometools::Base;
 using genometools::Genotype;
 
-namespace impl {
-
-auto numSites(const GenotypeLikelihoods::TWindow &Window, size_t from, size_t to) {
-	struct {
-	size_t NData  = 0;
-	size_t NSites = 0;
-	} counter;
-	for (size_t i = from; i < to; ++i) {
-		counter.NSites += Window[i].depth() > 0;
-		counter.NData += Window[i].depth();
-	}
-	return counter;
-}
-} // namespace impl
-
 TErrorEstimator::TErrorEstimator()
 	: _recalMap("recal", _genome.bamFile().readGroups(), parameters().get<std::string>("poolRecal", "")),
 	  _pmdMap("PMD", _genome.bamFile().readGroups(), parameters().get<std::string>("poolPMD", "")),
@@ -59,10 +44,13 @@ TErrorEstimator::TErrorEstimator()
 		_refBases.resize(NRegions);
 		_regions.reserve(NRegions);
 		_genoDist.reserve(NRegions);
+		logfile().startIndent("Estimating errors for ", NRegions, " regions:");
 		for (size_t i = 0; i < beds.size(); ++i) {
 			_regions.emplace_back(beds[i], _genome.bamFile().chromosomes());
 			const auto NSites   = _regions[i].length();
+			logfile().list("Region ", i+1, ": ", NSites, " sites, ploidy: ", ploidies[i]);
 			_data[i].reserve(NSites);
+			_data[i].reserveLength(NSites*0.5); // Assume depth > 0.5
 			_refBases[i].reserve(NSites);
 
 			if (ploidies[i] == 1) {
@@ -71,6 +59,7 @@ TErrorEstimator::TErrorEstimator()
 				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
+		logfile().endIndent();
 	} else if (parameters().exists("chr")) {
 		std::vector<std::string> chrs;
 		parameters().fill("chr", chrs);
@@ -82,11 +71,14 @@ TErrorEstimator::TErrorEstimator()
 		_refBases.resize(NRegions);
 		_regions.reserve(NRegions);
 		_genoDist.reserve(NRegions);
+		logfile().startIndent("Estimating errors for ", NRegions, " chromosomes:");
 		for (size_t i = 0; i < chrs.size(); ++i) {
 			const auto NSites = chrs[i].length();
 			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chrs[i]));
 			_data[i].reserve(NSites);
+			_data[i].reserveLength(NSites*0.5); // Assume depth > 0.5
 			_refBases[i].reserve(NSites);
+			logfile().list("Chromosome '", chrs[i] , "': ", NSites, " sites, ploidy: ", ploidies[i]);
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -94,6 +86,7 @@ TErrorEstimator::TErrorEstimator()
 				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
+		logfile().endIndent();
 	} else {
 		user_assert(ploidies.size() <= 1,
 					"You did not define any regions or chromosomes, only one ploidy can be given!");
@@ -628,10 +621,6 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 
 			region = std::distance(_refIDs.begin(), rIt);
 		}
-		const auto counter  = impl::numSites(Window, 0, Window.size());
-		_data[region].reserve(_data[region].size() + counter.NSites);
-		_refBases[region].reserve(_refBases.size() + counter.NSites);
-		_data[region].reserveLength(_data[region].length() + counter.NData);
 		for (const auto &s : Window) {
 			_handleSite(s, region);
 		}
