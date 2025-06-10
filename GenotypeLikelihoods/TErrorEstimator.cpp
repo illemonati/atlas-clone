@@ -604,19 +604,21 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 	if (!_regions.empty()) { // Either sites
 		for (size_t r = 0; r < _regions.size(); ++r) {
 			auto &region = _regions[r];
-			for (auto lb = region.begin(Window); lb != region.end() && Window.overlaps(*lb); ++lb) {
-				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
-				const size_t pStart = std::max(lb->from().position(), Window.from().position()) - Window.from().position();
-				const size_t pStop  = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
-				const auto counter  = impl::numSites(Window, pStart, pStop);
-				_data[r].reserve(_data[r].size() + counter.NSites);
-				_refBases[r].reserve(_refBases.size() + counter.NSites);
-				_data[r].reserveLength(_data[r].length() + counter.NData);
+			auto lb = region.begin(Window);
+			if (lb == region.end()) continue;
+
+			logfile().list("Window overlaps with region ", r + 1, ".");
+			do {
+				const size_t pStart =
+					std::max(lb->from().position(), Window.from().position()) - Window.from().position();
+				const size_t pStop = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
+
 				for (auto p = pStart; p < pStop; ++p) {
 					const auto s = Window[p];
 					_handleSite(Window[p], r);
 				}
-			}
+				++lb;
+			} while (lb != region.end() && Window.overlaps(*lb));
 		}
 	} else { // or chromosomes
 		size_t region = 0;
