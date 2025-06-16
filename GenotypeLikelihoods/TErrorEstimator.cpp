@@ -329,8 +329,10 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 						e->propose(1. / (1 << shift));
 					}
 				}
-				sModels.pop_back();
-				logfile().startIndent("Proposing new epsilon with backtracking = 1/2^", shift, " for models", sModels);
+				if (!sModels.empty()) {
+					sModels.pop_back();
+					logfile().startIndent("Proposing new epsilon with backtracking = 1/2^", shift, " for models", sModels);
+				}
 			}
 
 			nUpdated = _updateModels();
