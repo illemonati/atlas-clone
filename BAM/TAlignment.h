@@ -118,7 +118,9 @@ public:
 	void setIsProperPair(bool ok) { _flags.setIsProperPair(ok); }
 	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); }
 	void setIsSecondMate(bool ok) { _flags.setIsSecondMate(ok); }
+	void makeSingle() {_flags.makeSingle();};
 	void setSamFlags(BAM::TSamFlags Flags) { _flags = std::move(Flags); }
+
 	void setCigarForUnitTest(const TCigar &Cigar) {_cigar = Cigar;}
 
 	// getters: position

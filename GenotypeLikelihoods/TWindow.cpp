@@ -238,11 +238,11 @@ void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & referenc
 	}
 }
 
-void TWindow::setRegions(const genometools::TBed &Mask) {
+void TWindow::setRegions(const genometools::TBed &Region) {
 	// only keep sites in BED
 	auto pos = from();
 	// size_t pos = from().position();
-	for (auto it  = Mask.begin(*this); it != Mask.end() && overlaps(*it); ++it) {
+	for (auto it  = Region.begin(*this); it != Region.end() && overlaps(*it); ++it) {
 		// mask until start of BED window
 		for (; pos < it->from() && pos < to(); ++pos) {
 			_masked[pos - from()] = true;

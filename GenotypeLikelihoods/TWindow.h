@@ -87,7 +87,7 @@ public:
 	void addReferenceBaseToSites(const genometools::TAlleles &Alleles);
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);
 
-	void setRegions(const genometools::TBed &Mask);
+	void setRegions(const genometools::TBed &Region);
 	void maskCpG(const genometools::TFastaReader &reference);
 	genometools::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const coretools::TNumericRange<size_t> &DepthRange);
