@@ -20,6 +20,7 @@ private:
 
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &lhs) override { lhs.status = AlignmentStatus::ready; }
+	void _handleOrphan(TWaitingAlignment &) override {}
 
 public:
 	TOverlappingReadsMerger();

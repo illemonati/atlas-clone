@@ -23,6 +23,7 @@ template<typename Container> void insert_sorted(Container &Vec, const typename C
 } // namespace impl
 
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
+	_handleOrphan(WAlignment);
 	if (WAlignment.status == AlignmentStatus::ready) {
 		if (_outBam) _outBam->writeAlignment(WAlignment.alignment);
 	} else if (WAlignment.status == AlignmentStatus::orphan) {
@@ -195,7 +196,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 
 		if(_blacklist.isInBlacklist(alignment.name())) {
 			_blacklist.remove(alignment.name());
-			next.status = AlignmentStatus::orphan;
+			next.status = AlignmentStatus::filterOut;
 			impl::insert_sorted(_waitingList, next);
 			continue;
 		}

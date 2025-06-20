@@ -49,6 +49,7 @@ protected:
 	//pure virtual functions
 	virtual void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) = 0;
 	virtual void _handleSingle(TWaitingAlignment &lhs)                        = 0;
+	virtual void _handleOrphan(TWaitingAlignment &lhs)                        = 0;
 	bool _alignmentCanBeWrittenUnchanged();
 
 public:

@@ -13,6 +13,7 @@ private:
 
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &) override {}
+	void _handleOrphan(TWaitingAlignment &) override {}
 
 public:
 	TPairAnalyser();

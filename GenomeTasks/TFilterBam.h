@@ -18,6 +18,7 @@ private:
 
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &lhs) override;
+	void _handleOrphan(TWaitingAlignment &lhs) override;
 
 public:
 	TFilterBam();
