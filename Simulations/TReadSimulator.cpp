@@ -293,11 +293,11 @@ bool TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const s
 	if (refDiff.first < refDiff.second) {
 		// more ref Difference in second mate -> bias towards first
 		const auto oRatio = firstHaplo ? _refBias.oddsRatio() : _refBias.complement().oddsRatio();
-		if (oRatio < 1 && randomGenerator().getRand() < oRatio) return false;
+		if (oRatio < 1 && randomGenerator().getRand() > oRatio) return false;
 	} else if (refDiff.first > refDiff.second) {
 		// more ref Difference in first mate -> bias towards second
 		const auto oRatio = firstHaplo ? _refBias.complement().oddsRatio() : _refBias.oddsRatio();
-		if (oRatio < 1 && randomGenerator().getRand() < oRatio) return false;
+		if (oRatio < 1 && randomGenerator().getRand() > oRatio) return false;
 	}
 
 	// Statistics

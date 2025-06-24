@@ -19,7 +19,7 @@ namespace GenomeTasks {
 
 class TEstimateHKY85 final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
-	enum class Sample : size_t {min = 0, reads=min, sites, upToDepth, max};
+	enum class Sample : size_t {min = 0, readsProb=min, readsDepth, sitesProb, sitesDepth, upToDepth, max};
 
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 
@@ -50,6 +50,7 @@ private:
 	size_t _lastReadID = 0;
 
 	bool _downSample() const noexcept {return !_depthOrProbs.empty();}
+	bool _downsampeDepth() {return _sample == Sample::readsDepth || _sample == Sample::sitesDepth;}
 
 	void _handleGenomeWide(GenotypeLikelihoods::TWindow& window);
 	void _handlePerWindow(GenotypeLikelihoods::TWindow& window);
@@ -84,7 +85,7 @@ private:
 
 		return sum;
 	}
-	std::pair<size_t, size_t> _downsampeSites(double ProbOrDepth);
+	std::pair<size_t, size_t> _downsampeSites(double ProbOrDepth, double depthInit);
 	double _runEM();
 	double _LL();
 

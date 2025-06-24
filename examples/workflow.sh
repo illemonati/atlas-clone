@@ -68,7 +68,7 @@ echo '{
   }
 }' > workflow.json
 
-delta=0.1
+delta=10
 N=100
 
 if [ $1 ]; then
@@ -79,7 +79,7 @@ if [ $1 ]; then
 fi
 k="111"
 L="${N}$k"
-probs="0.5,0.2,0.1,0.05"
+probs="0.5"
 
 out="simulate"
 $atlas --task simulate --RGInfo "workflow.json" \

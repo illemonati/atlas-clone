@@ -13,6 +13,7 @@ IKRK        = ["#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 basic       = ["#000000", "#FF0000", "#0000FF", "#FFA500", "#008000", "#808080", "#800080", "#008080"]
 
 col  = tol_bright
+nCol = len(col)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot genotye Distribution data(s)")
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     nFiles   = len(args.files)
     nSamples = int(ceil(nFiles/args.num))
 
-    if (nSamples) > len(col): sys.exit("Can only compare a maximum of %d samples!"%(len(col)))
+    #if (nSamples) > len(col): sys.exit("Can only compare a maximum of %d samples!"%(len(col)))
 
     ymi = 10.
     yma = 0.
@@ -88,18 +89,18 @@ if __name__ == "__main__":
         print("depth:", mdepths)
         print("het:", mhets)
 
-        xmi = min(min(mdepths), xmi)
-        xma = max(max(mdepths), xma)
+        xmi = minimum(min(mdepths), xmi)
+        xma = maximum(max(mdepths), xma)
 
         fmts = ["o", "s", "X", "d", "p", "<", "^", ">"]
         lins = ["-", ":", "--"]
         mks  = [i for i in range(nFiles, 0, -1)]
         ax1  = plt.subplot(111)
 
-        plt.errorbar(mdepths, mhets, color=col[i%nSamples], yerr=shets, fmt=fmts[i%nSamples] + lins[int(i/nSamples)], markersize=mks[i],linewidth=2, capsize=6, label=label)
-        plt.hlines(mhets[0], 0, 1.5*max(mdepths), col[i%nSamples], "dashed")
+        plt.errorbar(mdepths, mhets, color=col[i%nCol], yerr=shets, fmt=fmts[i%nCol] + lins[int(i/nCol)], markersize=mks[i],linewidth=2, capsize=6, label=label)
+        plt.hlines(mhets[0], 0, 1.5*max(mdepths), col[i%nCol], "dashed")
         plt.xscale("log")
-        plt.legend(ncols=2, borderaxespad=0.)
+        plt.legend(ncols=ceil(nFiles/4), borderaxespad=0.)
         if args.relative:
             plt.yscale("linear")
             yma = max(yma, max(mhets[nonzero(mhets)]))
@@ -108,9 +109,9 @@ if __name__ == "__main__":
 
         else:
             plt.yscale("log")
-            yma = max(yma, max(mhets[nonzero(mhets)]))
-            ymi = min(ymi, min(mhets[nonzero(mhets)]))
-            plt.ylim(min(ymi/2, yma/10), yma*2)
+            ymi = minimum(ymi, min(mhets[nonzero(mhets)]))
+            yma = maximum(yma, max(mhets[nonzero(mhets)]))
+            plt.ylim(minimum(ymi/2, yma/10), yma*2)
             plt.ylabel(r"het")
 
     # All

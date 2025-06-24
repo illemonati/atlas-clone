@@ -19,22 +19,27 @@ done
 echo "Bed creation: $(($(date +%s) - $tstep)) seconds"
 
 probs="0.2"
-out=windows
-$atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 \
+out=probSites
+$atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 --sample sites \
 	   --bam simulate.bam --fasta simulate.fasta --chr chr1 \
 	   --recal $recal --pmd $pmd --window 65432 \
 	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout
 
-probs="0.5,0.2,0.1"
-out=diploRaw
-$atlas --task HKY85 --genomeWide 3 --prob "$probs" --minDeltaLL 0.1 \
-	   --bam simulate.bam --fasta simulate.fasta \
-	   --regions diplo.bed --ploidy 2 --sample sites \
-	   --fixedSeed 333 --out $out --logFile $out.out 2> $out.eout
+out=probReads
+$atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 --sample reads \
+	   --bam simulate.bam --fasta simulate.fasta --chr chr1 \
+	   --recal $recal --pmd $pmd --window 65432 \
+	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout
 
-out=diploEE
+out=depthSites
+$atlas --task HKY85 --genomeWide 2 --depth "10,5,2" --sample sites \
+	   --bam simulate.bam --fasta simulate.fasta --chr chr1 \
+	   --recal $recal --pmd $pmd --minDeltaLL 1 \
+	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout
+
+out=upToDepth
 $atlas --task HKY85 --minDeltaLL 0.1 --genomeWide 2 \
-	   --depth "10,5,3,2,1" --sample upToDepth \
+	   --depth "10,5,2,1" --sample upToDepth \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --regions diplo.bed --ploidy 2 --recal $recal --pmd $pmd \
 	   --fixedSeed 444 --out $out --logFile $out.out 2> $out.eout
