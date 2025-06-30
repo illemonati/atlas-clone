@@ -19,13 +19,13 @@ $atlas --task theta --bam simulate.bam --printAll \
 
 # theta with downsample
 out=downsample
-$atlas --task theta --bam simulate.bam --prob 1,0.5 \
+$atlas --task theta --bam simulate.bam --depth "20,5" \
 	   --extraVerbose --window 4567 \
 	   --fixedSeed 260 --out $out --logFile $out.out 2> $out.eout
 
 # theta genomewide
 out=genomewide
-$atlas --task theta --genomeWide --bootstraps 3  --window 4567 \
+$atlas --task theta --genomeWide --bootstraps 3 --window 4567 \
 	   --bam simulate.bam --extraVerbose  --regions bed.bed \
 	   --fixedSeed 269 --out $out --logFile $out.out 2> $out.eout
 

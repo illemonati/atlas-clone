@@ -6,6 +6,7 @@
  */
 
 #include "TEstimateTheta.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Strings/concatenateString.h"
 #include "coretools/Main/TParameters.h"
 
@@ -102,23 +103,41 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 	// read downsampling rates
 
 	if (parameters().exists("prob")) {
+		user_assert(!parameters().exists("depth"), "Cannot use arguments 'prob' and 'depth' at the same time!");
+
 		parameters().fill("prob", downSampleProbVector);
+		user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
+		std::sort(downSampleProbVector.begin(), downSampleProbVector.end(), std::greater<>());
+
 	} else if (parameters().exists("depth")) {
-		std::vector<double> depths;
-		parameters().fill("depth", depths);
-		double averageDepth = parameters().get<double>("averageDepth");
-		for (auto &it : depths) {
-			if (averageDepth >= it) {
-				downSampleProbVector.emplace_back(it / averageDepth);
+		auto depths = parameters().get<std::vector<double>>("depth");
+		user_assert(!depths.empty(), "You need to specify at least one depth!");
+		std::sort(depths.begin(), depths.end(), std::greater<>());
+
+		double averageDepth;
+		if (parameters().exists("averageDepth")) {
+			averageDepth = parameters().get<double>("averageDepth");
+		} else {
+			logfile().list("No averageDepth given, will calculate it. User argument 'averageDepth' to safe time!");
+			averageDepth = _genome.bamFile().averageDepth();
+		}
+
+		if (depths.front() >= averageDepth) {
+			downSampleProbVector.emplace_back(1.);
+		}
+
+		for (size_t i = 1; i < depths.size(); ++i) {
+			const auto d = depths[i];
+			if (d >= averageDepth) {
+				logfile().warning("Will not consider depth ", d,
+								  ", this leads to full data, which is already the case for depth ", depths.front(), "!");
 			} else {
-				throw coretools::TUserError("Average Depth must be equal or bigger than provided lists of depths");
+				downSampleProbVector.emplace_back(d / averageDepth);
 			}
 		}
 	} else {
 		downSampleProbVector.emplace_back(1.);
 	}
-
-	user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
 
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
 	_printFullData = false;

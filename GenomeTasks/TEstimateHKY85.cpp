@@ -44,22 +44,21 @@ void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 		}
 		_P_g_I_ds.push_back(P_g_I_di);
 
-		if (_downSample() && _sample == Sample::readsProb) {
+		if (_downSample() && _sample == Sample::reads) {
 			_readIDs.push_back();
 			for (const auto id : Window.readIDs()[s]) { _readIDs.push_back(id + _lastReadID); }
 		}
 	}
 }
 
-std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth, double depthInit) {
+std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
 	using coretools::instances::randomGenerator;
-	const auto prob = _downsampeDepth() ? ProbOrDepth / depthInit : ProbOrDepth;
 
 	std::vector<bool> keep;
-	if (_sample == Sample::readsProb) {
+	if (_sample == Sample::reads) {
 		keep.assign(_lastReadID, false);
 		for (size_t k = 0; k < keep.size(); ++k) {
-			if (randomGenerator().getRand() < prob) { keep[k] = true; }
+			if (randomGenerator().getRand() < ProbOrDepth) { keep[k] = true; }
 		}
 	}
 
@@ -71,7 +70,7 @@ std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth, do
 		double sum = 1.;
 		size_t depth_s = 0;
 		switch (_sample) {
-		case Sample::readsProb: {
+		case Sample::reads: {
 			for (size_t j = 0; j < _P_d_I_b[s].size(); ++j) {
 				if (keep[_readIDs[s][j]]) {
 					++depth_s;
@@ -79,15 +78,16 @@ std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth, do
 				}
 			}
 		} break;
-		case Sample::sitesProb: {
+		case Sample::sites: {
 			for (size_t j = 0; j < _P_d_I_b[s].size(); ++j) {
-				if (randomGenerator().getRand() < prob) {
+				if (randomGenerator().getRand() < ProbOrDepth) {
 					++depth_s;
 					sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum);
 				}
 			}
 		} break;
 		default: { // Sample::upTodepth
+
 			depth_s = std::min<size_t>(ProbOrDepth, _P_d_I_b[s].size());
 			for (size_t j = 0; j < depth_s; ++j) { sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum); }
 		} break;
@@ -195,8 +195,8 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	const auto NSites = Window.numSites();
 	for (const auto dOrP : _depthOrProbs) {
 		constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
-				{"probability", "depth", "probability", "depth", "maximum depth"}};
-		logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " of ", dOrP, ":");
+			{"probability", "probability", "maximum depth"}};
+		logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ":");
 
 		if (_sample == Sample::upToDepth) {
 			_numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit longer
@@ -204,7 +204,7 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 			_numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
 		}
 
-		const auto [depth, withData] = _downsampeSites(dOrP, Window.depth());
+		const auto [depth, withData] = _downsampeSites(dOrP);
 		const auto LL_i              = _runEM();
 		_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
 				   LL_i);
@@ -246,8 +246,8 @@ void TEstimateHKY85::_handleGenomeWide() {
 		// downsampled
 		for (size_t p = 0; p < _depthOrProbs.size(); ++p) {
 			constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
-				{"probability", "depth", "probability", "depth", "maximum depth"}};
-			logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " of ", _depthOrProbs[p], ":");
+				{"probability", "probability", "maximum depth"}};
+			logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", _depthOrProbs[p], ":");
 
 			if (_sample == Sample::upToDepth) {
 				_numEMIterations =
@@ -256,7 +256,7 @@ void TEstimateHKY85::_handleGenomeWide() {
 				_numEMIterations = std::min<size_t>(10 * nIT, nIT / _depthOrProbs[p]); // may need a bit longer
 			}
 
-			const auto [depth, withData] = _downsampeSites(_depthOrProbs[p], _stats.NData / NSites);
+			const auto [depth, withData] = _downsampeSites(_depthOrProbs[p]);
 			const auto LL_i              = _runEM();
 			_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
 					   LL_i);
@@ -293,48 +293,33 @@ TEstimateHKY85::TEstimateHKY85() {
 	logfile().list("Estimating HK85 assuming a ploidy of ", ploidy, ". (parameter 'ploidy')");
 
 	// Downsample?
-	const auto type   = parameters().get("sample", "reads");
-	const auto probs  = parameters().get<std::vector<double>>("prob", {});
-	const auto depths = parameters().get<std::vector<double>>("depth", {});
-
-	if (probs.empty() && depths.empty()) {
-		logfile().list("Will not do downsampling. (use parameter 'prob')");
-	} else {
-		user_assert(probs.empty() || depths.empty(), "Cannot define both downsampling probability and density!");
-
+	const auto type = parameters().get("sample", "reads");
+	if (parameters().exists("prob")) {
+		parameters().fill("prob", _depthOrProbs);
+		if (_depthOrProbs.front() == 1.) {
+			// we will do the full probability anyway
+			_depthOrProbs.erase(_depthOrProbs.begin());
+		}
 		if (type == "reads") {
-			if (depths.empty()) {
-				_sample       = Sample::readsProb;
-			} else {
-				_sample       = Sample::readsDepth;
-			}
-		}
-		else if (type == "sites") {
-			if (depths.empty()) {
-				_sample       = Sample::sitesProb;
-			} else {
-				_sample       = Sample::sitesDepth;
-			}
+			_sample = Sample::reads;
+		} else if (type == "sites") {
+			_sample = Sample::sites;
 		} else if (type == "upToDepth") {
-			user_assert(probs.empty(), "Cannot do uptoDepth with --prob, only with --depth!");
-			_sample       = Sample::upToDepth;
-		}
-
-		if (depths.empty()) {
-			for (const auto p: probs) {
-				user_assert(p > 0 && p <= 1, p, " is not a probability!");
-				if (p < 1) _depthOrProbs.push_back(p);
-			}
-			logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
-						   " with probabilities ", _depthOrProbs, ". (parameter 'prob')");
+			throw coretools::TUserError("Cannot combine ", type, " with prob");
 		} else {
-			for (const auto depth : depths) {
-				user_assert(depth > 0, "Must sample with depth>0");
-				_depthOrProbs.push_back(depth);
-			}
-			logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
-						   " with depths ", _depthOrProbs, ". (parameter 'depth')");
+			throw coretools::TUserError("Downsampling type ", type, " does not exist");
 		}
+		logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
+					   " with probabilities ", _depthOrProbs, ". (parameter 'prob')");
+	} else if (type == "upToDepth") {
+		const auto depths = parameters().get<std::vector<int>>("depth");
+		for (const auto depth : depths) {
+			user_assert(depth > 0, "Must sample at least depth=1");
+			_depthOrProbs.push_back(double(depth));
+		}
+		_sample = Sample::upToDepth;
+	} else {
+		logfile().list("Will not do downsampling. (use parameter 'prob')");
 	}
 
 	// genomewide?

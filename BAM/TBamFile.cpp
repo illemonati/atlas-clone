@@ -482,6 +482,7 @@ double TBamFile::averageDepth() {
 		alnLength += _curCigar.lengthAligned();
 	}
 
+	_curAlignmentPosition.clear();
 	_bamReader.Rewind();
 
 	return double(alnLength)/chrLenght;
