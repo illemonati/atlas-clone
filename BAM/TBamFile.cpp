@@ -14,6 +14,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringConversions.h"
 #include "coretools/algorithms.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace BAM{
 using coretools::instances::parameters;
@@ -459,6 +460,31 @@ bool TBamFile::jump(const genometools::TGenomePosition Position){
 	_previousAlignmentPosition.clear();
 	_curAlignmentPosition.clear();
 	return _bamReader.Jump(Position.refID(), Position.position());
+}
+
+double TBamFile::averageDepth() {
+	if (!(_curAlignmentPosition == genometools::TGenomePosition{})) {
+		logfile().warning("Calculating average depth resets bam file!");
+	}
+	_bamReader.Rewind();
+
+	size_t chrLenght      = 0;
+	for (const auto& chr: _chromosomes) {
+		if (chr.ploidy() == 1) {
+			chrLenght += chr.length()/2;
+		} else {
+			chrLenght += chr.length();
+		}
+	}
+
+	size_t alnLength = 0;
+	while (readNextAlignmentThatPassesFilters()) {
+		alnLength += _curCigar.lengthAligned();
+	}
+
+	_bamReader.Rewind();
+
+	return double(alnLength)/chrLenght;
 }
 
 //--------------------------------------------------------

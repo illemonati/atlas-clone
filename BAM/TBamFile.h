@@ -169,6 +169,8 @@ public:
 	size_t maxReadLength() const { return _filters.range(FilterType::ReadLength).max(); };
 	const coretools::TCountDistributionVector<>& numAlignmentReadPerReadGroupPerChromosome() const noexcept { return _numAlignmentReadPerReadGroupPerChromosome; };
 	size_t numReadGroups() const noexcept { return _readGroups.size(); };
+	double averageDepth();
+
 
 	//progress reporting
 	void printSummary(std::string_view outputName) const;
