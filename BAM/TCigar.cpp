@@ -18,6 +18,12 @@ using coretools::user_assert;
 // A class to store, access and manipulate CIGAR operators
 //----------------------------------------------------------
 
+TCigar::TCigar(const std::vector<BamTools::CigarOp>& CigarOps) {
+	for(const auto& co : CigarOps){
+		add(co.Type, co.Length);
+	}
+}
+
 void TCigar::add(char Type, size_t Length) {
 	user_assert(!_lengthSoftClippedRight, "Cigar string contains entries past soft clipping on right!");
 

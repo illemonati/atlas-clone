@@ -6,6 +6,7 @@
  */
 
 #include "TEstimateTheta.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Strings/concatenateString.h"
 #include "coretools/Main/TParameters.h"
 
@@ -102,29 +103,52 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 	// read downsampling rates
 
 	if (parameters().exists("prob")) {
+		user_assert(!parameters().exists("depth"), "Cannot use arguments 'prob' and 'depth' at the same time!");
+
 		parameters().fill("prob", downSampleProbVector);
+		user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
+		std::sort(downSampleProbVector.begin(), downSampleProbVector.end(), std::greater<>());
+
+		while (!downSampleProbVector.empty() && downSampleProbVector.front() == 1.) {
+			_printFullData = true;
+			downSampleProbVector.erase(downSampleProbVector.begin()); 
+		}
+
 	} else if (parameters().exists("depth")) {
-		std::vector<double> depths;
-		parameters().fill("depth", depths);
-		double averageDepth = parameters().get<double>("averageDepth");
-		for (auto &it : depths) {
-			if (averageDepth >= it) {
-				downSampleProbVector.emplace_back(it / averageDepth);
+		auto depths = parameters().get<std::vector<double>>("depth");
+		user_assert(!depths.empty(), "You need to specify at least one depth!");
+		std::sort(depths.begin(), depths.end(), std::greater<>());
+
+		double averageDepth;
+		if (parameters().exists("averageDepth")) {
+			averageDepth = parameters().get<double>("averageDepth");
+		} else {
+			logfile().list("No averageDepth given, will calculate it. Use 'averageDepth' to safe time!");
+			averageDepth = _genome.bamFile().averageDepth();
+			logfile().list("Average depth estimated to ", averageDepth);
+		}
+
+		for (const auto d : depths) {
+			if (d >= averageDepth) {
+				if (!_printFullData) {
+					logfile().list("Cannot downsample to depth ", d,
+								   " as this is >= the average depth. Will use full depth instead.");
+					_printFullData = true;
+				} else {
+					logfile().list("Will ignore depth ", d,
+								   ", this is >= the average depth and full depth will already be done for depth ",
+								   depths.front(), ".");
+				}
 			} else {
-				throw coretools::TUserError("Average Depth must be equal or bigger than provided lists of depths");
+				downSampleProbVector.emplace_back(d / averageDepth);
 			}
 		}
 	} else {
-		downSampleProbVector.emplace_back(1.);
+		_printFullData = true;
 	}
 
-	user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
-
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
-	_printFullData = false;
-	if (downSampleProbVector.front() == 1.0) {
-		_printFullData = true;
-		downSampleProbVector.erase(downSampleProbVector.begin());
+	if (_printFullData) {
 		logfile().list("Will estimate theta on full data.");
 	}
 

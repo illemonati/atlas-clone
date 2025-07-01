@@ -8,6 +8,7 @@
 #ifndef BAM_TCIGAR_H_
 #define BAM_TCIGAR_H_
 
+#include "api/BamAux.h"
 #include <vector>
 #include <string>
 
@@ -37,6 +38,8 @@ private:
 	void _compileLengths();
 
 public:
+	TCigar() = default;
+	TCigar(const std::vector<BamTools::CigarOp>& CigarOps);
 	void clear();
 
 	auto begin() const noexcept { return _cigar.begin(); }
