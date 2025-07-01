@@ -109,6 +109,11 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 		user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
 		std::sort(downSampleProbVector.begin(), downSampleProbVector.end(), std::greater<>());
 
+		while (!downSampleProbVector.empty() && downSampleProbVector.front() == 1.) {
+			_printFullData = true;
+			downSampleProbVector.erase(downSampleProbVector.begin()); 
+		}
+
 	} else if (parameters().exists("depth")) {
 		auto depths = parameters().get<std::vector<double>>("depth");
 		user_assert(!depths.empty(), "You need to specify at least one depth!");
@@ -118,32 +123,32 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 		if (parameters().exists("averageDepth")) {
 			averageDepth = parameters().get<double>("averageDepth");
 		} else {
-			logfile().list("No averageDepth given, will calculate it. User argument 'averageDepth' to safe time!");
+			logfile().list("No averageDepth given, will calculate it. Use 'averageDepth' to safe time!");
 			averageDepth = _genome.bamFile().averageDepth();
+			logfile().list("Average depth estimated to ", averageDepth);
 		}
 
-		if (depths.front() >= averageDepth) {
-			downSampleProbVector.emplace_back(1.);
-		}
-
-		for (size_t i = 1; i < depths.size(); ++i) {
-			const auto d = depths[i];
+		for (const auto d : depths) {
 			if (d >= averageDepth) {
-				logfile().warning("Will not consider depth ", d,
-								  ", this leads to full data, which is already the case for depth ", depths.front(), "!");
+				if (!_printFullData) {
+					logfile().list("Cannot downsample to depth ", d,
+								   " as this is >= the average depth. Will use full depth instead.");
+					_printFullData = true;
+				} else {
+					logfile().list("Will ignore depth ", d,
+								   ", this is >= the average depth and full depth will already be done for depth ",
+								   depths.front(), ".");
+				}
 			} else {
 				downSampleProbVector.emplace_back(d / averageDepth);
 			}
 		}
 	} else {
-		downSampleProbVector.emplace_back(1.);
+		_printFullData = true;
 	}
 
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
-	_printFullData = false;
-	if (downSampleProbVector.front() == 1.0) {
-		_printFullData = true;
-		downSampleProbVector.erase(downSampleProbVector.begin());
+	if (_printFullData) {
 		logfile().list("Will estimate theta on full data.");
 	}
 

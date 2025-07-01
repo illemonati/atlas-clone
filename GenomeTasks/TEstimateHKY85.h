@@ -24,11 +24,12 @@ private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 
 	// EM
-	size_t _numEMIterations;
-	double _minDeltaLL;
-	size_t _totMaskedSites = 0;
-	size_t _totSites       = 0;
-	size_t _nRounds        = 1;
+	bool _fullDepth         = true;
+	size_t _numEMIterations = 200;
+	double _minDeltaLL      = 1e-6;
+	size_t _totMaskedSites  = 0;
+	size_t _totSites        = 0;
+	size_t _nRounds         = 1;
 
 	coretools::TOutputFile _out;
 	std::vector<double> _depthOrProbs;

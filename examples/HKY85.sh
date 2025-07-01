@@ -26,7 +26,7 @@ $atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 --sample sites \
 	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout
 
 out=probReads
-$atlas --task HKY85 --prob "1.0,$probs"  --minDeltaLL 1 --sample reads \
+$atlas --task HKY85 --depth "50,20,10,5,2" --minDeltaLL 1 --sample reads \
 	   --bam simulate.bam --fasta simulate.fasta --chr chr1 \
 	   --recal $recal --pmd $pmd --window 65432 \
 	   --fixedSeed 222 --out $out --logFile $out.out 2> $out.eout

@@ -173,7 +173,6 @@ void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &Window) {
 
 void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	// full P
-	logfile().startIndent("Using full data:");
 
 	_refBases.clear();
 	_P_g_I_ds.clear();
@@ -184,11 +183,14 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	_addSites(Window);
 	_lastReadID = Window.numReadsInWindow();
 
-	const auto LL = _runEM();
+	_out.write(Window.chrName(), Window.from().position(), Window.to().position());
+	if (_fullDepth) {
+		logfile().startIndent("Using full data:");
+		const auto LL = _runEM();
 
-	_out.write(Window.chrName(), Window.from().position(), Window.to().position(), Window.depth(), Window.numSites(),
-			   Window.numSitesWithData(), Window.fracMissing(), _genoDist->pis(), LL);
-	logfile().endIndent(); // Using full data
+		_out.write(Window.depth(), Window.numSites(), Window.numSitesWithData(), Window.fracMissing(), _genoDist->pis(), LL);
+		logfile().endIndent(); // Using full data
+	}
 
 	// downsample
 	const auto nIT    = _numEMIterations;
@@ -225,13 +227,17 @@ void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 void TEstimateHKY85::_handleGenomeWide() {
 	_openFile();
 	const auto NSites = _totSites - _totMaskedSites;
+	const auto nIT    = _numEMIterations;
 
 	// full
-	logfile().startIndent("Using full data:");
-	const auto LL  = _runEM();
-	const auto pis = _genoDist->pis();
-	const auto nIT = _numEMIterations;
-	logfile().endIndent(); // Using full data
+	std::vector<double> pis;
+	double LL;
+	if (_fullDepth) {
+		logfile().startIndent("Using full data:");
+		LL  = _runEM();
+		pis = _genoDist->pis();
+		logfile().endIndent(); // Using full data
+	}
 
 	for (size_t r = 0; r < _nRounds; ++r) {
 		logfile().startIndent("Downsampling round ", r + 1, ":");
@@ -240,8 +246,10 @@ void TEstimateHKY85::_handleGenomeWide() {
 		} else {
 			_out.write("genome-wide", "Round", r + 1);
 		}
-		_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
-				   double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
+		if (_fullDepth) {
+			_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
+					   double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
+		}
 
 		// downsampled
 		for (size_t p = 0; p < _depthOrProbs.size(); ++p) {
@@ -294,31 +302,92 @@ TEstimateHKY85::TEstimateHKY85() {
 
 	// Downsample?
 	const auto type = parameters().get("sample", "reads");
-	if (parameters().exists("prob")) {
-		parameters().fill("prob", _depthOrProbs);
-		if (_depthOrProbs.front() == 1.) {
-			// we will do the full probability anyway
-			_depthOrProbs.erase(_depthOrProbs.begin());
-		}
-		if (type == "reads") {
-			_sample = Sample::reads;
-		} else if (type == "sites") {
-			_sample = Sample::sites;
-		} else if (type == "upToDepth") {
-			throw coretools::TUserError("Cannot combine ", type, " with prob");
-		} else {
-			throw coretools::TUserError("Downsampling type ", type, " does not exist");
-		}
-		logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
-					   " with probabilities ", _depthOrProbs, ". (parameter 'prob')");
+	if (type == "reads") {
+		_sample = Sample::reads;
+	} else if (type == "sites") {
+		_sample = Sample::sites;
 	} else if (type == "upToDepth") {
-		const auto depths = parameters().get<std::vector<int>>("depth");
-		for (const auto depth : depths) {
-			user_assert(depth > 0, "Must sample at least depth=1");
-			_depthOrProbs.push_back(double(depth));
-		}
 		_sample = Sample::upToDepth;
 	} else {
+		throw coretools::TUserError("Cannot understand downsampling strategy '", type, "'!");
+	}
+
+	if (parameters().exists("prob")) {
+		_fullDepth = false;
+		user_assert(type != "upToDepth", "Cannot downsample 'upToDepth with with probability!");
+		user_assert(!parameters().exists("depth"), "Cannot use arguments 'prob' and 'depth' at the same time!");
+
+		parameters().fill("prob", _depthOrProbs);
+		std::sort(_depthOrProbs.begin(), _depthOrProbs.end(), std::greater<>());
+		user_assert(_depthOrProbs.front() <= 1, "Probability must be <= 1!");
+		user_assert(_depthOrProbs.back() > 0, "Probability must be positive!");
+
+		while (!_depthOrProbs.empty() && _depthOrProbs.front() == 1.) {
+			_fullDepth = true;
+			_depthOrProbs.erase(_depthOrProbs.begin()); 
+		}
+		if (_depthOrProbs.empty()) {
+			_fullDepth = true;
+			logfile().warning("You did not specify any downsampling probabilty < 1 , will not do any downsampling!");
+		} else {
+			logfile().list("Will do downsampling experiment using all data, and downsampling ", type,
+						   " with probabilities ", _depthOrProbs, ". (parameter 'prob')");
+		}
+	} else if ((parameters().exists("depth"))) {
+		_fullDepth   = false;
+		auto depths = parameters().get<std::vector<double>>("depth");
+		std::sort(depths.begin(), depths.end(), std::greater<>());
+		user_assert(depths.back() > 0, "Depth must be > 0!");
+
+		logfile().list("Will do downsampling experiment using all data, and downsampling ", type, " to depth ", depths,
+		               ". (parameter 'depth')");
+
+		if (_sample == Sample::upToDepth) {
+			for (const auto depth : depths) {
+				user_assert(depth >= 1, "Must sample at least depth=1");
+				_depthOrProbs.push_back(depth);
+			}
+		} else {
+			double averageDepth;
+			if (parameters().exists("averageDepth")) {
+				averageDepth = parameters().get<double>("averageDepth");
+			} else {
+				logfile().list("No averageDepth given, will calculate it. Use 'averageDepth' to safe time!");
+				averageDepth = _genome.bamFile().averageDepth();
+				logfile().list("Average depth estimated to ", averageDepth);
+			}
+
+			for (const auto d : depths) {
+				if (d >= averageDepth) {
+					if (!_fullDepth) {
+						logfile().list("Cannot downsample to depth ", d,
+						               " as this is >= the average depth. Will use full depth instead.");
+						_fullDepth = true;
+					} else {
+						logfile().list("Will ignore depth ", d,
+						               ", this is >= the average depth and full depth will already be done for depth ",
+						               depths.front(), ".");
+					}
+				} else {
+					_depthOrProbs.emplace_back(d / averageDepth);
+				}
+			}
+			if (_depthOrProbs.empty()) {
+				_fullDepth = true;
+				logfile().warning("You did not specify any downsampling depth < ", averageDepth,
+				                  ", will not do any downsampling!");
+			} else {
+				logfile().list("The resulting downsampling probabilities are: ", _depthOrProbs, ".");
+			}
+		}
+	} else {
+		_fullDepth = true;
+		if (parameters().exists("type")) {
+			logfile().warning("Cannot downsample ", parameters().exists("type"),
+							  " without argument 'prob' or 'depth'!");
+		}
+	}
+	if (!_downSample()) {
 		logfile().list("Will not do downsampling. (use parameter 'prob')");
 	}
 
@@ -343,14 +412,19 @@ TEstimateHKY85::TEstimateHKY85() {
 	if (!_depthOrProbs.empty()) {
 		_windows.allowDownsampling(true);
 	}
+
+	DEV_ASSERT(_fullDepth || _downSample()); // otherwise, there is nothing to do
 }
 void TEstimateHKY85::_openFile() {
 	using coretools::str::toString;
 	std::vector<std::string> header{"Chr", "Start", "End"};
-	const auto sp = _depthOrProbs.empty() || _sample == Sample::upToDepth ? "": "p1.0_";
-	header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"), toString(sp, "fracMissing")});
-	_genoDist->addHeader(header, sp); //, sp);
-	header.push_back(toString(sp, "LL"));
+	if (_fullDepth) {
+		const auto sp = !_downSample() || _sample == Sample::upToDepth ? "" : "p1.0_";
+		header.insert(header.end(), {toString(sp, "depth"), toString(sp, "numSites"), toString(sp, "numSitesData"),
+									 toString(sp, "fracMissing")});
+		_genoDist->addHeader(header, sp); //, sp);
+		header.push_back(toString(sp, "LL"));
+	}
 
 	for (const auto p : _depthOrProbs) {
 		const auto sp = toString("p", p, "_");
