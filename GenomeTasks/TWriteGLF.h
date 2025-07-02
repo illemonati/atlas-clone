@@ -20,6 +20,7 @@ class TWriteGLF final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	genometools::TGLFWriter _writer;
 	bool _printAll;
+	bool _curIsHapo = false;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
 	void _startChromosome(const genometools::TChromosome& Chr) override;

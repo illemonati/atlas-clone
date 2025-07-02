@@ -6,10 +6,9 @@
 . $(dirname $0)/simulate --fixedSeed 4321
 
 out="GLF"
-$atlas --task GLF --bam simulate.bam \
+$atlas --task GLF --bam simulate.bam --haploid chr2 \
 	   --fixedSeed 321 --out $out --logFile $out.out 2> $out.eout
 
 out="printGLF"
 $atlas --task printGLF --glf GLF.glf.gz \
-	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout \
-	   | tail -n +14 | head -n -4 > GLF.txt
+	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
