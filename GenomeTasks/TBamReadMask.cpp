@@ -8,6 +8,7 @@ namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 
 void TBamReadMask::setMasks(const genometools::TChromosomes &Chromosomes){
 	// normal mask
@@ -16,7 +17,7 @@ void TBamReadMask::setMasks(const genometools::TChromosomes &Chromosomes){
 
 		if (parameters().exists("mask")) {
 			logfile().startIndent("Will apply BED mask:");
-			if (parameters().exists("regions")) UERROR("Cannot use mask and regions at the same time.");
+			user_assert(!parameters().exists("regions"), "Cannot use mask and regions at the same time.");
 
 			filename = parameters().get<std::string>("mask");
 			logfile().list("Will ignore reads overlapping with windows listed in BED file '" + filename + "'. (parameter 'mask')");
@@ -35,7 +36,7 @@ void TBamReadMask::setMasks(const genometools::TChromosomes &Chromosomes){
 		logfile().listFlush("Reading file ...");
 		_mask.parse(filename, Chromosomes);
 		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");		
+		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWithWindows(), " chromosomes.");		
 
 		// read porosity		
 		_porousProb = parameters().get("maskPorosity", coretools::Probability(0.0));

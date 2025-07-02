@@ -11,6 +11,82 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
+void TEpsilon::_addToQ(const BAM::TSequencedData &data, const TGenotypeFloats &P_g_I_ds,
+					   const TGenotypeFloats &P_bbar_I_gds, bool isInvariant) {
+	const double eps    = calcErrorRate(data);
+	const double eps_c  = 1. - eps;
+	const double leps   = std::log(eps);
+	const double leps_c = std::log(eps_c);
+
+	for (auto g : Genotypes::homo) {
+		const auto P_bbar_I_gd = P_bbar_I_gds[g];
+		const auto P_g_I_d     = P_g_I_ds[g];
+		_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
+	}
+	if (!isInvariant) {
+		for (auto g : Genotypes::het) {
+			const auto P_bbar_I_gd = P_bbar_I_gds[g];
+			const auto P_g_I_d     = P_g_I_ds[g];
+			_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
+		}
+	}
+}
+
+void TEpsilon::_addToQJF(const BAM::TSequencedData &data, const TGenotypeFloats &P_g_I_ds,
+						 const TGenotypeFloats &P_bbar_I_gds, bool isInvariant) {
+	static std::vector<T1stDerivative> der1st;
+	static std::vector<T2ndDerivative> der2nd;
+	der1st.clear();
+	der2nd.clear();
+	// get error rate
+	const double eps    = _calcErrorRate(data, der1st, der2nd);
+	const double eps_c  = 1. - eps;
+	const double leps   = std::log(eps);
+	const double leps_c = std::log(eps_c);
+
+	double w_ij = 0.;
+	for (auto g : Genotypes::homo) {
+		const auto P_bbar_I_gd = P_bbar_I_gds[g];
+		const auto P_g_I_d     = P_g_I_ds[g];
+
+		_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
+		w_ij += P_g_I_d * (eps_c - P_bbar_I_gd);
+	}
+
+	if (!isInvariant) {
+		for (auto g : Genotypes::het) {
+			const auto P_bbar_I_gd = P_bbar_I_gds[g];
+			const auto P_g_I_d     = P_g_I_ds[g];
+
+			_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
+			w_ij += P_g_I_d * (eps_c - P_bbar_I_gd);
+		}
+	}
+	for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) _F(dm->index) += w_ij * dm->derivative;
+
+	// add first derivative products to Jacobian
+	const double epsEps_c = eps * eps_c;
+	for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
+		_Jacobian(dm->index, dm->index) -= epsEps_c * dm->derivative * dm->derivative;
+		for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
+			_Jacobian(dm->index, dn->index) -= epsEps_c * dm->derivative * dn->derivative;
+		}
+	}
+	// add second derivatives to Jacobian
+	for (auto &dmn : der2nd) { _Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative; }
+
+	++_numSitesAdded;
+}
+
+void TEpsilon::add(const BAM::TSequencedData &data, const TGenotypeFloats &P_g_I_ds,
+				   const TGenotypeFloats &P_bbar_I_gds, bool updateJF, bool isInvariant) {
+	if (_accepted) return;
+	if (updateJF)
+		_addToQJF(data, P_g_I_ds, P_bbar_I_gds, isInvariant);
+	else
+		_addToQ(data, P_g_I_ds, P_bbar_I_gds, isInvariant);
+}
+
 TEpsilon::TEpsilon(std::string_view Def) : _functions(Def) {
 	const size_t numParameters = _functions.numParameters();
 
@@ -52,7 +128,7 @@ void TEpsilon::solveJxF() {
 	_Jacobian = arma::symmatu(_Jacobian);
 	_maxF = std::max(std::abs(_F.max()), std::abs(_F.min())) / _numSitesAdded;
 	if (!solve(_JxF, _Jacobian, _F))
-		UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
+		throw coretools::TUserError("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
 		       _Jacobian);
 	_maxJxF = std::max(std::abs(_JxF.max()), std::abs(_JxF.min()));
 

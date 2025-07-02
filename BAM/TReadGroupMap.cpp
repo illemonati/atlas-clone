@@ -17,7 +17,7 @@ TReadGroupMap::TReadGroupMap(std::string_view Name, const TReadGroups &ReadGroup
 	} else if (Type == "all") {
 		_poolAll(ReadGroups);
 	} else {
-		UERROR("Cannot understand readgroup map argument: '", Type, "'!");
+		throw coretools::TUserError("Cannot understand readgroup map argument: '", Type, "'!");
 	}
 }
 
@@ -74,15 +74,15 @@ void TReadGroupMap::_fromFile(const TReadGroups & ReadGroups, std::string_view f
 			if(_readGroupMap[pool] == ReadGroupMapNotInitializedIndex){
 				_markAsInUse(pool);
 			} else if(_readGroupMap[pool] != pool){
-				UERROR("Read group '", poolWith, "' can not be pooled and pooled with at the same time!");
+				throw coretools::TUserError("Read group '", poolWith, "' can not be pooled and pooled with at the same time!");
 			}
 
 			//check if rg can be pooled: allow self-pooling
 			if(rg != pool){
 				if(_readGroupMap[rg] == rg){
-					UERROR("Read group '", rgName, "' can not be pooled and pool with at the same time!");
+					throw coretools::TUserError("Read group '", rgName, "' can not be pooled and pool with at the same time!");
 				} else if(_readGroupMap[rg] != ReadGroupMapNotInitializedIndex){
-					UERROR("Read group '", rgName, "' is pooled multiple times in file '", filename, "'!");
+					throw coretools::TUserError("Read group '", rgName, "' is pooled multiple times in file '", filename, "'!");
 				}
 
 				//pool!

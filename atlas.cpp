@@ -2,6 +2,7 @@
  * atlas.cpp
  */
 
+#include "TDepthCalculator.h"
 #include "TEstimateHKY85.h"
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
@@ -50,6 +51,9 @@
 
 //simulations
 #include "TSimulator.h"
+
+//other
+#include "TPositionBasedLiftOver.h"
 
 void addTaks(coretools::TMain & main) {
 	//BAM
@@ -112,6 +116,13 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<Simulations::TSimulationRunner>(groupName, "simulate", "Simulate bam- or vcf-file[s]");
 	}
 
+	/*other
+	{
+	constexpr auto groupName = "Other";
+	main.createGroupedTask<PopulationTools::TPositionBasedLiftOver>(groupName, "liftOver", "Position-based lift over from one reference to another");
+	}
+	*/
+
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
@@ -120,6 +131,9 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TIlluminaIdentifier>("identifyIllumina", "Reassigning read groups based on the platform unit in their name");
 	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
 	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
+	main.createDebugTask<PopulationTools::TPositionBasedLiftOver>("liftOver", "Position-based lift over from one reference to another");
+	main.createDebugTask<GenomeTasks::TDepthCalculator>("averageDepth", "Calculate average depth of BAM file");	
+
 };
 
 void addTests(coretools::TMain & ){
@@ -130,7 +144,7 @@ void addTests(coretools::TMain & ){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	coretools::TMain main("ATLAS", "2.0.0-rc.10 (Release Candidate)", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
+	coretools::TMain main("ATLAS", "2.0.0-rc.11 (Release Candidate)", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
 
 	//add existing tasks
 	addTaks(main);

@@ -18,6 +18,7 @@ using coretools::str::readAfter;
 using coretools::str::strip;
 using coretools::str::TSplitter;
 using coretools::str::fromString;
+using coretools::user_assert;
 
 namespace impl {
 
@@ -69,7 +70,7 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 		case 7: fn = new TPolynomial<7, Covariate>(index); break;
 		case 8: fn = new TPolynomial<8, Covariate>(index); break;
 		case 9: fn = new TPolynomial<9, Covariate>(index); break;
-		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
+		default: throw coretools::TUserError("Only Polynomials from order 1 to 9 can be used!");
 		}
 		size_t i = 0;
 		for (auto &beta : *fn) {
@@ -82,10 +83,9 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 		auto *fn                         = new TProbit<Covariate>(index);
 		const std::vector<double> &betas = info[TProbit<Covariate>::name];
 		if (betas.empty()) { return fn; }
-		if (betas.size() != fn->numParameters()) {
-			UERROR("Not enough parameters given for function ", fn->typeString(), ". Expected ", fn->numParameters(),
-				   " got ", betas.size(), " !");
-		}
+		user_assert(betas.size() == fn->numParameters(), "Not enough parameters given for function ", fn->typeString(),
+					". Expected ", fn->numParameters(), " got ", betas.size(), " !");
+
 		size_t i = 0;
 		for (auto &beta : *fn) {
 			beta = betas[i];
@@ -121,11 +121,10 @@ inline auto parseFunction(std::string_view str) {
 		return std::make_pair(str, TSplitter<>("", ','));
 	}
 	const auto end = str.find(']', beg);
-	if (end == std::string_view::npos) {
-		UERROR("Wrong format for recal function '", str, "': missing ']'! ",
-			   "Expected format is TYPE[BETAS], where [BETAS] is optional.");
-	}
-	return std::make_pair(str.substr(0, beg), TSplitter<>(str.substr(beg + 1, end - beg - 1), ','));
+	user_assert(end != std::string_view::npos, "Wrong format for recal function '", str, "': missing ']'! ",
+				"Expected format is TYPE[BETAS], where [BETAS] is optional.");
+
+    return std::make_pair(str.substr(0, beg), TSplitter<>(str.substr(beg + 1, end - beg - 1), ','));
 }
 
 template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t index) {
@@ -137,11 +136,11 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		const bool isDefault = Spl.empty();
 		size_t o             = 0;
 		if (type.size() == TPolynomial<1, Covariate>::name.size()) {
-			if (isDefault) UERROR("You must specify the order of the polynomial function or give initial values!");
+			user_assert(!isDefault, "You must specify the order of the polynomial function or give initial values!");
 		} else if (type.size() == TPolynomial<1, Covariate>::name.size() + 1) {
 			o = type.back() - '0';
 		} else {
-			UERROR("Unknow function: ", type, "!");
+			throw coretools::TUserError("Unknow function: ", type, "!");
 		}
 
 		std::array<double, 9> bs{};
@@ -155,7 +154,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 			if (o == 0)
 				o = i;
 			else if (o != i)
-				UERROR("You specified a polynomial order of ", o, " but gave ", i, " arguments!");
+				throw coretools::TUserError("You specified a polynomial order of ", o, " but gave ", i, " arguments!");
 		}
 		TFunction *fn;
 		switch (o) {
@@ -168,7 +167,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		case 7: fn = new TPolynomial<7, Covariate>(index); break;
 		case 8: fn = new TPolynomial<8, Covariate>(index); break;
 		case 9: fn = new TPolynomial<9, Covariate>(index); break;
-		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
+		default: throw coretools::TUserError("Only Polynomials from order 1 to 9 can be used!");
 		}
 		if (isDefault) return fn;
 		i = 0;
@@ -183,9 +182,8 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		if (Spl.empty()) { return fn; }
 		size_t i = 0;
 		for (auto &beta : *fn) {
-			if (Spl.empty())
-				UERROR("Not enough parameters given for function ", fn->typeString(), ". Expected ",
-					   fn->numParameters(), " got ", i, " !");
+			user_assert(!Spl.empty(), "Not enough parameters given for function ", fn->typeString(), ". Expected ",
+						fn->numParameters(), " got ", i, " !");
 			fromString<true>(Spl.front(), beta);
 			Spl.popFront();
 			++i;
@@ -213,7 +211,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		fn->setData(data);
 		return fn;
 	}
-	UERROR("Function '", type, "' does not exist!");
+	throw coretools::TUserError("Function '", type, "' does not exist!");
 }
 
 constexpr coretools::Probability calcEpsilon(double eta) noexcept {

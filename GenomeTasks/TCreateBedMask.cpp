@@ -13,6 +13,7 @@ namespace GenomeTasks{
 using coretools::str::toString;
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
 
 //--------------------------------------
 // TCreateBedMask
@@ -39,13 +40,10 @@ TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
 	_maxDepth = parameters().get<uint32_t>("maxDepth", 1000000);
 	logfile().list("Will create a mask for all sites with depth outside the range [" + toString(_minDepth) + ", " + toString(_maxDepth) + "].");
 
-	if(_maxDepth < _minDepth){
-		UERROR("maxDepthForMask must be > minDepthForMask!");
-	}
+	user_assert(_maxDepth > _minDepth, "maxDepthForMask must be > minDepthForMask!");
 
-	if(parameters().exists("maxDepth") || parameters().exists("minDepth"))
-		UERROR("Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!");
-};
+	user_assert(!parameters().exists("maxDepth") && !parameters().exists("minDepth"), "Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!");
+}
 
 void TCreateDepthBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
@@ -55,11 +53,11 @@ void TCreateDepthBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 		}
 		++p;
 	}
-};
+}
 
 void TCreateDepthBedMask::createDepthMask(){
 	_createMask("maxDepth" + toString(_maxDepth) + "_depthMask.bed");
-};
+}
 
 //--------------------------------------
 // TCreateInvariantBedMask
@@ -67,10 +65,8 @@ void TCreateDepthBedMask::createDepthMask(){
 TCreateInvariantBedMask::TCreateInvariantBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepth) + " (parameter 'minDepthForMask') for which a single allele was observed (invariant).");
 
-	if(_minDepth < 2){
-		UERROR("minDepthForMask must be >= 2 to assess variant / invariant status!");
-	}
-};
+	user_assert(_minDepth >= 2, "minDepthForMask must be >= 2 to assess variant / invariant status!");
+}
 
 void TCreateInvariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
@@ -83,11 +79,11 @@ void TCreateInvariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window
 		}
 		++p;
 	}
-};
+}
 
 void TCreateInvariantBedMask::createInvariantMask(){
 	_createMask("invariantMask.bed");
-};
+}
 
 //--------------------------------------
 // TCreateVariantBedMask
@@ -95,10 +91,8 @@ void TCreateInvariantBedMask::createInvariantMask(){
 TCreateVariantBedMask::TCreateVariantBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepth) + " (parameter 'minDepthForMask') for which multiple alleles were observed (variant).");
 
-	if(_minDepth < 2){
-		UERROR("minDepthForMask must be >= 2 to assess variant / invariant status!");
-	}
-};
+	user_assert (_minDepth >= 2, "minDepthForMask must be >= 2 to assess variant / invariant status!");
+}
 
 void TCreateVariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
@@ -123,12 +117,9 @@ void TCreateVariantBedMask::createVariantMask(){
 TCreateNonRefBedMask::TCreateNonRefBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepth) + " (parameter 'minDepthForMask') for which at least one non-ref allele was observed.");
 
-	if(_minDepth < 1){
-		UERROR("maxDepthForMask must be > 1 to check for ref / non-ref status!");
-	}
-
+	user_assert(_minDepth > 1, "maxDepthForMask must be > 1 to check for ref / non-ref status!");
 	_windows.requireReference();
-};
+}
 
 void TCreateNonRefBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;

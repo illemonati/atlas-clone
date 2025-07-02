@@ -18,7 +18,7 @@ namespace GenomeTasks{
 
 class TIlluminaIdentifier {
 private:
-	TGenome _genome;
+	TGenome _genome{false};
 	size_t _counter = 0;
 	std::map<std::string, std::string> rgPU_rgID;
 	BAM::TOutputBamFile _out;

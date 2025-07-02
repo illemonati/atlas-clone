@@ -7,7 +7,6 @@
 
 #include "TVcfDiagnostics.h"
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/Files/gzstream.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
@@ -132,7 +131,7 @@ int TVcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> &f
 void TVcfDiagnostics::assessAllelicImbalance() {
 	// output
 	if (!_vcfFile.formatColExists("AD")) {
-		logfile().list("VCF File ", _vcfFile.filename, " does not have allelic depth field!");
+		logfile().list("VCF File ", _vcfFile.filename(), " does not have allelic depth field!");
 		return;
 	}
 	logfile().list("Writing files to '" + _outName + "_allelicDepth.txt'");
@@ -180,7 +179,7 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 				int numRef = coretools::str::fromString<int>(tmp[0]);
 				int numAlt = coretools::str::fromString<int>(tmp[1]);
 				if (numRef == 0 || numAlt == 0)
-					UERROR("Call at position ", _vcfFile.position(),
+					throw coretools::TUserError("Call at position ", _vcfFile.position(),
 						   " is heterozygous but reference or alternative allelic depth is 0!");
 				if (_vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP) {
 					logfile().warning("DP is " + toString(_vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) +
@@ -227,19 +226,17 @@ void TVcfDiagnostics::fixIntAsFloat() {
 
 
 	// open output file
-	std::string filename = _outName + (std::string) "_fixed.vcf.gz";
+	std::string outFile = _outName + (std::string) "_fixed.vcf.gz";
 
 	if (!_vcfFile.formatColExists("GP")) {
-		logfile().list("VCF File ", _vcfFile.filename, " does not have a GP field!");
+		logfile().list("VCF File ", _vcfFile.filename(), " does not have a GP field!");
 		logfile().list("Will just copy the file");
-		if (!std::filesystem::copy_file(_vcfFile.filename, filename))
-			UERROR("Failed to copy '", _vcfFile.filename, "' to '", filename, "'!");
+		coretools::user_assert(std::filesystem::copy_file(_vcfFile.filename(), outFile), "Failed to copy '",
+							   _vcfFile.filename(), "' to '", outFile, "'!");
 		return;
 	}
 
-	gz::ogzstream out(filename.c_str());
-	if (!out) UERROR("Failed to open outputfile '", filename, "'!");
-	_vcfFile.setOutStream(out);
+	_vcfFile.openOutputStream(outFile, true);
 	_vcfFile.writeHeaderVCF_4_0();
 
 	// tmp vars

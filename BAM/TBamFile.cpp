@@ -14,10 +14,12 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringConversions.h"
 #include "coretools/algorithms.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace BAM{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
 
 namespace impl {
 std::string millionReadsRead(size_t N) { return coretools::str::toStringWithPrecision((double) N / 1000000, 1); };
@@ -59,11 +61,9 @@ void TBamFile::_fillSamHeader(){
 }
 
 void TBamFile::_fillChromosomes(){
-	if(_bamHeader.Sequences.Size() < 1){
-		UERROR("No chromosomes present in BAM header!");
-	}
+	user_assert(_bamHeader.Sequences.Size() > 0, "No chromosomes present in BAM header!");
 
-	//make sure object is empty
+	// make sure object is empty
 	_chromosomes.clear();
 
 	//copy from BamHeader
@@ -100,12 +100,12 @@ void TBamFile::_fillReadGroups(){
 //--------------------------------------------------------
 // Functions for reading
 //--------------------------------------------------------
-TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), _ID(ID){
+TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _filename(Filename), _ID(ID), _filters(EnableFilters){
 
 	//open BAM file
 	logfile().list("Opening BAM file '", _filename, "'.");
 	if (!_bamReader.Open(_filename))
-		UERROR("Failed to open BAM file '", Filename, "'!");
+		throw coretools::TUserError("Failed to open BAM file '", Filename, "'!");
 
 	//load or create index file
 	const std::string fnIndex1 = std::string(Filename).append(".bai");
@@ -114,16 +114,16 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 	if (std::filesystem::exists(fnIndex1)) {
 		logfile().list("Opening BAM index file '", fnIndex1, "'.");
 		if(!_bamReader.OpenIndex(fnIndex1))
-			UERROR("Failed to open BAM index file '", fnIndex1, "'!");
+			throw coretools::TUserError("Failed to open BAM index file '", fnIndex1, "'!");
 	}
 	else if (std::filesystem::exists(fnIndex2)) {
 		logfile().list("Opening BAM index file '", fnIndex2, "'.");
 		if (!_bamReader.OpenIndex(fnIndex2))
-			UERROR("Failed to open BAM index file '", fnIndex2, "'!");
+			throw coretools::TUserError("Failed to open BAM index file '", fnIndex2, "'!");
 	} else {
 		logfile().list("Creating BAM index file '", fnIndex1, "'.");
 		if (!_bamReader.CreateIndex())
-			UERROR("Failed to create BAM index file '", fnIndex1, "'!");
+			throw coretools::TUserError("Failed to create BAM index file '", fnIndex1, "'!");
 	}
 
 	//initialize bam stuff
@@ -154,6 +154,19 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID) : _filename(Filename), 
 	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
 
+
+	// check if we add a RG for reads without one
+	if(parameters().exists("keepReadsWithoutRG")){
+		std::string name = parameters().get("keepReadsWithoutRG");
+		if(name.empty()){
+			name = "RGForReadsWithoutReadGroup";
+		}		
+		logfile().list("Will put reads without read group into read group '", name, "'. (parameter 'keepReadsWithoutRG')");
+		_readGroups.addReadGroupForReadsWithoutReadGroup(name);
+	} else {
+		logfile().list("Will filter out all reads without read group. (keep with 'keepReadsWithoutRG')");
+	}	
+	
 	_filters.resize(_readGroups.size(), _chromosomes.size(), _filename);
 
 	// Set Limits:
@@ -267,42 +280,46 @@ bool TBamFile::_applyFilters() {
 		return  true;
 	} 
 
+
+	float PMDS = -1e20;
+
 	// apply regular filters
 	return _filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
 		   _filters.pass(FilterType::SoftClippedRation,
-						 static_cast<double>(_curCigar.lengthSoftClipped()) / _curCigar.lengthRead() <=
-							 _filters.softClipRation(),
-						 _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(),
-						 _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::Blacklist, !_filters.blacklist().isInBlacklist(_curBamAlignment.Name),
-						 _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name,
-						 _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-		   _filters.pass(FilterType::LongerThanFragment,
+						 double(_curCigar.lengthSoftClipped()) / _curCigar.lengthRead() <= _filters.softClipRation(),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::PMDS, !_curBamAlignment.GetTag("DS", PMDS) || PMDS < _filters.PMDSmax(),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::Blacklist, !_filters.blacklist().isInBlacklist(_curBamAlignment.Name),
+	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name,
+	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	       _filters.pass(FilterType::LongerThanFragment,
 	                     !_curBamAlignment.IsProperPair() ||
 	                         abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()),
 	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
@@ -316,7 +333,7 @@ bool TBamFile::readNextAlignment(){
 
 
 	//check if it has no read group
-	bool pass =false;
+	bool pass = false;
 	while (!pass) {
 		pass = true;
 		// get next alignment
@@ -348,9 +365,9 @@ bool TBamFile::readNextAlignment(){
 			if(_curChromosome == _chromosomes.end()){
 				//is chromosome not in header?
 				if(!_chromosomes.exists(_curBamAlignment.RefID)){
-					UERROR("Chromosome with refID ", _curBamAlignment.RefID, " is missing from BAM header!");
+					throw coretools::TUserError("Chromosome with refID ", _curBamAlignment.RefID, " is missing from BAM header!");
 				} else {
-					UERROR("BAM file not sorted!");
+					throw coretools::TUserError("BAM file not sorted!");
 				}
 			}
 		}
@@ -378,11 +395,12 @@ bool TBamFile::readNextAlignment(){
 	_curCigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
 
 	//check if BAM file is sorted
-	if(_curAlignmentPosition < _previousAlignmentPosition){
-		UERROR("BAM file must be sorted by position! Alignment '", _curBamAlignment.Name, "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position(), ")");
-	}
+	user_assert(_curAlignmentPosition >= _previousAlignmentPosition, "BAM file must be sorted by position! Alignment '",
+				_curBamAlignment.Name, "' is at position ", _curBamAlignment.Position,
+				", which is before the position of the previous alignment (", _previousAlignmentPosition.position(),
+				")");
 
-	//update per read group counter
+	// update per read group counter
 	if(_curReadGroupID != TReadGroups::noReadGroupId){
 		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
 	}
@@ -442,6 +460,32 @@ bool TBamFile::jump(const genometools::TGenomePosition Position){
 	_previousAlignmentPosition.clear();
 	_curAlignmentPosition.clear();
 	return _bamReader.Jump(Position.refID(), Position.position());
+}
+
+double TBamFile::averageDepth() {
+	if (!(_curAlignmentPosition == genometools::TGenomePosition{})) {
+		logfile().warning("Calculating average depth resets bam file!");
+	}
+	_bamReader.Rewind();
+
+	size_t chrLenght      = 0;
+	for (const auto& chr: _chromosomes) {
+		if (chr.ploidy() == 1) {
+			chrLenght += chr.length()/2;
+		} else {
+			chrLenght += chr.length();
+		}
+	}
+
+	size_t alnLength = 0;
+	while (readNextAlignmentThatPassesFilters()) {
+		alnLength += _curCigar.lengthAligned();
+	}
+
+	_curAlignmentPosition.clear();
+	_bamReader.Rewind();
+
+	return double(alnLength)/chrLenght;
 }
 
 //--------------------------------------------------------
@@ -528,10 +572,17 @@ void TBamFile::printSummary(std::string_view outputName) const {
 	//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
 	for (size_t rg = 0; rg < _readGroups.size(); rg++){
 		//logfile().newLine();
-		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
+		logfile().list("Number of reads filtered from read group '" + coretools::str::toString(_readGroups.getName(rg)) + "':");
 		logfile().addIndent();
-		if (rg < _numNotAligned.size() && _numNotAligned[rg] > 0) logfile().list("Not aligned: ", _numNotAligned[rg]);
-		_filters.summary(numFiltered, rg);
+		bool summaryWritten = false;
+		if (rg < _numNotAligned.size() && _numNotAligned[rg] > 0){
+			logfile().list("Not aligned: ", _numNotAligned[rg]);
+			summaryWritten = true;
+		} 
+		summaryWritten = summaryWritten || _filters.summary(numFiltered, rg);
+		if(!summaryWritten){
+			logfile().list("All reads passed filters");
+		}
 		logfile().endIndent();
 	}
 

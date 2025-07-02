@@ -21,8 +21,8 @@ private:
 	GenotypeLikelihoods::TErrorModels _errorModels;
 
 public:
-	TGenome(const BAM::TBamFilters& Filters = {false});
-	TGenome(std::string_view Name, const BAM::TBamFilters& Filters, size_t i = 0);
+	TGenome(bool EnableFilters);
+	TGenome(std::string_view Name, bool EnableFilters, size_t i);
 
 	~TGenome();
 	TGenome(TGenome&&) = default;

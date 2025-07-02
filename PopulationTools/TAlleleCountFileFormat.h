@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
 namespace genometools { class TPopulationSamples; }
@@ -21,7 +21,7 @@ namespace PopulationTools{
 class TAlleleCountFile{
 protected:
 	std::string filename;
-	gz::ogzstream outFile;
+	coretools::TLineWriter outFile;
 	std::string sep;
 
 
@@ -44,8 +44,8 @@ class TAlleleCountFileWithAlleles:public TAlleleCountFile{
 public:
 	void writeHeader(genometools::TPopulationSamples & samples) override;
 	void writeHeader(std::vector<std::string> populationNames) override;
-	void writePosition(std::string, long) override{ DEVERROR("Need to provide alleles for this format!"); }
-	void writePosition(std::string, std::string) override{ DEVERROR("Need to provide alleles for this format!"); }
+	void writePosition(std::string, long) override{ throw coretools::TDevError("Need to provide alleles for this format!"); }
+	void writePosition(std::string, std::string) override{ throw coretools::TDevError("Need to provide alleles for this format!"); }
 	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader) override;
 
 	TAlleleCountFileWithAlleles(std::string Filename):TAlleleCountFile(Filename){};

@@ -15,7 +15,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenomePositions/TGenomeWindow.h"
-
+#include "genometools/TBed.h" //TODO: forward declaration of TBed no longer works as TBed is an alias. Can that be fixed?
 #include "genometools/Genotypes/Containers.h"
 #include "TAlignment.h"
 #include "TSite.h"
@@ -26,7 +26,6 @@ namespace coretools {
 template<typename T> class TNumericRange;
 }
 namespace genometools {
-class TBed;
 class TFastaReader;
 }
 
@@ -75,11 +74,11 @@ private:
 public:
 	TWindow(size_t refID, std::string_view ChrName) : genometools::TGenomeWindow(refID, 0), _chrName(ChrName) {}
 
-	TWindow downsampleReads(const coretools::Probability &downsamplingProb) const;
+	TWindow downsampleReads(const coretools::Probability &downsamplingProb, const genometools::TBed &Mask) const;
 
 	// Allow to set chromosome name when jumping
-	void move(const genometools::TGenomeWindow &Window);
-	void move(const TWindow &Window, std::string_view ChrName);
+	void move(const genometools::TGenomeWindow &Window, const genometools::TBed &Mask);
+	void move(const TWindow &Window, std::string_view ChrName, const genometools::TBed &Mask);
 
 	void limitDepth(size_t UpToDepth, bool Shuffle);
 	void limitSites(const genometools::TAlleles& alleles);
@@ -88,7 +87,7 @@ public:
 	void addReferenceBaseToSites(const genometools::TAlleles &Alleles);
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);
 
-	size_t applyMask(genometools::TBed &mask, bool doInverseMasking);
+	void setRegions(const genometools::TBed &Region);
 	void maskCpG(const genometools::TFastaReader &reference);
 	genometools::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const coretools::TNumericRange<size_t> &DepthRange);

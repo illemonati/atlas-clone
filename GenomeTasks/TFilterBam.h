@@ -1,6 +1,7 @@
 #ifndef TFILTERBAM_H_
 #define TFILTERBAM_H_
 
+#include "TSequencedData.h"
 #include "TWaitingListBamTraverser.h"
 
 namespace BAM {
@@ -12,12 +13,15 @@ namespace GenomeTasks {
 // TBamFilter
 //-----------------------------------------
 class TFilterBam final:public TWaitingListBamTraverser {
-protected:
+private:
+	size_t _makeSingle = 0;
+
 	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
 	void _handleSingle(TWaitingAlignment &lhs) override;
+	void _handleOrphan(TWaitingAlignment &lhs) override;
 
 public:
-	TFilterBam() : TWaitingListBamTraverser("_filtered.bam") {}
+	TFilterBam();
 	void run() {
 		traverseBAM();
 	}

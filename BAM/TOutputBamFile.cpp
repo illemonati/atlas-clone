@@ -125,7 +125,7 @@ TOutputBamFile::~TOutputBamFile(){
 
 	//open file for writing
 	if(!_bamWriter.Open(_outputFilename, header, ref)){
-		UERROR("Failed to open BAM file '", _outputFilename, "'!");
+		throw coretools::TUserError("Failed to open BAM file '", _outputFilename, "'!");
 	}
 };
 
@@ -135,7 +135,7 @@ void TOutputBamFile::writeAlignment(BamTools::BamAlignment & alignment){
 
 	// write alignment
 	if(!_bamWriter.SaveAlignment(alignment))
-		UERROR("Read '", alignment.Name, "' could not be written!");
+		throw coretools::TUserError("Read '", alignment.Name, "' could not be written!");
 };
 
 void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
@@ -168,7 +168,7 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment)){
-		UERROR("Read '", _tmpBamAlignment.Name, "' could not be written!");
+		throw coretools::TUserError("Read '", _tmpBamAlignment.Name, "' could not be written!");
 	}
 };
 

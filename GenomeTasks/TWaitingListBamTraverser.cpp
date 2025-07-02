@@ -1,6 +1,7 @@
 #include "TWaitingListBamTraverser.h"
 
 #include "TOutputBamFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
@@ -22,6 +23,7 @@ template<typename Container> void insert_sorted(Container &Vec, const typename C
 } // namespace impl
 
 void TWaitingListBamTraverser::_writeOrFilter(TWaitingAlignment &WAlignment) {
+	_handleOrphan(WAlignment);
 	if (WAlignment.status == AlignmentStatus::ready) {
 		if (_outBam) _outBam->writeAlignment(WAlignment.alignment);
 	} else if (WAlignment.status == AlignmentStatus::orphan) {
@@ -79,7 +81,7 @@ TWaitingAlignment TWaitingListBamTraverser::_nextAlignment() {
 }
 
 TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
-	: _genome(BAM::TBamFilters{true}) {
+	{
 	// max distance between mates
 	if (parameters().exists("dryRun")) {
 		logfile().list("Doing dry-run, no BAM file will be written. (parameter 'dryRun')");
@@ -112,10 +114,9 @@ TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 		if (parameters().exists("incorporatePMD")) {
 			logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 			_incorporatePMD = true;
-			if (!_genome.errorModels().postMortemDamageModels().hasPMD()) {
-				UERROR(
-					"No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.");
-			}
+			coretools::user_assert(
+				_genome.errorModels().postMortemDamageModels().hasPMD(),
+				"No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.");
 		} else {
 			_incorporatePMD = false;
 			logfile().list("PMD will not be reflected in the quality scores. (recommended option. Use 'incorporatePMD' "
@@ -195,7 +196,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 
 		if(_blacklist.isInBlacklist(alignment.name())) {
 			_blacklist.remove(alignment.name());
-			next.status = AlignmentStatus::orphan;
+			next.status = AlignmentStatus::filterOut;
 			impl::insert_sorted(_waitingList, next);
 			continue;
 		}
@@ -215,7 +216,7 @@ void TWaitingListBamTraverser::traverseBAM() {
 				// both mates available
 				if (alignment.readGroupId() != mate->alignment.readGroupId()) {
 					constexpr std::array fise{"first", "second"};
-					UERROR("Alignment '", alignment.name(), "' with read group = ", _genome.bamFile().readGroups()[alignment.readGroupId()].name_ID,
+					throw coretools::TUserError("Alignment '", alignment.name(), "' with read group = ", _genome.bamFile().readGroups()[alignment.readGroupId()].name_ID,
 						   ", CIGAR = ", alignment.cigar().compileString(), ", starting position = ", alignment.from(), ", and ",
 						   fise[alignment.isSecondMate()], " mate '", mate->alignment.name(),
 						   "' with read group = ", _genome.bamFile().readGroups()[mate->alignment.readGroupId()].name_ID,

@@ -7,6 +7,7 @@
 
 #include "TBamFilter.h"
 #include "coretools/Strings/stringConversions.h"
+#include "coretools/Strings/stringManipulations.h"
 
 namespace BAM {
 
@@ -18,54 +19,42 @@ void TBamFilter::filterOut(std::string_view alignmentName, bool isSecondMate, si
 	if (Log.isOpen()) { Log.writeln(alignmentName, isSecondMate, _reason); }
 }
 
-void TBamFilter::summary(size_t total, size_t readGroup) const {
+bool TBamFilter::summary(size_t total, size_t readGroup) const {
 	if (readGroup < _counter.size() && _counter[readGroup].counts() > 0) {
 		logfile().list(_reason + ": ", _counter[readGroup].counts(),
 					   " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
+		return true;
 	}
+	return false;
 }
 
 void TBamFilter::fillHeader(std::vector<std::string> &header) const {
-	std::string tmp = _reason;
-	std::replace(tmp.begin(), tmp.end(), ' ', '_');
-	header.push_back(tmp);
+	header.push_back(coretools::str::camelCase(_reason));
 }
 
 void TBamFilter::printCounts(coretools::TOutputFile &out, size_t rg_ID) const {
-	// Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed
-	// reads per read group are printed here
 	out << getCounts(rg_ID);
 }
 
 void TBamFilter::printCombinedCounts(coretools::TOutputFile &out) const {
-	// Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed
-	// reads per read group are printed here
 	out << _counter.counts();
 }
 
 size_t TBamFilter::getCounts(size_t rg_ID) const {
-	// Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed
-	// reads per read group are printed here
 	if (rg_ID < _counter.size()) return _counter[rg_ID].counts();
 	return 0;
 }
 
 size_t TBamFilter::getCountsPerChromosome(size_t ref_ID) const {
-	// Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed
-	// reads per read group are printed here
 	return _counter.horizontalCounts(ref_ID);
 }
 
 size_t TBamFilter::getCountsAtReadGroupAndChromosome(size_t rg_ID, size_t ref_ID) const {
-	// Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed
-	// reads per read group are printed here
 	if (rg_ID < _counter.size()) { return _counter[rg_ID][ref_ID]; }
 	return 0;
 }
 
 size_t TBamFilter::getCombinedCounts() const {
-	// Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed
-	// reads per read group are printed here
 	return _counter.counts();
 }
 

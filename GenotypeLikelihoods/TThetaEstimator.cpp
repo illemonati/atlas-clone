@@ -8,7 +8,8 @@
 #include "TThetaEstimator.h"
 
 #include "TErrorModels.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -21,6 +22,7 @@ using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using coretools::str::toString;
 using coretools::P;
+using coretools::user_assert;
 using genometools::TGenotypeProbabilities;
 using genometools::TGenotypeLikelihoods;
 using genometools::TBaseProbabilities;
@@ -371,7 +373,7 @@ void TThetaEstimator::_runEMForTheta() {
 		// solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
 		_theta.set(startingTheta);
-		if (startingTheta > 1.0) UERROR("Failed to estimate Theta, issues calculating inverse of Jacobian!");
+		user_assert(startingTheta <= 1.0, "Failed to estimate Theta, issues calculating inverse of Jacobian!");
 	}
 
 	// start EM loop
@@ -614,7 +616,8 @@ TThetaEstimatorRatio::TThetaEstimatorRatio() : TThetaEstimator_base() {
 	_numIterations = parameters().get<int>("iterations", 10000);
 	logfile().list("Will run MCMC for " + toString(_numIterations) + " iterations.");
 	_thinning = parameters().get<int>("thinning", 1);
-	if (_thinning < 1 || _thinning > _numIterations) UERROR("Thinning must be > 1 and < number iterations!");
+	user_assert(_thinning >= 1 && _thinning <= _numIterations, "Thinning must be > 1 and < number iterations!");
+
 	if (_thinning > 1) {
 		if (_thinning == 2)
 			logfile().list("Will print every second iterations to the output file (thinning = 2)");
@@ -684,9 +687,9 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 
 	// check if there is sufficient data
 	logfile().list(toString(_data->sizeWithData()) + " sites with data available for region 1.");
-	if (_data->sizeWithData() < _minSitesWithData) UERROR("Not enough sites for region 1!");
+	user_assert(_data->sizeWithData() >= _minSitesWithData, "Not enough sites for region 1!");
 	logfile().list(toString(_data2->sizeWithData()) + " sites with data available for region 2.");
-	if (_data2->sizeWithData() < _minSitesWithData) UERROR("Not enough sites for region 2!");
+	user_assert(_data2->sizeWithData() >= _minSitesWithData, "Not enough sites for region 2!");
 
 	// get good starting values
 	_findGoodStartingTheta(_data.get(), _theta, " region 1");
@@ -715,11 +718,10 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 	// open MCMC output file
 	ouputName += "_thetaRatioMCMC.txt.gz";
 	logfile().list("Will write MCMC chain to file '" + ouputName + "'.");
-	gz::ogzstream out(ouputName.c_str());
-	if (!out) UERROR("Failed to open file '", ouputName, "' for writing!");
+	coretools::TLineWriter out(ouputName);
 
 	// write header
-	out << "log_theta_1\tlog_theta_2\tlog_phi\n";
+	out.writeln("log_theta_1\tlog_theta_2\tlog_phi");
 
 	// now run chain with sampling
 	_clearCounters();
@@ -731,7 +733,7 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 
 		// print to file
 		if (i % _thinning == 0) {
-			out << _theta.logTheta << "\t" << _theta2.logTheta << "\t" << _theta.logTheta - _theta2.logTheta << "\n";
+			out.writeln(_theta.logTheta, "\t", _theta2.logTheta, "\t", _theta.logTheta - _theta2.logTheta);
 		}
 
 		// print progress

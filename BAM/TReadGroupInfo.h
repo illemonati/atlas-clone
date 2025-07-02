@@ -10,14 +10,13 @@
 
 #include <vector>
 
-#include "coretools/Strings/fromString.h"
 #include "nlohmann/json.hpp"
 
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Strings/fromString.h"
 
 #include "TReadGroups.h"
-
 
 namespace BAM::RGInfo {
 
@@ -27,8 +26,8 @@ namespace BAM::RGInfo {
 
 using TInfo = nlohmann::ordered_json;
 inline std::string toString(const nlohmann::ordered_json &val) {
-	if (val.is_string() || val.is_number()) { return val.get<std::string>(); }
-	return val.dump();
+	if (val.is_string()) { return val.get<std::string>(); }
+	else return nlohmann::to_string(val);
 }
 
 //------------------------------------------------
@@ -197,7 +196,14 @@ public:
 	void fillContainerPerReadGroup(Container & Vec, const InfoType Info) const{
 		Vec.resize(size());
 		for(size_t i = 0; i < size(); ++i){
-			coretools::str::fromString(get(i, Info).get<std::string_view>(), Vec[i]);
+			auto& json = get(i, Info);
+			if (json.is_string()) {
+				coretools::str::fromString(json.get<std::string_view>(), Vec[i]);
+			} else if (json.is_number()) {
+				Vec[i] = json.get<double>();
+			} else {
+				throw coretools::TUserError("Cannot interpret value '", json.dump(), "'!");
+			}
 		}
 	};
 

@@ -59,18 +59,16 @@ class TBamWindowTraverser {
 
 	static GType _initGenome() {
 		if constexpr (isSingle) {
-			return {BAM::TBamFilters(true)};
+			return {true};
 		} else {
 			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
 			const auto filter = BAM::TBamFilters(true);
 			std::vector<TGenome> vec;
 			vec.reserve(bams.size());
-			if (bams.size() == 1) {
-				vec.emplace_back(bams.front(), filter);
-			} else {
-				for (size_t i = 0; i < bams.size(); ++i) {
-					vec.emplace_back(bams[i], filter, i);
-				}
+			vec.emplace_back(bams.front(), true, 0);
+			for (size_t i = 1; i < bams.size(); ++i) {
+				vec.emplace_back(bams[i], false, i);
+				vec.back().bamFile().setFilters(vec.front().bamFile().filters());
 			}
 			return vec;
 		}
@@ -110,7 +108,7 @@ protected:
 		if constexpr (isSingle) {
 			_genome.bamFile().startProgressReporting();
 			if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) {
-				UERROR("No read of file '", _genome.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
+				throw coretools::TUserError("No read of file '", _genome.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
 			} 
 
 			logfile().startIndent("Traversing BAM file in windows:");
@@ -118,7 +116,7 @@ protected:
 			for (auto &g : _genome) {
 				g.bamFile().startProgressReporting(false);
 				if (!g.bamFile().readNextAlignmentThatPassesFilters()) {
-					UERROR("No read of file '", g.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
+					throw coretools::TUserError("No read of file '", g.bamFile().filename(), "' passes filters. Are Readgroup IDs set?");
 				}
 			}
 			std::string_view file = "files";
@@ -149,7 +147,7 @@ protected:
 			GenotypeLikelihoods::TWindow window(chr.refID(), chr.name());
 			window.allowDownsampling(_windows.allowDownsampling());
 			for (const auto &gWindow : _windows[chr.refID()]) {
-				window.move(gWindow);
+				window.move(gWindow, _windows.regions());
 				logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ",
 								 _windows[chr.refID()].size(), " on '", chr.name(), "':");
 

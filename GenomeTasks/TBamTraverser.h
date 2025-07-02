@@ -8,7 +8,7 @@ namespace GenomeTasks {
 
 class TFilteredBamTraverser  {
 protected:
-	TGenome _genome{BAM::TBamFilters{true}};
+	TGenome _genome{true};
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
 
@@ -18,7 +18,7 @@ public:
 
 class TParsedBamTraverser  {
 protected:
-	TGenome _genome{BAM::TBamFilters{true}};
+	TGenome _genome{true};
 	TParser _parser;
 
 	void _traverseBAMPassedQC();

@@ -34,18 +34,20 @@ void writeTransformed(Covariates C, uint8_t Value, coretools::TOutputFile & OFil
 	case Covariates::Position:
 		OFile.write(coretools::TPseudoInt::fromPseudo(Value).linear());
 		break;
-	default: DEVERROR("This Covariate does not exist");
+	default: throw coretools::TDevError("This Covariate does not exist");
 	}
 }
 }
 
 void TRecalDataTables::add(const TSite &site) {
+	static size_t Id = 0;
 	_size += site.depth();
 	if (site.depth() > 1) ++_N_g1;
 
 	for (const auto &b : site) {
-		_tables[_readGroupMap->pooledIndex(b.readGroupID)][b.mate()].add(b);
+		_tables[_readGroupMap->pooledIndex(b.readGroupID)][b.mate()].add(b, Id);
 	}
+	++Id;
 }
 
 const TRecalDataTableOneReadGroup& TRecalDataTables::operator[](size_t readGroupId) const{

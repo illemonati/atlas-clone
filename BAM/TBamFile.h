@@ -102,7 +102,7 @@ private:
 	void _writeFilteringStats(std::string_view outputName) const;
 
 public:
-	TBamFile(std::string_view Filename, size_t ID);
+	TBamFile(std::string_view Filename, size_t ID, bool EnableFilters = true);
 
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const noexcept { return _chromosomes; };
@@ -119,6 +119,7 @@ public:
 	void setExternalFilterReason(std::string_view reason);
 
 	//get filter status
+	const TBamFilters& filters() const noexcept {return _filters;}
 	const TBamFilter& filter(FilterType t) const noexcept {return _filters[t];}
 
 	//reading
@@ -168,6 +169,8 @@ public:
 	size_t maxReadLength() const { return _filters.range(FilterType::ReadLength).max(); };
 	const coretools::TCountDistributionVector<>& numAlignmentReadPerReadGroupPerChromosome() const noexcept { return _numAlignmentReadPerReadGroupPerChromosome; };
 	size_t numReadGroups() const noexcept { return _readGroups.size(); };
+	double averageDepth();
+
 
 	//progress reporting
 	void printSummary(std::string_view outputName) const;

@@ -8,6 +8,8 @@
 #include "TCaller.h"
 #include "GenotypeFunctions.h"
 #include "TSite.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/mathFunctions.h"
@@ -26,6 +28,7 @@ using coretools::Probability;
 using coretools::P;
 using coretools::str::fillContainerFromStringAny;
 using coretools::str::toString;
+using coretools::user_assert;
 
 using genometools::Base;
 using genometools::TGenotypeLikelihoods;
@@ -79,7 +82,6 @@ TCaller::TCaller(){
 	_missingGenotype = ".";
 
 	//vcf file
-	_vcfOpen = false;
 
 	//set acceptable tags
 	_setAcceptableFields(&_VCFInfoFields, "DP");
@@ -113,8 +115,7 @@ void TCaller::_setAcceptableFields(genometools::TVCFFieldVector* fields, std::st
 };
 
 void TCaller::_printField(genometools::TVCFFieldVector* fields, std::string tag){
-	if(!fields->useField(tag))
-		UERROR("VCF ", fields->type(), " field '", tag, "' can not be printed by the ", _callerName, "!");
+	user_assert(fields->useField(tag), "VCF ", fields->type(), " field '", tag, "' can not be printed by the ", _callerName, "!");
 };
 
 void TCaller::printInfoFields(std::vector<std::string> & tags){
@@ -209,32 +210,27 @@ void TCaller::initializeOutput(){
 void TCaller::openVCF(const std::string FilenameTag, const std::string sampleName){
 	_filename = FilenameTag  + _filenameExtention + ".gz";
 	logfile().list("Writing calls to VCF file '" + _filename + "'.");
-	_vcf.open(_filename.c_str());
-	if(!_vcf) UERROR("Failed to open VCF file '", _filename, "' for writing!");
-	_vcfOpen = true;
+	_vcf.open(_filename);
 
 	//write header
 	_writeVCFHeader(sampleName);
-};
+}
 
-void TCaller::closeVCF(){
-	if(_vcfOpen){
-		_vcf.close();
-		_vcfOpen = false;
-	}
-};
+void TCaller::closeVCF() {
+	if (_vcf.isOpen()) _vcf.close();
+}
 
 void TCaller::_writeVCFHeader(const std::string & sampleName){
 	//write header
-	_vcf << "##fileformat=VCFv4.2\n";
-	_vcf << "##source=atlas\n";
+	_vcf.writeln("##fileformat=VCFv4.2");
+	_vcf.writeln("##source=atlas");
 
 	//write INFO and GENOTYPE fields
 	_VCFInfoFields.writeVCFHeader(_vcf);
 	_VCFGenotypeFields.writeVCFHeader(_vcf);
 
 	//write column header
-	_vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sampleName << "\n";
+	_vcf.writeln("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t",sampleName);
 };
 
 //-------------------------------------------------------------------------------------------
@@ -252,7 +248,7 @@ void TCaller::_fillInfoFieldFunctionPointers(){
 	for(std::vector<std::string>::iterator it = tagVec.begin(); it != tagVec.end(); ++it){
 		if(*it == "DP")
 			_VCFInfoFunctionsVec.push_back( &TCaller::_getVCFInfoString_DP );
-		else UERROR("No function defined for VCF ", _VCFInfoFields.type(), " field '", *it, "'! @Programmer: add function to TTCaller::fillInfoFieldFunctionPointers()!");
+		else throw coretools::TUserError("No function defined for VCF ", _VCFInfoFields.type(), " field '", *it, "'! @Programmer: add function to TTCaller::fillInfoFieldFunctionPointers()!");
 	}
 
 };
@@ -295,7 +291,7 @@ void TCaller::_fillGenotypeFieldFunctionPointers(){
 			_VCFGenotypeFunctionsVec.push_back( &TCaller::_getVCFGenotypeString_AB );
 		else if(*it == "AI")
 			_VCFGenotypeFunctionsVec.push_back( &TCaller::_getVCFGenotypeString_AI );
-		else UERROR("No function defined for VCF ", _VCFGenotypeFields.type(), " field '", *it, "'! @Programmer: add function to TTCaller::fillGenotypeFieldFunctionPointers()!");
+		else throw coretools::TUserError("No function defined for VCF ", _VCFGenotypeFields.type(), " field '", *it, "'! @Programmer: add function to TTCaller::fillGenotypeFieldFunctionPointers()!");
 
 		//add to format string
 		if(_genotypeFormatString.length() > 0) _genotypeFormatString += ':';
@@ -344,11 +340,11 @@ std::string TCaller::_composeVCFString(std::vector<std::string (TCaller::*)(cons
 
 void TCaller::_writeAlternativeAllelesToVCF(){
 	if(_altAlleles.size() == 0){
-		_vcf << '.';
+		_vcf.write(".");
 	} else {
-		_vcf << _altAlleles[0];
+		_vcf.write(_altAlleles[0]);
 		for(size_t i=1; i<_altAlleles.size(); ++i)
-			_vcf << ',' << _altAlleles[i];
+			_vcf.write(',',_altAlleles[i]);
 	}
 };
 
@@ -358,23 +354,23 @@ void TCaller::_writeCallToVCF(const std::string & chr, const long pos, const TSi
 		_altAlleles.clear();
 
 	//write chr, position and (no) variant ID
-	_vcf << chr << '\t' << pos + 1 << "\t.\t"; //all internal positions are zero-based!
+	_vcf.write(chr,'\t',pos + 1,"\t.\t"); //all internal positions are zero-based!
 
 	//write reference and alternative alleles
-	_vcf << site.refBase << "\t";
+	_vcf.write(site.refBase,"\t");
 	_writeAlternativeAllelesToVCF();
 
 	//write (no) variant quality and (no) filter
-	_vcf << "\t.\t.";
+	_vcf.write("\t.\t.");
 
 	//write info fields
-	_vcf << '\t' << _composeVCFString(_VCFInfoFunctionsVec, site, genotypeLikelihoods);
+	_vcf.write('\t',_composeVCFString(_VCFInfoFunctionsVec, site, genotypeLikelihoods));
 
 	//write genotype fields
-	_vcf << '\t' << _genotypeFormatString << '\t' << _composeVCFString(_VCFGenotypeFunctionsVec, site, genotypeLikelihoods);
+	_vcf.write('\t',_genotypeFormatString,'\t',_composeVCFString(_VCFGenotypeFunctionsVec, site, genotypeLikelihoods));
 
 	//end with new line
-	_vcf << '\n';
+	_vcf.endln();
 
 	//clean up storage
 	_clearAfterCall();
@@ -382,7 +378,7 @@ void TCaller::_writeCallToVCF(const std::string & chr, const long pos, const TSi
 
 void TCaller::_writeMissingDataToVCF(const TSite & site){
 	if(_printSitesWithNoData)
-		_vcf << "\t.\t" << site.refBase << "\t.\t.\t.\t.\tGT:DP\t" << _missingGenotype << ":0";
+		_vcf.write("\t.\t",site.refBase,"\t.\t.\t.\t.\tGT:DP\t",_missingGenotype,":0");
 };
 
 void TCaller::_clearAfterCall(){
@@ -587,9 +583,8 @@ TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth) : TCaller() {
 	initializeOutput();
 
 	//check downsample depth
-	if(DownsampleDepth < 1){
-		UERROR("Consensify caller requires downsampling of reads! Use 'downsample' to specify.");
-	}
+	user_assert(DownsampleDepth > 0, "Consensify caller requires downsampling of reads! Use 'downsample' to specify.");
+
 	_downsampleDepth = DownsampleDepth;
 	_minMajorityDepth = ceil(_downsampleDepth / 2.0);
 
@@ -597,9 +592,7 @@ TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth) : TCaller() {
 };
 
 bool TCallerConsensify::_callGenotype(const TSite & site, const TGenotypeLikelihoods &){
-	if(site.depth() > _downsampleDepth){
-		DEVERROR("depth > _downsampleDepth!");
-	}
+	DEV_ASSERT(site.depth() <= _downsampleDepth);
 
 	//get per allele counts
 	_countAlleles(site);
@@ -627,9 +620,7 @@ bool TCallerConsensify::_callGenotype(const TSite & site, const TGenotypeLikelih
 };
 
 bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, const TGenotypeLikelihoods &){
-	if(site.depth() > _downsampleDepth){
-		DEVERROR("depth > _downsampleDepth!");
-	}
+	DEV_ASSERT(site.depth() <= _downsampleDepth);
 
 	//get per allele counts
 	_countAlleles(site);
@@ -687,7 +678,7 @@ void TCallerAllelePresence::_fillPosteriors(const TGenotypeLikelihoods & genotyp
 };
 
 bool TCallerAllelePresence::_callGenotype(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
-	if(!_priorSet) UERROR("Can not call AllelePresence genotypes: prior has not been set!");
+	user_assert(_priorSet, "Can not call AllelePresence genotypes: prior has not been set!");
 
 	//fill posteriors for each allele
 	_fillPosteriors(genotypeLikelihoods);
@@ -711,7 +702,7 @@ bool TCallerAllelePresence::_callGenotype(const TSite &, const TGenotypeLikeliho
 };
 
 bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
-	if(!_priorSet) UERROR("Can not call AllelePresence genotypes: prior has not been set!");
+	user_assert(_priorSet, "Can not call AllelePresence genotypes: prior has not been set!");
 
 	//fill posteriors for each allele
 	_fillPosteriors(genotypeLikelihoods);
@@ -1139,7 +1130,7 @@ TCallerBayes::TCallerBayes():TCallerDiploid(){
 
 
 bool TCallerBayes::_callGenotype(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
-	if(!_priorSet) UERROR("Can not call Bayesian genotypes: prior has not been set!");
+	user_assert(_priorSet, "Can not call Bayesian genotypes: prior has not been set!");
 
 	//calculate posterior probabilities
 	_posterior = posterior(genotypeLikelihoods, *_genotypePrior);
@@ -1150,7 +1141,7 @@ bool TCallerBayes::_callGenotype(const TSite &, const TGenotypeLikelihoods & gen
 };
 
 bool TCallerBayes::_callGenotypeKnownAlleles(const TSite &, const TGenotypeLikelihoods & genotypeLikelihoods){
-	if(!_priorSet) UERROR("Can not call Bayesian genotypes: prior has not been set!");
+	user_assert(_priorSet, "Can not call Bayesian genotypes: prior has not been set!");
 
 	//calculate posterior probabilities
 	_posterior = posterior(genotypeLikelihoods, *_genotypePrior);
@@ -1196,9 +1187,9 @@ TCall::TCall() {
 	} else if(method == "Bayesian"){
 		_caller = std::make_unique<TCallerBayes>();
 	} else if(method == "gVCF"){
-		UERROR("GVCF NOT YET IMPLEMENTED!");
+		throw coretools::TUserError("GVCF NOT YET IMPLEMENTED!");
 		_caller->printSitesWithNoData();
-	} else UERROR("Unknown calling method '", method, "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.");
+	} else throw coretools::TUserError("Unknown calling method '", method, "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.");
 	logfile().list("Will use the " + _caller->name() + ". (parameter 'method')");
 
 	//prior setting
@@ -1219,9 +1210,13 @@ TCall::TCall() {
 
 	//limit to sites with known alleles?
 	if(parameters().exists("alleles")){
-		logfile().startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
-		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes());
-		logfile().endIndent();
+		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), genometools::Morphic::Both);
+		_RefN = parameters().exists("allowRefN") ? 0 : -1;
+		if (_RefN >= 0) {
+			logfile().list("Allowing cases where Ref = N and Alt != N, treated as N/N. (parameter 'allowRefN')");
+		} else {
+			logfile().list("Not allowing cases where Ref = N and Alt != N. (use 'allowRefN' to allow)");
+		}
 	} else {
 		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
@@ -1257,7 +1252,7 @@ void TCall::_initializeGenotypePrior(){
 			} else
 				_prior = std::make_unique<GenotypeLikelihoods::TGenotypePriorTheta>(thetaOuputName);
 		}
-	} else UERROR("Unknown prior type '", priorMethod, "'!");
+	} else throw coretools::TUserError("Unknown prior type '", priorMethod, "'!");
 	logfile().endIndent();
 };
 
@@ -1284,7 +1279,19 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 			TSite& site = window[internalPos];
 			site.refBase = it->ref;
 			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
-			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
+
+			if (it->ref == Base::N && it->alt != Base::N) {
+				if (_RefN >= 0) {
+					++_RefN;
+				} else {
+					throw coretools::TUserError("In position ", it->position.asFormattedString(_genome.bamFile().chromosomes()),
+						   ", Ref = N but Alt = ", it->alt,
+						   ", this case is not supported! Use parameter 'allowRefN' to treat as N/N");
+				}
+			}
+
+			if (it->alt == Base::N || it->ref == Base::N) _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik);
+			else _caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it->ref, it->alt);
 		}
 	}
 };
@@ -1307,6 +1314,9 @@ void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
 
 void TCall::run(){
 	_traverseBAMWindows();
+	if (_RefN >= 0) {
+		logfile().list("Number of sites where Ref = N and Alt != N: ", _RefN, ".");
+	}
 };
 
 }; // end namespace

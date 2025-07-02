@@ -52,7 +52,7 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
-	bool _onlySummary;
+	bool _onlyHistograms;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
 	void _startChromosome(const genometools::TChromosome& ) override {}

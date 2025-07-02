@@ -7,17 +7,16 @@ pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.2*exp(-0.3*p)+0.01"
 
 delta=10
 k="111"
-L="100$k"
 
 . $(dirname $0)/simulate --recal $recal --pmd $pmd  \
 	--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.015 \
-  --chrLength $L,$L --depth 9 --ploidy 2,1 --numReadGroups 3 \
+  --chrLength 100$k,50$k --depth 2.5 --ploidy 2,1 --numReadGroups 3 \
   --baseQuality 'categorical(12:1,22:2,27:3,32:4,37:5,41:100)' \
-  --fragmentLength 'normal(40,10)[1,101]' \
+  --fragmentLength 'normal(90,10)[1,100]' \
   --mappingQuality 'categorical(30:200,40:1,41:1,42:1,43:1,44:1,45:1,50:200,60:200)' --fixedSeed 80
 
-echo "chr1 0 $L" > bed1.bed
-echo "chr2 0 99$k" > bed2.bed
+echo "chr1 0 100$k" > bed1.bed
+echo "chr2 0 42$k" > bed2.bed
 
 echo "readGroup poolWith" > recal.pool
 echo "SimReadGroup2 SimReadGroup1" >> recal.pool
@@ -28,7 +27,7 @@ echo "SimReadGroup3 SimReadGroup1" >> pmd.pool
 out="estimateErrors"
 $atlas --task estimateErrors --minDeltaLL $delta --shuffleSites --minData 5000 \
 	   --bam simulate.bam --fasta simulate.fasta \
-	   --poolRecal "all" --poolPMD "all" \
+	   --poolPMD "all" \
 	   --fixedSeed 81 --out $out --logFile $out.out 2> $out.eout
 
 recalModel="intercept;quality;position:polynomial1;fragmentLength:polynomial2;mappingQuality;context"

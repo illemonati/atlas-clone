@@ -28,7 +28,7 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 		} else if(type == "paired"){
 			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[rg], RGinfo[rg], _pmd.model(rg), _recal.RGModel(rg)));
 		} else {
-			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
+			throw coretools::TUserError("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}
 		logfile().startIndent("Error Models:");
 		_recal.log(rg);
@@ -62,15 +62,13 @@ void TReadSimulators::_determineMaxFragmentLength(){
 		}
 	}
 
-	if(_averageReadLength < 1.0){
-		UERROR("Chosen parameters result in an average fragment length across read groups < 1.0!");
-	}
+	coretools::user_assert(_averageReadLength >= 1.0, "Chosen parameters result in an average fragment length across read groups < 1.0!");
 }
 
-TReadSimulators::TReadSimulators(std::string_view FileName, bool read){
+TReadSimulators::TReadSimulators(std::string_view RGOutName, std::string_view RGInName){
 	// Read sequencing parameters from RG Info / Command line
 	TReadGroupInfo RGinfo;
-	if (read) _readGroups = RGinfo.readReadGroups(FileName);
+	if (!RGInName.empty()) _readGroups = RGinfo.readReadGroups(RGInName);
 	else _readGroups = RGinfo.createReadGroups();
 
 	using BAM::RGInfo::InfoType;
@@ -111,12 +109,12 @@ TReadSimulators::TReadSimulators(std::string_view FileName, bool read){
 
 	//prepare simulations
 	_determineMaxFragmentLength();
-	RGinfo.write(FileName);
+	RGinfo.write(RGOutName);
 }
 
 std::pair<size_t, size_t> TReadSimulators::simulate(const genometools::TGenomePosition &Position,
 													const std::vector<genometools::TwoBase> &Haplotype,
-													const TSimulatorReference &Reference,
+													coretools::TView<genometools::Base> Reference,
 													BAM::TOutputBamFile &BamFile) {
 	// sample which simulator to use
 	const auto RG   = numRG() == 1 ? 0 : _picker();

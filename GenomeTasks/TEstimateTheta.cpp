@@ -6,6 +6,7 @@
  */
 
 #include "TEstimateTheta.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Strings/concatenateString.h"
 #include "coretools/Main/TParameters.h"
 
@@ -14,6 +15,7 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::str::toString;
+using coretools::user_assert;
 
 
 //-----------------------------------
@@ -22,7 +24,7 @@ using coretools::str::toString;
 TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TBamWindowTraverser() {
 	_steps = parameters().get<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
-	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
+	user_assert(_steps >= 2, "Th enumber of steps must be >= 2!");
 };
 
 void TEstimateThetaLLSurface::_handleWindow(GenotypeLikelihoods::TWindow& window) {
@@ -101,29 +103,52 @@ TEstimateTheta::TEstimateTheta() : TBamWindowTraverser() {
 	// read downsampling rates
 
 	if (parameters().exists("prob")) {
+		user_assert(!parameters().exists("depth"), "Cannot use arguments 'prob' and 'depth' at the same time!");
+
 		parameters().fill("prob", downSampleProbVector);
+		user_assert(!downSampleProbVector.empty(), "You need to specify at least one probability!");
+		std::sort(downSampleProbVector.begin(), downSampleProbVector.end(), std::greater<>());
+
+		while (!downSampleProbVector.empty() && downSampleProbVector.front() == 1.) {
+			_printFullData = true;
+			downSampleProbVector.erase(downSampleProbVector.begin()); 
+		}
+
 	} else if (parameters().exists("depth")) {
-		std::vector<double> depths;
-		parameters().fill("depth", depths);
-		double averageDepth = parameters().get<double>("averageDepth");
-		for (auto &it : depths) {
-			if (averageDepth >= it) {
-				downSampleProbVector.emplace_back(it / averageDepth);
+		auto depths = parameters().get<std::vector<double>>("depth");
+		user_assert(!depths.empty(), "You need to specify at least one depth!");
+		std::sort(depths.begin(), depths.end(), std::greater<>());
+
+		double averageDepth;
+		if (parameters().exists("averageDepth")) {
+			averageDepth = parameters().get<double>("averageDepth");
+		} else {
+			logfile().list("No averageDepth given, will calculate it. Use 'averageDepth' to safe time!");
+			averageDepth = _genome.bamFile().averageDepth();
+			logfile().list("Average depth estimated to ", averageDepth);
+		}
+
+		for (const auto d : depths) {
+			if (d >= averageDepth) {
+				if (!_printFullData) {
+					logfile().list("Cannot downsample to depth ", d,
+								   " as this is >= the average depth. Will use full depth instead.");
+					_printFullData = true;
+				} else {
+					logfile().list("Will ignore depth ", d,
+								   ", this is >= the average depth and full depth will already be done for depth ",
+								   depths.front(), ".");
+				}
 			} else {
-				UERROR("Average Depth must be equal or bigger than provided lists of depths");
+				downSampleProbVector.emplace_back(d / averageDepth);
 			}
 		}
 	} else {
-		downSampleProbVector.emplace_back(1.);
+		_printFullData = true;
 	}
 
-	if (downSampleProbVector.empty()) UERROR("You need to specify at least one probability!");
-
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
-	_printFullData = false;
-	if (downSampleProbVector.front() == 1.0) {
-		_printFullData = true;
-		downSampleProbVector.erase(downSampleProbVector.begin());
+	if (_printFullData) {
 		logfile().list("Will estimate theta on full data.");
 	}
 
@@ -187,7 +212,7 @@ void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		const auto destination = window.downsampleReads(p);
+		const auto destination = window.downsampleReads(p, _windows.regions());
 		logfile().done();
 
 		_addSites(destination, estimators[i]);
@@ -272,7 +297,7 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
 	region.parse(regionsFile, _genome.bamFile().chromosomes());
 	logfile().done();
-	logfile().conclude("Read ", region.size(),  " sites on ", region.NChrWindows(), " chromosomes.");
+	logfile().conclude("Read ", region.size(),  " sites on ", region.NChrWithWindows(), " chromosomes.");
 };
 
 void TEstimateThetaRatio::_addSites(const GenotypeLikelihoods::TWindow& Window, GenotypeLikelihoods::TThetaEstimatorData &Data, const genometools::TBed &Region) {
@@ -296,7 +321,7 @@ void TEstimateThetaRatio::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer(), _region1);
 		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch (...) {
-		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
+		throw coretools::TUserError("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
 			   "regions or limiting to sites with a minimal depth (>=2 recommended).");
 	}
 	logfile().doneTime();

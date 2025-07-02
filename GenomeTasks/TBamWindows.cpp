@@ -2,6 +2,7 @@
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/TAlleles.h"
 
@@ -9,6 +10,7 @@ namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 
 TBamWindows::TBamWindows(const genometools::TChromosomes& Chromosomes)  {
 	_parser.openReference(); // non-mandatory
@@ -22,7 +24,7 @@ TBamWindows::TBamWindows(const genometools::TChromosomes& Chromosomes)  {
 }
 
 void TBamWindows::requireReference() const {
-	if (!_parser.reference().isOpen())  UERROR("No reference provided! (Use parameter fasta to provide a reference)");
+	user_assert(_parser.reference().isOpen(), "No reference provided! (Use parameter fasta to provide a reference)");
 }
 
 void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromosomes) {
@@ -49,7 +51,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 		for (auto &window: windows) {
 			const auto& chr = Chromosomes[window.refID()];
 			if (!chr.inUse() || (_alleles && !_alleles.overlaps(window)) ||
-				(_considerRegions && !_mask.overlaps(window))) {
+				(considerRegions() && !_regions.overlaps(window))) {
 				logfile().list("Ignoring window [", window.from().position(), ", ", window.to().position(), "] on chr ", chr.name(), "!");
 				continue;
 			}
@@ -77,7 +79,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 		if (parameters().exists("limitWindows"))
 			logfile().list("Will limit analysis to the first ", limit,
 						" windows per chromosome. (parameter 'limitWindows')");
-		if (limit <= skip) UERROR("limitWindows has to be larger than skipWindows!");
+		user_assert(limit > skip, "limitWindows has to be larger than skipWindows!");
 
 		for (const auto& chr: Chromosomes) {
 			if (!chr.inUse()) continue;
@@ -89,7 +91,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 
 			for (genometools::TGenomeWindow window(from, _windowSize); window.from() < to; window += _windowSize) {
 				if ((_alleles && !_alleles.overlaps(window)) ||
-					(_considerRegions && !_mask.overlaps(window))) {
+					(considerRegions() && !_regions.overlaps(window))) {
 					continue;
 				}
 				if (window.to() > chr.to()) window.resize(chr.to() - window.from());
@@ -114,7 +116,7 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 void TBamWindows::_setWindowFilters() {
 	// filter for missing reference
 	_maxMissing = parameters().get<double>("maxMissing", 1.0);
-	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
+	user_assert(_maxMissing >= 0.0 && _maxMissing <= 1.0, "maxMissing must be within [0, 1]!");
 	if (_maxMissing < 1.0) {
 		logfile().list("Will filter out windows with a missing data fraction > ", _maxMissing,
 					   ". (parameter 'maxMissing')");
@@ -123,9 +125,8 @@ void TBamWindows::_setWindowFilters() {
 	}
 
 	_maxRefN = parameters().get<double>("maxRefN", 1.0);
-	if (_maxRefN < 0.0 || _maxRefN > 1.0) UERROR("maxRefN must be within interval [0,1]!");
-	if (_maxRefN < 1.0 && !_parser.reference().isOpen())
-		UERROR("Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
+	user_assert(_maxRefN >= 0.0 && _maxRefN <= 1.0, "maxRefN must be within interval [0,1]!");
+	user_assert(_maxRefN == 1.0 || _parser.reference().isOpen(), "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			   "(use 'fasta' to provide a reference)");
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > ", _maxRefN,
 				   ". (parameter 'maxRefN')");
@@ -167,59 +168,50 @@ void TBamWindows::_setSiteFilters() {
 	}
 }
 
-void TBamWindows::_setMasks(const genometools::TChromosomes& Chromosomes) {
+void TBamWindows::_setMasks(const genometools::TChromosomes &Chromosomes) {
 	// normal mask
-	if (parameters().exists("mask") || parameters().exists("regions")) {
-		std::string filename;
-		if (parameters().exists("mask")) {
-			// mask
-			if (parameters().exists("regions")) UERROR("Cannot use mask and regions at the same time.");
-			filename = parameters().get<std::string>("mask");
-			logfile().startIndent("Will mask all sites listed in BED file '" + filename + "':");
-			_doMasking       = true;
-			_considerRegions = false;
-		} else {
-			// regions
-			filename = parameters().get<std::string>("regions");
-			logfile().startIndent("Will limit analysis to sites listed in BED file '" + filename +
-								  "' (parameter 'regions'):");
-			_doMasking       = false;
-			_considerRegions = true;
-		}
+	if (parameters().exists("regions")) { // regions
+		const auto regionsFile = parameters().get("regions");
 
-		// read file
-		logfile().listFlush("Reading file ...");
-		_mask.parse(filename, Chromosomes);
-		logfile().done();
-		logfile().conclude("Read ", _mask.size(), " sites on ", _mask.NChrWindows(), " chromosomes.");
-		logfile().endIndent();
-	} else {
-		_doMasking       = false;
-		_considerRegions = false;
+		logfile().list("Will limit analysis to sites listed in BED file '", regionsFile, "' (parameter 'regions'):");
+		_regions.parse(regionsFile, Chromosomes);
+	}
+	if (parameters().exists("mask")) {
+		const auto maskFile = parameters().get("mask");
+		logfile().list("Will mask all sites listed in BED file '", maskFile, "':");
+		if (!parameters().exists("regions")) {
+			_regions.parse(maskFile, Chromosomes);
+
+			// flip mask to get regions
+			_regions.flip(Chromosomes);
+		} else {
+			genometools::TBed mask;
+			mask.parse(maskFile, Chromosomes);
+			_regions.addMask(mask);
+			auto fName = coretools::str::toString(coretools::str::readBeforeLast(parameters().get("regions"), '.'),
+												  "_masked.bed");
+			logfile().list("Will write masked regions-file to '", fName, "'.");
+			_regions.write(fName);
+		}
 	}
 }
 
-void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, bool polymorphic) {
+void TBamWindows::openSiteSubset(const std::string &paramName, const genometools::TChromosomes& Chromosomes, genometools::Morphic Morph) {
+	DEV_ASSERT(_alleles.empty());
 	//report
-	if(polymorphic){
+	if(Morph == genometools::Morphic::Poly || Morph == genometools::Morphic::Both){
 		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
 	} else {
 		logfile().startIndent("Limiting analysis to sites with known allele (parameter '", paramName, "'):");
 	}
 	
 	// only allow for one subset to be active
-	if (!_alleles.empty()) { DEVERROR("Site subset already initialized!"); }
 
-	if (_considerRegions)
-		UERROR("Site subsets (parameter '", paramName,
-			   "') and regions (parameter 'regions') can not be used at the same time!");
-	if (_doMasking)
-		UERROR("Site subsets (parameter '", paramName,
-			   "') and masks (parameter 'mask') can not be used at the same time!");
+	user_assert(!considerRegions(), "Site subsets (parameter '", paramName,
+				"') and regions (parameter 'regions' or 'mask') can not be used at the same time!");
 
 	const auto filename = parameters().get(paramName);
-	auto morphic = polymorphic ? genometools::Morphic::Poly : genometools::Morphic::Mono;
-	_alleles.parse(filename, Chromosomes, morphic);
+	_alleles.parse(filename, Chromosomes, Morph);
 
 	logfile().endIndent();
 }
@@ -227,15 +219,6 @@ void TBamWindows::openSiteSubset(const std::string &paramName, const genometools
 void TBamWindows::filter(GenotypeLikelihoods::TWindow &Window) {
 	// apply site-specific filters
 	if (Window.numReadsInWindow() > 0) {
-		// apply masks and filters
-		if (_doMasking) {
-			const auto N = Window.applyMask(_mask, _considerRegions);
-			logfile().list("Masking ", N, " sites.");
-		} else if (_considerRegions) {
-			const auto N = Window.applyMask(_mask, _considerRegions);
-			logfile().list("Masking ", N, " sites outside regions.");
-		}
-
 		// filter sites
 		if (_applyDepthFilter) { Window.applyDepthFilter(_depthFilter); }
 		if (_filterCpG) { Window.maskCpG(_parser.reference()); }

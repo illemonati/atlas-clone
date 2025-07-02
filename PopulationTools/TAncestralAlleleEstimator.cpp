@@ -34,7 +34,7 @@ TAncestralAlleleEstimator::TAncestralAlleleEstimator(){
 
     const auto fastaIndexFileName = parameters().get<std::string>("fastaIndex", filename + ".fasta.fai");
     logfile().list("Opening FASTA index file ", fastaIndexFileName, ". (parameter 'fastaIndex')");
-    _fastaIndex.open(fastaIndexFileName);
+    _fastaIndex.parse(fastaIndexFileName);
 }
 
 void TAncestralAlleleEstimator::run(){
@@ -42,7 +42,7 @@ void TAncestralAlleleEstimator::run(){
     const auto outputFileName = parameters().get<std::string>("out", filename + "_ancestralAlleles.fasta");
     logfile().list("Writing ancestral alleles to file '", outputFileName, "'. (parameter 'out')");
 
-    genometools::TFastaWriter writer(outputFileName, _fastaIndex.front().lineBases);
+    genometools::TFastaWriter writer(outputFileName, _fastaIndex.lineBases(0));
 
     std::vector<std::string> populationNames = _alleleCounts.populationNames();
     const auto population = parameters().get<std::string>("population", populationNames[0]);
@@ -52,14 +52,14 @@ void TAncestralAlleleEstimator::run(){
     if (it != populationNames.end()){
         index = it - populationNames.begin();
     } else {
-        UERROR("Population '", population, "' was not found in alleleCounts file!");
+        throw coretools::TUserError("Population '", population, "' was not found in alleleCounts file!");
     }
     logfile().list("Using population '", populationNames[index],"' for estimation of ancestral allele. (parameter 'population')");
 
-    for (auto &fI: _fastaIndex){
-        writer.newContig(fI.contig);
-        for (size_t pos = 1; pos <= fI.length; pos++){
-            if(pos == _alleleCounts.front().pos && fI.contig == _alleleCounts.front().chr){
+    for (auto &chr: _fastaIndex.chromosomes()){
+        writer.newContig(chr.name());
+        for (size_t pos = 1; pos <= chr.length(); pos++){
+            if(pos == _alleleCounts.front().pos && chr.name() == _alleleCounts.front().chr){
                 if(_alleleCounts.front()[index].minor <= _minorCountMax && _totalCountMin <= _alleleCounts.front()[index].total){
                     writer.write(_alleleCounts.front().majorAllele);
                 } else {

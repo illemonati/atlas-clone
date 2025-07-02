@@ -168,8 +168,8 @@ if __name__ == "__main__":
             print("depth:", mdepths)
             print("theta_f:", mthetas_g)
 
-        xmi = min(min(mdepths), xmi)
-        xma = max(max(mdepths), xma)
+        xmi = minimum(min(mdepths), xmi)
+        xma = maximum(max(mdepths), xma)
 
         if hky85:
             ax1 = plt.subplot(311)
@@ -190,9 +190,9 @@ if __name__ == "__main__":
 
         else:
             plt.yscale("log")
-            yma[0] = max(yma[0], max(mthetas_g[nonzero(mthetas_g)]))
-            ymi[0] = min(ymi[0], min(mthetas_g[nonzero(mthetas_g)]))
-            plt.ylim(min(ymi[0]/2, yma[0]/10), yma[0]*2)
+            yma[0] = maximum(yma[0], max(mthetas_g[nonzero(mthetas_g)]))
+            ymi[0] = minimum(ymi[0], min(mthetas_g[nonzero(mthetas_g)]))
+            plt.ylim(minimum(ymi[0]/2, yma[0]/10), yma[0]*2)
             if hky85: plt.ylabel(r"$\theta_{g}$")
             else: plt.ylabel(r"$\theta_f$")
 
@@ -211,9 +211,9 @@ if __name__ == "__main__":
                 plt.yscale("log")
                 plt.ylabel(r"$\theta_r$")
 
-                yma[1] = max(yma[1], max(mthetas_r[nonzero(mthetas_r)]))
-                ymi[1] = min(ymi[1], min(mthetas_r[nonzero(mthetas_r)]))
-                plt.ylim(min(ymi[1]/2, yma[1]/10), yma[1]*2)
+                yma[1] = maximum(yma[1], max(mthetas_r[nonzero(mthetas_r)]))
+                ymi[1] = minimum(ymi[1], min(mthetas_r[nonzero(mthetas_r)]))
+                plt.ylim(minimum(ymi[1]/2, yma[1]/10), yma[1]*2)
 
         if hky85 and hky85_i:
             plt.subplot(313, sharex=ax1)
@@ -221,8 +221,8 @@ if __name__ == "__main__":
             plt.errorbar(mdepths, mmus, color=col[i%nCol], yerr=smus, fmt=fmts[i%nCol] + lins[int(i/nCol)], markersize=mks[i],linewidth=2, capsize=6)
             plt.hlines(mmus[0], 0, 1.5*max(mdepths), col[i%nCol], "dashed")
             plt.yscale("log")
-            yma[2] = max(yma[2], max(mmus[nonzero(mmus)]))
-            ymi[2] = min(ymi[2], min(mmus[nonzero(mmus)]))
+            yma[2] = maximum(yma[2], max(mmus[nonzero(mmus)]))
+            ymi[2] = minimum(ymi[2], min(mmus[nonzero(mmus)]))
             plt.ylim(ymi[2]/2, yma[2]*2)
 
             plt.ylabel(r"$\mu$")

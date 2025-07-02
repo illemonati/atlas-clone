@@ -26,7 +26,7 @@ private:
 	TBamReadMask _masks;
 
 protected:
-	TGenome _genome;
+	TGenome _genome{true};
 	TParser _parser;
 
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
@@ -49,6 +49,7 @@ protected:
 	//pure virtual functions
 	virtual void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) = 0;
 	virtual void _handleSingle(TWaitingAlignment &lhs)                        = 0;
+	virtual void _handleOrphan(TWaitingAlignment &lhs)                        = 0;
 	bool _alignmentCanBeWrittenUnchanged();
 
 public:

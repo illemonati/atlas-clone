@@ -185,12 +185,14 @@ public:
 		constexpr size_t Nmax = 3;
 
 		std::string ret = "[";
-		if constexpr (_N <= 2 * Nmax) {
+		if (numParameters() <= 2 * Nmax) {
 			// write all parameters
+			size_t iis_im = _nope;
 			for (size_t i = 0; i < _iis.size(); ++i) {
-				if (_iis[i] != _nope) {
-					ret.append(toString(i, ": ", _beta(i), ", "));
-				}
+				if (_iis[i] == _nope) continue;
+				if (_iis[i] == iis_im) continue; // don't write pooled values
+				ret.append(toString(i, ": ", _beta(i), ", "));
+				iis_im = _iis[i];
 			}
 		} else {
 			// write first Nmax parameters

@@ -21,6 +21,7 @@ private:
 	std::vector<TReadGroup> _readGroups;
 	std::vector<size_t> _readGroupsById;
 	bool _limitReadGroups = false;
+	size_t _readGroupIdForReadsWithoutReadGroup = -1; // is noReadGroupId if it does not exist (default)
 
 	std::vector<TReadGroup>::iterator _getReadGroup(std::string_view Name);
 	std::vector<TReadGroup>::const_iterator _getReadGroup(std::string_view Name) const;
@@ -29,10 +30,13 @@ private:
 public:
 	static constexpr size_t noReadGroupId = -1;
 
+	TReadGroups();
+
 	// add and remove read groups
-	void clear();
+	void clear();	
 	TReadGroup& add(std::string_view name);
 	TReadGroup& addAlternativeRG(std::string_view Name, std::string_view original);
+	void addReadGroupForReadsWithoutReadGroup(std::string_view Name);
 	size_t size() const;
 	bool empty() const;
 
@@ -60,10 +64,7 @@ public:
 
 	//some additional tasks
 	void filterReadGroups(std::string_view readGroupList);
-	template <typename T> void removeFromHeader(T Identifier){
-		auto rg = getReadGroup(Identifier);
-		rg.writeToHeader = false;
-	}
+	template<typename T> void removeFromHeader(T Identifier) { getReadGroup(Identifier).writeToHeader = false; }
 
 	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;

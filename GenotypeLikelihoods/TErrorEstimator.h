@@ -71,36 +71,15 @@ private:
 	size_t _NSites(size_t Region) const noexcept {return _data[Region].size();}
 	size_t _NData(size_t Region, size_t Site) const noexcept {return _data[Region][Site].size();}
 
-	template<bool UpdateJF> void _calculateQ() {
-		for (size_t r = 0; r < _NRegions(); ++r) {
-			const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
-			for (size_t s = 0; s < _NSites(r); ++s) {
-				const auto &P_g_I_di = _P_g_I_dis[r][s];
-				for (size_t d = 0; d < _NData(r, s); ++d) {
-					const auto &d_ij              = _data[r][s].get<0>()[d];
-					const auto &P_bbarEdij_I_gdij = _data[r][s].get<1>()[d];
-					if (isInvariant)
-						_recal.model(d_ij).epsilon()->add<UpdateJF, true>(d_ij, P_g_I_di, P_bbarEdij_I_gdij);
-					else
-						_recal.model(d_ij).epsilon()->add<UpdateJF, false>(d_ij, P_g_I_di, P_bbarEdij_I_gdij);
-				}
-			}
-		}
-	}
-
-	void _solveDerivative() {
-		_calculateQ<true>(); 
-		for (auto& e: _epsilons) e->solveJxF();
-	}
-
-	size_t _calculateQ();
-	double _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
-	double _calculateLL_updatePg(size_t R, const std::vector<TSite> &sites, TGenotypeDistribution *genoDist, genometools::Ploidy Pl);
+	double _updateEpsilon(double deltaDeltaLL);
+	size_t _updateModels();
+	void _updatePbbar();
+	void _solveDerivative();
+	void _calculateQ(bool UpdateJF);
 
 	void _identifyModels();
 	void _runEM();
-	void _updatePbbar();
 
 	void _writeModels(std::string_view Intro);
 	void _handleSite(const TSite& Site, size_t Region);

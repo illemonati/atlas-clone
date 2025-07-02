@@ -13,19 +13,17 @@
 #include <vector>
 
 #include "TSimulatorBamFiles.h"
-#include "TSimulatorReference.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
+#include "genometools/TFastaReader.h"
 #include "genometools/VCF/TVCFWriter.h"
 #include "THaplotypeSimulator.h"
 #include "TReadSimulators.h"
 
 namespace Simulations {
-class TSimulatorBamFiles;
-
 // TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is
 // done now as it would allow for contaminated reads to have different characteristsics.
 
@@ -36,14 +34,17 @@ class TSimulatorBamFiles;
 class TSimulator {
 protected:
 	std::string _outname;
-	std::vector<size_t> _seqDepth; //depth per chromosome
+	genometools::TFastaReader _fastaReader;
+	std::vector<double> _seqDepth; //depth per chromosome
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
 	genometools::TChromosomes _chromosomes;
-
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
-	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) = 0;
+	void _makeChromosomes();
+	std::unique_ptr<THaplotypeSimulator> _makeHaploSimulator(std::string_view Method);
+	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
+								   coretools::TView<genometools::Base> Reference, double avgDepth) = 0;
 
 public:
 	TSimulator(const std::string_view Method);
@@ -57,17 +58,15 @@ public:
 
 class TBAMSimulator : public TSimulator {
 protected:
-	// bam files
 	std::vector<TReadSimulators> _readSimulators; // one per sample
 	TSimulatorBamFiles _bamFiles;
 
-	// functions to simulate
 	void _simulateReadsForInd(const genometools::TChromosome &ThisChr, size_t Ind,
-									  const std::vector<genometools::TwoBase>& Haplotypes, const TSimulatorReference &Reference,
-									  TReadSimulators &ReadSimulator, size_t AvgDepth, BAM::TOutputBamFile &BamFile);
+							  const std::vector<genometools::TwoBase> &Haplotypes, coretools::TView<genometools::Base> Reference,
+							  TReadSimulators &ReadSimulator, double AvgDepth, BAM::TOutputBamFile &BamFile);
 
-	// simulate reads and write bam files
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
+						   coretools::TView<genometools::Base> Reference, double avgDepth) override;
 
 public:
 	TBAMSimulator(const std::string_view Method);
@@ -83,7 +82,8 @@ private:
 	std::unique_ptr<genometools::TVCFWriter> _vcf;
 
 protected:
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes, const TSimulatorReference& Reference, size_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, const TSimulatorHaplotypes &Haplotypes,
+						   coretools::TView<genometools::Base> Reference, double avgDepth) override;
 
 public:
 	TVCFSimulator(const std::string &method);
@@ -93,16 +93,17 @@ struct TSimulationRunner {
 	void run() {
 		using coretools::instances::parameters;
 		using coretools::instances::logfile;
-		// initialize simulator
-		auto method = parameters().get<std::string>("type", "one");
+		// default type ist "one" if no fasta is given, HKY85 otherwise
+		const auto type =
+			parameters().get("type", parameters().exists("fasta") ? TSimulatorHKY85::name : TSimulatorOne::name);
 
 		if (parameters().exists("vcf")) {
 			logfile().startIndent("Simulating VCF Files:");
-			auto simulator = TVCFSimulator{method};
+			auto simulator = TVCFSimulator{type};
 			simulator.runSimulations();
 		} else { // default: BAM simulator
 			logfile().startIndent("Simulating BAM Files:");
-			auto simulator = TBAMSimulator{method};
+			auto simulator = TBAMSimulator{type};
 			simulator.runSimulations();
 		}
 

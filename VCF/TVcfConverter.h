@@ -10,14 +10,12 @@
 #include <vector>
 
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
 
-namespace genometools {
-class TBed;
-}
 namespace genometools {
 template<typename Type> class TPopulationLikehoodLocus;
 }
@@ -136,10 +134,8 @@ protected:
 	void _storeMeanPosteriorGenotype(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &Data) {
 		// store mean posterior genotype
 		for (size_t i = 0; i < _samples.numSamples(); i++) {
-			if (Data[i].isMissing()) {
-				UERROR("Missing data at sample ", _samples.sampleName(i), " and locus ", _reader.chr(), ":",
-				       _reader.position(), "!");
-			}
+			coretools::user_assert(!Data[i].isMissing(), "Missing data at sample ", _samples.sampleName(i),
+								   " and locus ", _reader.chr(), ":", _reader.position(), "!");
 			_genotypes.emplace_back(Data[i].meanPosteriorGenotype());
 		}
 	}
@@ -303,7 +299,7 @@ class TVcfToGenotypeTruthSetFile : public TVcfFileConverter {
 	//      - genotypes encoded as 0,1,2 or NA
 
 private:
-	std::vector<genometools::TBedWriter> _bedFiles;
+	std::vector<genometools::TBed> _bedFiles;
 	coretools::TOutputFile _genFile;
 
 	bool _first                        = true;
@@ -370,7 +366,7 @@ struct TVCFConverter {
 				TVcfToLFMM<true> vcfToLFMMCalledGeno;
 				vcfToLFMMCalledGeno.run();
 			} else {
-				UERROR("Unknown genotype method '", genoType, "'! Use either 'call' or 'posterior'");
+				throw coretools::TUserError("Unknown genotype method '", genoType, "'! Use either 'call' or 'posterior'");
 			}
 		} else if (format == "Sambada") {
 			logfile().startIndent("Converting a VCF to Sambada format (parameter 'format'):");
@@ -386,7 +382,7 @@ struct TVCFConverter {
 			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile;
 			VcfToGenotypeTruthSetFile.run();
 		} else {
-			UERROR("Unknown format '", format, "'! Use either 'beagle', 'geno', 'LFMM', 'posfile' or 'genfile'.");
+			throw coretools::TUserError("Unknown format '", format, "'! Use either 'beagle', 'geno', 'LFMM', 'posfile' or 'genfile'.");
 		}
 		logfile().endIndent();
 	};

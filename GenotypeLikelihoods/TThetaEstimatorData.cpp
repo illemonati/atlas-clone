@@ -11,10 +11,13 @@
 #include "TSite.h"
 
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
 #include "coretools/algorithms.h"
 #include "coretools/Main/TRandomGenerator.h"
 
 namespace GenotypeLikelihoods {
+
+using coretools::user_assert;
 
 using genometools::TBaseProbabilities;
 using genometools::TBaseData;
@@ -24,7 +27,7 @@ using genometools::TGenotypeProbabilities;
 using genometools::TGenotypeData;
 
 void TThetaEstimatorTemporaryFile::openForWriting() {
-	if (_sizeOfData == 0) UERROR("Can not open temporary data file for theta: file was not initialized!");
+	user_assert(_sizeOfData != 0, "Can not open temporary data file for theta: file was not initialized!");
 
 	// if file was written, remove it
 	clean();
@@ -37,7 +40,7 @@ void TThetaEstimatorTemporaryFile::openForWriting() {
 };
 
 void TThetaEstimatorTemporaryFile::openForReading() {
-	if (!_wasWritten) UERROR("Can not parse temporary file: file was never written!");
+	user_assert(_wasWritten, "Can not parse temporary file: file was never written!");
 
 	// make sure file is closed
 	close();
@@ -65,19 +68,19 @@ void TThetaEstimatorTemporaryFile::clean() {
 };
 
 void TThetaEstimatorTemporaryFile::save(const TGenotypeLikelihoods &genoLik) {
-	if (!_isOpenForWriting) UERROR("Can not add data to '", _filename, "': file is closed!");
+	user_assert(_isOpenForWriting, "Can not add data to '", _filename, "': file is closed!");
 
 	gzwrite(_fp, genoLik.data(), _sizeOfData);
 };
 
 bool TThetaEstimatorTemporaryFile::read(GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) {
-	if (!_isOpenForReading) UERROR("Can not read data from '", _filename, "': file is closed!");
+	user_assert(_isOpenForReading, "Can not read data from '", _filename, "': file is closed!");
 	if (gzread(_fp, genoLik.data(), _sizeOfData) != _sizeOfData) {
 		// is end-of-file?
 		if (gzeof(_fp)) return false;
 
 		// is error
-		UERROR("Failed to read data from temporary file!");
+		throw coretools::TUserError("Failed to read data from temporary file!");
 	}
 	return true;
 };

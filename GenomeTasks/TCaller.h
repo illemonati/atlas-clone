@@ -8,11 +8,13 @@
 #ifndef TCALLER_H_
 #define TCALLER_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "TBamWindowTraverser.h"
 #include "TGenotypePrior.h"
+#include "coretools/Files/TLineWriter.h"
 #include "genometools/VCF/TVCFFields.h"
 #include "genometools/Genotypes/Containers.h"
 
@@ -56,8 +58,7 @@ protected:
 
 	//output file
 	std::string _filename;
-	gz::ogzstream _vcf;
-	bool _vcfOpen;
+	coretools::TLineWriter _vcf;
 	std::string _genotypeFormatString;
 
 	//temp variables for calling
@@ -88,14 +89,14 @@ protected:
 	void _fillGenotypeFieldFunctionPointers();
 	virtual std::string _getVCFGenotypeString_GT(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual std::string _getVCFGenotypeString_DP(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GQ(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
 	virtual std::string _getVCFGenotypeString_AD(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ DEVERROR("Function  not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GP(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AB(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function  not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite &, const genometools::TGenotypeLikelihoods &){ throw coretools::TDevError("Function  not defined for base class TCaller!"); };
 
 	//write VCF
 	std::string _composeVCFString(std::vector<std::string (TCaller::*)(const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const GenotypeLikelihoods::TSite & site, const genometools::TGenotypeLikelihoods & genotypeLikelihoods);
@@ -301,6 +302,7 @@ class TCall final:public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	std::unique_ptr<TCaller> _caller;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
+	int64_t _RefN = -1;
 
 	void _initializeGenotypePrior();
 	void _call(GenotypeLikelihoods::TWindow& window);

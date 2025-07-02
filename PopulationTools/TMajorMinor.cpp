@@ -24,10 +24,6 @@
 #include "TBgzWriter.h"
 #include "genometools/GLF/TGLFMultiReader.h"
 
-#ifdef _OPENMP
-#include "omp.h"
-#endif
-
 namespace PopulationTools {
 
 using coretools::Log10Probability;
@@ -330,7 +326,7 @@ class TSkotte {
 				if (hasDiploid) {
 					return _iterate<false, true>(glfs, bestAC, maxF, minMAF);
 				} else {
-					DEVERROR("No Data!");
+					throw coretools::TDevError("No Data!");
 				}
 			}
 		}();
@@ -538,21 +534,19 @@ template<typename Estimator> void iterate(double maxF) {
 	const std::string outname = parameters().get<std::string>("out", "ATLAS_majorMinor");
 	logfile().list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
-#ifdef _OPENMP
-	size_t maxThreads = coretools::instances::parameters().get("maxThreads", omp_get_max_threads());
-	coretools::instances::logfile().list("Running in parallel with a maximum of ", maxThreads,
-										 " threads (argument 'maxThreads')");
-#else
-	coretools::instances::logfile().list("Not running in parallel");
-#endif
-
 	// open vcf file
+	const bool writeHeader = !parameters().exists("noVCFHeader");
+	if (writeHeader) {
+		logfile().list("Will print VCF header. (use 'noVCFHeader' not to print)");
+	} else {
+		logfile().list("Will not print VCF header. (parameter 'noVCFHeader')");
+	}
 	genometools::TVCFWriter vcf =
 		coretools::instances::parameters().exists("bgz")
 			? genometools::TVCFWriter(new GLF::TBGzWriter(outname + ".vcf.gz"), "ATLAS_GLF_Caller",
-									  glfReader.sampleNames(), glfReader.chromosomes(), usePhredLikelihoods)
+									  glfReader.sampleNames(), glfReader.chromosomes(), usePhredLikelihoods, writeHeader)
 			: genometools::TVCFWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", glfReader.sampleNames(),
-									  glfReader.chromosomes(), usePhredLikelihoods);
+									  glfReader.chromosomes(), usePhredLikelihoods, writeHeader);
 
 	// vars
 	logfile().startIndent("Parsing through glf files:");
@@ -582,7 +576,6 @@ template<typename Estimator> void iterate(double maxF) {
 		} else if (hasRef) {
 			// 2) when working with ref
 			const auto refs = glfReader.refView();
-#pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
 				const auto iW = ids[i];
 				if (filterN && refs[iW] == Base::N) {
@@ -593,7 +586,6 @@ template<typename Estimator> void iterate(double maxF) {
 			}
 		} else {
 			// 3) working with raw data / no external info
-#pragma omp parallel for num_threads(maxThreads)
 			for (size_t i = 0; i < ids.size(); ++i) {
 				const auto iW = ids[i];
 				data[iW] = Estimator::estimate(glfReader.data(iW), maxF, minMAF, minVariantQuality);
@@ -628,7 +620,7 @@ template<typename Estimator> void iterate(double maxF) {
 	logfile().list("Reached end of glf files!");
 	logfile().list("Parsed a total of ", counter, " positions, filtered: ", counterF, " (", (100.*counterF)/counter, "%).");
 	logfile().removeIndent();
-};
+}
 
 //---------------------------------------------------
 // TMajorMinor
@@ -646,8 +638,8 @@ void TMajorMinor::run() {
 					   ". (parameters method and maxF)");
 		iterate<TMLE>(maxF);
 	} else {
-		UERROR("Unknown MajorMinor method '", method, "'!");
+		throw coretools::TUserError("Unknown MajorMinor method '", method, "'!");
 	}
 }
 
-}; // namespace PopulationTools
+} // namespace PopulationTools

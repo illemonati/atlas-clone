@@ -10,7 +10,7 @@
 #include "PMD/TModel.h"
 #include "TOutputBamFile.h"
 #include "TReadGroupInfo.h"
-#include "TSimulatorReference.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -25,12 +25,13 @@ using coretools::instances::randomGenerator;
 using coretools::instances::parameters;
 using coretools::probdist::TCategoricalDistribution;
 using coretools::P;
+using coretools::user_assert;
 using genometools::Base;
 using genometools::TwoBase;
 using genometools::TGenomePosition;
 
 namespace impl {
-std::pair<size_t, size_t> refDiff(const std::vector<TwoBase> &Haplotype, const TSimulatorReference &Reference, size_t Pos, size_t Len) {
+std::pair<size_t, size_t> refDiff(const std::vector<TwoBase> &Haplotype, coretools::TView<genometools::Base> Reference, size_t Pos, size_t Len) {
 	std::pair<size_t, size_t> Ns{};
 	for (size_t i = 0; i < Len; ++i) {
 		const auto pi = Pos + i;
@@ -103,7 +104,7 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup &ReadGroup, const TReadGrou
 	if(RGInfo.has(InfoType::duplicationRate)){
 		coretools::str::fromString(RGInfo.getString(InfoType::duplicationRate), _duplicationRate, "duplication rate is not within [0,1]!");
 		logfile().list(BAM::RGInfo::infos[InfoType::duplicationRate].description, ": ", _duplicationRate);
-		if(_duplicationRate > 0.5) UERROR("Duplication rate must be within [0.0, 0.5]!");
+		user_assert(_duplicationRate <= 0.5, "Duplication rate must be within [0.0, 0.5]!");
 		_duplicationRateAmongSimulated = P(_duplicationRate / (_duplicationRate.complement()));
 	}
 
@@ -178,7 +179,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &Alignment, const s
 											 bool ReadIsContaminated) {
 
 	assert(ReadLength > 0);
-	if (ReadIsContaminated) UERROR("contaminated Reads not implemented yet!");
+	user_assert(!ReadIsContaminated, "contaminated Reads not implemented yet!");
 	// prepare vector of bases
 	std::vector<Base> bases;
 	BAM::TCigar cigar;
@@ -227,7 +228,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &Alignment, const s
 }
 
 size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-								const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile) {
+								coretools::TView<genometools::Base> Reference, BAM::TOutputBamFile &BamFile) {
 	// Do not simulate fraction of reads that will be duplicates
 	if (_duplicationRate == 0.0) {
 		if (!_simulate(Position, Haplotype, Reference)) return 0;
@@ -251,7 +252,6 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 //----------------------------------
 	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal) {
-
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
 	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
@@ -261,18 +261,17 @@ size_t TReadSimulator::simulate(const TGenomePosition &Position, const std::vect
 	std::string errRange = err + "expect a single integer within [1,65535].";
 
 	if(json.is_number()){
-		if(json.get<int>() < 1 || json.get<int>() > 65535){
-			UERROR(errRange);
-		}
+		user_assert(json.get<int>() >= 1 && json.get<int>() <= 65535, errRange);
+
 		_numCycles = json.get<int>();
 	} else if(json.is_array() && json.size() != 1){
-		UERROR(errRange);
+		throw coretools::TUserError(errRange);
 	} else if(json.is_string()){
 		coretools::str::fromString(json.get<std::string>(), _numCycles, err);
 	} else if(json.is_array() && json.size() == 1){
 		coretools::str::fromString(json[0].get<std::string>(), _numCycles, err);
 	} else {
-		UERROR(errRange);
+		throw coretools::TUserError(errRange);
 	}
 
 	_alignment.setReadGroup(_readGroup->id);
@@ -283,7 +282,7 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 }
 
 bool TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-										const TSimulatorReference &Reference) {
+										coretools::TView<genometools::Base> Reference) {
 	const auto fragmentLength = _fragmentLengthDistr.sample();
 	const auto readLength     = std::min(fragmentLength, _numCycles);
 
@@ -294,11 +293,11 @@ bool TReadSimulatorSingleEnd::_simulate(const TGenomePosition &Position, const s
 	if (refDiff.first < refDiff.second) {
 		// more ref Difference in second mate -> bias towards first
 		const auto oRatio = firstHaplo ? _refBias.oddsRatio() : _refBias.complement().oddsRatio();
-		if (oRatio < 1 && randomGenerator().getRand() < oRatio) return false;
+		if (oRatio < 1 && randomGenerator().getRand() > oRatio) return false;
 	} else if (refDiff.first > refDiff.second) {
 		// more ref Difference in first mate -> bias towards second
 		const auto oRatio = firstHaplo ? _refBias.complement().oddsRatio() : _refBias.oddsRatio();
-		if (oRatio < 1 && randomGenerator().getRand() < oRatio) return false;
+		if (oRatio < 1 && randomGenerator().getRand() > oRatio) return false;
 	}
 
 	// Statistics
@@ -334,12 +333,12 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal){
 		using BAM::RGInfo::toString;
 
 	//num cycles
-		logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", toString(RGInfo[InfoType::cycles]));
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", toString(RGInfo[InfoType::cycles]));
 	auto& json = RGInfo[InfoType::cycles];
 
 	std::string err = "Unable to understand " + BAM::RGInfo::infos[InfoType::cycles].description + ": ";
@@ -349,24 +348,24 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 	if(json.is_array()){
 		if(json.size() == 1){
 			if(json[0].get<int>() < 1 || json[0].get<int>() > 65535){
-				UERROR(errRange);
+				throw coretools::TUserError(errRange);
 			}
 			_numCycles[0] = json[0].get<int>();
 			_numCycles[1] = _numCycles[0];
 		} else if(json.size() == 2){
 			if(json[0].get<int>() < 1 || json[1].get<int>() > 65535 || json[1].get<int>() < 1 || json[1].get<int>() > 65535){
-				UERROR(errRange);
+				throw coretools::TUserError(errRange);
 			}
 			_numCycles[0] = json[0].get<int>();
 			_numCycles[1] = json[1].get<int>();
 		} else {
-			UERROR(errRange);
+			throw coretools::TUserError(errRange);
 		}
 	} else if(json.is_number()){
-		if(json[0].get<int>() < 1 || json[0].get<int>() > 65535){
-			UERROR(errRange);
+		if(json.get<int>() < 1 || json.get<int>() > 65535){
+			throw coretools::TUserError(errRange);
 		}
-		_numCycles[0] = json[0].get<int>();
+		_numCycles[0] = json.get<int>();
 		_numCycles[1] = _numCycles[0];
 	} else if(json.is_string()){
 		std::string ss = json.get<std::string>();
@@ -380,7 +379,7 @@ void TReadSimulatorSingleEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 			_numCycles[1] = _numCycles[0];
 		}
 	} else {
-		UERROR(errRange);
+		throw coretools::TUserError(errRange);
 	}
 
 	// set Alignment properties
@@ -411,13 +410,19 @@ void TReadSimulatorPairedEnd::_writeSimulatedAlignments(BAM::TOutputBamFile & Ba
 }
 
 bool TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const std::vector<TwoBase> &Haplotype,
-										const TSimulatorReference &Reference) {
+										coretools::TView<genometools::Base> Reference) {
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readLength1        = std::min(fragmentLength, _numCycles.front());
 	const auto readLength2        = std::min(fragmentLength, _numCycles.back());
 	const auto readIsContaminated = _simulateContamination();
 
 	const bool firstHaplo = randomGenerator().getRand() < 0.5;
+
+	_fwdStrand.move(Position);
+	_revStrand.move(_fwdStrand.from());
+	if(fragmentLength > _numCycles.back()){
+		_revStrand.advanceOnRef(fragmentLength - _numCycles.back());
+	}
 
 	const auto refDiff1 = impl::refDiff(Haplotype, Reference, _fwdStrand.position(), readLength1);
 	const auto refDiff2 = impl::refDiff(Haplotype, Reference, _revStrand.position(), readLength2);
@@ -442,14 +447,9 @@ bool TReadSimulatorPairedEnd::_simulate(const TGenomePosition &Position, const s
 		_refCount.back() += refDiff1.first + refDiff2.first;
 	}
 
-	_fwdStrand.move(Position);
 	_fwdStrand.setName(_getNextReadName());
 	_fwdStrand.setMappingQuality(_mappingQualityDist.sample());
 
-	_revStrand.move(_fwdStrand.from());
-	if(fragmentLength > _numCycles.back()){
-		_revStrand.advanceOnRef(fragmentLength - _numCycles.back());
-	}
 	_revStrand.setName(_fwdStrand.name());
 	_revStrand.setMappingQuality(_fwdStrand.mappingQuality());
 

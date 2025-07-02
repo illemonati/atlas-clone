@@ -9,10 +9,12 @@
 
 #include <utility>
 
+#include "coretools/Main/TError.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TReadGroups.h"
 
 namespace BAM{
+using coretools::user_assert;
 
 //---------------------------------
 // TSamHeader_HD
@@ -25,7 +27,7 @@ void TSamHeader_HD::setSortOrder(std::string_view SortOrder){
 	} else if(SortOrder == "unknown" || SortOrder == "unsorted" || SortOrder == "queryname" || SortOrder == "coordinate"){
 		_sortOrder_SO = SortOrder;
 	} else {
-		UERROR("Unknow BAM sort order '", SortOrder, "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.");
+		throw coretools::TUserError("Unknow BAM sort order '", SortOrder, "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.");
 	}
 }
 
@@ -36,7 +38,7 @@ void TSamHeader_HD::setGrouping(std::string_view Grouping){
 	} else if(Grouping == "none" || Grouping == "query" || Grouping == "reference"){
 		_grouping_GO = Grouping;
 	} else {
-		UERROR("Unknow BAM grouping '", Grouping, "'! Must be either 'none', 'query', or 'reference'.");
+		throw coretools::TUserError("Unknow BAM grouping '", Grouping, "'! Must be either 'none', 'query', or 'reference'.");
 	}
 }
 
@@ -124,19 +126,16 @@ void TSamHeader::set(std::string_view Version,
 
 void TSamHeader::addProgram(std::string_view ID, std::string_view Name, std::string_view CommandLine, std::string_view Description, std::string_view Version){
 	auto it = _programs_PG.emplace(ID, Name, CommandLine, Description, Version);
-	if(!it.second){
-		UERROR("Failed to add program to BAM header: duplicate ID '", ID, "'!");
-	}
+	user_assert(it.second, "Failed to add program to BAM header: duplicate ID '", ID, "'!");
 };
 
 void TSamHeader::addPreviousProgramInChain(std::string_view ID, std::string_view previousID){
 	//search if previousID exists
 	auto prev = _programs_PG.find(previousID);
-	if(prev == _programs_PG.end()){
-		UERROR("Failed ot add PP tag to BAM header: previous ID '", previousID, "' does not exists!");
-	}
+	user_assert(prev != _programs_PG.end(), "Failed ot add PP tag to BAM header: previous ID '", previousID,
+				"' does not exists!");
 
-	//add
+	// add
 	auto nex = _programs_PG.find(ID);
 	nex->addPrevious(*prev);
 	prev->addNext(*nex);

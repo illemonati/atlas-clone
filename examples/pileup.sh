@@ -25,6 +25,12 @@ echo "chr1 600 777" >> bed.bed
 echo "chr1 800 999" >> bed.bed
 echo "chr1 1000 11111" >> bed.bed
 
+echo "chr1 0 10000" > region.bed
+echo "chr2 100 1000" >> region.bed
+echo "chr3 0 20" >> region.bed
+echo "chr3 100 120" >> region.bed
+echo "chr3 500 876" >> region.bed
+echo "chr3 1000 2000" >> region.bed
 
 out="default"
 $atlas --task pileup \
@@ -46,7 +52,7 @@ $atlas --task pileup --shuffleSites --fields "bases" --downsampleSites 0.5 \
 	   --fixedSeed 174 --out $out --logFile $out.out 2> $out.eout
 
 out="printAll"
-$atlas --task pileup --printAll \
+$atlas --task pileup --printAll --regions region.bed --mask bed.bed \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --window window.txt  --readUpToDepth 97 \
 	   --histograms depth,allelicDepth,contexts,qualities,transitions,prevBases \

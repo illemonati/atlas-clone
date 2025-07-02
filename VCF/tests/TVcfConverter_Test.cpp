@@ -4,7 +4,7 @@
 #include "TVcfConverter.h"
 #include "coretools/Files/TInputFile.h"
 #include "coretools/Files/TInputRcpp.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Files/TLineWriter.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/toString.h"
@@ -39,21 +39,21 @@ protected:
 	std::vector<std::string> samplesToKeep = {"Indiv4", "Indiv1", "Indiv5"}; // omit Indiv3 and Indiv4; and shuffle
 	std::vector<size_t> indexInSampleNames = {3, 0, 4};
 
-	static void _writeHeader(gz::ogzstream &VCF, const std::vector<std::string> &SampleNames) {
+	static void _writeHeader(coretools::TLineWriter &VCF, const std::vector<std::string> &SampleNames) {
 		// write info
-		VCF << "##fileformat=VCFv4.2\n";
-		VCF << "##source=Simulation\n";
-		VCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-		VCF << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
-		VCF << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
-		VCF << "##FORMAT=<ID=DP,Number=G,Type=Integer,Description=\"Depth at site\">\n";
+		VCF.writeln("##fileformat=VCFv4.2");
+		VCF.writeln("##source=Simulation");
+		VCF.writeln("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">");
+		VCF.writeln("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">");
+		VCF.writeln("##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">");
+		VCF.writeln("##FORMAT=<ID=DP,Number=G,Type=Integer,Description=\"Depth at site\">");
 
 		// write header
-		VCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-		for (const auto &SampleName : SampleNames) { VCF << "\t" << SampleName; }
+		VCF.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+		for (const auto &SampleName : SampleNames) { VCF.write("\t", SampleName); }
 	}
 
-	static void _writeCell(gz::ogzstream &VCF, const TSampleLikelihoods<coretools::PhredInt> &SampleLikelihoods,
+	static void _writeCell(coretools::TLineWriter &VCF, const TSampleLikelihoods<coretools::PhredInt> &SampleLikelihoods,
 	                       size_t Depth) {
 		using BG = BiallelicGenotype;
 
@@ -62,10 +62,10 @@ protected:
 		BG secondBestGenotype = SampleLikelihoods.secondMostLikelyGenotype();
 
 		// write to vcf
-		VCF << "\t" << toString(observedGenotype) << ":" << SampleLikelihoods[secondBestGenotype] << ":";
-		VCF << toString(SampleLikelihoods[BG::homoFirst]) + "," + toString(SampleLikelihoods[BG::het]) + "," +
-		           toString(SampleLikelihoods[BG::homoSecond]);
-		VCF << ":" << Depth;
+		VCF.write("\t",toString(observedGenotype),":",SampleLikelihoods[secondBestGenotype],":");
+		VCF.write(toString(SampleLikelihoods[BG::homoFirst]) + "," + toString(SampleLikelihoods[BG::het]) + "," +
+				  toString(SampleLikelihoods[BG::homoSecond]));
+		VCF.write(":",Depth);
 	};
 
 public:
@@ -83,14 +83,14 @@ public:
 	}
 
 	void writeVcfFile() {
-		gz::ogzstream vcf;
-		vcf.open(filename.c_str());
+		coretools::TLineWriter vcf;
+		vcf.open(filename);
 		_writeHeader(vcf, sampleNames);
 
 		std::string chr    = "junk1";
 		size_t linearIndex = 0;
 		for (size_t l = 0; l < numLoci; ++l) {
-			vcf << '\n' << chr << '\t' << l + 1 << "\t.\tA\tC\t50\t.\t.\tGT:GQ:PL:DP";
+			vcf.write('\n',chr,'\t',l + 1,"\t.\tA\tC\t50\t.\t.\tGT:GQ:PL:DP");
 			for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) {
 				// write to vcf
 				auto GTL0 = coretools::PhredInt(phred_g1[linearIndex]);
@@ -99,7 +99,7 @@ public:
 				_writeCell(vcf, {GTL0, GTL1, GTL2}, depth[linearIndex]);
 			}
 		}
-		vcf << "\n";
+		vcf.endln();
 		vcf.close();
 	}
 

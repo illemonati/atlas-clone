@@ -10,14 +10,23 @@
 #include <algorithm>
 
 namespace BAM {
+using coretools::TDevError;
+using coretools::user_assert;
 
 //----------------------------------------------------------
 // TCigar
 // A class to store, access and manipulate CIGAR operators
 //----------------------------------------------------------
 
+TCigar::TCigar(const std::vector<BamTools::CigarOp>& CigarOps) {
+	for(const auto& co : CigarOps){
+		add(co.Type, co.Length);
+	}
+}
+
 void TCigar::add(char Type, size_t Length) {
-	if (_lengthSoftClippedRight) { UERROR("Cigar string contains entries past soft clipping on right!"); }
+	user_assert(!_lengthSoftClippedRight, "Cigar string contains entries past soft clipping on right!");
+
 	if (Type == 'M' || Type == '=' || Type == 'X') {
 		_lengthAligned += Length;
 	} else if (Type == 'I') {
@@ -32,8 +41,8 @@ void TCigar::add(char Type, size_t Length) {
 		}
 	} else if (Type == 'N') {
 		_lengthSkipped += Length;
-	} else if (Type != 'H' && Type != 'P') {
-		UERROR("Unknown CIGAR operation '", Type, "'!");
+	} else {
+		throw coretools::TUserError("Unknown CIGAR operation '", Type, "'!");
 	}
 
 	// add to vector
@@ -57,7 +66,7 @@ void TCigar::_compileLengths() {
 		case '=':
 		case 'X': _lengthAligned += c.length; break;
 		case 'S': break;
-		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		default: throw TDevError("Error parsing cigar '", compileString(), "'.");
 		}
 	}
 	if (_cigar.front().type == 'S') _lengthSoftClippedLeft = _cigar.front().length;
@@ -85,8 +94,7 @@ size_t TCigar::removeMappedLeft(size_t Length) {
 void TCigar::removeMappedRight(size_t Length) {
 	if (Length == 0) return;
 
-	if (Length > lengthMapped())
-		DEVERROR("Cannot add ", Length, " Softclips to cigar '", compileString(), "'.");
+	DEV_ASSERT(Length <= lengthMapped());
 
 	CigarOperator softClipR('S', 0);
 	if (_cigar.back().type == 'S') {
@@ -124,10 +132,10 @@ void TCigar::removeMappedRight(size_t Length) {
 				Length = 0;
 			}
 			break;
-		default: DEVERROR("Error parsing cigar '", compileString(), "'.");
+		default: throw TDevError("Error parsing cigar '", compileString(), "'.");
 		}
 	}
-	if (Length > 0) DEVERROR("Error parsing cigar '", compileString(), "'.");
+	DEV_ASSERT(Length == 0);
 	_cigar.push_back(softClipR);
 
 	if (_cigar.size() == 2 && _cigar.front().type == 'S' && _cigar.back().type == 'S') {

@@ -51,7 +51,7 @@ public:
 };
 
 //--------------------------------------------------------
-// TRemoveSoftClippedBases
+// TSoftClipsTrimmer
 //--------------------------------------------------------
 class TSoftClipsTrimmer final : public TBamReadTraverser<ReadType::Parsed> {
 private:

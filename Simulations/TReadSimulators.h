@@ -40,13 +40,13 @@ private:
 	void _determineMaxFragmentLength();
 
 public:
-	TReadSimulators(std::string_view FileName, bool read);
+	TReadSimulators(std::string_view RGOutName, std::string_view RGInName);
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
 	std::pair<size_t, size_t> simulate(const genometools::TGenomePosition &Position,
 									   const std::vector<genometools::TwoBase> &Haplotype,
-									   const TSimulatorReference &Reference, BAM::TOutputBamFile &BamFile);
+									   coretools::TView<genometools::Base> Reference, BAM::TOutputBamFile &BamFile);
 
 	// getters
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };

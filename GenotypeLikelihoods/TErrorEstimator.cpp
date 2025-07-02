@@ -4,6 +4,7 @@
  */
 #include "TErrorEstimator.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/toString.h"
@@ -16,25 +17,9 @@ namespace GenotypeLikelihoods {
 using coretools::P;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using coretools::user_assert;
 using genometools::Base;
 using genometools::Genotype;
-
-
-
-namespace impl {
-
-auto numSites(const GenotypeLikelihoods::TWindow &Window, size_t from, size_t to) {
-	struct {
-	size_t NData  = 0;
-	size_t NSites = 0;
-	} counter;
-	for (size_t i = from; i < to; ++i) {
-		counter.NSites += Window[i].depth() > 0;
-		counter.NData += Window[i].depth();
-	}
-	return counter;
-}
-} // namespace impl
 
 TErrorEstimator::TErrorEstimator()
 	: _recalMap("recal", _genome.bamFile().readGroups(), parameters().get<std::string>("poolRecal", "")),
@@ -47,24 +32,25 @@ TErrorEstimator::TErrorEstimator()
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
 
-	if (parameters().exists("bed")) {
-		UERROR("--bed is deprecated! use --regions instead.");
-	}
+	user_assert(!parameters().exists("bed"), "--bed is deprecated! use --regions instead.");
 	if (parameters().exists("regions")) {
 		std::vector<std::string> beds;
 		parameters().fill("regions", beds);
 		if (ploidies.size() == 1) ploidies.assign(beds.size(), ploidies.front());
-		if (ploidies.size() != beds.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
+		user_assert(ploidies.size() == beds.size(), "You need to give as many ploidies as chromosomes, or only one ploidy!");
 
 		const auto NRegions = beds.size();
 		_data.resize(NRegions);
 		_refBases.resize(NRegions);
 		_regions.reserve(NRegions);
 		_genoDist.reserve(NRegions);
+		logfile().startIndent("Estimating errors for ", NRegions, " regions:");
 		for (size_t i = 0; i < beds.size(); ++i) {
 			_regions.emplace_back(beds[i], _genome.bamFile().chromosomes());
 			const auto NSites   = _regions[i].length();
+			logfile().list("Region ", i+1, ": ", NSites, " sites, ploidy: ", ploidies[i]);
 			_data[i].reserve(NSites);
+			_data[i].reserveLength(NSites*0.5); // Assume depth > 0.5
 			_refBases[i].reserve(NSites);
 
 			if (ploidies[i] == 1) {
@@ -73,22 +59,26 @@ TErrorEstimator::TErrorEstimator()
 				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
+		logfile().endIndent();
 	} else if (parameters().exists("chr")) {
 		std::vector<std::string> chrs;
 		parameters().fill("chr", chrs);
 		if (ploidies.size() == 1) ploidies.assign(chrs.size(), ploidies.front());
-		if (ploidies.size() != chrs.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
+		user_assert(ploidies.size() == chrs.size(), "You need to give as many ploidies as chromosomes, or only one ploidy!");
 
 		const auto NRegions = chrs.size();
 		_data.resize(NRegions);
 		_refBases.resize(NRegions);
 		_regions.reserve(NRegions);
 		_genoDist.reserve(NRegions);
+		logfile().startIndent("Estimating errors for ", NRegions, " chromosomes:");
 		for (size_t i = 0; i < chrs.size(); ++i) {
 			const auto NSites = chrs[i].length();
 			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chrs[i]));
 			_data[i].reserve(NSites);
+			_data[i].reserveLength(NSites*0.5); // Assume depth > 0.5
 			_refBases[i].reserve(NSites);
+			logfile().list("Chromosome '", chrs[i] , "': ", NSites, " sites, ploidy: ", ploidies[i]);
 
 			if (ploidies[i] == 1) {
 				_genoDist.push_back(std::make_unique<THKY85_mono>());
@@ -96,8 +86,10 @@ TErrorEstimator::TErrorEstimator()
 				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
+		logfile().endIndent();
 	} else {
-		if (ploidies.size() > 1) UERROR("You did not define any regions or chromosomes, only one ploidy can be given!");
+		user_assert(ploidies.size() <= 1,
+					"You did not define any regions or chromosomes, only one ploidy can be given!");
 		_data.emplace_back();
 		_refBases.emplace_back();
 		if (ploidies.front() == 1) {
@@ -158,9 +150,9 @@ void TErrorEstimator::_identifyModels() {
 
 	logfile().conclude("Total number of sites: ", totSites);
 	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
-	logfile().conclude("Number of bases: ", _dataTables.size());
 
-	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
+
+	logfile().conclude("Number of bases: ", _dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
@@ -178,22 +170,27 @@ void TErrorEstimator::_identifyModels() {
 
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			constexpr coretools::TStrongArray<std::string_view, Mate> sMates{{"First", "Second"}};
-			const auto &table = _dataTables[rg][mate];
-			logfile().list(sMates[mate], " mate: ", table.size(), " bases.");
-			if (table.size() > 0) {
+			const auto &table             = _dataTables[rg][mate];
+			constexpr size_t minNSites_g1 = 1000;
+			if (table.size() > 0 && table.nSites_g1() < minNSites_g1) {
+				logfile().warning(sMates[mate], " mate only has ", table.nSites_g1(), " < ", minNSites_g1,
+								  " sites with depth > 1, will not estimate this model!");
+				for (auto i : _recalMap.readGroupsPooledWith(rg)) { _recal.reset(i, mate); }
+			} else if (table.size() == 0) {
+				for (auto i : _recalMap.readGroupsPooledWith(rg)) { _recal.reset(i, mate); }
+			} else {
+				logfile().list(sMates[mate], " mate: ", table.size(), " bases, ", table.nSites_g1(),
+							   " sites with depth > 1.");
 				auto &recal = _recal.RGModel(rg)[mate];
-				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
+				user_assert(recal->recalibrates(), "Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
 
 				recal->epsilon()->init(table, _minData);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
-			} else {
-				for (auto i: _recalMap.readGroupsPooledWith(rg)) {
-					_recal.reset(i, mate);
-				}
 			}
 		}
-		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+		if (_dataTables[rg][Mate::second].size() == 0)
+			logfile().list("Assuming single-ended read.");
 		else logfile().list("Assuming paired-ended read.");
 		logfile().endIndent();
 	}
@@ -203,7 +200,7 @@ void TErrorEstimator::_identifyModels() {
 		logfile().listFlush("Readgroup ", rg);
 
 		auto &pmd = _pmd.model(rg);
-		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
+		user_assert(pmd.hasPMD(), "Cannot estimate PMD for readgroup ", rg, "!");
 
 		const auto& pooledWith = _pmdMap.readGroupsPooledWith(rg);
 		if (pooledWith.size() > 1) {
@@ -231,6 +228,7 @@ void TErrorEstimator::_identifyModels() {
 
 void TErrorEstimator::_updatePbbar() {
 	using genometools::genotype;
+	using PMD::Type;
 	for (size_t r = 0; r < _NRegions(); ++r) {
 		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
 		for (size_t s = 0; s < _NSites(r); ++s) {
@@ -241,14 +239,14 @@ void TErrorEstimator::_updatePbbar() {
 				const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 				// PMD
-				_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[Genotype::CC]), _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
-				_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[Genotype::GG]), _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->add(Type::CT, d_ij, P(P_g_I_di[Genotype::CC]), _pmd.P_b_bbar(Genotype::CC, d_ij, P_dij_I_bbar));
+				_pmd.model(d_ij).psi()->add(Type::GA, d_ij, P(P_g_I_di[Genotype::GG]), _pmd.P_b_bbar(Genotype::GG, d_ij, P_dij_I_bbar));
 
 				if (!isInvariant) for (auto g : {Genotype::AC, Genotype::CG, Genotype::CT}) {
-						_pmd.model(d_ij).psi()->addCT(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->add(Type::CT, d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 				if (!isInvariant) for (auto g : {Genotype::AG, Genotype::CG, Genotype::GT}) {
-						_pmd.model(d_ij).psi()->addGA(d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
+						_pmd.model(d_ij).psi()->add(Type::GA, d_ij, P(P_g_I_di[g]), _pmd.P_b_bbar(g, d_ij, P_dij_I_bbar));
 				}
 
 				// Rho
@@ -257,19 +255,38 @@ void TErrorEstimator::_updatePbbar() {
 					const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
 					P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-					_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[aa]), P_bbar_I_aa_dij);
+					_recal.model(d_ij).addtoRho(d_ij, P(P_g_I_di[aa]), P_bbar_I_aa_dij);
 
 					if (!isInvariant) for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
 						const auto P_bbar_I_ab_dij = _pmd.P_bbar(ab, d_ij, P_dij_I_bbar);
 						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_recal.model(d_ij).rho()->add(d_ij, P(P_g_I_di[ab]), P_bbar_I_ab_dij);
+						_recal.model(d_ij).addtoRho(d_ij, P(P_g_I_di[ab]), P_bbar_I_ab_dij);
 					}
 				}
 			}
 		}
 	}
+}
+
+void TErrorEstimator::_calculateQ(bool UpdateJF) {
+	for (size_t r = 0; r < _NRegions(); ++r) {
+		const auto isInvariant = _genoDist[r]->ploidy() == genometools::Ploidy::haploid;
+		for (size_t s = 0; s < _NSites(r); ++s) {
+			const auto &P_g_I_di = _P_g_I_dis[r][s];
+			for (size_t d = 0; d < _NData(r, s); ++d) {
+				const auto &d_ij              = _data[r][s].get<0>()[d];
+				const auto &P_bbarEdij_I_gdij = _data[r][s].get<1>()[d];
+				_recal.model(d_ij).addToEpsilon(d_ij, P_g_I_di, P_bbarEdij_I_gdij, UpdateJF, isInvariant);
+			}
+		}
+	}
+}
+
+void TErrorEstimator::_solveDerivative() {
+	_calculateQ(true);
+	for (auto &e : _epsilons) e->solveJxF();
 }
 
 double TErrorEstimator::_updateEpsilon(double deltaLL) {
@@ -312,11 +329,13 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 						e->propose(1. / (1 << shift));
 					}
 				}
-				sModels.pop_back();
-				logfile().startIndent("Proposing new epsilon with backtracking = 1/2^", shift, " for models", sModels);
+				if (!sModels.empty()) {
+					sModels.pop_back();
+					logfile().startIndent("Proposing new epsilon with backtracking = 1/2^", shift, " for models", sModels);
+				}
 			}
 
-			nUpdated = _calculateQ();
+			nUpdated = _updateModels();
 			if (nUpdated == nTot) {
 				logfile().list(toString(nUpdated), "/", nTot, " models accepted.");
 				logfile().endIndent();
@@ -358,15 +377,16 @@ double TErrorEstimator::_updateEpsilon(double deltaLL) {
 	return deltaQTot;
 }
 
-size_t TErrorEstimator::_calculateQ() {
-	_calculateQ<false>();
+size_t TErrorEstimator::_updateModels() {
+	_calculateQ(false);
 	size_t nUpdated = 0;
 	for (size_t i = 0; i < _epsilons.size(); ++i) {
-		const auto& e = _epsilons[i];
-		const auto u = e->acceptOrReject();
+		const auto &e = _epsilons[i];
+		const auto u  = e->acceptOrReject();
 		if (!u) { logfile().list("Model ", i, " not accepted! delta Q: ", e->deltaQ(), "."); }
+		nUpdated += u;
 	}
-	for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
+	//for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
 	return nUpdated;
 }
 
@@ -427,7 +447,7 @@ double TErrorEstimator::_calculateLL_updatePg() {
 		}
 		LLRes += LL.getSum();
 	}
-	if (!std::isfinite(LLRes)) UERROR("LL = ", LLRes, ", you may need to pool your readgroups!");
+	user_assert(std::isfinite(LLRes), "LL = ", LLRes, ", you may need to pool your readgroups!");
 	return LLRes;
 }
 
@@ -541,7 +561,6 @@ void TErrorEstimator::estimate() {
 	// run EM
 	_runEM();
 
-
 	// writing final estimates
 	_recal.addToRGInfo(_genome.rgInfo());
 	_pmd.addToRGInfo(_genome.rgInfo());
@@ -580,19 +599,21 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 	if (!_regions.empty()) { // Either sites
 		for (size_t r = 0; r < _regions.size(); ++r) {
 			auto &region = _regions[r];
-			for (auto lb = region.begin(Window); lb != region.end() && Window.overlaps(*lb); ++lb) {
-				logfile().list("Window overlaps with region ", r + 1, ": [", lb->from().position(), ", ", lb->to().position(), "]");
-				const size_t pStart = std::max(lb->from().position(), Window.from().position()) - Window.from().position();
-				const size_t pStop  = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
-				const auto counter  = impl::numSites(Window, pStart, pStop);
-				_data[r].reserve(_data[r].size() + counter.NSites);
-				_refBases[r].reserve(_refBases.size() + counter.NSites);
-				_data[r].reserveLength(_data[r].length() + counter.NData);
+			auto lb = region.begin(Window);
+			if (lb == region.end()) continue;
+
+			logfile().list("Window overlaps with region ", r + 1, ".");
+			do {
+				const size_t pStart =
+					std::max(lb->from().position(), Window.from().position()) - Window.from().position();
+				const size_t pStop = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
+
 				for (auto p = pStart; p < pStop; ++p) {
 					const auto s = Window[p];
 					_handleSite(Window[p], r);
 				}
-			}
+				++lb;
+			} while (lb != region.end() && Window.overlaps(*lb));
 		}
 	} else { // or chromosomes
 		size_t region = 0;
@@ -602,10 +623,6 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 
 			region = std::distance(_refIDs.begin(), rIt);
 		}
-		const auto counter  = impl::numSites(Window, 0, Window.size());
-		_data[region].reserve(_data[region].size() + counter.NSites);
-		_refBases[region].reserve(_refBases.size() + counter.NSites);
-		_data[region].reserveLength(_data[region].length() + counter.NData);
 		for (const auto &s : Window) {
 			_handleSite(s, region);
 		}

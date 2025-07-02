@@ -1,13 +1,13 @@
 #ifndef TSIMULATORHAPLOTYPES_H_
 #define TSIMULATORHAPLOTYPES_H_
 
+#include "coretools/Containers/TView.h"
 #include "coretools/Files/TOutputFile.h"
 #include "genometools/Genotypes/TwoBases.h"
 #include <cstddef>
 #include <vector>
 
 namespace Simulations {
-class TSimulatorReference;
 
 class TSimulatorHaplotypes {
 private:
@@ -20,7 +20,7 @@ public:
 	}
 	size_t length() const { return size() ? _haplotypes.front().size() : 0; }
 	void openTrueGenotypeVCF(std::string_view Filename);
-	void writeTrueGenotypes(std::string_view ChrName, const TSimulatorReference &Ref);
+	void writeTrueGenotypes(std::string_view ChrName, coretools::TView<genometools::Base> Ref);
 	size_t size() const noexcept { return _haplotypes.size(); };
 	const std::vector<genometools::TwoBase>& operator[](size_t Ind) const noexcept {return _haplotypes[Ind];}
 	std::vector<genometools::TwoBase>& operator[](size_t Ind) noexcept {return _haplotypes[Ind];}

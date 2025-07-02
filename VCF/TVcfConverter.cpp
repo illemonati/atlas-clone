@@ -3,13 +3,16 @@
 //
 
 #include "TVcfConverter.h"
-#include "coretools/Files/gzstream.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TParameters.h"
+
+#include "coretools/Strings/splitters.h"
 
 namespace VCF {
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::user_assert;
 
 //------------------------------------------
 // TVcfConverter
@@ -145,83 +148,15 @@ void TVcfToBeagle::run() {
 	_beagleFile.close();
 }
 
-class TLineReader {
-	std::istream *_stream; // non-owning
-	std::string _line;     // current line
-public:
-	// see https://www.informit.com/articles/printerfriendly/1407357 for interface discussion
-
-	// Not taking ownership of stream
-	TLineReader(std::istream &Stream) : _stream(&Stream) {
-		// Read first line
-		popFront();
-	}
-
-	bool empty() const noexcept {
-		assert(_stream);
-		return _stream->eof();
-	}
-
-	// IMPORTANT: as soon as popFront is called, this string_view will be invalidated
-	std::string_view front() const noexcept {
-		assert(!empty());
-		return std::string_view{_line}; // does not make a copy
-	};
-	void popFront() {
-		assert(_stream);
-		assert(!empty());
-		std::getline(*_stream, _line);
-	};
-};
-
-template<typename Delim = char> class TSplitter {
-	static_assert(std::is_same_v<Delim, char> || std::is_same_v<Delim, std::string> ||
-	              std::is_same_v<Delim, std::string_view>);
-	std::string_view _sv;
-	Delim _delim;
-	size_t _count;
-
-public:
-	TSplitter(std::string_view Sv, Delim delim) : _sv(Sv), _delim(delim), _count(_sv.find(_delim)) {}
-
-	bool empty() const noexcept { return _sv.empty(); }
-
-	std::string_view front() const noexcept {
-		assert(!empty());
-		return _sv.substr(0, _count);
-	}
-
-	void popFront() noexcept {
-		assert(!empty());
-		if (_count == std::string_view::npos) {
-			_sv.remove_prefix(_sv.size());
-		} else {
-			if constexpr (std::is_same_v<Delim, char>)
-				_sv.remove_prefix(_count + 1);
-			else
-				_sv.remove_prefix(_count + _delim.size());
-
-			_count = _sv.find(_delim); // will be npos for last element
-		}
-	}
-};
-
-template<typename Range> void skip(Range &range, size_t nGaps = 1) {
-	for (size_t _ = 0; _ < nGaps; ++_) range.popFront();
-}
 
 void TVcfBeagleNew::run() {
+	using coretools::str::TSplitter;
+
 	const auto inName = parameters().get("vcf");
 	const auto outName =
 	    parameters().get("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
 
-	std::unique_ptr<std::istream> istream;
-	if (coretools::str::readAfterLast(inName, '.') == "gz")
-		istream = std::make_unique<gz::igzstream>(inName.c_str());
-	else
-		istream = std::make_unique<std::ifstream>(inName);
-
-	TLineReader lineReader(*istream);
+	coretools::TLineReader lineReader(inName);
 
 	// Read info lines
 	bool hasGL = false;
@@ -235,10 +170,10 @@ void TVcfBeagleNew::run() {
 		if (line.substr(0, plString.size()) == plString) hasPL = true;
 	}
 
-	if (!hasGL && !hasPL) UERROR("vcf file needs field GL or PL");
+	user_assert(hasGL || hasPL, "vcf file needs field GL or PL");
 
 	// Print header
-	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
+	user_assert(lineReader.front().substr(0, 6) == "#CHROM", "vcf file needs header");
 
 	// open gzFile
 	coretools::TOutputFile ofile(outName, "\t");
@@ -267,7 +202,7 @@ void TVcfBeagleNew::run() {
 		++nGL;
 		if (format.front() == "GL") break;
 	}
-	if (format.empty()) UERROR("FORMAT string neets GL");
+	user_assert(!format.empty(), "FORMAT string neets GL");
 
 	for (; !lineReader.empty(); lineReader.popFront()) {
 		TSplitter line{lineReader.front(), '\t'};

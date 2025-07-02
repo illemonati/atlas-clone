@@ -6,13 +6,14 @@
 namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+	using coretools::user_assert;
 
 TParser::TParser() {
 	if (parameters().exists("trim3") || parameters().exists("trim5")) {
 		_trim3 = parameters().get<int>("trim3", 0);
-		if (_trim3 < 0) UERROR("trimming distance trim3 must be >= 0!");
+		user_assert(_trim3 >= 0, "trimming distance trim3 must be >= 0!");
 		_trim5 = parameters().get<int>("trim5", 0);
-		if (_trim5 < 0) UERROR("trimming distance trim5 must be >= 0!");
+		user_assert(_trim5 >= 0, "trimming distance trim5 must be >= 0!");
 		if (_trim3 > 0 || _trim5 > 0) {
 			logfile().list("Will trim first ", _trim3, " bases from the 3' end and the first ", _trim5,
 						   " bases from the 5' end. (parameters 'trim3', 'trim5', respectively)");
@@ -32,7 +33,7 @@ void TParser::openReference(bool required) {
 			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
 			_reference.open(fastaFile);
 		} else {
-			if (required) { UERROR("No reference provided! (Use parameter fasta to provide a reference)"); }
+			user_assert(!required, "No reference provided! (Use parameter fasta to provide a reference)");
 		}
 	}
 }

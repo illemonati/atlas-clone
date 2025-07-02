@@ -21,7 +21,7 @@ namespace GenomeTasks{
 //--------------------------------------
 class TCreateBedMask : public TBamWindowTraverser<WindowType::SingleBam> {
 protected:
-	genometools::TBedWriter _bed;
+	genometools::TBed _bed;
 	uint32_t _minDepth;
 
 	void _createMask(const std::string fileTag);
@@ -94,7 +94,7 @@ struct TMaskCreator {
 			TCreateVariantBedMask mask;
 			mask.createVariantMask();
 		} else {
-			UERROR("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'variant' and 'nonRef'.");
+			throw coretools::TUserError("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'variant' and 'nonRef'.");
 		}
 	};
 };

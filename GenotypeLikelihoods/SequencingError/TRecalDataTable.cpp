@@ -13,13 +13,17 @@ void addUsed(std::vector<size_t> &counts, size_t value) {
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
 //--------------------------------------------------------------------
-void TRecalDataTable::add(const BAM::TSequencedData & data){
-	using SequencingError::Covariates;
-	using SequencingError::TCovariate_context;
-	using SequencingError::TCovariate_fragmentLength;
-	using SequencingError::TCovariate_mappingQuality;
-	using SequencingError::TCovariate_position;
-	using SequencingError::TCovariate_quality;
+void TRecalDataTable::add(const BAM::TSequencedData & data, size_t ID){
+	using namespace SequencingError;
+	static size_t lastID  = -1;
+	static size_t IDcount = 0;
+
+	if (lastID != ID) {
+		if (IDcount > 1) ++_counts_g1;
+		IDcount = 0;
+		lastID = ID;
+	}
+	++IDcount;
 	++_counts;
 
 	//add quality

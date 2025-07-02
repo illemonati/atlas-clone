@@ -21,6 +21,7 @@ enum class FilterType : size_t {
 	maxRange,
 	Duplicate = maxRange,
 	SoftClippedRation,
+	PMDS,
 	ImproperPairs,
 	Unmapped,
 	FailedQC,
@@ -50,6 +51,7 @@ class TBamFilters {
 	coretools::TStrongArray<coretools::TNumericRange<size_t>, FilterType, coretools::index(FilterType::maxRange)> _ranges;
 	TAlignmentList _blacklist;
 	double _softClipRatio = 1.;
+	double _PMDSmax       = 1e20;
 	bool _enabled         = false;
 
 public:
@@ -59,6 +61,7 @@ public:
 	bool enabled() const noexcept {return _enabled;}
 
 	double softClipRation() const noexcept {return _softClipRatio;}
+	double PMDSmax() const noexcept {return _PMDSmax;}
 	const TAlignmentList& blacklist() const noexcept {return _blacklist;}
 
 	void resize(size_t numRG, size_t numChrom, std::string_view Filename);
@@ -100,7 +103,8 @@ public:
 		
 	}
 	void enable(FilterType Filter, const coretools::TNumericRange<size_t> & Range, std::string_view Reason) {
-		if (Filter >= FilterType::maxRange) DEVERROR("Cannot Do Rangefilter on Type ", coretools::index(Filter), "!");
+		DEV_ASSERT(Filter < FilterType::maxRange);
+
 		_ranges[Filter] = Range;
 		enable(Filter, Reason);
 	}
@@ -129,8 +133,14 @@ public:
 		for (auto& f: _filters) if (f) f.printCounts(Out, rg_ID);
 	}
 
-	void summary(size_t Total, size_t ReadGroup) const {
-		for (auto& f: _filters) if (f) f.summary(Total, ReadGroup);
+	bool summary(size_t Total, size_t ReadGroup) const {
+		bool summaryWritten = false;
+		for (auto& f: _filters){
+			if (f){
+				summaryWritten = summaryWritten || f.summary(Total, ReadGroup);
+			} 
+		} 
+		return summaryWritten; //return true if at least one summary was written
 	}
 };
 } // namespace BAM
