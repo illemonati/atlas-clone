@@ -253,8 +253,12 @@ class TSkotte {
 		}
 
 		TStrongArray<double, genometools::AllelicCombination> LLs{std::numeric_limits<double>::lowest()};
-		for (auto ac : usedAllelicCombinations) { LLs[ac] = Ls[ac].getSum(); }
-		const genometools::AllelicCombination bestAC = chooseBestAllelicCombination(LLs);
+		for (auto ac : usedAllelicCombinations) {
+			LLs[ac] = Ls[ac].getSum();
+		}
+		const auto bestAC = coretools::instances::randomGenerator()
+								.sampleIndexOfMaxima<TStrongArray<double, genometools::AllelicCombination>,
+													 genometools::AllelicCombination>(LLs);
 
 		auto [MAF, bestL, major, minor] = [bestAC, maxF, hasHaploid, hasDiploid, minMAF]() {
 			if (hasHaploid) {

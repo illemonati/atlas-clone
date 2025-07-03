@@ -17,23 +17,15 @@ void TGLFPrinter::run() {
 	using genometools::Base;
 	using genometools::Genotype;
 
-	genometools::TBed bed;
-	if (!_bedName.empty()) {
-		bed.parse(_bedName);
-		logfile().list("Limiting to sites marked in bed-file '", _bedName, "'. (parameter 'bed').");
-	} else {
-		logfile().list("Printing all sites. (Limit with 'bed').");
-	}
-	genometools::TSingleGLFTraverser traverser(_glfName, bed);
 
-	const auto outName = toString(readBeforeLast(_glfName, ".glf"),  ".txt");
+	const auto outName = _traverser.sampleName() +  ".txt";
 	logfile().list("Writing GLF-file to '", outName, "'.");
 
 	coretools::TOutputFile out(outName);
-	out.writeNoDelim("GLF version: ", traverser.glfVersion()).endln();
+	out.writeNoDelim("GLF version: ", _traverser.glfVersion()).endln();
 
-	for (; !traverser.endOfChrs(); traverser.nextChr()) {
-		const auto& curChr = traverser.curChr();
+	for (; !_traverser.endOfChrs(); _traverser.nextChr()) {
+		const auto& curChr = _traverser.curChr();
 		out.writeNoDelim("CHROMOSOME: '", curChr.name(), "', length = ", curChr.length(),
 						 ", ploidy = ", curChr.ploidy()).endln();
 		out.write("chr", "pos", "depth", "RMSMappingQual");
@@ -44,9 +36,9 @@ void TGLFPrinter::run() {
 		}
 		out.endln();
 
-		for (; !traverser.endOfCurChr(); traverser.nextSite()) {
-			const auto &e = traverser.site();
-			out.writeln(curChr.name(), traverser.position().position() + 1, e.depth, e.RMSMappingQual, e.likelihoods);
+		for (; !_traverser.endOfCurChr(); _traverser.nextSite()) {
+			const auto &e = _traverser.site();
+			out.writeln(curChr.name(), _traverser.position().position() + 1, e.depth, e.RMSMappingQual, e.likelihoods);
 			
 		}
 		out.writeln("---");

@@ -2,14 +2,11 @@
 #define TGLFPRINTER_H_
 
 #include "coretools/Main/TParameters.h"
+#include "genometools/GLF/TSingleGLFTraverser.h"
 namespace PopulationTools {
 class TGLFPrinter {
-	std::string _glfName;
-	std::string _bedName;
+	genometools::TSingleGLFTraverser _traverser{};
 public:
-	TGLFPrinter()
-		: _glfName(coretools::instances::parameters().get("glf")),
-		  _bedName(coretools::instances::parameters().get("bed", "")) {}
 	void run();
 };
 } // namespace PopulationTools
