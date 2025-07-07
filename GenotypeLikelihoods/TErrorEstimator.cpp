@@ -157,8 +157,8 @@ void TErrorEstimator::_identifyModels() {
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying sequencing error models to estimate:");
 	for (auto rg : _recalMap.readGroupsInUse()) {
-		const auto& pooledWith = _recalMap.readGroupsPooledWith(rg);
-		std::string s = ":";
+		const auto &pooledWith = _recalMap.readGroupsPooledWith(rg);
+		std::string s          = ":";
 		if (pooledWith.size() > 1) {
 			s = ", pooled with:";
 			for (const auto rgi : pooledWith) {
@@ -177,6 +177,13 @@ void TErrorEstimator::_identifyModels() {
 								  " sites with depth > 1, will not estimate this model!");
 				for (auto i : _recalMap.readGroupsPooledWith(rg)) { _recal.reset(i, mate); }
 			} else if (table.size() == 0) {
+				if (mate == Mate::first) {
+					if (_dataTables[rg][Mate::second].size() != 0) {
+						logfile().warning("First mate has no data, but second mate does have!");
+					} else {
+						logfile().list("Readgroup is empty!");
+					}
+				}
 				for (auto i : _recalMap.readGroupsPooledWith(rg)) { _recal.reset(i, mate); }
 			} else {
 				logfile().list(sMates[mate], " mate: ", table.size(), " bases, ", table.nSites_g1(),
@@ -189,32 +196,42 @@ void TErrorEstimator::_identifyModels() {
 				_rhos.push_back(recal->rho());
 			}
 		}
-		if (_dataTables[rg][Mate::second].size() == 0)
+		if (_dataTables[rg][Mate::first].size() > 0 && _dataTables[rg][Mate::second].size() == 0) {
 			logfile().list("Assuming single-ended read.");
-		else logfile().list("Assuming paired-ended read.");
+		} else if (_dataTables[rg][Mate::first].size() > 0 && _dataTables[rg][Mate::second].size() > 0) {
+			logfile().list("Assuming paired-ended read.");
+		}
+		// no assumption for empty readgroups
 		logfile().endIndent();
 	}
 	logfile().endIndent();
+
 	logfile().startIndent("Identifying PMD models to estimate:");
 	for (auto rg : _pmdMap.readGroupsInUse()) {
-		logfile().listFlush("Readgroup ", rg);
+		const auto &pooledWith = _pmdMap.readGroupsPooledWith(rg);
+		std::string s          = ":";
+		if (pooledWith.size() > 1) {
+			s = ", pooled with:";
+			for (const auto rgi : pooledWith) {
+				if (rgi != rg) s += toString(" ", rgi, ",");
+			}
+			s.back() = ':';
+		}
+		logfile().startIndent("Readgroup ", rg, s);
 
 		auto &pmd = _pmd.model(rg);
 		user_assert(pmd.hasPMD(), "Cannot estimate PMD for readgroup ", rg, "!");
 
-		const auto& pooledWith = _pmdMap.readGroupsPooledWith(rg);
-		if (pooledWith.size() > 1) {
-			std::string s = ", pooled with:";
-			for (const auto rgi : pooledWith) {
-				if (rgi != rg) s += toString(" ", rgi, ",");
-			}
-			s.back() = '.';
-			logfile().write(s);
+		if (pmd.psi()->empty()) {
+			logfile().list("Readgroup is empty!");
+			for (auto i : _pmdMap.readGroupsPooledWith(rg)) { _pmd.reset(i); }
+			_pmd.reset(rg);
+		} else {
+			_psis.push_back(pmd.psi());
+			_psis.back()->estimateInit(_genome.outputName(), _minData);
 		}
-		else logfile().write(".");
 
-		_psis.push_back(pmd.psi());
-		_psis.back()->estimateInit(_genome.outputName(), _minData);
+		logfile().endIndent();
 	}
 
 	_dataTables.clear();

@@ -244,6 +244,8 @@ void TPsi::_joinTables(size_t From, size_t To) noexcept {
 
 void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
 	using coretools::instances::logfile;
+	DEBUG_ASSERT(_nPaired > 0 || _nSingle > 0);
+
 	_printTable(OutputName);
 
 	if (_nPaired > 0 && _nSingle > 0) logfile().warning("Readgroup contains both single- and paired-ended reads!");
@@ -306,19 +308,21 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 	using BAM::RGInfo::toString;
 	_tables.resize(2); // at least
 	if (Info.is_string()) {
-	// CT5:0.1,0.09;GA3:0.3*exp()
-	coretools::str::TSplitter semi(Info.get<std::string_view>(), ';');
-	for (auto s: semi) {
-		const auto sType     = readBefore(s, ':');
-		user_assert(sType.size() == 3, sType, " is not a recognized token!");
+		// CT5:0.1,0.09;GA3:0.3*exp()
+		coretools::str::TSplitter semi(Info.get<std::string_view>(), ';');
+		for (auto s : semi) {
+			const auto sType = readBefore(s, ':');
+			user_assert(sType.size() == 3, sType, " is not a recognized token!");
 
-		const auto type = impl::type(sType.substr(0, 2));
-		const auto end  = impl::end(sType.substr(2, 1));
+			const auto type = impl::type(sType.substr(0, 2));
+			const auto end  = impl::end(sType.substr(2, 1));
 
-		const auto sFunction = readAfter(s, ':');
-		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
-		else _tables[end][type] = impl::empiric(sFunction);
-	}
+			const auto sFunction = readAfter(s, ':');
+			if (sFunction.find('*') != sFunction.npos)
+				_tables[end][type] = impl::exp(sFunction);
+			else
+				_tables[end][type] = impl::empiric(sFunction);
+		}
 	} else {
 		_CMax = Info.value("CMax", 0);
 		_S    = 0;
@@ -363,7 +367,8 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 							_tables[1][t].emplace_back(d);
 						}
 					} else if (Info[k][0].is_array()) {
-						if (_CMax == 0 && Info[k].size() > 1) throw coretools::TUserError("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
+						if (_CMax == 0 && Info[k].size() > 1)
+							throw coretools::TUserError("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
 						if (_S == 0) _S = Info[k].size() - 1;
 
 						if (_tables.size() < 2 + _S) _tables.resize(2 + _S);
@@ -383,7 +388,9 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 		}
 	}
 	// at least one value
-	for (auto& t: _tables) for (auto &v: t) if (v.empty()) v = {P(0.)};
+	for (auto &t : _tables)
+		for (auto &v : t)
+			if (v.empty()) v = {P(0.)};
 }
 
 void TPsi::log() const noexcept {

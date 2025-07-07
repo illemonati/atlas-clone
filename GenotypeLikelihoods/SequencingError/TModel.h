@@ -60,7 +60,7 @@ struct TNoRecal final : public TModel {
 
 	// Model Info
 	bool recalibrates() const noexcept override { return false; };
-	BAM::RGInfo::TInfo info() const override { return {"-"}; };
+	BAM::RGInfo::TInfo info() const override { return "-"; };
 
 	void addtoRho(const BAM::TSequencedData &, coretools::Probability,
 				  const genometools::TBaseProbabilities &) noexcept override {}

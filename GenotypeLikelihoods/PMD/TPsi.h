@@ -78,6 +78,9 @@ public:
 
 	void log() const noexcept;
 	bool paired() const noexcept {return _nPaired > _nSingle;}
+
+	size_t nSites() const noexcept {return _nSingle + _nPaired;}
+	bool empty() const noexcept {return nSites() == 0;}
 };
 } // namespace GenotypeLikelihoods::PMD
 

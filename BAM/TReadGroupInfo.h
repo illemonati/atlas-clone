@@ -30,6 +30,12 @@ inline std::string toString(const nlohmann::ordered_json &val) {
 	else return nlohmann::to_string(val);
 }
 
+inline bool isDefault(const TInfo& info) {
+	return info.empty()
+		|| (info.is_string() && (info.empty() || info == "-" || info == "default"))
+		|| (info.is_array() && info.size() == 1 && isDefault(info.front()));
+}
+
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------

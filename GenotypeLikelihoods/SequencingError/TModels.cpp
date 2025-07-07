@@ -6,6 +6,7 @@
  */
 
 #include "SequencingError/TModels.h"
+#include "TReadGroupInfo.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 
@@ -67,36 +68,26 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 			const auto &json = Info[InfoType::recal];
 			if (json.contains("Mate1")) {
 				const auto &info = json["Mate1"];
-				if (info.empty()) {
+				if (BAM::RGInfo::isDefault(info)) {
 					iis[rg].front() = -1;
 				} else if (info.is_string()) {
-					reFormat = true;
-					const auto sinfo = info.get<std::string_view>();
-					if (sinfo.empty() || sinfo == "-" || sinfo == "default") {
-						iis[rg].front() = -1;
-					} else {
-						auto [recal, rho] = impl::epsRho(info.get<std::string_view>());
-						_withRecal.emplace_back(recal, rho);
-						iis[rg].front() = _withRecal.size() - 1;
-					}
+					reFormat          = true;
+					auto [recal, rho] = impl::epsRho(info.get<std::string_view>());
+					_withRecal.emplace_back(recal, rho);
+					iis[rg].front() = _withRecal.size() - 1;
 				} else {
 					_withRecal.emplace_back(info);
 					iis[rg].front() = _withRecal.size() - 1;
 				}
 				if (json.contains("Mate2")) {
 					const auto &info = json["Mate2"];
-					if (info.empty()) {
+					if (BAM::RGInfo::isDefault(info)) {
 						iis[rg].back() = -1;
 					} else if (info.is_string()) {
-						reFormat = true;
-						const auto sinfo = info.get<std::string_view>();
-						if (sinfo.empty() || sinfo == "-" || sinfo == "default") {
-							iis[rg].back() = -1;
-						} else {
-							auto [recal, rho] = impl::epsRho(info.get<std::string_view>());
-							_withRecal.emplace_back(recal, rho);
-							iis[rg].back() = _withRecal.size() - 1;
-						}
+						reFormat          = true;
+						auto [recal, rho] = impl::epsRho(info.get<std::string_view>());
+						_withRecal.emplace_back(recal, rho);
+						iis[rg].back() = _withRecal.size() - 1;
 					} else {
 						_withRecal.emplace_back(info);
 						iis[rg].back() = _withRecal.size() - 1;
@@ -106,18 +97,13 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 				}
 			} else {
 				iis[rg].back() = -1; // no second mate
-				if (json.empty()) {
+				if (BAM::RGInfo::isDefault(json)) {
 					iis[rg].front() = -1;
 				} else if (json.is_string()) {
-					reFormat = true;
-					const auto sinfo = json.get<std::string_view>();
-					if (sinfo.empty() || sinfo == "-" || sinfo == "default") {
-						iis[rg].front() = -1;
-					} else {
-						auto [recal, rho] = impl::epsRho(json.get<std::string_view>());
-						_withRecal.emplace_back(recal, rho);
-						iis[rg].front() = _withRecal.size() - 1;
-					}
+					reFormat          = true;
+					auto [recal, rho] = impl::epsRho(json.get<std::string_view>());
+					_withRecal.emplace_back(recal, rho);
+					iis[rg].front() = _withRecal.size() - 1;
 				} else {
 					_withRecal.emplace_back(json);
 					iis[rg].front() = _withRecal.size() - 1;
