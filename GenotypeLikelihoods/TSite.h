@@ -58,6 +58,7 @@ public:
 	genometools::TBaseCounts countAlleles() const;
 	coretools::TStrongArray<size_t, BAM::Mate> countMates() const;
 	std::array<int, 2> countFwdRev() const;
+	coretools::PhredInt rmsMappingQual() const;
 
 	// loop
 	using iterator       = std::vector<BAM::TSequencedData>::iterator;

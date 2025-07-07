@@ -47,6 +47,7 @@ public:
 
 	// functions performed on sites
 	genometools::TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite &site) const;
+	genometools::TBaseLikelihoods calculateBaseLikelihoods(const TSite &site) const;
 };
 
 }; // namespace GenotypeLikelihoods

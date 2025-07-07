@@ -34,6 +34,7 @@ TWriteGLF::TWriteGLF(){
 
 void TWriteGLF::_startChromosome(const genometools::TChromosome &Chr) {
 	_writer.newChromosome(Chr);
+	_curIsHapo = Chr.isHaploid();
 }
 
 void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow &Window) {
@@ -42,8 +43,13 @@ void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow &Window) {
 	uint32_t pos = 0;
 	for(auto& s : Window){
 		if(!s.empty() || _printAll){
-			const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
-			_writer.writeSite(Window.positionOnChr(pos), s.depth(), 0, genoLik);
+			if (_curIsHapo) {
+				const auto baseLik = _genome.errorModels().calculateBaseLikelihoods(s);
+				_writer.writeSite(Window.positionOnChr(pos), s.depth(), s.rmsMappingQual(), baseLik);
+			} else {
+				const auto genoLik = _genome.errorModels().calculateGenotypeLikelihoods(s);
+				_writer.writeSite(Window.positionOnChr(pos), s.depth(), s.rmsMappingQual(), genoLik);
+			}
 		}
 		++pos;
 	}

@@ -19,7 +19,7 @@
 #include "genometools/Genotypes/Containers.h"
 
 #include "genometools/GLF/GLF.h"
-#include "genometools/GLF/TGLFMultiReader.h"
+#include "genometools/GLF/TGLFVector.h"
 
 namespace gz { class ogzstream; }
 
