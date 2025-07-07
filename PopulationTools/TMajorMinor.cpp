@@ -6,11 +6,10 @@
  */
 
 #include "TMajorMinor.h"
-#include "TSkotte.h"
 #include "TMajorMinorMLE.h"
+#include "TSkotte.h"
 
 #include <algorithm>
-
 
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
@@ -19,15 +18,15 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Types/probability.h"
+
 #include "genometools/GLF/GLF.h"
 #include "genometools/GLF/TMultiGLFTraverser.h"
 #include "genometools/Genotypes/TFrequencies.h"
+#include "genometools/TAlleles.h"
 #include "genometools/TFastaReader.h"
 #include "genometools/VCF/TVCFWriter.h"
 
-#include "genometools/TAlleles.h"
 #include "TBgzWriter.h"
-#include "genometools/GLF/TGLFMultiReader.h"
 
 namespace PopulationTools {
 
@@ -176,7 +175,7 @@ template<typename Estimator> void iterate(double maxF) {
 
 			if (pos.position() > position) {
 				logfile().list("Parsed ", dCounter, " positions.");
-				counter += dCounter;
+				position += dCounter;
 			}
 			MajorMinor::TMMData data;
 			if (alleles) { // 1) working with a subset of known alleles
@@ -204,8 +203,8 @@ template<typename Estimator> void iterate(double maxF) {
 		}
 		const auto tot      = multiTraverser.curChr().to().position();
 		const auto filtered = tot - counter;
-		logfile().list("Parsed a total of ", tot, " positions, filtered: ", filtered, " (", (100. * tot) / counter,
-		               "%).");
+		logfile().list("Parsed a total of ", tot, " positions, filtered: ", filtered, " (", (100. * filtered) / tot,
+					   "%).");
 		logfile().endIndent();
 	}
 	logfile().list("Reached end of glf files!");

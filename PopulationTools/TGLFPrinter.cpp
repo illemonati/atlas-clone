@@ -1,9 +1,10 @@
 #include "TGLFPrinter.h"
+
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/stringManipulations.h"
 #include "coretools/Strings/toString.h"
-#include "genometools/GLF/TGLFReader.h"
+
 #include "genometools/GLF/TSingleGLFTraverser.h"
 #include "genometools/Genotypes/Genotype.h"
 

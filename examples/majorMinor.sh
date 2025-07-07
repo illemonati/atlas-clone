@@ -34,8 +34,12 @@ $atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
 	   --minMAF 0.05 --bgz \
 	   --fixedSeed 134 --out $out --logFile $out.out 2> $out.eout
 
+echo "chr1 222 1234" > bed.bed
+echo "chr2 111 1432" >> bed.bed
+echo "chr3 0 999" >> bed.bed
+
 out="MLE_fasta"
-$atlas --task majorMinor --method MLE --minSamplesWithData 83 \
+$atlas --task majorMinor --method MLE --minSamplesWithData 83 --regions bed.bed \
 	   --glf $allSamples --fasta simulate.fasta \
 	   --minMAF 0.05 --noVCFHeader \
 	   --fixedSeed 135 --out $out --logFile $out.out 2> $out.eout

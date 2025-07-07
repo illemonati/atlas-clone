@@ -1,12 +1,15 @@
 #include "TSafEstimator.h"
 
-#include "TSafFile.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "genometools/GLF/GLF.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/GLF/GLF.h"
+
+#include "TSafFile.h"
+
 
 namespace PopulationTools {
 
@@ -34,14 +37,13 @@ constexpr bool multiModal(double mama, double mami, double mimi) {
 }
 } // namespace impl
 
-TSafEstimator::TSafEstimator() {
-	_glfReader.addReference(parameters().get<std::string>("fasta"));
-	const size_t nSamples = _glfReader.numActiveSamples();
+	TSafEstimator::TSafEstimator() : _fasta(parameters().get<std::string>("fasta")) {
+	const size_t nSamples = _glfTraverser.size();
 
 	logfile().list("Will estimate Site Allele Frequency for ", nSamples, " samples.");
 
 	const auto minSamples = parameters().get<size_t>("minSamplesWithData", 1);
-	_glfReader.setMinSamplesWithData(minSamples);
+	_glfTraverser.setMinActive(minSamples);
 
 	logfile().list("Will print sites for which at least ", minSamples,
 				   " samples have data. (parameter minSamplesWithData)");
@@ -49,7 +51,7 @@ TSafEstimator::TSafEstimator() {
 	_logProbs.assign(2*nSamples + 1, LogProbability::lowest());
 }
 
-	void TSafEstimator::_iterate(const std::vector<genometools::TGLFEntry> &data, Base major) {
+void TSafEstimator::_iterate(coretools::TConstView<genometools::TGLFEntry> data, Base major) {
 	assert(major != Base::N);
 	constexpr TStrongArray<std::array<Base, 3>, Base> minors = []() {
 		TStrongArray<std::array<Base, 3>, Base> minors{};
@@ -59,7 +61,7 @@ TSafEstimator::TSafEstimator() {
 		minors[Base::T] = {Base::A, Base::C, Base::G};
 		return minors;
 	}();
-	const size_t nSamples = _glfReader.numActiveSamples();
+	const size_t nSamples = _glfTraverser.size();
 
 	_logProbs.clear();
 
@@ -161,7 +163,7 @@ TSafEstimator::TSafEstimator() {
 }
 
 void TSafEstimator::run() {
-	const auto nSamples   = _glfReader.numActiveSamples();
+	const auto nSamples   = _glfTraverser.size();
 	const auto oFile      = parameters().get("out", "saf");
 
 	TSafFile safFile(oFile, nSamples);
@@ -169,33 +171,34 @@ void TSafEstimator::run() {
 
 
 	coretools::TTimer timer;
-	const auto dCounter = std::min<size_t>(10000000 / nSamples, 1000000);
-	size_t counter        = 0;
-	size_t counterF       = 0;
-	size_t nextPrint      = dCounter;
+	const auto dCounter = std::max<size_t>(1'000'000, 10'000'000 / nSamples);
 
 	logfile().startIndent("Parsing through glf files:");
-	for (; !_glfReader.empty(); _glfReader.popFront()) {
-		const auto ids  = _glfReader.front();
-		const auto refs = _glfReader.refView();
-		for (const auto iW : ids) {
-			if (refs[iW] == Base::N) {
-				++counterF;
-				continue;
+	for (; !_glfTraverser.endOfChrs(); _glfTraverser.nextChr()) {
+		logfile().startIndent("Parsing chromosome ", _glfTraverser.curChr().name(), ":");
+		size_t counter  = 0;
+		size_t position = dCounter;
+		for (; !_glfTraverser.endOfCurChr(); _glfTraverser.nextSite()) {
+			const auto &pos = _glfTraverser.position();
+			if (pos.position() > position) {
+				logfile().list("Parsed ", dCounter, " positions.");
+				position += dCounter;
 			}
+			const auto ref = _fasta[pos];
+			if (ref == Base::N ) continue;
 
-			_iterate(_glfReader.data(iW), refs[iW]);
-			if (!_logProbs.empty()) safFile.write(_glfReader.curChrName(), _glfReader.position(iW).position(), _logProbs, _lower);
-		}
+			_iterate(_glfTraverser.site(), ref);
+			if (_logProbs.empty()) continue;
 
-		// report progress
-		counter  += ids.size();
-		if (counter >= nextPrint) {
-			logfile().list("Parsed ", nextPrint, " positions in ", timer.formattedTime(), ".");
-			while (nextPrint <= counter) nextPrint += dCounter;
+			safFile.write(_glfTraverser.curChr().name(), pos.position(), _logProbs, _lower);
+			++counter;
 		}
+		const auto tot      = _glfTraverser.curChr().to().position();
+		const auto filtered = tot - counter;
+		logfile().list("Parsed a total of ", tot, " positions, filtered: ", filtered, " (", (100. * filtered) / tot,
+		               "%).");
+		logfile().endIndent();
 	}
 	logfile().list("Reached end of glf files!");
-	logfile().list("Parsed a total of ", counter, " positions, filtered: ", counterF, " (", (100.*counterF)/counter, "%).");
 }
 }
