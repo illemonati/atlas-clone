@@ -69,3 +69,7 @@ out="multiBam"
 bams=$(ls *.bam)
 $atlas --task pileup --fields "depth,bases,sampleBases" --bam "$bams" \
 	   --fixedSeed 178 --out $out --logFile $out.out 2> $out.eout
+
+out="p2b"
+$atlas --task pileupToBed --pileup multiBam_pileup.txt.gz --depth "[7,30)" \
+	   --fixedSeed 179 --out $out --logFile $out.out 2> $out.eout

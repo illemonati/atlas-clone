@@ -9,6 +9,7 @@
 #include "TIlluminaIdentifier.h"
 #include "TOverlappingReadsMerger.h"
 #include "TPairAnalyser.h"
+#include "TPileup2Bed.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
 #include "coretools/Main/TMain.h"
@@ -84,6 +85,7 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TEstimateMutationLoad>(groupName, "mutationLoad", "Estimating mutation load across the genome");
 	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating HKY85 genotype Distribution");
 	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
+	main.createGroupedTask<GenomeTasks::TPileup2Bed>(groupName, "pileupToBed", "Create bed file from pileup file");
 	}
 
 	//Population tools
