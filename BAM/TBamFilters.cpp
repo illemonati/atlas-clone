@@ -240,7 +240,7 @@ void TBamFilters::resize(size_t numRG, size_t numChrom, std::string_view Filenam
 			logFilename += ".bamlog.txt.gz";
 		}
 		logfile().list("Will write all filtered out reads to '" + logFilename + "'.");
-		_log.open(logFilename, 3);
+		_log.open(logFilename, {"AlignmentName", "SecondMate", "FilterReason"});
 	}
 }
 

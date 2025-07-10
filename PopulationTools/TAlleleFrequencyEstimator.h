@@ -143,9 +143,10 @@ public:
 	void compareAlleleFreq();
 	void writeAlleleFrequencyLikelihoods();
 	void run() {
-		 if (coretools::instances::parameters().exists("compare")) {
+		using coretools::instances::parameters;
+		if (parameters().exists("compare")) {
 			compareAlleleFreq();
-		} else if  (coretools::instances::parameters().exists("likelihoods")) {
+		} else if (parameters().exists("likelihoods")) {
 			writeAlleleFrequencyLikelihoods();
 		} else {
 			estimateAlleleFreq();

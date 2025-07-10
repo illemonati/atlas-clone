@@ -8,11 +8,11 @@
 #ifndef GENOMETASKS_TPSMCINPUT_H_
 #define GENOMETASKS_TPSMCINPUT_H_
 
-#include <iosfwd>
 #include <memory>
 
 #include "TBamWindowTraverser.h"
 #include "TThetaEstimator.h"
+#include "coretools/Files/TLineWriter.h"
 
 namespace GenomeTasks{
 
@@ -25,7 +25,7 @@ private:
 	double _confidence, _logConfidence, _logConfidenceHet;
 
 	size_t _blockSize;
-	std::ofstream _out;
+	coretools::TLineWriter _out;
 	size_t _nCharOnLine;
 	std::unique_ptr<GenotypeLikelihoods::TThetaEstimator> _thetaEstimator;
 

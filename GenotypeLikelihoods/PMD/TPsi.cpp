@@ -17,6 +17,9 @@
 #include "TReadGroupInfo.h"
 #include "TSequencedData.h"
 
+#include "coretools/devtools.h"
+
+
 namespace GenotypeLikelihoods::PMD {
 
 using BAM::End;
@@ -243,7 +246,6 @@ void TPsi::_joinTables(size_t From, size_t To) noexcept {
 }
 
 void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
-	using coretools::instances::logfile;
 	DEBUG_ASSERT(_nPaired > 0 || _nSingle > 0);
 
 	_printTable(OutputName);
@@ -394,7 +396,6 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 }
 
 void TPsi::log() const noexcept {
-	using coretools::instances::logfile;
 	constexpr size_t Nmax = 3;
 
 	bool hasAny = false;
@@ -423,19 +424,39 @@ void TPsi::log() const noexcept {
 }
 
 void TPsi::_printTable(std::string_view OutputName) {
+	size_t max = 0;
+	for (const auto& outer: _tableSums) {
+		for (const auto& inner: outer) {
+			max = std::max(inner.size(), max);
+		}
+	}
+	if (max == 0) return;
+	std::vector<std::string> header{"End_FragLength"};
+	for (size_t i = 0; i < max; ++i) {
+		header.push_back(toString(i, "_from5"));
+	}
+
 	coretools::TOutputFile oFile(toString(OutputName, "_PsiTable.txt.gz"));
-	coretools::instances::logfile().list("Writing countTable '", oFile.name(), "'.");
+	oFile.writeln("#Format: [fromTo/fromSum:toFrom/toSum:PMDinit]");
+	oFile.writeln(header);
+	logfile().list("Writing countTable '", oFile.name(), "'.");
+
 	for (size_t i = 0; i < _tableSums.size(); ++i) {
 		const auto name = i == 0 ? "5" : toString("3_", i);
 		for (auto t = Type::min; t < Type::max; ++t) {
-			oFile.writeNoDelim(impl::toString(t), name).writeDelim();
 			auto &tSum = _tableSums[i][t];
+			if (tSum.empty()) continue;
+
+			oFile.writeNoDelim(impl::toString(t), name).writeDelim();
 			for (const auto ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
 				const auto PMD    = std::max(0., (fromTo - toFrom) / (1.0 - toFrom));
-				oFile.writeNoDelim(ts.fromTo.fromTo, "/", ts.fromTo.fromSum, ";", ts.fromTo.toFrom, "/",
+				oFile.writeNoDelim(ts.fromTo.fromTo, "/", ts.fromTo.fromSum, ":", ts.fromTo.toFrom, "/",
 								   ts.fromTo.toSum, ":", PMD).writeDelim();
+			}
+			for (size_t i = tSum.size(); i < max; ++i) {
+				oFile.write("0/0:0/0:0");
 			}
 			oFile.endln();
 		}
