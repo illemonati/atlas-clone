@@ -1,13 +1,13 @@
 #include "TAlignmentList.h"
-#include "coretools/Files/TInputFile.h"
+
+#include "coretools/Files/TLineReader.h"
 
 namespace BAM{
 
 void TAlignmentList::addFromFile(std::string_view filename){
-	coretools::TInputFile in(filename, coretools::FileType::NoHeader);
 	std::vector<std::string> vec;
-	for (coretools::TInputFile in(filename, coretools::FileType::NoHeader); !in.empty(); in.popFront()) {
-		add(in.get(0));
+	for (coretools::TLineReader in(filename); !in.empty(); in.popFront()) {
+		add(in.front());
 	}
 }
 
