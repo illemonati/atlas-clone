@@ -36,7 +36,7 @@ FetchContent_Declare(coretools
 )
 
 FetchContent_Declare(genometools
-  URL https://bitbucket.org/wegmannlab/genometools/get/91205e227d7d89af4331b5d8c14831b62452769c.tar.gz
+  URL https://bitbucket.org/wegmannlab/genometools/get/214a02b5a294f07987ac46407e4f5a82bae6c003.tar.gz
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 

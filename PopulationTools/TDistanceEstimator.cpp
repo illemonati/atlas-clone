@@ -599,7 +599,7 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 }
 
 void TDistanceEstimator::_moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2){
-	while((!g1.empty() && !g2.empty()) && (g1.refID() != g2.refID() || g1.curChromosome().isHaploid() || g2.curChromosome().isHaploid())) {
+	while((!g1.empty() && !g2.empty()) && (g1.refID() != g2.refID() || g1.curChr().isHaploid() || g2.curChr().isHaploid())) {
 		//advance the one laging behind
 		if(g1.refID() < g2.refID()){
 			if(!g1.jumpToNextChr()) return;
@@ -722,7 +722,7 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 	while(!g1.empty() && !g2.empty()){
 		//move to new chromosome
 		window.move(g1.refID(), 0, windowLen);
-		const genometools::TChromosome& curChr = g1.curChromosome();
+		const genometools::TChromosome& curChr = g1.curChr();
 
 		logfile().startNumbering("Chromosome ", curChr.name(), ":");
 
