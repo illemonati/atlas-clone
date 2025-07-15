@@ -32,12 +32,11 @@ TPSMCInput::TPSMCInput() {
 	_blockSize        = parameters().get<int>("block", 100);
 
 	//open output file
-	std::string outputFileName = _genome.outputName() + ".psmcfa";
+	const auto outputFileName = _genome.outputName() + ".psmcfa";
 	logfile().list("Writing PSMC input file to '" + outputFileName + "'.");
-	_out.open(outputFileName.c_str());
-	coretools::user_assert(_out.is_open(), "Failed to open output file '", outputFileName, "'!");
+	_out.open(outputFileName);
 	_nCharOnLine = 0;
-};
+}
 
 void TPSMCInput::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().listFlushTime("Estimating heterozygosity status ...");
@@ -65,30 +64,28 @@ void TPSMCInput::_handleWindow(GenotypeLikelihoods::TWindow& window){
 
 		//check if we are heterozygous
 		if(logPHomo > _logConfidence){
-			_out << 'T';
+			_out.write('T');
 		} else if(logPHomo < _logConfidenceHet){
-			_out << 'K';
+			_out.write('K');
 		} else {
-			_out << 'N';
+			_out.write('N');
 		}
 
 		//do we add a new line?
 		if(_nCharOnLine == 59){
 			_nCharOnLine = 0;
-			_out << '\n';
+			_out.endln();
 		} else ++_nCharOnLine;
 	}
 
 	logfile().doneTime();
-};
+}
 
 void TPSMCInput::run(){
 	_traverseBAMWindows();
 
 	//close output file
-	if(_nCharOnLine > 0) _out << '\n';
-	_out.close();
-};
+	if(_nCharOnLine > 0) _out.endln();
+}
 
-}; // end namespace
-
+} // namespace GenomeTasks

@@ -537,7 +537,7 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 
 	//creating header
 	std::vector<std::string> header;
-	header.push_back("readGroup");
+	header.push_back("ReadGroup");
 	header.push_back("No_read_group");
 	header.push_back("Not_aligned");
 	_filters.fillHeader(header);

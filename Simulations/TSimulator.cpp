@@ -218,11 +218,13 @@ void TSimulator::runSimulations() {
 			refB = _fastaReader.view(i, 0, chr.length());
 		}
 
-		logfile().listFlush("Simulating genotypes ...");
-		if (chr.ploidy() == 1)
+		if (chr.ploidy() == 1) {
+			logfile().listFlush("Simulating haploid genotypes ...");
 			_haploSimulator->simulateHaploid(haplotypes, refB, chr);
-		else
+		} else {
+			logfile().listFlush("Simulating diploid genotypes ...");
 			_haploSimulator->simulateDiploid(haplotypes, refB, chr);
+		}
 		logfile().done();
 
 		if (_writeTrueGenotypes) {

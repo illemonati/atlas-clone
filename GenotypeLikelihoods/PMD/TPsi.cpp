@@ -17,6 +17,9 @@
 #include "TReadGroupInfo.h"
 #include "TSequencedData.h"
 
+#include "coretools/devtools.h"
+
+
 namespace GenotypeLikelihoods::PMD {
 
 using BAM::End;
@@ -243,7 +246,8 @@ void TPsi::_joinTables(size_t From, size_t To) noexcept {
 }
 
 void TPsi::estimateInit(std::string_view OutputName, size_t MinData) noexcept {
-	using coretools::instances::logfile;
+	DEBUG_ASSERT(_nPaired > 0 || _nSingle > 0);
+
 	_printTable(OutputName);
 
 	if (_nPaired > 0 && _nSingle > 0) logfile().warning("Readgroup contains both single- and paired-ended reads!");
@@ -306,19 +310,21 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 	using BAM::RGInfo::toString;
 	_tables.resize(2); // at least
 	if (Info.is_string()) {
-	// CT5:0.1,0.09;GA3:0.3*exp()
-	coretools::str::TSplitter semi(Info.get<std::string_view>(), ';');
-	for (auto s: semi) {
-		const auto sType     = readBefore(s, ':');
-		user_assert(sType.size() == 3, sType, " is not a recognized token!");
+		// CT5:0.1,0.09;GA3:0.3*exp()
+		coretools::str::TSplitter semi(Info.get<std::string_view>(), ';');
+		for (auto s : semi) {
+			const auto sType = readBefore(s, ':');
+			user_assert(sType.size() == 3, sType, " is not a recognized token!");
 
-		const auto type = impl::type(sType.substr(0, 2));
-		const auto end  = impl::end(sType.substr(2, 1));
+			const auto type = impl::type(sType.substr(0, 2));
+			const auto end  = impl::end(sType.substr(2, 1));
 
-		const auto sFunction = readAfter(s, ':');
-		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
-		else _tables[end][type] = impl::empiric(sFunction);
-	}
+			const auto sFunction = readAfter(s, ':');
+			if (sFunction.find('*') != sFunction.npos)
+				_tables[end][type] = impl::exp(sFunction);
+			else
+				_tables[end][type] = impl::empiric(sFunction);
+		}
 	} else {
 		_CMax = Info.value("CMax", 0);
 		_S    = 0;
@@ -363,7 +369,8 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 							_tables[1][t].emplace_back(d);
 						}
 					} else if (Info[k][0].is_array()) {
-						if (_CMax == 0 && Info[k].size() > 1) throw coretools::TUserError("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
+						if (_CMax == 0 && Info[k].size() > 1)
+							throw coretools::TUserError("several ", k + "-PMD on 3'-end needs a Cmax value > 0!");
 						if (_S == 0) _S = Info[k].size() - 1;
 
 						if (_tables.size() < 2 + _S) _tables.resize(2 + _S);
@@ -383,11 +390,12 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &Info) {
 		}
 	}
 	// at least one value
-	for (auto& t: _tables) for (auto &v: t) if (v.empty()) v = {P(0.)};
+	for (auto &t : _tables)
+		for (auto &v : t)
+			if (v.empty()) v = {P(0.)};
 }
 
 void TPsi::log() const noexcept {
-	using coretools::instances::logfile;
 	constexpr size_t Nmax = 3;
 
 	bool hasAny = false;
@@ -416,19 +424,39 @@ void TPsi::log() const noexcept {
 }
 
 void TPsi::_printTable(std::string_view OutputName) {
+	size_t max = 0;
+	for (const auto& outer: _tableSums) {
+		for (const auto& inner: outer) {
+			max = std::max(inner.size(), max);
+		}
+	}
+	if (max == 0) return;
+	std::vector<std::string> header{"End_FragLength"};
+	for (size_t i = 0; i < max; ++i) {
+		header.push_back(toString(i, "_from5"));
+	}
+
 	coretools::TOutputFile oFile(toString(OutputName, "_PsiTable.txt.gz"));
-	coretools::instances::logfile().list("Writing countTable '", oFile.name(), "'.");
+	oFile.writeln("#Format: [fromTo/fromSum:toFrom/toSum:PMDinit]");
+	oFile.writeln(header);
+	logfile().list("Writing countTable '", oFile.name(), "'.");
+
 	for (size_t i = 0; i < _tableSums.size(); ++i) {
 		const auto name = i == 0 ? "5" : toString("3_", i);
 		for (auto t = Type::min; t < Type::max; ++t) {
-			oFile.writeNoDelim(impl::toString(t), name).writeDelim();
 			auto &tSum = _tableSums[i][t];
+			if (tSum.empty()) continue;
+
+			oFile.writeNoDelim(impl::toString(t), name).writeDelim();
 			for (const auto ts : tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
 				const auto PMD    = std::max(0., (fromTo - toFrom) / (1.0 - toFrom));
-				oFile.writeNoDelim(ts.fromTo.fromTo, "/", ts.fromTo.fromSum, ";", ts.fromTo.toFrom, "/",
+				oFile.writeNoDelim(ts.fromTo.fromTo, "/", ts.fromTo.fromSum, ":", ts.fromTo.toFrom, "/",
 								   ts.fromTo.toSum, ":", PMD).writeDelim();
+			}
+			for (size_t i = tSum.size(); i < max; ++i) {
+				oFile.write("0/0:0/0:0");
 			}
 			oFile.endln();
 		}

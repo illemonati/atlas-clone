@@ -10,6 +10,7 @@
 #include "TSequencedData.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
+#include "coretools/algorithms.h"
 #include "genometools/Genotypes/Containers.h"
 #include "genometools/Genotypes/Base.h"
 
@@ -90,6 +91,17 @@ TBaseCounts TSite::countAlleles() const {
 	TBaseCounts alleleCounts{};
 	for (const auto &b : _data) { ++alleleCounts[b.base]; }
 	return alleleCounts;
+}
+
+coretools::PhredInt TSite::rmsMappingQual() const {
+	if (_data.empty()) return {};
+
+	double sqSum = 0;
+	for (const auto &d : _data) {
+		const auto mQ = d.mappingQuality.get();
+		sqSum += mQ*mQ;
+	}
+	return coretools::PhredInt(static_cast<coretools::PhredInt>(sqrt(sqSum/_data.size())));
 }
 
 coretools::TStrongArray<size_t, BAM::Mate> TSite::countMates() const {

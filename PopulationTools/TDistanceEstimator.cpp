@@ -39,7 +39,7 @@ TDistance::TDistance(){
 	_distanceWeight[DP::aa_bc] = 4.0;
 	_distanceWeight[DP::ab_cc] = 4.0;
 	_distanceWeight[DP::ab_cd] = 4.0;
-};
+}
 
 double TDistance::calculateDistance(const TDistanceData & phi){
 	using DP = DistancePhi;
@@ -52,7 +52,7 @@ double TDistance::calculateDistance(const TDistanceData & phi){
 			+ phi[DP::aa_bc] * _distanceWeight[DP::aa_bc]
 			+ phi[DP::ab_cc] * _distanceWeight[DP::ab_cc]
 			+ phi[DP::ab_cd] * _distanceWeight[DP::ab_cd];
-};
+}
 
 TDistanceProbMismatch::TDistanceProbMismatch(){
 	using DP = DistancePhi;
@@ -66,17 +66,17 @@ TDistanceProbMismatch::TDistanceProbMismatch(){
 	_distanceWeight[DP::aa_bc] = 1.0;
 	_distanceWeight[DP::ab_cc] = 1.0;
 	_distanceWeight[DP::ab_cd] = 1.0;
-};
+}
 
 double TDistanceEuclidian::calculateDistance(const TDistanceData & phi){
 	return sqrt(TDistance::calculateDistance(phi));
-};
+}
 
 TDistanceUser::TDistanceUser(std::vector<double> vec){
 	using coretools::index;
 	for(DistancePhi d = DistancePhi::min; d < DistancePhi::max; ++d)
 		_distanceWeight[d] = vec[index(d)];
-};
+}
 
 //----------------------------------------------------
 //TDistanceEstimate
@@ -148,7 +148,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 	}
 	logfile().conclude("Using distance weights " + coretools::str::concatenateString(_distanceObject->weights(), ", ") + ".");
 
-};
+}
 
 void TEMforDistanceEstimation::_guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	//check sizes are equal
@@ -242,7 +242,7 @@ void TEMforDistanceEstimation::_fill_K(TBaseData & thesePi){
 	//case of four bases: each of the 6 cases is equally likely
 	//Note: product of pi's cancels out when calculating P_g_given_phi_pi
 	_K[DP::ab_cd] = 6.0;
-};
+}
 
 void TEMforDistanceEstimation::_fill_P_g_given_phi_pi(const TDistanceData & thesePhi, TBaseData & thesePi){
 	using genometools::Base;
@@ -400,7 +400,7 @@ void TEMforDistanceEstimation::_fill_P_g_given_phi_pi(const TDistanceData & thes
 	_probGeno[index(GT::CG)][index(GT::AT)] = tmp;
 	_probGeno[index(GT::CT)][index(GT::AG)] = tmp;
 	_probGeno[index(GT::GT)][index(GT::AC)] = tmp;
-};
+}
 
 bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	//prepare estimates
@@ -509,7 +509,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 	logfile().conclude("Resulting distance is ", _distance);
 	logfile().endIndent();
 	return false;
-};
+}
 
 //----------------------------------------------------
 //TDistanceEstimator
@@ -596,10 +596,10 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 
 	//close file
 	distMatrixFile.close();
-};
+}
 
 void TDistanceEstimator::_moveToNextCommonChr(genometools::TGLFReader & g1, genometools::TGLFReader & g2){
-	while(g1.curChromosome().refID() != g2.curChromosome().refID() || g1.curChromosome().isHaploid() || g2.curChromosome().isHaploid()){
+	while((!g1.empty() && !g2.empty()) && (g1.refID() != g2.refID() || g1.curChr().isHaploid() || g2.curChr().isHaploid())) {
 		//advance the one laging behind
 		if(g1.refID() < g2.refID()){
 			if(!g1.jumpToNextChr()) return;
@@ -607,7 +607,7 @@ void TDistanceEstimator::_moveToNextCommonChr(genometools::TGLFReader & g1, geno
 			if(!g2.jumpToNextChr()) return;
 		}
 	}
-};
+}
 
 void TDistanceEstimator::_advance(genometools::TGLFReader & g1, genometools::TGLFReader & g2){
 	//advance
@@ -623,7 +623,7 @@ void TDistanceEstimator::_advance(genometools::TGLFReader & g1, genometools::TGL
 
 	//make sure we are on same chromosome
 	return(_moveToNextCommonChr(g1, g2));
-};
+}
 
 void TDistanceEstimator::_readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, genometools::TGLFReader & g1, genometools::TGLFReader & g2){
 	//parse GLFs. Only keep sites where both individuals have data!
@@ -636,11 +636,11 @@ void TDistanceEstimator::_readCommonSites(GenotypeQualityVector & genoQual1, Gen
 	for(; !g1.empty() && !g2.empty(); _advance(g1, g2)) {
 		if(g2.position() == g1.position()){
 			//add data
-			genoQual1.push_back(g1.front().values);
-			genoQual2.push_back(g2.front().values);
+			genoQual1.push_back(g1.front().likelihoods);
+			genoQual2.push_back(g2.front().likelihoods);
 		}
 	}
-};
+}
 
 void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, genometools::TGLFReader & g1, genometools::TGLFReader & g2, coretools::TLineWriter & out){
 	//initialize storage for two windows
@@ -664,7 +664,7 @@ void TDistanceEstimator::_estimateDistanceGenomeWide(TEMforDistanceEstimation & 
 	//clean up memory
 	logfile().listFlush("Cleaning up memory ...");
 	logfile().done();
-};
+}
 
 //--------------------------------------------
 // Estimation in windows
@@ -692,7 +692,7 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 			logfile().endIndent();
 		}
 	}
-};
+}
 
 void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, genometools::TGLFReader & g1, genometools::TGLFReader & g2, uint32_t windowLen){
 	//initialize variables
@@ -722,7 +722,7 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 	while(!g1.empty() && !g2.empty()){
 		//move to new chromosome
 		window.move(g1.refID(), 0, windowLen);
-		const genometools::TChromosome& curChr = g1.curChromosome();
+		const genometools::TChromosome& curChr = g1.curChr();
 
 		logfile().startNumbering("Chromosome ", curChr.name(), ":");
 
@@ -754,7 +754,7 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 	}
 
 	logfile().endIndent();
-};
+}
 
 //--------------------------------------------
 // Writing estimates
@@ -762,7 +762,7 @@ void TDistanceEstimator::_estimateDistanceInWindows(TEMforDistanceEstimation & E
 void TDistanceEstimator::_writeDistanceEstimates(coretools::TLineWriter & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object){
 	out.write(Chr.name(),"\t",Window.from().position() + 1,"\t",Window.to().position()); //internal position is zero-based
 	_writeDistanceEstimates(out, numsitesWithData, EM_object);
-};
+}
 
 void TDistanceEstimator::_writeDistanceEstimates(coretools::TLineWriter & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
 	using coretools::index;
@@ -778,18 +778,18 @@ void TDistanceEstimator::_writeDistanceEstimates(coretools::TLineWriter & out, i
 	//write distance
 	out.write("\t",EM_object.distance());
 	out.endln();
-};
+}
 
 void TDistanceEstimator::_writeDistanceEstimatesNoData(coretools::TLineWriter & out, const genometools::TChromosome& Chr, genometools::TGenomeWindow& Window){
 	out.write(Chr.name(),"\t",Window.from().position() + 1,"\t",Window.to().position(),"\t"); //internal position is zero-based
 	_writeDistanceEstimatesNoData(out);
-};
+}
 
 void TDistanceEstimator::_writeDistanceEstimatesNoData(coretools::TLineWriter & out){
 	out.write("\t0");
 	for(int i=0; i<14; ++i)
 		out.write("\t-");
 	out.endln();
-};
+}
 
-}; //end namespace
+} //end namespace

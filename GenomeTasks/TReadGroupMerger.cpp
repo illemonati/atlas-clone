@@ -8,12 +8,14 @@
 #include "TReadGroupMerger.h"
 #include "TOutputBamFile.h"
 #include "coretools/Files/TInputFile.h"
+#include "coretools/Files/TInputRcpp.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/splitters.h"
 
 namespace GenomeTasks{
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using coretools::user_assert;
 
 TReadGroupMerger::TReadGroupMerger() {
 	BAM::TReadGroups& readGroups = _genome.bamFile().readGroupsMutable();
@@ -24,49 +26,48 @@ TReadGroupMerger::TReadGroupMerger() {
 
 	//create map oldId -> new Id. Fill with identity.
 	_readGroupMap.resize(readGroups.size());
+	std::vector<bool> willChange(readGroups.size(), false);
 	for(size_t i=0; i<readGroups.size(); ++i){
 		_readGroupMap[i] = i;
 	}
 
 	//parse file and construct new read groups in new header object
 	std::set<std::string> readGroupsMerged;
-	for (coretools::TInputFile file(filename.c_str(), coretools::FileType::NoHeader); !file.empty(); file.popFront()) {
-		user_assert(file.numCols() >= 2, "Wrong number of entries on line ", file.curLine(), " in file '", filename, "'!");
+	coretools::TInputFile mergeFile(filename, coretools::FileType::Header);
 
+	const auto idx = mergeFile.indices({"receiver", "donor"});
+	for (; !mergeFile.empty(); mergeFile.popFront()) {
 		// create new read group
-		uint16_t newId = readGroups.add(file.get(0)).id;
-		logfile().startIndent("The following read groups will be merged into '", file.get(0), "':");
+		const auto newId  = readGroups.add(mergeFile.get(idx.front())).id;
+		willChange[newId] = true;
+		logfile().startIndent("The following read groups will be merged into '", mergeFile.get(0), "':");
 
-		for (size_t i = 1; i < file.numCols(); ++i) {
+		coretools::str::TSplitter spl(mergeFile.get(idx.back()), ',');
+
+		for (auto s : spl) {
 			// check for duplicates
-			if (!readGroupsMerged.emplace(file.get(i)).second) {
-				throw coretools::TUserError("Read group '", file.get(i), "' is listed multiple times in file '", filename, "'!");
+			if (!readGroupsMerged.emplace(s).second) {
+				throw coretools::TUserError("Read group '", s, "' is listed multiple times in file '", filename, "'!");
 			}
 
-			const auto oldId = readGroups.getId(file.get(i));
+			const auto oldId  = readGroups.getId(s);
+			willChange[oldId] = true;
 
 			// set not to write to header
 			readGroups.removeFromHeader(oldId);
 			_readGroupMap[oldId] = newId;
-			logfile().list(file.get(i));
-		}
-		logfile().endIndent();
-	}
-
-	//report unaffected read groups
-	std::vector<std::string> unaffectedReadGroups;
-	for(size_t i=0; i<readGroups.size(); ++i){
-		if(_readGroupMap[i] ==  i){
-			unaffectedReadGroups.push_back(readGroups.getName(i));
-		}
-	}
-
-	if(unaffectedReadGroups.size() > 0){
-		logfile().startIndent("The following read groups will be kept as is:");
-		for(const auto& s : unaffectedReadGroups){
 			logfile().list(s);
 		}
 		logfile().endIndent();
+	}
+
+	std::string s = "";
+	for (size_t i = 0; i < readGroups.size(); ++i) {
+		if (!willChange[i]) s += readGroups.getName(i) + ", ";
+	}
+	if (!s.empty()) {
+		s.pop_back(); s.pop_back(); // remove last ", "
+		logfile().list("The following read groups will be kept as is: ", s);
 	}
 }
 

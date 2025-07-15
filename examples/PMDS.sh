@@ -15,7 +15,7 @@ for strand in single double; do
 		--out $strand --logFile simulate_$strand.out
 
 	out=filternoPMDS$strand
-	$atlas --task filterBAM --bam ${strand}.bam --filterPMDS 0.5 \
+	$atlas --task filterBAM --bam ${strand}.bam --filterPMDS 0.5  \
 		   --fixedSeed 4 --out $out --logFile $out.out 2> $out.eout
 
 	out=PMDS$strand
@@ -23,6 +23,7 @@ for strand in single double; do
 		   --fixedSeed 5 --out $out --logFile $out.out 2> $out.eout
 
 	out=filterPMDS$strand
-	$atlas --task filterBAM --bam PMDS${strand}_PMDS.bam --filterPMDS 0.5 \
+	$atlas --task filterBAM --filterPMDS 0.5 --bamLog $out.filterLog \
+		   --bam PMDS${strand}_PMDS.bam \
 		   --fixedSeed 6 --out $out --logFile $out.out 2> $out.eout
 done

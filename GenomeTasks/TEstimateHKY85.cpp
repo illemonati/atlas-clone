@@ -318,6 +318,7 @@ TEstimateHKY85::TEstimateHKY85() {
 		user_assert(!parameters().exists("depth"), "Cannot use arguments 'prob' and 'depth' at the same time!");
 
 		parameters().fill("prob", _depthOrProbs);
+		user_assert(!_depthOrProbs.empty(), "Cannot read probabilities given: '", parameters().get("prob"), "'!");
 		std::sort(_depthOrProbs.begin(), _depthOrProbs.end(), std::greater<>());
 		user_assert(_depthOrProbs.front() <= 1, "Probability must be <= 1!");
 		user_assert(_depthOrProbs.back() > 0, "Probability must be positive!");
@@ -336,6 +337,7 @@ TEstimateHKY85::TEstimateHKY85() {
 	} else if ((parameters().exists("depth"))) {
 		_fullDepth   = false;
 		auto depths = parameters().get<std::vector<double>>("depth");
+		user_assert(!depths.empty(), "Cannot read depth given: '", parameters().get("depth"), "'!");
 		std::sort(depths.begin(), depths.end(), std::greater<>());
 		user_assert(depths.back() > 0, "Depth must be > 0!");
 

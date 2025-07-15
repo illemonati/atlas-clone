@@ -40,10 +40,10 @@ void TBamWindows::_setWindowParameters(const genometools::TChromosomes& Chromoso
 
 		std::vector<genometools::TGenomeWindow> windows;
 
-		for (coretools::TInputFile iFile(sWindow, coretools::FileType::NoHeader); !iFile.empty(); iFile.popFront()) {
-			const auto refId = Chromosomes.refID(iFile.get(0));
-			const auto start = iFile.get<size_t>(1);
-			const auto end   = iFile.get<size_t>(2);
+		for (coretools::TInputFile bedFile(sWindow, coretools::FileType::NoHeader); !bedFile.empty(); bedFile.popFront()) {
+			const auto refId = Chromosomes.refID(bedFile.get(0));
+			const auto start = bedFile.get<size_t>(1);
+			const auto end   = bedFile.get<size_t>(2);
 			windows.emplace_back(refId, start, end - start);
 		}
 		std::sort(windows.begin(), windows.end());

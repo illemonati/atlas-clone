@@ -3,10 +3,11 @@
 //
 
 #include "TInbreedingEstimator.h"
+
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "stattools/MCMC/TMCMC.h"
-
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -273,6 +274,7 @@ void TInbreedingEstimator::_readData() {
 }
 
 void TInbreedingEstimator::run() {
+	coretools::user_assert(_likelihoods.numPopulations() == 1, "Inbreeding can only be done for 1 population, no ", _likelihoods.numPopulations(), "!");
 	// read file names
 	std::string vcfFileName = parameters().get("vcf");
 	vcfFileName             = coretools::str::extractBeforeLast(vcfFileName, ".vcf");

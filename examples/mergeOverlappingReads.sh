@@ -9,7 +9,8 @@ out="simulate"
 $atlas --task simulate --RGInfo sim.json --chrLength 111111 \
 	   --fixedSeed 140 --out $out --logFile $out.out 2> $out.eout
 
-echo "RG1 RG2" > rgs.txt
+echo "receiver donor" > rgs.txt
+echo "RG1 RG2" >> rgs.txt
 
 out="mergeRG"
 $atlas --task mergeRG --bam simulate.bam --readGroups rgs.txt \

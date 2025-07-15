@@ -22,10 +22,7 @@ using coretools::instances::parameters;
 //TODO: should that filter pairs as in TBamFilter?
 TPMDSCalculator::TPMDSCalculator(): _outBam(_genome.outputName() + "_PMDS.bam", _genome.bamFile()) {
 	//get parameters
-	if (!_genome.errorModels().postMortemDamageModels().hasPMD()) {
-		UERROR("Cannot estimate PMDS without pmd model!");
-	}
-
+	coretools::user_assert(_genome.errorModels().postMortemDamageModels().hasPMD(), "Cannot estimate PMDS without pmd model!");
 
 	_pi = parameters().get<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));

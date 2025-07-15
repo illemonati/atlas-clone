@@ -29,14 +29,14 @@ TErrorModels::TErrorModels(BAM::RGInfo::TReadGroupInfo& RGInfo) {
 			logfile().endIndent();
 		}
 		logfile().endIndent();
-};
+}
 
 coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedData &data) const {
 	if (data.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
 	return _pmd.P_dij(data, _recal.P_dij(data))[data.base].complement();
-};
+}
 
 coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedData &data) const{
 	if(data.base == genometools::Base::N){
@@ -44,17 +44,17 @@ coretools::PhredInt TErrorModels::phredIntWithPMD(const BAM::TSequencedData &dat
 	} else {
 		return coretools::PhredInt(errorWithPMD(data));
 	}
-};
+}
 
 void TErrorModels::recalibrateWithPMD(BAM::TSequencedData &data) const{
 	data.recalQuality = phredIntWithPMD(data);
-};
+}
 
 void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
 	for(auto& b : aln){
 		recalibrateWithPMD(b);
 	}
-};
+}
 
 double TErrorModels::calculateLogPMDS(const BAM::TSequencedData &data, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
@@ -65,7 +65,35 @@ double TErrorModels::calculateLogPMDS(const BAM::TSequencedData &data, const gen
 	const TBaseLikelihoods tmpBaseData = fromError(ref, pi);
 
 	return log(weightedSum(baseLikelihoods, tmpBaseData) / weightedSum(baseLikelihoodsNoPMD, tmpBaseData));
-};
+}
+
+TBaseLikelihoods TErrorModels::calculateBaseLikelihoods(const TSite &site) const {
+	using coretools::P;
+	using genometools::Base;
+	using genometools::Genotype;
+		
+	if (site.empty()) { return TBaseLikelihoods{coretools::P(1.)}; }
+	// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+	TBaseLikelihoods ret{P(1.)};
+
+	// Normalize to max = 1
+	double max = 1.;
+	for (const auto &d : site) {
+		const double max_inv = 1./max;
+		max = 0.;
+		const auto bLikes = _pmd.P_dij(d, _recal.P_dij(d));
+		for (auto b = Base::min; b < Base::max; ++b) {
+			ret[b] *= P(bLikes[b]*max_inv);
+			max = std::max<double>(ret[b], max);
+		}
+	}
+	const double max_inv = 1./max;
+	for (auto& r: ret) {
+		r = P(r*max_inv);
+	}
+
+	return ret;
+}
 
 TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &site) const {
 	using coretools::P;
@@ -101,6 +129,6 @@ TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &sit
 
 	return ret;
 
-};
+}
 
-}; //end namespace
+} //end namespace
