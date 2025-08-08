@@ -3,6 +3,7 @@
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringConversions.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include <memory>
 #include <numeric>
@@ -65,14 +66,15 @@ bool TOverlappingReadsMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev)
 }
 
 void TOverlappingReadsMerger::_summary() {
+	using coretools::str::toPercentString;
 	const double nCases = std::accumulate(_cases.begin(), _cases.end(), 0);
 	logfile().startIndent("Merging summary:");
-	logfile().list(_cases[Cases::NoOverlap], " pairs without overlap: ", _cases[Cases::NoOverlap]/nCases);
-	logfile().list(_cases[Cases::Overlap], " pairs with overlap: ", _cases[Cases::Overlap]/nCases);
-	logfile().list("Discarted ", _cases[Cases::BothFwd], " pairs with two Fwd strands: ", _cases[Cases::BothFwd]/nCases);
-	logfile().list("Discarted ", _cases[Cases::BothRev], " pairs with two Rev strands: ", _cases[Cases::BothRev]/nCases);
-	logfile().list("Discarted ", _cases[Cases::RStart_s_FStart], " pairs where Rev starts before Fwd: ", _cases[Cases::RStart_s_FStart]/nCases);
-	logfile().list("Discarted ", _cases[Cases::REnd_s_FEnd], " pairs where Rev ends before Fwd: ", _cases[Cases::REnd_s_FEnd]/nCases);
+	logfile().list(_cases[Cases::NoOverlap], " pairs without overlap (", toPercentString(_cases[Cases::NoOverlap]/nCases, 3), "%)");
+	logfile().list(_cases[Cases::Overlap], " pairs with overlap (", toPercentString(_cases[Cases::Overlap]/nCases, 3), "%)");
+	logfile().list("Discarted ", _cases[Cases::BothFwd], " pairs with two Fwd strands (", toPercentString(_cases[Cases::BothFwd]/nCases, 3), "%)");
+	logfile().list("Discarted ", _cases[Cases::BothRev], " pairs with two Rev strands (", toPercentString(_cases[Cases::BothRev]/nCases, 3), "%)");
+	logfile().list("Discarted ", _cases[Cases::RStart_s_FStart], " pairs where Rev starts before Fwd (", toPercentString(_cases[Cases::RStart_s_FStart]/nCases, 3), "%)");
+	logfile().list("Discarted ", _cases[Cases::REnd_s_FEnd], " pairs where Rev ends before Fwd (", toPercentString(_cases[Cases::REnd_s_FEnd]/nCases, 3), "%)");
 	logfile().endIndent();
 }
 

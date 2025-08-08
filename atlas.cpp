@@ -65,7 +65,6 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");	
 	main.createGroupedTask<GenomeTasks::TBamDiagnoser>(groupName, "BAMDiagnostics", "Estimating depth and read property frequencies");
 	main.createGroupedTask<GenomeTasks::TAssessSoftClipping>(groupName, "assessSoftClipping", "Assessing level of soft clipping in BAM file");
-	main.createGroupedTask<GenomeTasks::TSoftClipsTrimmer>(groupName, "trimSoftClips", "Removing soft clipped bases from reads");
 	main.createGroupedTask<GenomeTasks::TQualityTransformation>(groupName, "qualityTransformation", "Printing Quality Transformation");
 	main.createGroupedTask<GenomeTasks::TBamDownsampler>(groupName, "downsample", "Downsampling a BAM file");
 	main.createGroupedTask<GenomeTasks::TPMDSCalculator>(groupName, "PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");	
