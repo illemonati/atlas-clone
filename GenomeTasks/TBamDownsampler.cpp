@@ -65,16 +65,23 @@ void TBamDownsampler::_readVectorOfDownsamplingProbabilities(){
         parameters().fill("prob", _probs);
     } else if(parameters().exists("depth")){
         std::vector<double> depths;
-        parameters().fill("depth", depths);
-        double averageDepth = parameters().get<double>("averageDepth");
-        for(auto& it : depths){
-            if(averageDepth >= it){
-                _probs.emplace_back(it / averageDepth);
-            } else{
-                throw coretools::TUserError("Average Depth must be equal or bigger than provided lists of depths");
-            }
-        }
-    } else {
+		parameters().fill("depth", depths);
+		double averageDepth;
+		if (parameters().exists("averageDepth")) {
+			averageDepth = parameters().get<double>("averageDepth");
+		} else {
+			logfile().list("No averageDepth given, will calculate it. Use 'averageDepth' to safe time!");
+			averageDepth = _genome.bamFile().averageDepth();
+			logfile().list("Average depth estimated to ", averageDepth);
+		}
+		for (auto &it : depths) {
+			if (averageDepth >= it) {
+				_probs.emplace_back(it / averageDepth);
+			} else {
+				throw coretools::TUserError("Average Depth must be equal or bigger than provided lists of depths");
+			}
+		}
+	} else {
         throw coretools::TUserError("Either argument 'prob' or 'depth' must be provided!");
     }
 	//get unique names
