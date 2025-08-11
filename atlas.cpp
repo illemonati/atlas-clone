@@ -78,11 +78,11 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TAllelicDepth>(groupName, "allelicDepth", "Writing genotype likelihoods to a GLF file");
 	main.createGroupedTask<GenomeTasks::TPSMCInput>(groupName, "PSMC", "Generating a PSMC Input file probabilistically");
 	main.createGroupedTask<GenomeTasks::TCall>(groupName, "call", "Calling genotypes");
-	main.createGroupedTask<GenomeTasks::TEstimateTheta>(groupName, "theta", "Estimating heterozygosity (theta)", "Kousathanas et al. (2017) Genetics");
+	main.createGroupedTask<GenomeTasks::TEstimateTheta>(groupName, "theta", "Estimating heterozygosity with Felsenstein genotype distribution", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TEstimateThetaRatio>(groupName, "thetaRatio", "Estimate ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TWriteGLF>(groupName, "GLF", "Writing genotype likelihoods to a GLF file");	
 	main.createGroupedTask<GenomeTasks::TEstimateMutationLoad>(groupName, "mutationLoad", "Estimating mutation load across the genome");
-	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating HKY85 genotype Distribution");
+	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating heterozygosity with HKY85 genotype distribution");
 	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
 	main.createGroupedTask<GenomeTasks::TPileup2Bed>(groupName, "pileupToBed", "Create bed file from pileup file");
 	}

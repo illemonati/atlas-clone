@@ -24,7 +24,7 @@ protected:
 	genometools::TBed _bed;
 	uint32_t _minDepth;
 
-	void _createMask(const std::string fileTag);
+	void _createMask(std::string_view fileTag);
 	void _startChromosome(const genometools::TChromosome&) override {}
 	void _endChromosome(const genometools::TChromosome&) override {}
 public:
@@ -80,7 +80,7 @@ public:
 struct TMaskCreator {
 	void run() {
 		// which mask?
-		const std::string mask = coretools::instances::parameters().get<std::string>("type");
+		const auto mask = coretools::instances::parameters().get("type");
 		if (mask == "depth") {
 			TCreateDepthBedMask depthMask;
 			depthMask.createDepthMask();

@@ -22,11 +22,11 @@ using coretools::user_assert;
 	_minDepth = parameters().get<uint32_t>("minDepth", 2);
 };
 
-void TCreateBedMask::_createMask(const std::string fileTag){
+void TCreateBedMask::_createMask(std::string_view fileTag){
 	_traverseBAMWindows();
 
 	//write mask
-	std::string filename = _genome.outputName() + "_minDepth"+ toString(_minDepth) + "_" + fileTag + ".bed";
+	const auto filename = toString(_genome.outputName(), "_minDepth", _minDepth, "_", fileTag, ".bed");
 	logfile().listFlush("Writing mask to BED file '" + filename + "' ...");
 
 	_bed.write(filename);
@@ -41,8 +41,6 @@ TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask for all sites with depth outside the range [" + toString(_minDepth) + ", " + toString(_maxDepth) + "].");
 
 	user_assert(_maxDepth > _minDepth, "maxDepthForMask must be > minDepthForMask!");
-
-	user_assert(!parameters().exists("maxDepth") && !parameters().exists("minDepth"), "Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!");
 }
 
 void TCreateDepthBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
@@ -56,7 +54,7 @@ void TCreateDepthBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 }
 
 void TCreateDepthBedMask::createDepthMask(){
-	_createMask("maxDepth" + toString(_maxDepth) + "_depthMask.bed");
+	_createMask("maxDepth" + toString(_maxDepth, "Mask"));
 }
 
 //--------------------------------------
@@ -82,7 +80,7 @@ void TCreateInvariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window
 }
 
 void TCreateInvariantBedMask::createInvariantMask(){
-	_createMask("invariantMask.bed");
+	_createMask("invariantMask");
 }
 
 //--------------------------------------
@@ -108,7 +106,7 @@ void TCreateVariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 };
 
 void TCreateVariantBedMask::createVariantMask(){
-	_createMask("variantMask.bed");
+	_createMask("variantMask");
 };
 
 //--------------------------------------
@@ -134,7 +132,7 @@ void TCreateNonRefBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 };
 
 void TCreateNonRefBedMask::createVariantMask(){
-	_createMask("nonRefMask.bed");
+	_createMask("nonRefMask");
 };
 
 }; // end namespace
