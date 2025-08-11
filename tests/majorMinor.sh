@@ -18,7 +18,7 @@ for f in *.bam; do
 		   --fixedSeed 131 --out $out --logFile $out.out 2> $out.eout
 done
 
-allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
+allSamples=$(ls -1 *.glf.gz | paste -s -d ',' -)
 
 out="majorMinor"
 $atlas --task majorMinor --glf $allSamples --method Skotte \
