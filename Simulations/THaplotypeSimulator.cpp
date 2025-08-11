@@ -200,7 +200,8 @@ void TSimulatorHKY85::simulateDiploid(TSimulatorHaplotypes &haplotypes, coretool
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base r = _readFasta ? reference[i] : randomGenerator().pickOne(_cumulBaseFreq);
+		const Base r = !_readFasta || reference[i] == Base::N ? randomGenerator().pickOne(_cumulBaseFreq) : reference[i];
+
 		for (size_t s = 0; s < _sampleSize; ++s) {
 			const Base R = Base(_pick_r[refID][r]());
 			const Base k = Base(_pick_g[refID][R]());
@@ -216,7 +217,7 @@ void TSimulatorHKY85::simulateHaploid(TSimulatorHaplotypes &haplotypes, coretool
 						   const genometools::TChromosome &chromosome) {
 	const auto refID = chromosome.refID();
 	for (size_t i = 0; i < chromosome.length(); ++i) {
-		const Base r = _readFasta ? reference[i] : randomGenerator().pickOne(_cumulBaseFreq);
+		const Base r = !_readFasta || reference[i] == Base::N ? randomGenerator().pickOne(_cumulBaseFreq) : reference[i];
 		for (size_t s = 0; s < _sampleSize; ++s) {
 			const Base R     = Base(_pick_r[refID][r]());
 			haplotypes[s][i] = genometools::twoBase(R, R);
