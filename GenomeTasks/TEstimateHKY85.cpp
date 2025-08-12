@@ -5,12 +5,14 @@
 
 #include "TGenotypeDistribution.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/fromString.h"
+#include "coretools/Strings/stringProperties.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
@@ -161,6 +163,7 @@ double TEstimateHKY85::_runEM() {
 
 void TEstimateHKY85::_handlePosterior(GenotypeLikelihoods::TWindow& window) {
 	const auto from = window.from();
+
 	for (size_t i = 0; i < window.size(); ++i) {
 		const auto& s = window[i];
 		if (s.empty() || s.refBase == Base::N) continue; 
@@ -300,14 +303,54 @@ void TEstimateHKY85::run() {
 }
 
 void TEstimateHKY85::_initPosterior() {
+	using coretools::str::fromString;
 	_runType = RunType::posterior;
+
+	double mu, thetaR, thetaG;
 	const auto post = parameters().get("posterior");
 	if (std::filesystem::exists(post)) {
-		throw coretools::TUserError("parsing HKY85 file not implemented yet!");
+		coretools::TInputFile iFile(post, coretools::FileType::Header);
+		size_t iMu     = -1;
+		size_t iThetaG = -1;
+		size_t iThetaR = -1;
+		for (size_t i = 0; i < iFile.header().size(); ++i) {
+			std::string_view k = iFile.header()[i];
+
+			if (k.size() >= 2 && k.substr(k.size() - 2) == "mu") iMu = std::min(i, iMu);
+			if (k.size() >= 7 && k.substr(k.size() - 7) == "theta_r") iThetaR = std::min(i, iThetaR);
+			if (k.size() >= 7 && k.substr(k.size() - 7) == "theta_g") iThetaG = std::min(i, iThetaG);
+		}
+
+		if (iFile.get("Start") == "Round") {
+			mu     = fromString<double, true>(iFile.get(iMu));
+			thetaR = fromString<double, true>(iFile.get(iThetaR));
+			thetaG = fromString<double, true>(iFile.get(iThetaG));
+		} else {
+			logfile().list("Calculating posterior probabilities with average HKY85 model over windows.");
+			size_t N         = 0;
+			double muSum     = 0.;
+			double thetaRSum = 0.;
+			double thetaGSum = 0.;
+			for (; !iFile.empty(); iFile.popFront()) {
+				++N;
+				muSum += fromString<double, true>(iFile.get(iMu));
+				thetaRSum += fromString<double, true>(iFile.get(iThetaR));
+				thetaGSum += fromString<double, true>(iFile.get(iThetaG));
+			}
+			mu     = muSum / N;
+			thetaR = thetaRSum / N;
+			thetaG = thetaGSum / N;
+		}
 	} else {
-		const auto params = coretools::str::fromString<std::array<double,3>, true>(post);
-		_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>(params[0], params[1], params[2]);
+		const auto params = coretools::str::fromString<std::array<double, 3>, true>(post);
+		mu                = params[0];
+		thetaR            = params[1];
+		thetaG            = params[2];
 	}
+	logfile().list("Calculating posterior probabilities with unique HKY85 model: mu = ", mu, ", theta_r = ", thetaR,
+	               ", theta_g = ", thetaG);
+	_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>(mu, thetaR, thetaG);
+
 	std::vector<std::string> header{"chr", "pos", "ref"};
 	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(" + genometools::toString(g) + "|D)");
 	header.push_back("P(het)");

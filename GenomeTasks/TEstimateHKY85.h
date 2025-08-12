@@ -11,6 +11,7 @@
 
 #include "TGenotypeDistribution.h"
 #include "TBamWindowTraverser.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Containers.h"
 #include <memory>

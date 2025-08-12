@@ -52,6 +52,6 @@ $atlas --task HKY85 --genomeWide --minDeltaLL 0.1 \
 	   --fixedSeed 555 --out $out --logFile $out.out 2> $out.eout
 
 out=posterior
-$atlas --task HKY85 --posterior "0.55,0.015,0.00033" \
+$atlas --task HKY85 --posterior "probReads.txt.gz" \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --fixedSeed 555 --out $out --logFile $out.out 2> $out.eout
