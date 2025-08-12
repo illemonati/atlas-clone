@@ -20,6 +20,7 @@ namespace GenomeTasks {
 class TEstimateHKY85 final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
 	enum class Sample : size_t {min = 0, reads=min, sites, upToDepth, max};
+	enum class RunType : size_t {min = 0, windows=min, genomeWide, posterior, max};
 
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 
@@ -33,7 +34,7 @@ private:
 
 	coretools::TOutputFile _out;
 	std::vector<double> _depthOrProbs;
-	bool _genomeWide = false;
+	RunType _runType = RunType::windows;
 	Sample _sample;
 
 	std::vector<genometools::Base> _refBases;
@@ -50,8 +51,12 @@ private:
 	coretools::TNestedVector<Standarray> _P_d_I_b;
 	size_t _lastReadID = 0;
 
+	void _initPosterior();
+	void _initEstimation();
+
 	bool _downSample() const noexcept {return !_depthOrProbs.empty();}
 
+	void _handlePosterior(GenotypeLikelihoods::TWindow& window);
 	void _handleGenomeWide(GenotypeLikelihoods::TWindow& window);
 	void _handlePerWindow(GenotypeLikelihoods::TWindow& window);
 	void _handleGenomeWide();

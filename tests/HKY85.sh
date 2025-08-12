@@ -50,3 +50,8 @@ $atlas --task HKY85 --genomeWide --minDeltaLL 0.1 \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --regions haplo.bed --ploidy 1 --recal $recal --pmd $pmd \
 	   --fixedSeed 555 --out $out --logFile $out.out 2> $out.eout
+
+out=posterior
+$atlas --task HKY85 --posterior "0.55,0.015,0.00033" \
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --fixedSeed 555 --out $out --logFile $out.out 2> $out.eout
