@@ -40,11 +40,11 @@ if __name__ == "__main__":
             flabel = fn.split(".txt")[0].split("/")[-1]
 
         header = f.readline().split()
+        print(header)
 
-        lines = filter(lambda line: args.grep in line, f)
-        data = genfromtxt(lines)
+        data = genfromtxt(fn)
         for y in args.y:
-            label = header[y-1]
+            label = header[y-1].decode()
             if nFiles > 1:
                 label = flabel + ":" + label
             ys = data[:, y - 1]
@@ -68,6 +68,6 @@ if __name__ == "__main__":
         plt.legend()
         f.close()
 
-    plt.xlabel(header[args.x-1])
+    plt.xlabel(header[args.x-1].decode())
 
     plt.show()

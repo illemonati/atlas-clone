@@ -171,7 +171,7 @@ void TEstimateHKY85::_handlePosterior(GenotypeLikelihoods::TWindow& window) {
 		auto lik = _genome.errorModels().calculateGenotypeLikelihoods(s);
 		_genoDist->normalize_add(lik, s.refBase);
 		const auto pHet = 1 - lik[Genotype::AA] - lik[Genotype::CC] - lik[Genotype::GG] - lik[Genotype::TT];
-		_out.writeln(from.refID(), from.position() + i + 1, s.refBase, lik, pHet);
+		_out.writeln(from.refID(), from.position() + i + 1, s.refBase, s.getBases(), lik, pHet);
 	}
 }
 
@@ -351,7 +351,7 @@ void TEstimateHKY85::_initPosterior() {
 	               ", theta_g = ", thetaG);
 	_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>(mu, thetaR, thetaG);
 
-	std::vector<std::string> header{"chr", "pos", "ref"};
+	std::vector<std::string> header{"chr", "pos", "ref", "bases"};
 	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(" + genometools::toString(g) + "|D)");
 	header.push_back("P(het)");
 
