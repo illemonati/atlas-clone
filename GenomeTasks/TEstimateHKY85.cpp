@@ -168,10 +168,29 @@ void TEstimateHKY85::_handlePosterior(GenotypeLikelihoods::TWindow& window) {
 		const auto& s = window[i];
 		if (s.empty() || s.refBase == Base::N) continue; 
 
+		_out.write(from.refID(), from.position() + i + 1, s.refBase);
+
+		std::string sBases, sRecal, sCT, sGA, sPos;
+		for (const auto& d: s) {
+			sBases += genometools::base2char(d.base);
+			sRecal += coretools::str::toString(P(_genome.errorModels().sequencingErrorModels().phredInt(d)), ",");
+			sPos   += coretools::str::toString(d.distFrom5.linear(), ",");
+			const auto& model = _genome.errorModels().postMortemDamageModels().model(d);
+			sCT += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::CT, d), ",");
+			sGA += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::GA, d), ",");
+
+		}
+		sRecal.pop_back();
+		sPos.pop_back();
+		sCT.pop_back();
+		sGA.pop_back();
+
+		_out.write(sBases, sRecal, sCT, sGA, sPos);
 		auto lik = _genome.errorModels().calculateGenotypeLikelihoods(s);
+		_out.write(lik);
 		_genoDist->normalize_add(lik, s.refBase);
 		const auto pHet = 1 - lik[Genotype::AA] - lik[Genotype::CC] - lik[Genotype::GG] - lik[Genotype::TT];
-		_out.writeln(from.refID(), from.position() + i + 1, s.refBase, s.getBases(), lik, pHet);
+		_out.writeln(lik, pHet);
 	}
 }
 
@@ -351,7 +370,8 @@ void TEstimateHKY85::_initPosterior() {
 	               ", theta_g = ", thetaG);
 	_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>(mu, thetaR, thetaG);
 
-	std::vector<std::string> header{"chr", "pos", "ref", "bases"};
+	std::vector<std::string> header{"chr", "pos", "ref", "bases", "recal", "p(CT)", "p(GA)", "dist5'"};
+	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(D|" + genometools::toString(g) + ")");
 	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(" + genometools::toString(g) + "|D)");
 	header.push_back("P(het)");
 
