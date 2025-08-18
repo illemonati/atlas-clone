@@ -1,0 +1,38 @@
+#! /bin/bash
+
+cd "$(dirname "$0")" || exit 1
+
+echo "Running examples"
+
+cnt=0
+fail=0
+for f in ../examples/*.sh ; do
+	((cnt++))
+	bf=$(basename "${f%.sh}")
+	echo "$cnt) Example Run: $bf"
+	fo=${bf}_example
+	if [[ ! -d $fo ]]; then
+		mkdir "$fo"
+	fi
+	if [[ -d $fo ]]; then
+		rm "$fo"/*
+	fi
+
+	cd "$fo" || exit 1
+	bash ../"$f" > all.out 2> all.eout
+	if [[ -s all.eout ]]; then
+		echo "Running $f ended with errors"
+		fails="$fails, $bf"
+		((fail++))
+	fi
+	cd .. || exit 1
+done
+
+if [[ $fail -gt 0 ]]; then
+	echo "$fail of $cnt tests failed:"
+	echo ${fails#", "}
+	exit 1
+else
+	echo "All $cnt tests passed"
+	exit 0
+fi
