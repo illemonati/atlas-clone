@@ -41,7 +41,7 @@ class TOutputBamFile {
 private:
 	std::string _outputFilename;
 	BamTools::BamWriter _bamWriter;
-	const TReadGroups *_readGroups = nullptr;
+	TReadGroups _readGroups;
 
 	std::vector<TAlignment> _futureAlignments;
 

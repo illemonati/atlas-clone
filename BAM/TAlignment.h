@@ -19,6 +19,7 @@
 #include "TCigar.h"
 #include "TSamFlags.h"
 #include "TSequencedData.h"
+#include "genometools/GenomePositions/TGenomeWindow.h"
 #include "genometools/Genotypes/Base.h"
 
 namespace GenotypeLikelihoods {
@@ -95,6 +96,7 @@ public:
 
 	constexpr genometools::TGenomePosition from() const noexcept {return _position;}
 	constexpr genometools::TGenomePosition to() const { return _position + _refSize; }
+	genometools::TGenomeWindow span() const { return {from(), to()}; }
 
 	// clear, fill and parse
 	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,

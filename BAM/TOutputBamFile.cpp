@@ -112,7 +112,7 @@ TOutputBamFile::~TOutputBamFile(){
 }
 
 	TOutputBamFile::TOutputBamFile(std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups) :
-		_outputFilename(std::move(Filename)), _readGroups(&ReadGroups){
+		_outputFilename(std::move(Filename)), _readGroups(ReadGroups){
 
 	//construct new header /without chromosomes
 	const auto header = Header.compileSamHeader(ReadGroups, Chromosomes);
@@ -164,7 +164,7 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	_tmpBamAlignment.Qualities = alignment.qualities();
 
 	//add read group information
-	_tmpBamAlignment.AddTag("RG", "Z", _readGroups->getName(alignment.readGroupId()));
+	_tmpBamAlignment.AddTag("RG", "Z", _readGroups.getName(alignment.readGroupId()));
 
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment)){

@@ -10,6 +10,7 @@
 #include "TOverlappingReadsMerger.h"
 #include "TPairAnalyser.h"
 #include "TPileup2Bed.h"
+#include "TReadExtractor.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
 #include "coretools/Main/TMain.h"
@@ -134,6 +135,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
 	main.createDebugTask<PopulationTools::TPositionBasedLiftOver>("liftOver", "Position-based lift over from one reference to another");
 	main.createDebugTask<GenomeTasks::TDepthCalculator>("averageDepth", "Calculate average depth of BAM file");	
+	main.createDebugTask<GenomeTasks::TReadExtractor>("extractReads", "Extract reads overlapping an allele-file");	
 
 };
 
