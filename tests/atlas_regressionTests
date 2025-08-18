@@ -43,7 +43,7 @@ fi
 
 tBegin=$(date +%s)
 for f in $(eval echo $shs); do
-	fo=${f%.sh}
+	fo=${f%.test}
 	((cnt++))
 	tstep=$(date +%s)
 	echo "$cnt) Regression Test: $fo"
