@@ -42,7 +42,6 @@
 #include "TInbreedingEstimator.h"
 #include "TMajorMinor.h"
 #include "TPSMCInput.h"
-#include "TPolymorphicWindowIdentifier.h"
 #include "TWriteGLF.h"
 #include "TSpearmanGWAS.h"
 
@@ -97,7 +96,6 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<PopulationTools::TAlleleCounter>(groupName, "alleleCounts", "Estimating population allele counts");
 	main.createGroupedTask<PopulationTools::TAlleleFreqEstimator>(groupName, "alleleFreq", "Estimating population allele frequencies");
 	main.createGroupedTask<PopulationTools::TInbreedingEstimator>(groupName, "inbreeding", "Estimating the inbreeding coefficient", "Burger et al. (2020) Current Biology");
-	main.createGroupedTask<PopulationTools::TPolymorphicWindowIdentifier>(groupName, "polymorphicWindows", "Identifying windows for which samples are polymorphic");
 	main.createGroupedTask<PopulationTools::TF2Estimator>(groupName, "calculateF2", "Calculate F2 between samples, and within/between populations");
 	main.createGroupedTask<PopulationTools::TAncestralAlleleEstimator>(groupName, "ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 	main.createGroupedTask<PopulationTools::TSafEstimator>(groupName, "saf", "Estimating Site Allele Frequencies");	
