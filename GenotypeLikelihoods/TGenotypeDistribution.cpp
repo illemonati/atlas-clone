@@ -310,8 +310,8 @@ double THKY85::add(const TGenotypeLikelihoods &Likelihoods, genometools::Base Re
 }
 
 
-THKY85::THKY85()
-	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
+THKY85::THKY85(double Mu, double Theta_r, double Theta_g)
+	: _mu(Mu), _theta_r(Theta_r), _theta_g(Theta_g), _pi(impl::piTable(_mu, _theta_r, _theta_g)),
 	  _nelderMead([this](auto Vals) { return -impl::Q(coretools::expit(Vals[0]), coretools::expit(Vals[1]), coretools::expit(Vals[2]), _likelihoodSum); }) {
 }
 

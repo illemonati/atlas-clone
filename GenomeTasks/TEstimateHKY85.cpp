@@ -1,16 +1,22 @@
 #include "TEstimateHKY85.h"
 
+#include <filesystem>
+#include <memory>
+
 #include "TGenotypeDistribution.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/TInputFile.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/TSumLog.h"
+#include "coretools/Strings/fromString.h"
+#include "coretools/Strings/stringProperties.h"
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "genometools/Genotypes/Base.h"
-#include <memory>
+#include "genometools/Genotypes/Genotype.h"
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
@@ -19,6 +25,7 @@ using coretools::P;
 using coretools::user_assert;
 using genometools::TGenotypeLikelihoods;
 using genometools::Base;
+using genometools::Genotype;
 
 void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
 	_refBases.reserve(_refBases.size() + Window.sites().size());
@@ -154,6 +161,39 @@ double TEstimateHKY85::_runEM() {
 	return oldLL;
 }
 
+void TEstimateHKY85::_handlePosterior(GenotypeLikelihoods::TWindow& window) {
+	const auto from = window.from();
+
+	for (size_t i = 0; i < window.size(); ++i) {
+		const auto& s = window[i];
+		if (s.empty() || s.refBase == Base::N) continue; 
+
+		_out.write(from.refID(), from.position() + i + 1, s.refBase);
+
+		std::string sBases, sRecal, sCT, sGA, sPos;
+		for (const auto& d: s) {
+			sBases += genometools::base2char(d.base);
+			sRecal += coretools::str::toString(P(_genome.errorModels().sequencingErrorModels().phredInt(d)), ",");
+			sPos   += coretools::str::toString(d.distFrom5.linear(), ",");
+			const auto& model = _genome.errorModels().postMortemDamageModels().model(d);
+			sCT += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::CT, d), ",");
+			sGA += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::GA, d), ",");
+
+		}
+		sRecal.pop_back();
+		sPos.pop_back();
+		sCT.pop_back();
+		sGA.pop_back();
+
+		_out.write(sBases, sRecal, sCT, sGA, sPos);
+		auto lik = _genome.errorModels().calculateGenotypeLikelihoods(s);
+		_out.write(lik);
+		_genoDist->normalize_add(lik, s.refBase);
+		const auto pHet = 1 - lik[Genotype::AA] - lik[Genotype::CC] - lik[Genotype::GG] - lik[Genotype::TT];
+		_out.writeln(lik, pHet);
+	}
+}
+
 void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &Window) {
 	_totSites += Window.size();
 	_totMaskedSites += Window.numMaskedSites();
@@ -217,10 +257,11 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 }
 
 void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
-	if (_genomeWide) {
-		_handleGenomeWide(window);
-	} else {
-		_handlePerWindow(window);
+	switch (_runType) {
+	case RunType::windows:_handlePerWindow(window); break;
+	case RunType::genomeWide: _handleGenomeWide(window); break;
+	case RunType::posterior: _handlePosterior(window); break;
+	default: throw coretools::TDevError("Should not end up here!");
 	}
 }
 
@@ -277,12 +318,67 @@ void TEstimateHKY85::_handleGenomeWide() {
 
 void TEstimateHKY85::run() {
 	_traverseBAMWindows();
-	if (_genomeWide) _handleGenomeWide();
+	if (_runType == RunType::genomeWide) _handleGenomeWide();
 }
 
-TEstimateHKY85::TEstimateHKY85() {
-	_windows.requireReference();
+void TEstimateHKY85::_initPosterior() {
+	using coretools::str::fromString;
+	_runType = RunType::posterior;
 
+	double mu, thetaR, thetaG;
+	const auto post = parameters().get("posterior");
+	if (std::filesystem::exists(post)) {
+		coretools::TInputFile iFile(post, coretools::FileType::Header);
+		size_t iMu     = -1;
+		size_t iThetaG = -1;
+		size_t iThetaR = -1;
+		for (size_t i = 0; i < iFile.header().size(); ++i) {
+			std::string_view k = iFile.header()[i];
+
+			if (k.size() >= 2 && k.substr(k.size() - 2) == "mu") iMu = std::min(i, iMu);
+			if (k.size() >= 7 && k.substr(k.size() - 7) == "theta_r") iThetaR = std::min(i, iThetaR);
+			if (k.size() >= 7 && k.substr(k.size() - 7) == "theta_g") iThetaG = std::min(i, iThetaG);
+		}
+
+		if (iFile.get("Start") == "Round") {
+			mu     = fromString<double, true>(iFile.get(iMu));
+			thetaR = fromString<double, true>(iFile.get(iThetaR));
+			thetaG = fromString<double, true>(iFile.get(iThetaG));
+		} else {
+			logfile().list("Calculating posterior probabilities with average HKY85 model over windows.");
+			size_t N         = 0;
+			double muSum     = 0.;
+			double thetaRSum = 0.;
+			double thetaGSum = 0.;
+			for (; !iFile.empty(); iFile.popFront()) {
+				++N;
+				muSum += fromString<double, true>(iFile.get(iMu));
+				thetaRSum += fromString<double, true>(iFile.get(iThetaR));
+				thetaGSum += fromString<double, true>(iFile.get(iThetaG));
+			}
+			mu     = muSum / N;
+			thetaR = thetaRSum / N;
+			thetaG = thetaGSum / N;
+		}
+	} else {
+		const auto params = coretools::str::fromString<std::array<double, 3>, true>(post);
+		mu                = params[0];
+		thetaR            = params[1];
+		thetaG            = params[2];
+	}
+	logfile().list("Calculating posterior probabilities with unique HKY85 model: mu = ", mu, ", theta_r = ", thetaR,
+	               ", theta_g = ", thetaG);
+	_genoDist = std::make_unique<GenotypeLikelihoods::THKY85>(mu, thetaR, thetaG);
+
+	std::vector<std::string> header{"chr", "pos", "ref", "bases", "recal", "p(CT)", "p(GA)", "dist5'"};
+	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(D|" + genometools::toString(g) + ")");
+	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(" + genometools::toString(g) + "|D)");
+	header.push_back("P(het)");
+
+	_out.open(_genome.outputName() + "_post.txt.gz", header);
+}
+
+void TEstimateHKY85::_initEstimation() {
 	_numEMIterations  = parameters().get<int>("iterations", 200);
 	_minDeltaLL       = parameters().get<double>("minDeltaLL", 1e-6);
 
@@ -394,8 +490,8 @@ TEstimateHKY85::TEstimateHKY85() {
 	}
 
 	// genomewide?
-	_genomeWide = parameters().exists("genomeWide");
-	if (_genomeWide) {
+	_runType = parameters().exists("genomeWide") ? RunType::genomeWide : RunType::windows;
+	if (_runType == RunType::genomeWide) {
 		logfile().list("Will estimating genotype Distribution genome-wide. (parameter 'genomeWide')");
 		if (parameters().get("genomeWide").empty()) {
 			_nRounds = 1;
@@ -417,6 +513,17 @@ TEstimateHKY85::TEstimateHKY85() {
 
 	DEV_ASSERT(_fullDepth || _downSample()); // otherwise, there is nothing to do
 }
+
+TEstimateHKY85::TEstimateHKY85() {
+	_windows.requireReference();
+
+	if (parameters().exists("posterior")) {
+		_initPosterior();
+	} else {
+		_initEstimation();
+	}
+}
+
 void TEstimateHKY85::_openFile() {
 	using coretools::str::toString;
 	std::vector<std::string> header{"Chr", "Start", "End"};

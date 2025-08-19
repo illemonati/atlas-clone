@@ -113,7 +113,8 @@ class THKY85 final : public TGenotypeDistribution {
 
 public:
 	static constexpr std::string_view name = "HKY85";
-	THKY85();
+	THKY85() : THKY85(_mu_init, _theta_r_init, _theta_g_init) {}
+	THKY85(double Mu, double Theta_r, double Theta_g);
 
 	genometools::TGenotypeLikelihoods P_dij(const genometools::TBaseLikelihoods &BaseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const genometools::TBaseLikelihoods &BaseLikelihoods,
