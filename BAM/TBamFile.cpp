@@ -188,6 +188,7 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 		_filters.enable(FilterType::ReadGroup, "Read group not in use");
 	} else {
 		_filters.disable(FilterType::ReadGroup);
+		logfile().list("Will not filter Readgroups. (use 'readGroup')");
 	}
 
 	constexpr std::string_view downsample = "downsampleReads";
