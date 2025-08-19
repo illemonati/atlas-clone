@@ -10,9 +10,17 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 
 void TReadExtractor::_handleAlignment(BAM::TAlignment& Alignment) {
+	if (_alIt == _alleles.end()) {
+		_genome.bamFile().jumpToEnd();
+		return;
+	}
+
 	// go forward
-	auto it = _alleles.begin(Alignment.span());
-	if (it == _alleles.end()) return;
+	while (Alignment.from() > _alIt->position) {
+		++_alIt;
+		if (_alIt == _alleles.end()) return;
+	}
+	auto it = _alIt;
 
 	size_t nRef   = 0;
 	size_t nAlt   = 0;
@@ -35,11 +43,11 @@ void TReadExtractor::_handleAlignment(BAM::TAlignment& Alignment) {
 	}
 
 	if (nOther) {
-		_nOther += nOther;
+		_nOther++;
 		return;
 	}
 	if (nRef && nAlt) {
-		_nBoth += nRef + nAlt;
+		_nBoth ++;
 		return;
 	}
 
@@ -67,6 +75,8 @@ TReadExtractor::TReadExtractor()
 
 void TReadExtractor::run() {
 	_alleles.parse(parameters().get("alleles"), _genome.bamFile().chromosomes());
+	_alIt = _alleles.begin();
+	_genome.bamFile().jump(_alIt->position);
 
 	_traverseBAMPassedQC();
 	logfile().list("N_Ref: ", _nRef, ", N_Alt: ", _nAlt, ", N_both: ", _nBoth, ", N_other: ", _nOther);

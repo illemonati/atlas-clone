@@ -463,6 +463,11 @@ bool TBamFile::jump(const genometools::TGenomePosition Position){
 	return _bamReader.Jump(Position.refID(), Position.position());
 }
 
+bool TBamFile::jumpToEnd() {
+	BamTools::BamAlignment bamAlignment;
+	return _bamReader.Jump(_chromosomes.size() - 1, _chromosomes.back().length() - 1);
+}
+
 double TBamFile::averageDepth() {
 	if (!(_curAlignmentPosition == genometools::TGenomePosition{})) {
 		logfile().warning("Calculating average depth resets bam file!");
