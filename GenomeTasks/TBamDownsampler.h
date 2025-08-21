@@ -63,7 +63,7 @@ class TBamDownsampler {
 
 public:
 	TBamDownsampler();
-	virtual void run();
+	void run();
 	void sample();
 };
 

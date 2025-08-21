@@ -50,7 +50,6 @@ private:
 
 	//header
  	genometools::TChromosomes _chromosomes;
- 	std::vector<genometools::TChromosome>::iterator _curChromosome;
  	TReadGroups _readGroups;
  	TSamHeader _samHeader;
 
@@ -79,7 +78,6 @@ private:
  	TCigar _curCigar;
  	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
 	size_t _curReadGroupID      = 0;
-	bool _chrChanged            = false;
 
 	//alignment filters
 	std::vector<size_t> _numNotAligned;
@@ -135,30 +133,32 @@ public:
 	void writeCurAlignment(TOutputBamFile & out);
 
 	//getters for cur alignment
-	const std::string &curName() const { return _curBamAlignment.Name; };
-	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; };
-	size_t refID() const noexcept { return _curChromosome->refID(); };
-	const genometools::TChromosome &curChromosome() const noexcept { return *_curChromosome; };
-	const TCigar &curCIGAR() const noexcept { return _curCigar; };
-	constexpr size_t curReadGroupID() const noexcept { return _curReadGroupID; };
-	constexpr bool chrChanged() const noexcept { return _chrChanged; };
-	constexpr bool curPassedQC() const noexcept { return _QCFiltersPassed; };
+	const std::string &curName() const { return _curBamAlignment.Name; }
+	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; }
+	size_t refID() const noexcept { return _curAlignmentPosition.refID(); }
+	const genometools::TChromosome &curChromosome() const noexcept { return _chromosomes[refID()]; }
+	const TCigar &curCIGAR() const noexcept { return _curCigar; }
+	constexpr size_t curReadGroupID() const noexcept { return _curReadGroupID; }
+	constexpr bool chrChanged() const noexcept {
+		return _curAlignmentPosition.refID() != _previousAlignmentPosition.refID();
+	}
+	constexpr bool curPassedQC() const noexcept { return _QCFiltersPassed; }
 	size_t curFragmentLength() const;
-	uint16_t curMappingQuality() const noexcept { return _curBamAlignment.MapQuality; };
-	bool curIsPaired() const { return _curBamAlignment.IsPaired(); };
-	bool curIsProperPair() const { return _curBamAlignment.IsProperPair(); };
-	bool curIsReverseStrand() const { return _curBamAlignment.IsReverseStrand(); };
-	bool curIsDuplicate() const { return _curBamAlignment.IsDuplicate(); };
-	bool curIsMapped() const { return _curBamAlignment.IsMapped(); };
-	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); };
-	bool curIsSecondary() const { return !_curBamAlignment.IsPrimaryAlignment(); };
-	bool curIsSupplementary() const { return _curBamAlignment.IsSupplementary(); };
+	uint16_t curMappingQuality() const noexcept { return _curBamAlignment.MapQuality; }
+	bool curIsPaired() const { return _curBamAlignment.IsPaired(); }
+	bool curIsProperPair() const { return _curBamAlignment.IsProperPair(); }
+	bool curIsReverseStrand() const { return _curBamAlignment.IsReverseStrand(); }
+	bool curIsDuplicate() const { return _curBamAlignment.IsDuplicate(); }
+	bool curIsMapped() const { return _curBamAlignment.IsMapped(); }
+	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); }
+	bool curIsSecondary() const { return !_curBamAlignment.IsPrimaryAlignment(); }
+	bool curIsSupplementary() const { return _curBamAlignment.IsSupplementary(); }
 	bool curIsLongerThanFragment() const {
 		return _curBamAlignment.IsProperPair() &&
 			   _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned());
-	};
-	bool curIsFirstMate() const { return _curBamAlignment.IsFirstMate(); };
-	bool curIsSecondMate() const { return _curBamAlignment.IsSecondMate(); };
+	}
+	bool curIsFirstMate() const { return _curBamAlignment.IsFirstMate(); }
+	bool curIsSecondMate() const { return _curBamAlignment.IsSecondMate(); }
 	std::string curQuerySequence(const size_t start, const size_t length) const;
 
 	//modify cur alignment
@@ -166,10 +166,10 @@ public:
 	void curAddSamField(const std::string& tag, float value);
 
 	//other getters
-	const std::string& filename() const noexcept { return _filename; };
-	size_t maxReadLength() const { return _filters.range(FilterType::ReadLength).max(); };
-	const coretools::TCountDistributionVector<>& numAlignmentReadPerReadGroupPerChromosome() const noexcept { return _numAlignmentReadPerReadGroupPerChromosome; };
-	size_t numReadGroups() const noexcept { return _readGroups.size(); };
+	const std::string& filename() const noexcept { return _filename; }
+	size_t maxReadLength() const { return _filters.range(FilterType::ReadLength).max(); }
+	const coretools::TCountDistributionVector<>& numAlignmentReadPerReadGroupPerChromosome() const noexcept { return _numAlignmentReadPerReadGroupPerChromosome; }
+	size_t numReadGroups() const noexcept { return _readGroups.size(); }
 	double averageDepth();
 
 
@@ -180,7 +180,6 @@ public:
 	void printEndWithSummary(std::string_view outputName, bool indent = true) const;
 };
 
-}; //end namespace
-
+} // namespace BAM
 
 #endif /* BAM_TBAMFILE_H_ */

@@ -22,7 +22,7 @@ using coretools::instances::logfile;
 using coretools::user_assert;
 
 namespace impl {
-std::string millionReadsRead(size_t N) { return coretools::str::toStringWithPrecision((double) N / 1000000, 1); };
+std::string millionReadsRead(size_t N) { return coretools::str::toStringWithPrecision((double) N / 1000000, 1); }
 }
 
 void TBamFile::curFilterOut(){
@@ -135,9 +135,9 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 	_fillReadGroups();
 	_numNotAligned.resize(_readGroups.size());
 
-	//initialize chromosomes and set cur chromosome to end
+	//initialize chromosomes
 	_fillChromosomes();
-	_curChromosome = _chromosomes.end();
+	_curAlignmentPosition.move(0, 0);
 
 	//resize alignmentCounter
 	_numAlignmentReadPerReadGroupPerChromosome.resize(_readGroups.size());
@@ -351,44 +351,26 @@ bool TBamFile::readNextAlignment(){
 			pass = false;
 		}
 	}
+	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
 
 	//check if chromosome changed
-	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){
-		_chrChanged = true;
-		//advance chromosome
-		if(_curChromosome == _chromosomes.end()){
-			_curChromosome = _chromosomes.begin();
+	if (chrChanged()) {
+		if (refID() >= _chromosomes.size()) {
+			throw coretools::TUserError("Chromosome with refID ", _curBamAlignment.RefID,
+										" is missing from BAM header!");
 		}
 
-		while(_curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){
-			++_curChromosome;
-
-			if(_curChromosome == _chromosomes.end()){
-				//is chromosome not in header?
-				if(!_chromosomes.exists(_curBamAlignment.RefID)){
-					throw coretools::TUserError("Chromosome with refID ", _curBamAlignment.RefID, " is missing from BAM header!");
-				} else {
-					throw coretools::TUserError("BAM file not sorted!");
-				}
-			}
-		}
-
-		//if not in use: jump to next in use
-		if(!_curChromosome->inUse()){
-			while(!_curChromosome->inUse()){
-				++_curChromosome;
-
-				if(_curChromosome == _chromosomes.end()){
+		if(!curChromosome().inUse()) {
+			do {
+				_curAlignmentPosition.move(refID() + 1, 0);
+				if(refID() >= _chromosomes.size()){
 					return false;
 				}
-			}
-
+			} while (!curChromosome().inUse());
 			//jump reader and read first alignment
-			if (!jump(_curChromosome->from())) return false;
+			if (!jump(curChromosome().from())) return false;
 			return readNextAlignment();
 		}
-	} else {
-		_chrChanged = false;
 	}
 
 	//get current position, clear CIGAR and update counter
@@ -403,7 +385,7 @@ bool TBamFile::readNextAlignment(){
 
 	// update per read group counter
 	if(_curReadGroupID != TReadGroups::noReadGroupId){
-		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
+		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, refID());
 	}
 
 	//parse CIGAR
@@ -605,8 +587,8 @@ void TBamFile::startProgressReporting(bool indent) const {
 }
 
 void TBamFile::printProgress() const {
-	if (_chrChanged) {
-		logfile().list("Parsing Chromomsome ", _curChromosome->name(), ".");
+	if (chrChanged()) {
+		logfile().list("Parsing Chromomsome ", curChromosome().name(), ".");
 	}
 	if (_numAlignmentRead - _lastProgressPrinted >= _progressFrequency) {
 		logfile().list("Parsed " + impl::millionReadsRead(_numAlignmentRead) + " million reads (est. " +
