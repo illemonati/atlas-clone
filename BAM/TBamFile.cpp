@@ -26,7 +26,7 @@ std::string millionReadsRead(size_t N) { return coretools::str::toStringWithPrec
 }
 
 void TBamFile::curFilterOut(){
-	_filters.filterOut(FilterType::External, _curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
+	_filters.filterOut(FilterType::External, _read.bamAlignment.Name, _read.bamAlignment.IsReverseStrand(), _read.readGroupID, refID());
 }
 
 void TBamFile::filterOut(const TAlignment & Alignment){
@@ -137,7 +137,7 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 
 	//initialize chromosomes
 	_fillChromosomes();
-	_curAlignmentPosition.move(0, 0);
+	_read.position.move(0, 0);
 
 	//resize alignmentCounter
 	_numAlignmentReadPerReadGroupPerChromosome.resize(_readGroups.size());
@@ -238,7 +238,7 @@ void TBamFile::setFilters(const TBamFilters& Filters) {
 bool TBamFile::_readNextAlignmentFromFile(){
 	using coretools::instances::randomGenerator;
 	for (;;) {
-		if (!_bamReader.GetNextAlignment(_curBamAlignment)) { return false; }
+		if (!_bamReader.GetNextAlignment(_read.bamAlignment)) { return false; }
 		if (_downProb == 0. || randomGenerator().getRand() < _downProb) { break; }
 		// Else downsaple alignment
 		++_numDownsampled;
@@ -248,14 +248,14 @@ bool TBamFile::_readNextAlignmentFromFile(){
 
 	//store current read group ID
 	std::string readGroup;
-	_curBamAlignment.GetTag("RG", readGroup);
-	_curReadGroupID = _readGroups.getId(readGroup);
+	_read.bamAlignment.GetTag("RG", readGroup);
+	_read.readGroupID = _readGroups.getId(readGroup);
 
 	return true;
 }
 
 bool TBamFile::_identifyDuplicate() {
-	const auto ID    = _old.size() > 1 ? _curReadGroupID : 0;
+	const auto ID    = _old.size() > 1 ? _read.readGroupID : 0;
 	const auto &pNow = curPosition();
 	const auto &pOld = _old[ID].position;
 	if (pNow.refID() != pOld.refID()) return false;
@@ -264,17 +264,17 @@ bool TBamFile::_identifyDuplicate() {
 	if (dStart > _maxDupOverlap) return false;
 
 	const size_t dEnd =
-		std::abs(int64_t(pNow.position() + curFragmentLength()) - int64_t(pOld.position() + _old[ID].length));
+		std::abs(int64_t(pNow.position() + _read.fragmentLength()) - int64_t(pOld.position() + _old[ID].length));
 	if (dEnd > _maxDupOverlap) return false;
 
-	_curBamAlignment.SetIsDuplicate(true);
+	_read.bamAlignment.SetIsDuplicate(true);
 	return true;
 }
 
 bool TBamFile::_applyFilters() {
 	// MappedLength filter is always set
-	if (!_filters.pass(FilterType::MappedLength, _curCigar.lengthMapped(), _curBamAlignment.Name,
-					   _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())) {
+	if (!_filters.pass(FilterType::MappedLength, _read.cigar.lengthMapped(), _read.bamAlignment.Name,
+					   _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID())) {
 		return false;
 	}
 	if (!_filters.enabled()) {
@@ -285,52 +285,52 @@ bool TBamFile::_applyFilters() {
 	float PMDS = -1e20;
 
 	// apply regular filters
-	return _filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+	return _filters.pass(FilterType::Duplicate, !_read.bamAlignment.IsDuplicate(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
 		   _filters.pass(FilterType::SoftClippedRation,
-						 double(_curCigar.lengthSoftClipped()) / _curCigar.lengthRead() <= _filters.softClipRation(),
-	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::PMDS, !_curBamAlignment.GetTag("DS", PMDS) || PMDS < _filters.PMDSmax(),
-	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(),
-	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::Blacklist, !_filters.blacklist().isInBlacklist(_curBamAlignment.Name),
-	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
-	       _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name,
-	                     _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+						 double(_read.cigar.lengthSoftClipped()) / _read.cigar.lengthRead() <= _filters.softClipRation(),
+	                     _read.bamAlignment.Name, _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::PMDS, !_read.bamAlignment.GetTag("DS", PMDS) || PMDS < _filters.PMDSmax(),
+	                     _read.bamAlignment.Name, _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::ImproperPairs, !_read.bamAlignment.IsPaired() || _read.bamAlignment.IsProperPair(),
+	                     _read.bamAlignment.Name, _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::Unmapped, _read.bamAlignment.IsMapped(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::FailedQC, !_read.bamAlignment.IsFailedQC(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::Secondary, _read.bamAlignment.IsPrimaryAlignment(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::Supplementary, !_read.bamAlignment.IsSupplementary(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_read.readGroupID), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::FwdStrand, _read.bamAlignment.IsReverseStrand(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::RevStrand, !_read.bamAlignment.IsReverseStrand(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::FirstMate, _read.bamAlignment.IsFirstMate(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::SecondMate, _read.bamAlignment.IsSecondMate(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::MappingQuality, (size_t)_read.bamAlignment.MapQuality, _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::Blacklist, !_filters.blacklist().isInBlacklist(_read.bamAlignment.Name),
+	                     _read.bamAlignment.Name, _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::ReadLength, _read.cigar.lengthRead(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
+	       _filters.pass(FilterType::FragmentLength, _read.fragmentLength(), _read.bamAlignment.Name,
+	                     _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID()) &&
 	       _filters.pass(FilterType::LongerThanFragment,
-	                     !_curBamAlignment.IsProperPair() ||
-	                         abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()),
-	                     _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
+	                     !_read.bamAlignment.IsProperPair() ||
+	                         abs(_read.bamAlignment.InsertSize) >= static_cast<int32_t>(_read.cigar.lengthAligned()),
+	                     _read.bamAlignment.Name, _read.bamAlignment.IsSecondMate(), _read.readGroupID, refID());
 }
 
 bool TBamFile::readNextAlignment(){
 	if (_numAlignmentRead >= _maxNumReadsToRead) { return false; }
 
 	//store previous position
-	_previousAlignmentPosition = _curAlignmentPosition;
+	_previousAlignmentPosition = _read.position;
 
 
 	//check if it has no read group
@@ -340,29 +340,29 @@ bool TBamFile::readNextAlignment(){
 		// get next alignment
 		if (!_readNextAlignmentFromFile()) { return false; }
 
-		if (_curReadGroupID == TReadGroups::noReadGroupId) {
+		if (_read.readGroupID == TReadGroups::noReadGroupId) {
 			++_numNoReadGroup;
 			pass = false;
 		}
 
 		// check if it is unaligned (refID < 0), in which case we read until the first aligned read
-		if (_curBamAlignment.RefID < 0) {
-			++_numNotAligned[_curReadGroupID];
+		if (_read.bamAlignment.RefID < 0) {
+			++_numNotAligned[_read.readGroupID];
 			pass = false;
 		}
 	}
-	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
+	_read.position.move(_read.bamAlignment.RefID, _read.bamAlignment.Position);
 
 	//check if chromosome changed
 	if (chrChanged()) {
 		if (refID() >= _chromosomes.size()) {
-			throw coretools::TUserError("Chromosome with refID ", _curBamAlignment.RefID,
+			throw coretools::TUserError("Chromosome with refID ", _read.bamAlignment.RefID,
 										" is missing from BAM header!");
 		}
 
 		if(!curChromosome().inUse()) {
 			do {
-				_curAlignmentPosition.move(refID() + 1, 0);
+				_read.position.move(refID() + 1, 0);
 				if(refID() >= _chromosomes.size()){
 					return false;
 				}
@@ -374,48 +374,48 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//get current position, clear CIGAR and update counter
-	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
-	_curCigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
+	_read.position.move(_read.bamAlignment.RefID, _read.bamAlignment.Position);
+	_read.cigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
 
 	//check if BAM file is sorted
-	user_assert(_curAlignmentPosition >= _previousAlignmentPosition, "BAM file must be sorted by position! Alignment '",
-				_curBamAlignment.Name, "' is at position ", _curBamAlignment.Position,
+	user_assert(_read.position >= _previousAlignmentPosition, "BAM file must be sorted by position! Alignment '",
+				_read.bamAlignment.Name, "' is at position ", _read.bamAlignment.Position,
 				", which is before the position of the previous alignment (", _previousAlignmentPosition.position(),
 				")");
 
 	// update per read group counter
-	if(_curReadGroupID != TReadGroups::noReadGroupId){
-		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, refID());
+	if(_read.readGroupID != TReadGroups::noReadGroupId){
+		_numAlignmentReadPerReadGroupPerChromosome.add(_read.readGroupID, refID());
 	}
 
 	//parse CIGAR
-	for(auto& it : _curBamAlignment.CigarData){
-		_curCigar.add(it.Type, it.Length);
+	for(auto& it : _read.bamAlignment.CigarData){
+		_read.cigar.add(it.Type, it.Length);
 	}
 
 	// duplicates
-	if (_resetDuplicates) _curBamAlignment.SetIsDuplicate(false);
-	if (_maxDupOverlap != _nope && !curIsDuplicate()) {
+	if (_resetDuplicates) _read.bamAlignment.SetIsDuplicate(false);
+	if (_maxDupOverlap != _nope && !_read.isDuplicate()) {
 		_numIdentifiedDuplicates       += _identifyDuplicate();
 		if (_old.size() > 1) {
-			_old[_curReadGroupID].position = curPosition();
-			_old[_curReadGroupID].length   = curFragmentLength();
+			_old[_read.readGroupID].position = curPosition();
+			_old[_read.readGroupID].length   = _read.fragmentLength();
 		} else {
 			_old.front().position = curPosition();
-			_old.front().length   = curFragmentLength();
+			_old.front().length   = _read.fragmentLength();
 		}
 	}
 
 	//apply filters
-	_QCFiltersPassed         = _applyFilters();
-	_numAlignmentsPassedQC += _QCFiltersPassed;
+	_read.QCFiltersPassed         = _applyFilters();
+	_numAlignmentsPassedQC += _read.QCFiltersPassed;
 
 	return true;
 }
 
 bool TBamFile::readNextAlignmentThatPassesFilters(){
-	_QCFiltersPassed = false;
-	while(!_QCFiltersPassed){
+	_read.QCFiltersPassed = false;
+	while(!_read.QCFiltersPassed){
 		if(!readNextAlignment()){
 			return false;
 		}
@@ -424,24 +424,24 @@ bool TBamFile::readNextAlignmentThatPassesFilters(){
 }
 
 void TBamFile::fill(TAlignment & alignment) const{
-	alignment.fill(_curBamAlignment.Name,
-				   TSamFlags(_curBamAlignment.AlignmentFlag),
-				   _curBamAlignment.RefID,
-				   _curBamAlignment.Position,
-				   _curBamAlignment.MapQuality,
-				   _curCigar,
-				   _curBamAlignment.MateRefID,
-				   _curBamAlignment.MatePosition,
-				   _curBamAlignment.InsertSize,
-				   _curBamAlignment.QueryBases,
-				   _curBamAlignment.Qualities,
+	alignment.fill(_read.bamAlignment.Name,
+				   TSamFlags(_read.bamAlignment.AlignmentFlag),
+				   _read.bamAlignment.RefID,
+				   _read.bamAlignment.Position,
+				   _read.bamAlignment.MapQuality,
+				   _read.cigar,
+				   _read.bamAlignment.MateRefID,
+				   _read.bamAlignment.MatePosition,
+				   _read.bamAlignment.InsertSize,
+				   _read.bamAlignment.QueryBases,
+				   _read.bamAlignment.Qualities,
 				   _ID,
-				   _curReadGroupID);
+				   _read.readGroupID);
 }
 
 bool TBamFile::jump(const genometools::TGenomePosition Position){
 	_previousAlignmentPosition.clear();
-	_curAlignmentPosition.clear();
+	_read.position.clear();
 	return _bamReader.Jump(Position.refID(), Position.position());
 }
 
@@ -451,7 +451,7 @@ bool TBamFile::jumpToEnd() {
 }
 
 double TBamFile::averageDepth() {
-	if (!(_curAlignmentPosition == genometools::TGenomePosition{})) {
+	if (!(_read.position == genometools::TGenomePosition{})) {
 		logfile().warning("Calculating average depth resets bam file!");
 	}
 	_bamReader.Rewind();
@@ -467,10 +467,10 @@ double TBamFile::averageDepth() {
 
 	size_t alnLength = 0;
 	while (readNextAlignmentThatPassesFilters()) {
-		alnLength += _curCigar.lengthAligned();
+		alnLength += _read.cigar.lengthAligned();
 	}
 
-	_curAlignmentPosition.clear();
+	_read.position.clear();
 	_bamReader.Rewind();
 
 	return double(alnLength)/chrLenght;
@@ -481,39 +481,7 @@ double TBamFile::averageDepth() {
 //--------------------------------------------------------
 
 void TBamFile::writeCurAlignment(TOutputBamFile & out){
-	out.writeAlignment(_curBamAlignment);
-}
-
-//--------------------------------------------------------
-// Getters and setters of cur alignment
-//--------------------------------------------------------
-size_t TBamFile::curFragmentLength() const{
-	if(_curBamAlignment.IsProperPair()){
-		const size_t inserted = abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted();
-		const size_t deleted  = _curCigar.lengthDeleted();
-		if (inserted < deleted) return 0;
-		return inserted - deleted;
-	} else {
-		return _curCigar.lengthSequenced();
-	}
-}
-
-std::string TBamFile::curQuerySequence(size_t start, size_t length) const{
-	return _curBamAlignment.QueryBases.substr(start, length);
-}
-
-void TBamFile::curSetNewReadGroup(size_t id){
-	if(id != _curReadGroupID){
-		_curBamAlignment.EditTag("RG", "Z", _readGroups.getName(id));
-	}
-}
-
-void TBamFile::curAddSamField(const std::string& tag, float value){
-	if(_curBamAlignment.HasTag(tag)){
-		_curBamAlignment.EditTag(tag, "f", value);
-	} else {
-		_curBamAlignment.AddTag(tag, "f", value);
-	}
+	out.writeAlignment(_read.bamAlignment);
 }
 
 //-----------------------------------------------------
@@ -606,6 +574,18 @@ void TBamFile::printEndWithSummary(std::string_view outputName, bool indent) con
 
 	printSummary(outputName);
 }
+void TBamFile::setCurReadGroup(size_t id) {
+	if (id != _read.readGroupID) { _read.bamAlignment.EditTag("RG", "Z", _readGroups.getName(id)); }
+}
+
+void TBamFile::addCurSamField(const std::string& tag, float value){
+       if(_read.bamAlignment.HasTag(tag)){
+               _read.bamAlignment.EditTag(tag, "f", value);
+       } else {
+               _read.bamAlignment.AddTag(tag, "f", value);
+       }
+}
+
 
 
 

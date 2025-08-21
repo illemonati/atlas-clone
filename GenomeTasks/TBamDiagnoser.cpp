@@ -150,83 +150,83 @@ size_t countChr(const std::vector<std::vector<std::array<size_t, 2>>> &Vals, siz
 
 void TBamDiagnoser::_handleAlignment() {
 	// get read group
-	const auto &bamFile    = _genome.bamFile();
-	const size_t readGroup = bamFile.curReadGroupID();
+	const auto &read    = _genome.bamFile().curRead();
+	const size_t readGroup = read.readGroupID;
 	if (readGroup == BAM::TReadGroups::noReadGroupId) return;
 
-	const size_t chromosome = bamFile.refID();
+	const size_t refID = read.position.refID();
 
 	// increments for each read that passed filters
-	_passedQC.add(readGroup, bamFile.curChromosome().refID());
+	_passedQC.add(readGroup, refID);
 
 	// add to counters
 	constexpr size_t maxReadDist = 10000;
-	const auto &curPosition = bamFile.curPosition();
+	const auto &curPosition = read.position;
 	if (curPosition.refID() == _old[readGroup].position.refID()) {
-		_readDist[readGroup].add(chromosome, std::min(maxReadDist, bamFile.curPosition() - _old[readGroup].position));
-		if (_identifyDuplicates && (curPosition.position() == _old[readGroup].position.position()) && (bamFile.curFragmentLength() == _old[readGroup].length)) {
-			_duplicateFile.writeln(bamFile.curChromosome().name(), curPosition.position(), bamFile.curName(),
-								 bamFile.curFragmentLength(), bamFile.curIsReverseStrand(), _old[readGroup].name, _old[readGroup].length, _old[readGroup].isReversed);
+		_readDist[readGroup].add(refID, std::min(maxReadDist, read.position - _old[readGroup].position));
+		if (_identifyDuplicates && (curPosition.position() == _old[readGroup].position.position()) && (read.fragmentLength() == _old[readGroup].length)) {
+			_duplicateFile.writeln(_genome.bamFile().curChromosome().name(), curPosition.position(), read.name(),
+								 read.fragmentLength(), read.isReverseStrand(), _old[readGroup].name, _old[readGroup].length, _old[readGroup].isReversed);
 		}
 	}
 	if (curPosition == _old[readGroup].position) {
 		++_startCounter[readGroup];
 	} else {
-		_readStart[readGroup].add(chromosome, _startCounter[readGroup]);
+		_readStart[readGroup].add(refID, _startCounter[readGroup]);
 		_startCounter[readGroup] = 1;
 	}
 
 
 	_old[readGroup].position = curPosition;
 	if (_identifyDuplicates) {
-		_old[readGroup].name       = bamFile.curName();
-		_old[readGroup].length     = bamFile.curFragmentLength();
-		_old[readGroup].isReversed = bamFile.curIsReverseStrand();
+		_old[readGroup].name       = read.name();
+		_old[readGroup].length     = read.fragmentLength();
+		_old[readGroup].isReversed = read.isReverseStrand();
 	}
 
 	if (curPosition.refID() == _oldPosition.refID()) {
-		_allReadDist.add(chromosome, std::min(maxReadDist, bamFile.curPosition() - _oldPosition));
+		_allReadDist.add(refID, std::min(maxReadDist, read.position - _oldPosition));
 	}
 	if (curPosition == _oldPosition) {
 		++_allStart;
 	} else {
-		_allReadStart.add(chromosome, _allStart);
+		_allReadStart.add(refID, _allStart);
 		_allStart = 1;
 	}
 	_oldPosition = curPosition;
 
-	_readLength[LengthType::All][readGroup].add(chromosome, bamFile.curCIGAR().lengthRead());
+	_readLength[LengthType::All][readGroup].add(refID, read.cigar.lengthRead());
 	if (_writeMates) {
-		const auto mate1 = bamFile.curIsFirstMate();
-		const auto rev   = bamFile.curIsReverseStrand();
+		const auto mate1 = read.isFirstMate();
+		const auto rev   = read.isReverseStrand();
 		if (mate1) {
-			if (rev) _readLength[LengthType::Rev1][readGroup].add(chromosome, bamFile.curCIGAR().lengthRead());
-			else _readLength[LengthType::Fwd1][readGroup].add(chromosome, bamFile.curCIGAR().lengthRead());
+			if (rev) _readLength[LengthType::Rev1][readGroup].add(refID, read.cigar.lengthRead());
+			else _readLength[LengthType::Fwd1][readGroup].add(refID, read.cigar.lengthRead());
 		} else {
-			if (rev) _readLength[LengthType::Rev2][readGroup].add(chromosome, bamFile.curCIGAR().lengthRead());
-			else _readLength[LengthType::Fwd2][readGroup].add(chromosome, bamFile.curCIGAR().lengthRead());
+			if (rev) _readLength[LengthType::Rev2][readGroup].add(refID, read.cigar.lengthRead());
+			else _readLength[LengthType::Fwd2][readGroup].add(refID, read.cigar.lengthRead());
 		}
 	}
-	_usableLength[LengthType::All][readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
+	_usableLength[LengthType::All][readGroup].add(refID, read.cigar.lengthAligned());
 	if (_writeMates) {
-		const auto mate1 = bamFile.curIsFirstMate();
-		const auto rev   = bamFile.curIsReverseStrand();
+		const auto mate1 = read.isFirstMate();
+		const auto rev   = read.isReverseStrand();
 		if (mate1) {
-			if (rev) _usableLength[LengthType::Rev1][readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
-			else _usableLength[LengthType::Fwd1][readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
+			if (rev) _usableLength[LengthType::Rev1][readGroup].add(refID, read.cigar.lengthAligned());
+			else _usableLength[LengthType::Fwd1][readGroup].add(refID, read.cigar.lengthAligned());
 		} else {
-			if (rev) _usableLength[LengthType::Rev2][readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
-			else _usableLength[LengthType::Fwd2][readGroup].add(chromosome, bamFile.curCIGAR().lengthAligned());
+			if (rev) _usableLength[LengthType::Rev2][readGroup].add(refID, read.cigar.lengthAligned());
+			else _usableLength[LengthType::Fwd2][readGroup].add(refID, read.cigar.lengthAligned());
 		}
 	}
 
-	_softClippedLength[readGroup].add(chromosome, bamFile.curCIGAR().lengthSoftClipped());
-	_mappingQuality[readGroup].add(chromosome, bamFile.curMappingQuality());
-	++_paired[readGroup][chromosome][bamFile.curIsPaired()];
+	_softClippedLength[readGroup].add(refID, read.cigar.lengthSoftClipped());
+	_mappingQuality[readGroup].add(refID, read.mappingQuality());
+	++_paired[readGroup][refID][read.isPaired()];
 
 	// fragment length: only for proper pairs and only once
-	if (bamFile.curIsProperPair() && !bamFile.curIsReverseStrand())
-		_fragmentLength[readGroup].add(chromosome, bamFile.curFragmentLength());
+	if (read.isProperPair() && !read.isReverseStrand())
+		_fragmentLength[readGroup].add(refID, read.fragmentLength());
 }
 
 	TBamDiagnoser::TBamDiagnoser() : _identifyDuplicates(parameters().exists("identifyDuplicates")), _writeMates(parameters().exists("writeMates")) {

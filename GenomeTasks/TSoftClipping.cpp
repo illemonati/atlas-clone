@@ -42,24 +42,25 @@ void TSoftClippingStatsFile::open(const std::string &Filename, bool PrintSequenc
 };
 
 void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
-	_out << bamFile.curName() << bamFile.curChromosome().name() << bamFile.curPosition().position();
-	const BAM::TCigar &cigar = bamFile.curCIGAR();
+	const auto& read = bamFile.curRead();
+	_out << read.name() << bamFile.curChromosome().name() << bamFile.curPosition().position();
+	const BAM::TCigar &cigar = read.cigar;
 
 	_out << cigar.lengthSoftClippedLeft() << cigar.lengthSequenced() << cigar.lengthSoftClippedRight();
 	if (_printSequences) {
 		// left
 		if (cigar.lengthSoftClippedLeft() > 0) {
-			_out << bamFile.curQuerySequence(0, cigar.lengthSoftClippedLeft());
+			_out << read.querySequence().substr(0, cigar.lengthSoftClippedLeft());
 		} else {
 			_out << "";
 		}
 
 		// middle
-		_out << bamFile.curQuerySequence(cigar.lengthSoftClippedLeft(), cigar.lengthSequenced());
+		_out << read.querySequence().substr(cigar.lengthSoftClippedLeft(), cigar.lengthSequenced());
 
 		// right
 		if (cigar.lengthSoftClippedRight() > 0) {
-			_out << bamFile.curQuerySequence(cigar.lengthSoftClippedLeft() + cigar.lengthSequenced(),
+			_out << read.querySequence().substr(cigar.lengthSoftClippedLeft() + cigar.lengthSequenced(),
 			                                 cigar.lengthSoftClippedRight());
 		} else {
 			_out << "";
@@ -103,7 +104,7 @@ TAssessSoftClipping::TAssessSoftClipping() : TBamReadTraverser<ReadType::Filtere
 
 void TAssessSoftClipping::_handleAlignment() {
 	// add to counters
-	const BAM::TCigar &cigar = _genome.bamFile().curCIGAR();
+	const BAM::TCigar &cigar = _genome.bamFile().curRead().cigar;
 	left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
 	right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
 	total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft() + cigar.lengthSoftClippedRight());

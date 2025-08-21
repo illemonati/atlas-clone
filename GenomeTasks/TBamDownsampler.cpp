@@ -26,20 +26,21 @@ TBamSample::TBamSample(const Probability &Prob, const std::string &OutName, BAM:
 	: _prob(Prob), _outName(OutName), _out(_outName, bamFile){};
 
 void TBamSample::sample(BAM::TBamFile & bamFile){
-	if(_discard.isInBlacklist(bamFile.curName())){
-		_discard.remove(bamFile.curName());
-	} else if(_keep.isInBlacklist(bamFile.curName())){
+	const auto& read = bamFile.curRead();
+	if(_discard.isInBlacklist(read.name())){
+		_discard.remove(read.name());
+	} else if(_keep.isInBlacklist(read.name())){
 		bamFile.writeCurAlignment(_out);
-		_keep.remove(bamFile.curName());
+		_keep.remove(read.name());
 	} else if(randomGenerator().getRand() < _prob){
 		bamFile.writeCurAlignment(_out);
-		if(bamFile.curIsProperPair()){
-			_keep.add(bamFile.curName());
+		if(read.isProperPair()){
+			_keep.add(read.name());
 		}
 	} else {
 		//filtered out
-		if(bamFile.curIsProperPair()){
-			_discard.add(bamFile.curName());
+		if(read.isProperPair()){
+			_discard.add(read.name());
 		}
 	}
 };
@@ -165,10 +166,11 @@ void TBamDownsampler::run() {
 };
 
 void TBamDownsampler::sample(){
-	if(_discard.isInBlacklist(_genome.bamFile().curName())){
-		_discard.remove(_genome.bamFile().curName());
+	const auto& read = _genome.bamFile().curRead();
+	if(_discard.isInBlacklist(read.name())){
+		_discard.remove(read.name());
 	} else {
-		auto mate = _mateWasWritten.find(_genome.bamFile().curName());
+		auto mate = _mateWasWritten.find(read.name());
 		if(mate != _mateWasWritten.end()){
 			_genome.bamFile().writeCurAlignment(_bamSamples[mate->second]._out);
 			_mateWasWritten.erase(mate);
@@ -183,13 +185,13 @@ void TBamDownsampler::sample(){
 			if(index < _bamSamples.size()){
 				//write
 				_genome.bamFile().writeCurAlignment(_bamSamples[index]._out);
-				if(_genome.bamFile().curIsProperPair()){
-					_mateWasWritten.emplace(_genome.bamFile().curName(), index);
+				if(read.isProperPair()){
+					_mateWasWritten.emplace(read.name(), index);
 				}
 			} else {
 				//discard read
-				if(_genome.bamFile().curIsProperPair()){
-					_discard.add(_genome.bamFile().curName());
+				if(read.isProperPair()){
+					_discard.add(read.name());
 				}
 			}
 		}

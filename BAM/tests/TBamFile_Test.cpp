@@ -602,34 +602,35 @@ public:
 
     void _handleAlignment() override {
         //get read group
-        uint16_t curReadGroup = _genome.bamFile().curReadGroupID();
+		const auto& read = _genome.bamFile().curRead();
+        uint16_t curReadGroup = read.readGroupID;
 
         //add to counters
         totalReads.add(curReadGroup);
 
-        duplicates.add(curReadGroup, _genome.bamFile().curIsDuplicate());
-        improperPairs.add(curReadGroup, _genome.bamFile().curIsPaired() && !_genome.bamFile().curIsProperPair());
-        failedQC.add(curReadGroup, _genome.bamFile().curIsFailedQC());
-        unmapped.add(curReadGroup, !_genome.bamFile().curIsMapped());
-        secondary.add(curReadGroup, _genome.bamFile().curIsSecondary());
-        supplementary.add(curReadGroup, _genome.bamFile().curIsSupplementary());
-        longerThanFragmentLength.add(curReadGroup, _genome.bamFile().curIsLongerThanFragment());
-        fwdStrand.add(curReadGroup, !_genome.bamFile().curIsReverseStrand());
-        revStrand.add(curReadGroup, _genome.bamFile().curIsReverseStrand());
-        firstMate.add(curReadGroup, _genome.bamFile().curIsFirstMate());
-        secondMate.add(curReadGroup, _genome.bamFile().curIsSecondMate());
-        names.push_back(_genome.bamFile().curName());
+        duplicates.add(curReadGroup, read.isDuplicate());
+        improperPairs.add(curReadGroup, read.isPaired() && !read.isProperPair());
+        failedQC.add(curReadGroup, read.isFailedQC());
+        unmapped.add(curReadGroup, !read.isMapped());
+        secondary.add(curReadGroup, read.isSecondary());
+        supplementary.add(curReadGroup, read.isSupplementary());
+        longerThanFragmentLength.add(curReadGroup, read.isLongerThanFragment());
+        fwdStrand.add(curReadGroup, !read.isReverseStrand());
+        revStrand.add(curReadGroup, read.isReverseStrand());
+        firstMate.add(curReadGroup, read.isFirstMate());
+        secondMate.add(curReadGroup, read.isSecondMate());
+        names.push_back(read.name());
 
-        readLength.add(curReadGroup, _genome.bamFile().curCIGAR().lengthRead());
-        softClippedLength.add(curReadGroup, _genome.bamFile().curCIGAR().lengthSoftClipped());
-        mappingQuality.add(curReadGroup, _genome.bamFile().curMappingQuality());
+        readLength.add(curReadGroup, read.cigar.lengthRead());
+        softClippedLength.add(curReadGroup, read.cigar.lengthSoftClipped());
+        mappingQuality.add(curReadGroup, read.mappingQuality());
 
         readGroup.add(curReadGroup);
-        refIDs.add(_genome.bamFile().curPosition().refID());
+        refIDs.add(read.position.refID());
 
         //fragment length: only once
-        if(!_genome.bamFile().curIsReverseStrand()){
-            fragmentLength.add(curReadGroup, _genome.bamFile().curFragmentLength());
+        if(!read.isReverseStrand()){
+            fragmentLength.add(curReadGroup, read.fragmentLength());
         }
     }
 

@@ -28,13 +28,14 @@ for (size_t i = 0; i < _genome.bamFile().readGroups().size(); i++){
 void TIlluminaIdentifier::_handleAlignment(){
 //TODO: put in checks in case alignment names are not illumina
     //to get read group platform unit from read name, split before the 4th colon
-    size_t pos = coretools::str::findNthInstanceInString(4, _genome.bamFile().curName(), ':');
-    std::string rgPUinName = _genome.bamFile().curName().substr(0, pos);
+	const auto& read = _genome.bamFile().curRead();
+    size_t pos = coretools::str::findNthInstanceInString(4, read.name(), ':');
+    std::string rgPUinName = read.name().substr(0, pos);
 
-    if(rgPUinName != _genome.bamFile().readGroups().getReadGroup(_genome.bamFile().curReadGroupID()).platformUnit_PU){
+    if(rgPUinName != _genome.bamFile().readGroups().getReadGroup(read.readGroupID).platformUnit_PU){
         size_t newId = _genome.bamFile().readGroups().getId(rgPU_rgID[rgPUinName]);
-		coretools::user_assert(newId != BAM::TReadGroups::noReadGroupId, "Illumina read group name of read '" + _genome.bamFile().curName() + "' not found in header!");
-        _genome.bamFile().curSetNewReadGroup(newId);
+		coretools::user_assert(newId != BAM::TReadGroups::noReadGroupId, "Illumina read group name of read '" + read.name() + "' not found in header!");
+        _genome.bamFile().setCurReadGroup(newId);
         _counter++;
     }
     _genome.bamFile().writeCurAlignment(_out);

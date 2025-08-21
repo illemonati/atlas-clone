@@ -150,7 +150,8 @@ TWaitingListBamTraverser::TWaitingListBamTraverser(std::string_view OutName)
 
 void TWaitingListBamTraverser::traverseBAM() {
 	// open writer
-	auto& bamFile = _genome.bamFile();
+	auto &bamFile    = _genome.bamFile();
+	const auto &read = bamFile.curRead();
 	bamFile.setExternalFilterReason("Orphan");
 
 	// now parse BAM file
@@ -168,14 +169,14 @@ void TWaitingListBamTraverser::traverseBAM() {
 		_writeUpTo(bamFile.curPosition());
 
 		// check if read passed filters
-		if (!bamFile.curPassedQC()) {
+		if (!read.QCFiltersPassed) {
 			// need to store in blacklist if it was paired
-			if (bamFile.curIsProperPair()) { _blacklist.add(bamFile.curName()); }
+			if (read.isProperPair()) { _blacklist.add(read.name()); }
 			continue;
 		}
 
 		const genometools::TGenomeWindow alnWin(bamFile.curPosition(),
-												bamFile.curCIGAR().lengthRead());
+												read.cigar.lengthRead());
 		if (_alignmentCanBeWrittenUnchanged()) {
 			if(!_masks.keepSingle(alnWin)){
 				// ignore
@@ -268,10 +269,10 @@ void TWaitingListBamTraverser::traverseBAM() {
 }
 
 bool TWaitingListBamTraverser::_alignmentCanBeWrittenUnchanged() {
-	return !_recalibrate && !_genome.bamFile().curIsPaired() && _waitingList.empty() &&
+	return !_recalibrate && !_genome.bamFile().curRead().isPaired() && _waitingList.empty() &&
 		   (_removeSoftClippedBases
-				? (_genome.bamFile().curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases &&
-				   _genome.bamFile().curCIGAR().lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases)
+			? (_genome.bamFile().curRead().cigar.lengthSoftClippedRight() < _maxNumberOfSoftClippedBases &&
+				   _genome.bamFile().curRead().cigar.lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases)
 				: true);
 }
 

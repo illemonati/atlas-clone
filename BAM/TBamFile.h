@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TBamFilters.h"
+#include "TRead.h"
 #include "api/BamAlignment.h"
 #include "api/BamReader.h"
 #include "api/SamHeader.h"
@@ -72,16 +73,13 @@ private:
 		genometools::TGenomePosition position{_nope, _nope};
 	};
 	std::vector<TOld> _old;
+	genometools::TGenomePosition _previousAlignmentPosition;
 
-	//current alignment
- 	BamTools::BamAlignment _curBamAlignment;
- 	TCigar _curCigar;
- 	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
-	size_t _curReadGroupID      = 0;
+	//current read
+	TRead _read;
 
 	//alignment filters
 	std::vector<size_t> _numNotAligned;
-	bool _QCFiltersPassed  = false;
 	size_t _numNoReadGroup = 0;
 
 	TBamFilters _filters;
@@ -129,41 +127,22 @@ public:
 	bool jump(const genometools::TGenomePosition Position);
 	bool jumpToEnd();
 
+	size_t refID() const noexcept { return curPosition().refID(); }
+	const genometools::TChromosome &curChromosome() const noexcept { return _chromosomes[refID()]; }
+	constexpr bool chrChanged() const noexcept {
+		return refID() != _previousAlignmentPosition.refID();
+	}
+
 	//writing
 	void writeCurAlignment(TOutputBamFile & out);
 
 	//getters for cur alignment
-	const std::string &curName() const { return _curBamAlignment.Name; }
-	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; }
-	size_t refID() const noexcept { return _curAlignmentPosition.refID(); }
-	const genometools::TChromosome &curChromosome() const noexcept { return _chromosomes[refID()]; }
-	const TCigar &curCIGAR() const noexcept { return _curCigar; }
-	constexpr size_t curReadGroupID() const noexcept { return _curReadGroupID; }
-	constexpr bool chrChanged() const noexcept {
-		return _curAlignmentPosition.refID() != _previousAlignmentPosition.refID();
-	}
-	constexpr bool curPassedQC() const noexcept { return _QCFiltersPassed; }
-	size_t curFragmentLength() const;
-	uint16_t curMappingQuality() const noexcept { return _curBamAlignment.MapQuality; }
-	bool curIsPaired() const { return _curBamAlignment.IsPaired(); }
-	bool curIsProperPair() const { return _curBamAlignment.IsProperPair(); }
-	bool curIsReverseStrand() const { return _curBamAlignment.IsReverseStrand(); }
-	bool curIsDuplicate() const { return _curBamAlignment.IsDuplicate(); }
-	bool curIsMapped() const { return _curBamAlignment.IsMapped(); }
-	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); }
-	bool curIsSecondary() const { return !_curBamAlignment.IsPrimaryAlignment(); }
-	bool curIsSupplementary() const { return _curBamAlignment.IsSupplementary(); }
-	bool curIsLongerThanFragment() const {
-		return _curBamAlignment.IsProperPair() &&
-			   _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned());
-	}
-	bool curIsFirstMate() const { return _curBamAlignment.IsFirstMate(); }
-	bool curIsSecondMate() const { return _curBamAlignment.IsSecondMate(); }
-	std::string curQuerySequence(const size_t start, const size_t length) const;
+	const TRead& curRead() const {return _read;}
+	genometools::TGenomePosition curPosition() const { return _read.position; }
 
 	//modify cur alignment
-	void curSetNewReadGroup(size_t id);
-	void curAddSamField(const std::string& tag, float value);
+	void setCurReadGroup(size_t id);
+	void addCurSamField(const std::string& tag, float value);
 
 	//other getters
 	const std::string& filename() const noexcept { return _filename; }

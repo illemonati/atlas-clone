@@ -26,8 +26,8 @@ class TBamWindowTraverser {
 
 		// first, use last read from last window, before reading next
 		do {
-			const auto curPos = genome.bamFile().curPosition();
-			const auto maxLen = genome.bamFile().curCIGAR().lengthRead();
+			const auto curPos = genome.bamFile().curRead().position;
+			const auto maxLen = genome.bamFile().curRead().cigar.lengthRead();
 
 			if (curPos >= Window.to()) break;                                    // too far
 			if (curPos.position() + maxLen < Window.from().position()) continue; // too short

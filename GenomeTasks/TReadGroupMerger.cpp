@@ -78,7 +78,7 @@ void TReadGroupMerger::run(){
 	//now parse through bam file and write alignments
 	_genome.bamFile().startProgressReporting();
 	while(_genome.bamFile().readNextAlignmentThatPassesFilters()){
-		_genome.bamFile().curSetNewReadGroup(_readGroupMap[_genome.bamFile().curReadGroupID()]);
+		_genome.bamFile().setCurReadGroup(_readGroupMap[_genome.bamFile().curRead().readGroupID]);
 		_genome.bamFile().writeCurAlignment(outBam);
 
 		_genome.bamFile().printProgress();

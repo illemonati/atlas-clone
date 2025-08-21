@@ -70,7 +70,7 @@ void TPMDSCalculator::_handleAlignment(BAM::TAlignment& alignment){
 			if (_dPMDs_neg.size() <= idx) _dPMDs_neg.resize(idx + 1, 0);
 			++_dPMDs_neg[idx];
 		}
-		_genome.bamFile().curAddSamField("DS", PMDS);
+		_genome.bamFile().addCurSamField("DS", PMDS);
 		_genome.bamFile().writeCurAlignment(_outBam);
 	}
 };
