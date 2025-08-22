@@ -2,6 +2,7 @@
 #include "TOutputBamFile.h"
 #include "TBamTraverser.h"
 #include "TBamWindowTraverser.h"
+#include "TReadTraverser.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/Genotypes/Base.h"
 #include "tests/TTestBamFile.h"
@@ -569,7 +570,8 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
 using coretools::TCountDistribution;
 using coretools::TCountDistributionVector;
 
-class TBamFilter : public GenomeTasks::TBamReadTraverser<GenomeTasks::ReadType::Filtered> {
+class TBamFilter {
+	GenomeTasks::TReadTraverser _readTraverser;
     // class very similar to TBamDiagnoser, but inherits from TBamTraverser<Traverser::Filtered> -> can apply all filters
 public:
     // distributions
@@ -600,48 +602,48 @@ public:
     GenomeTasks::TQualityFilter qualFilter;
     std::vector<std::string> readGroupNames;
 
-    void _handleAlignment() override {
-        //get read group
-		const auto& read = _genome.bamFile().curRead();
-        uint16_t curReadGroup = read.readGroupID;
+	void _traverseReads() {
+		for (; !_readTraverser.endOfReads(); _readTraverser.nextRead()) {
+			// get read group
+			const auto &read      = _readTraverser.read();
+			uint16_t curReadGroup = read.readGroupID;
 
-        //add to counters
-        totalReads.add(curReadGroup);
+			// add to counters
+			totalReads.add(curReadGroup);
 
-        duplicates.add(curReadGroup, read.isDuplicate());
-        improperPairs.add(curReadGroup, read.isPaired() && !read.isProperPair());
-        failedQC.add(curReadGroup, read.isFailedQC());
-        unmapped.add(curReadGroup, !read.isMapped());
-        secondary.add(curReadGroup, read.isSecondary());
-        supplementary.add(curReadGroup, read.isSupplementary());
-        longerThanFragmentLength.add(curReadGroup, read.isLongerThanFragment());
-        fwdStrand.add(curReadGroup, !read.isReverseStrand());
-        revStrand.add(curReadGroup, read.isReverseStrand());
-        firstMate.add(curReadGroup, read.isFirstMate());
-        secondMate.add(curReadGroup, read.isSecondMate());
-        names.push_back(read.name());
+			duplicates.add(curReadGroup, read.isDuplicate());
+			improperPairs.add(curReadGroup, read.isPaired() && !read.isProperPair());
+			failedQC.add(curReadGroup, read.isFailedQC());
+			unmapped.add(curReadGroup, !read.isMapped());
+			secondary.add(curReadGroup, read.isSecondary());
+			supplementary.add(curReadGroup, read.isSupplementary());
+			longerThanFragmentLength.add(curReadGroup, read.isLongerThanFragment());
+			fwdStrand.add(curReadGroup, !read.isReverseStrand());
+			revStrand.add(curReadGroup, read.isReverseStrand());
+			firstMate.add(curReadGroup, read.isFirstMate());
+			secondMate.add(curReadGroup, read.isSecondMate());
+			names.push_back(read.name());
 
-        readLength.add(curReadGroup, read.cigar.lengthRead());
-        softClippedLength.add(curReadGroup, read.cigar.lengthSoftClipped());
-        mappingQuality.add(curReadGroup, read.mappingQuality());
+			readLength.add(curReadGroup, read.cigar.lengthRead());
+			softClippedLength.add(curReadGroup, read.cigar.lengthSoftClipped());
+			mappingQuality.add(curReadGroup, read.mappingQuality());
 
-        readGroup.add(curReadGroup);
-        refIDs.add(read.position.refID());
+			readGroup.add(curReadGroup);
+			refIDs.add(read.position.refID());
 
-        //fragment length: only once
-        if(!read.isReverseStrand()){
-            fragmentLength.add(curReadGroup, read.fragmentLength());
-        }
-    }
+			// fragment length: only once
+			if (!read.isReverseStrand()) { fragmentLength.add(curReadGroup, read.fragmentLength()); }
+		}
+	}
 
-    TBamFilter() {
+	TBamFilter() {
         //settings
-        _genome.bamFile().readGroups().fillVectorWithNames(readGroupNames);
+        _readTraverser.bamFile().readGroups().fillVectorWithNames(readGroupNames);
     };
 
     void filter(){
         //initialize counters
-        size_t numRG = _genome.bamFile().readGroups().size();
+        size_t numRG = _readTraverser.bamFile().readGroups().size();
 
         // resize distributions
         totalReads.resize(numRG);
@@ -667,8 +669,8 @@ public:
         readGroup.resize(numRG);
 
         //now parse through bam file
-        _traverseBAMPassedQC();
-    };
+        _traverseReads();
+    }
 };
 
 class TBamFilter_Test : public ::testing::Test {

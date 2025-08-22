@@ -12,13 +12,14 @@
 #include <vector>
 
 #include "TBamTraverser.h"
+#include "TReadTraverser.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace GenomeTasks{
 
-class TBamDiagnoser final : public TBamReadTraverser<ReadType::Filtered> {
+class TBamDiagnoser {
 private:
 	struct TOld {
 		std::string name = "";
@@ -28,6 +29,8 @@ private:
 		static constexpr size_t BIG = -1;
 		genometools::TGenomePosition position{BIG, BIG};
 	};
+
+	TReadTraverser _readTraverser;
 	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 	bool _chromStats         = false;
@@ -56,7 +59,7 @@ private:
     coretools::TCountDistributionVector<> _allReadStart;
 	std::vector<std::vector<std::array<size_t, 2>>> _paired;
 
-    void _handleAlignment() override;
+    void traverseReads();
 
 public:
 	TBamDiagnoser();

@@ -2,7 +2,6 @@
  * atlas.cpp
  */
 
-#include "TDepthCalculator.h"
 #include "TEstimateHKY85.h"
 #include "TFromTo.h"
 #include "TGLFPrinter.h"
@@ -132,7 +131,6 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TTransitionTabler>("transitionTable", "Create transition table from sequencer-start");
 	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
 	main.createDebugTask<PopulationTools::TPositionBasedLiftOver>("liftOver", "Position-based lift over from one reference to another");
-	main.createDebugTask<GenomeTasks::TDepthCalculator>("averageDepth", "Calculate average depth of BAM file");	
 	main.createDebugTask<GenomeTasks::TReadExtractor>("extractReads", "Extract reads overlapping an allele-file");	
 
 };

@@ -10,11 +10,11 @@
 
 #include "TAlignment.h"
 #include "TBamTraverser.h"
-#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
@@ -31,7 +31,8 @@ void TSoftClippingStatsFile::open(const std::string &Filename, bool PrintSequenc
 	_out.open(Filename);
 
 	// write header
-	std::vector<std::string> header = {"Read", "chromosome", "position", "nClippedLeft", "nNotClipped", "nClippedRight"};
+	std::vector<std::string> header = {"Read",         "chromosome",  "position",
+	                                   "nClippedLeft", "nNotClipped", "nClippedRight"};
 	if (_printSequences) {
 		header.emplace_back("sClippedLeft");
 		header.emplace_back("sNotClipped");
@@ -42,7 +43,7 @@ void TSoftClippingStatsFile::open(const std::string &Filename, bool PrintSequenc
 };
 
 void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
-	const auto& read = bamFile.curRead();
+	const auto &read = bamFile.curRead();
 	_out << read.name() << bamFile.curChromosome().name() << bamFile.curPosition().position();
 	const BAM::TCigar &cigar = read.cigar;
 
@@ -61,7 +62,7 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 		// right
 		if (cigar.lengthSoftClippedRight() > 0) {
 			_out << read.querySequence().substr(cigar.lengthSoftClippedLeft() + cigar.lengthSequenced(),
-			                                 cigar.lengthSoftClippedRight());
+			                                    cigar.lengthSoftClippedRight());
 		} else {
 			_out << "";
 		}
@@ -72,11 +73,11 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping() : TBamReadTraverser<ReadType::Filtered>() {
+TAssessSoftClipping::TAssessSoftClipping() {
 	// limit input / output
 	if (parameters().exists("writeReads")) {
-		_writeAlignments     = true;
-		const auto filename = _genome.outputName() + "_softClippingStats.txt.gz";
+		_writeAlignments    = true;
+		const auto filename = _readTraverser.outputName() + "_softClippingStats.txt.gz";
 		logfile().list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
 
 		// write all reads?
@@ -102,38 +103,42 @@ TAssessSoftClipping::TAssessSoftClipping() : TBamReadTraverser<ReadType::Filtere
 	}
 };
 
-void TAssessSoftClipping::_handleAlignment() {
-	// add to counters
-	const BAM::TCigar &cigar = _genome.bamFile().curRead().cigar;
-	left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
-	right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
-	total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft() + cigar.lengthSoftClippedRight());
+void TAssessSoftClipping::_traverseReads() {
+	for (; !_readTraverser.endOfReads(); _readTraverser.nextRead()) {
+		// add to counters
+		const BAM::TCigar &cigar = _readTraverser.read().cigar;
+		left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
+		right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
+		total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft() + cigar.lengthSoftClippedRight());
 
-	// write to file
-	if (_writeAlignments && (cigar.lengthSoftClipped() > 0 || _printAll)) { statFile.write(_genome.bamFile()); }
-};
+		// write to file
+		if (_writeAlignments && (cigar.lengthSoftClipped() > 0 || _printAll)) {
+			statFile.write(_readTraverser.bamFile());
+		}
+	}
+}
 
 void TAssessSoftClipping::run() {
 	// now parse through bam file and write alignments
-	_traverseBAMPassedQC();
+	_traverseReads();
 
 	// write counts
 	logfile().startIndent("Writing soft clipping distributions:");
-	std::string filename = _genome.outputName() + "_softClippingMatrixLeft.txt";
+	std::string filename = _readTraverser.outputName() + "_softClippingMatrixLeft.txt";
 	logfile().listFlush("Writing distribution of soft clipping on left to file '" + filename + "' ...");
 	left.write(filename, "readLength", "softClippedLengthLeft");
 	logfile().done();
 
-	filename = _genome.outputName() + "_softClippingMatrixRight.txt";
+	filename = _readTraverser.outputName() + "_softClippingMatrixRight.txt";
 	logfile().listFlush("Writing distribution of soft clipping on right to file '" + filename + "' ...");
 	left.write(filename, "readLength", "softClippedLengthRight");
 	logfile().done();
 
-	filename = _genome.outputName() + "_softClippingMatrixBoth.txt";
+	filename = _readTraverser.outputName() + "_softClippingMatrixBoth.txt";
 	logfile().listFlush("Writing distribution of soft clipping on both combined to file '" + filename + "' ...");
 	left.write(filename, "readLength", "softClippedLengthBoth");
 	logfile().done();
 	logfile().endIndent();
-};
+}
 
-}; // namespace GenomeTasks
+} // namespace GenomeTasks

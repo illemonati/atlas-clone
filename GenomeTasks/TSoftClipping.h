@@ -13,6 +13,7 @@
 #include "TBamFile.h"
 #include "TBamTraverser.h"
 #include "TOutputBamFile.h"
+#include "TReadTraverser.h"
 
 namespace GenomeTasks {
 
@@ -35,15 +36,16 @@ public:
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-class TAssessSoftClipping final : public TBamReadTraverser<ReadType::Filtered> {
+class TAssessSoftClipping {
 private:
+	TReadTraverser _readTraverser;
 	bool _writeAlignments = false;
 	bool _printAll        = false;
 
 	coretools::TCountDistributionVector<> left, right, total;
 	TSoftClippingStatsFile statFile;
 
-	void _handleAlignment() override;
+	void _traverseReads();
 
 public:
 	TAssessSoftClipping();

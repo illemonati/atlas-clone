@@ -6,16 +6,6 @@
 
 namespace GenomeTasks {
 
-class TFilteredBamTraverser  {
-protected:
-	TGenome _genome{true};
-	void _traverseBAMPassedQC();
-	virtual void _handleAlignment() = 0;
-
-public:
-	virtual ~TFilteredBamTraverser() = default;
-};
-
 class TParsedBamTraverser  {
 protected:
 	TGenome _genome{true};
@@ -31,6 +21,6 @@ public:
 enum class ReadType : bool {Filtered, Parsed};
 
 template<ReadType Type>
-using TBamReadTraverser = std::conditional_t<Type == ReadType::Parsed, TParsedBamTraverser, TFilteredBamTraverser>;
+using TBamReadTraverser = std::conditional_t<Type == ReadType::Parsed, TParsedBamTraverser, void>;
 } // namespace GenomeTasks
 #endif

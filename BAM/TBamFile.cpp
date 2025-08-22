@@ -137,7 +137,7 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 
 	//initialize chromosomes
 	_fillChromosomes();
-	_read.position.move(0, 0);
+	_read.position.move(-1, 0);
 
 	//resize alignmentCounter
 	_numAlignmentReadPerReadGroupPerChromosome.resize(_readGroups.size());
@@ -335,6 +335,7 @@ bool TBamFile::readNextAlignment(){
 
 	//check if it has no read group
 	bool pass = false;
+	const bool justStarted = atStart();
 	while (!pass) {
 		pass = true;
 		// get next alignment
@@ -353,8 +354,14 @@ bool TBamFile::readNextAlignment(){
 	}
 	_read.position.move(_read.bamAlignment.RefID, _read.bamAlignment.Position);
 
+	//check if BAM file is sorted
+	user_assert(justStarted || _read.position >= _previousAlignmentPosition, "BAM file must be sorted by position! Alignment '",
+				_read.bamAlignment.Name, "' is at position ", _read.bamAlignment.Position,
+				", which is before the position of the previous alignment (", _previousAlignmentPosition.position(),
+				")");
+
 	//check if chromosome changed
-	if (chrChanged()) {
+	if (justStarted || chrChanged()) {
 		if (refID() >= _chromosomes.size()) {
 			throw coretools::TUserError("Chromosome with refID ", _read.bamAlignment.RefID,
 										" is missing from BAM header!");
@@ -374,14 +381,8 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//get current position, clear CIGAR and update counter
-	_read.position.move(_read.bamAlignment.RefID, _read.bamAlignment.Position);
 	_read.cigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
 
-	//check if BAM file is sorted
-	user_assert(_read.position >= _previousAlignmentPosition, "BAM file must be sorted by position! Alignment '",
-				_read.bamAlignment.Name, "' is at position ", _read.bamAlignment.Position,
-				", which is before the position of the previous alignment (", _previousAlignmentPosition.position(),
-				")");
 
 	// update per read group counter
 	if(_read.readGroupID != TReadGroups::noReadGroupId){
@@ -451,7 +452,7 @@ bool TBamFile::jumpToEnd() {
 }
 
 double TBamFile::averageDepth() {
-	if (!(_read.position == genometools::TGenomePosition{})) {
+	if (!atStart()) {
 		logfile().warning("Calculating average depth resets bam file!");
 	}
 	_bamReader.Rewind();
@@ -555,7 +556,7 @@ void TBamFile::startProgressReporting(bool indent) const {
 }
 
 void TBamFile::printProgress() const {
-	if (chrChanged()) {
+	if (atStart() || chrChanged()) {
 		logfile().list("Parsing Chromomsome ", curChromosome().name(), ".");
 	}
 	if (_numAlignmentRead - _lastProgressPrinted >= _progressFrequency) {

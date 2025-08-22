@@ -104,6 +104,7 @@ public:
 	const genometools::TChromosomes& chromosomes() const noexcept { return _chromosomes; };
 	const TReadGroups& readGroups() const noexcept { return _readGroups; };
 	const TSamHeader& samHeader() const noexcept { return _samHeader; };
+	bool atStart() const noexcept {return _numAlignmentRead == 0;}
 
 	//modify header info: know what you do!
 	TReadGroups& readGroupsMutable() noexcept { return _readGroups; };
@@ -153,8 +154,8 @@ public:
 
 
 	//progress reporting
-	void printSummary(std::string_view outputName) const;
 	void startProgressReporting(bool indent = true) const;
+	void printSummary(std::string_view outputName) const;
 	void printProgress() const;
 	void printEndWithSummary(std::string_view outputName, bool indent = true) const;
 };

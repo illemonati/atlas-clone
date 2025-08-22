@@ -148,101 +148,112 @@ size_t countChr(const std::vector<std::vector<std::array<size_t, 2>>> &Vals, siz
 
 } // namespace impl
 
-void TBamDiagnoser::_handleAlignment() {
-	// get read group
-	const auto &read    = _genome.bamFile().curRead();
-	const size_t readGroup = read.readGroupID;
-	if (readGroup == BAM::TReadGroups::noReadGroupId) return;
+void TBamDiagnoser::traverseReads() {
+	for (; !_readTraverser.endOfReads(); _readTraverser.nextRead()) {
+		// get read group
+		const auto &read       = _readTraverser.read();
+		const size_t readGroup = read.readGroupID;
+		if (readGroup == BAM::TReadGroups::noReadGroupId) return;
 
-	const size_t refID = read.position.refID();
+		const size_t refID = read.position.refID();
 
-	// increments for each read that passed filters
-	_passedQC.add(readGroup, refID);
+		// increments for each read that passed filters
+		_passedQC.add(readGroup, refID);
 
-	// add to counters
-	constexpr size_t maxReadDist = 10000;
-	const auto &curPosition = read.position;
-	if (curPosition.refID() == _old[readGroup].position.refID()) {
-		_readDist[readGroup].add(refID, std::min(maxReadDist, read.position - _old[readGroup].position));
-		if (_identifyDuplicates && (curPosition.position() == _old[readGroup].position.position()) && (read.fragmentLength() == _old[readGroup].length)) {
-			_duplicateFile.writeln(_genome.bamFile().curChromosome().name(), curPosition.position(), read.name(),
-								 read.fragmentLength(), read.isReverseStrand(), _old[readGroup].name, _old[readGroup].length, _old[readGroup].isReversed);
+		// add to counters
+		constexpr size_t maxReadDist = 10000;
+		const auto &curPosition      = read.position;
+		if (curPosition.refID() == _old[readGroup].position.refID()) {
+			_readDist[readGroup].add(refID, std::min(maxReadDist, read.position - _old[readGroup].position));
+			if (_identifyDuplicates && (curPosition.position() == _old[readGroup].position.position()) &&
+			    (read.fragmentLength() == _old[readGroup].length)) {
+				_duplicateFile.writeln(_readTraverser.curChr().name(), curPosition.position(), read.name(),
+				                       read.fragmentLength(), read.isReverseStrand(), _old[readGroup].name,
+				                       _old[readGroup].length, _old[readGroup].isReversed);
+			}
 		}
-	}
-	if (curPosition == _old[readGroup].position) {
-		++_startCounter[readGroup];
-	} else {
-		_readStart[readGroup].add(refID, _startCounter[readGroup]);
-		_startCounter[readGroup] = 1;
-	}
-
-
-	_old[readGroup].position = curPosition;
-	if (_identifyDuplicates) {
-		_old[readGroup].name       = read.name();
-		_old[readGroup].length     = read.fragmentLength();
-		_old[readGroup].isReversed = read.isReverseStrand();
-	}
-
-	if (curPosition.refID() == _oldPosition.refID()) {
-		_allReadDist.add(refID, std::min(maxReadDist, read.position - _oldPosition));
-	}
-	if (curPosition == _oldPosition) {
-		++_allStart;
-	} else {
-		_allReadStart.add(refID, _allStart);
-		_allStart = 1;
-	}
-	_oldPosition = curPosition;
-
-	_readLength[LengthType::All][readGroup].add(refID, read.cigar.lengthRead());
-	if (_writeMates) {
-		const auto mate1 = read.isFirstMate();
-		const auto rev   = read.isReverseStrand();
-		if (mate1) {
-			if (rev) _readLength[LengthType::Rev1][readGroup].add(refID, read.cigar.lengthRead());
-			else _readLength[LengthType::Fwd1][readGroup].add(refID, read.cigar.lengthRead());
+		if (curPosition == _old[readGroup].position) {
+			++_startCounter[readGroup];
 		} else {
-			if (rev) _readLength[LengthType::Rev2][readGroup].add(refID, read.cigar.lengthRead());
-			else _readLength[LengthType::Fwd2][readGroup].add(refID, read.cigar.lengthRead());
+			_readStart[readGroup].add(refID, _startCounter[readGroup]);
+			_startCounter[readGroup] = 1;
 		}
-	}
-	_usableLength[LengthType::All][readGroup].add(refID, read.cigar.lengthAligned());
-	if (_writeMates) {
-		const auto mate1 = read.isFirstMate();
-		const auto rev   = read.isReverseStrand();
-		if (mate1) {
-			if (rev) _usableLength[LengthType::Rev1][readGroup].add(refID, read.cigar.lengthAligned());
-			else _usableLength[LengthType::Fwd1][readGroup].add(refID, read.cigar.lengthAligned());
+
+		_old[readGroup].position = curPosition;
+		if (_identifyDuplicates) {
+			_old[readGroup].name       = read.name();
+			_old[readGroup].length     = read.fragmentLength();
+			_old[readGroup].isReversed = read.isReverseStrand();
+		}
+
+		if (curPosition.refID() == _oldPosition.refID()) {
+			_allReadDist.add(refID, std::min(maxReadDist, read.position - _oldPosition));
+		}
+		if (curPosition == _oldPosition) {
+			++_allStart;
 		} else {
-			if (rev) _usableLength[LengthType::Rev2][readGroup].add(refID, read.cigar.lengthAligned());
-			else _usableLength[LengthType::Fwd2][readGroup].add(refID, read.cigar.lengthAligned());
+			_allReadStart.add(refID, _allStart);
+			_allStart = 1;
 		}
+		_oldPosition = curPosition;
+
+		_readLength[LengthType::All][readGroup].add(refID, read.cigar.lengthRead());
+		if (_writeMates) {
+			const auto mate1 = read.isFirstMate();
+			const auto rev   = read.isReverseStrand();
+			if (mate1) {
+				if (rev)
+					_readLength[LengthType::Rev1][readGroup].add(refID, read.cigar.lengthRead());
+				else
+					_readLength[LengthType::Fwd1][readGroup].add(refID, read.cigar.lengthRead());
+			} else {
+				if (rev)
+					_readLength[LengthType::Rev2][readGroup].add(refID, read.cigar.lengthRead());
+				else
+					_readLength[LengthType::Fwd2][readGroup].add(refID, read.cigar.lengthRead());
+			}
+		}
+		_usableLength[LengthType::All][readGroup].add(refID, read.cigar.lengthAligned());
+		if (_writeMates) {
+			const auto mate1 = read.isFirstMate();
+			const auto rev   = read.isReverseStrand();
+			if (mate1) {
+				if (rev)
+					_usableLength[LengthType::Rev1][readGroup].add(refID, read.cigar.lengthAligned());
+				else
+					_usableLength[LengthType::Fwd1][readGroup].add(refID, read.cigar.lengthAligned());
+			} else {
+				if (rev)
+					_usableLength[LengthType::Rev2][readGroup].add(refID, read.cigar.lengthAligned());
+				else
+					_usableLength[LengthType::Fwd2][readGroup].add(refID, read.cigar.lengthAligned());
+			}
+		}
+
+		_softClippedLength[readGroup].add(refID, read.cigar.lengthSoftClipped());
+		_mappingQuality[readGroup].add(refID, read.mappingQuality());
+		++_paired[readGroup][refID][read.isPaired()];
+
+		// fragment length: only for proper pairs and only once
+		if (read.isProperPair() && !read.isReverseStrand())
+			_fragmentLength[readGroup].add(refID, read.fragmentLength());
 	}
-
-	_softClippedLength[readGroup].add(refID, read.cigar.lengthSoftClipped());
-	_mappingQuality[readGroup].add(refID, read.mappingQuality());
-	++_paired[readGroup][refID][read.isPaired()];
-
-	// fragment length: only for proper pairs and only once
-	if (read.isProperPair() && !read.isReverseStrand())
-		_fragmentLength[readGroup].add(refID, read.fragmentLength());
 }
 
-	TBamDiagnoser::TBamDiagnoser() : _identifyDuplicates(parameters().exists("identifyDuplicates")), _writeMates(parameters().exists("writeMates")) {
-	_genome.bamFile().readGroups().fillVectorWithNames(_readGroupNames);
+TBamDiagnoser::TBamDiagnoser() : _identifyDuplicates(parameters().exists("identifyDuplicates")), _writeMates(parameters().exists("writeMates")) {
+	_readTraverser.bamFile().readGroups().fillVectorWithNames(_readGroupNames);
 }
 
 void TBamDiagnoser::run() {
 	// calculate length of genome
 	if (_identifyDuplicates)
-		_duplicateFile.open(_genome.outputName() + "_potentialDuplicates.txt.gz",
+		_duplicateFile.open(_readTraverser.outputName() + "_potentialDuplicates.txt.gz",
 							{"Chr", "Pos", "Read1", "Length1", "isReversed1", "Read2", "Length2", "isReversed2"});
 
 	// initialize counters
-	const auto totLengthOfGenome = _genome.bamFile().chromosomes().referenceLength();
-	const size_t numRG           = _genome.bamFile().readGroups().size();
-	const size_t numChrom        = _genome.bamFile().chromosomes().size();
+	const auto totLengthOfGenome = _readTraverser.chromosomes().referenceLength();
+	const size_t numRG           = _readTraverser.bamFile().readGroups().size();
+	const size_t numChrom        = _readTraverser.chromosomes().size();
 
 	// resize distributions
 	_passedQC.resize(numRG);
@@ -284,10 +295,10 @@ void TBamDiagnoser::run() {
 	}
 
 	// now parse through bam file
-	_traverseBAMPassedQC();
+	traverseReads();
 
 	// need to add positions on the chromosome without a start
-	for (const auto& chr: _genome.bamFile().chromosomes()) {
+	for (const auto& chr: _readTraverser.bamFile().chromosomes()) {
 		const auto rID = chr.refID();
 		for (size_t i = 0; i < numRG; ++i) {
 			_readStart[i].add(rID, 0, chr.length() - _readStart[i][rID].counts());
@@ -309,7 +320,7 @@ void TBamDiagnoser::run() {
 	logfile().startIndent("Writing output files:");
 
 	// writing read group summary
-	std::string filename = _genome.outputName() + "_diagnostics.txt";
+	std::string filename = _readTraverser.outputName() + "_diagnostics.txt";
 	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
 	coretools::TOutputFile out(filename);
 
@@ -326,8 +337,8 @@ void TBamDiagnoser::run() {
 	const auto singlesAll = impl::count(_paired, false);
 	const auto pairsAll   = impl::count(_paired, true);
 	if (_chromStats) { out.write("allChromosomes"); }
-	out.write(_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome().counts(), _passedQC.counts(),
-			  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCombinedCounts(),
+	out.write(_readTraverser.bamFile().numAlignmentReadPerReadGroupPerChromosome().counts(), _passedQC.counts(),
+			  _readTraverser.bamFile().filter(BAM::FilterType::Duplicate).getCombinedCounts(),
 			  impl::meanOverAllReadGroups(_readLength[LengthType::All]), impl::maxOverAllReadGroups(_readLength[LengthType::All]), _allReadDist.mean(),
 			  _allReadStart.mean(), singlesAll, pairsAll,
 			  impl::countsOverAllReadGroups(_fragmentLength), impl::meanOverAllReadGroups(_fragmentLength),
@@ -347,14 +358,14 @@ void TBamDiagnoser::run() {
 
 	// write for all read groups per chromosome
 	if (_chromStats) {
-		for (const auto &chr : _genome.bamFile().chromosomes()) {
+		for (const auto &chr : _readTraverser.bamFile().chromosomes()) {
 			size_t refID       = chr.refID();
 			const auto singles = impl::countChr(_paired, refID, false);
 			const auto pairs   = impl::countChr(_paired, refID, true);
 			out.write("allReadGroups", chr.name(),
-					  (_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID),
+					  (_readTraverser.bamFile().numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID),
 					  _passedQC.horizontalCounts(refID),
-					  _genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsPerChromosome(refID),
+					  _readTraverser.bamFile().filter(BAM::FilterType::Duplicate).getCountsPerChromosome(refID),
 					  impl::meanForChromosome(_readLength[LengthType::All], refID), impl::maxForChromosome(_readLength[LengthType::All], refID),
 					  _allReadDist[refID].mean(), _allReadStart[refID].mean(), singles, pairs,
 					  impl::countsForChromosome(_fragmentLength, refID),
@@ -380,10 +391,10 @@ void TBamDiagnoser::run() {
 		const auto singles = impl::count(_paired[rg], false);
 		const auto pairs   = impl::count(_paired[rg], true);
 
-		out.write(_genome.bamFile().readGroups().getName(rg));
+		out.write(_readTraverser.bamFile().readGroups().getName(rg));
 		if (_chromStats) out.write("allChromosomes");
-		out.write((_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg].counts(), _passedQC[rg].counts(),
-		          _genome.bamFile().filter(BAM::FilterType::Duplicate).getCounts(rg), _readLength[LengthType::All][rg].mean(),
+		out.write((_readTraverser.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg].counts(), _passedQC[rg].counts(),
+		          _readTraverser.bamFile().filter(BAM::FilterType::Duplicate).getCounts(rg), _readLength[LengthType::All][rg].mean(),
 				  _readLength[LengthType::All][rg].max(), _readDist[rg].mean(), _readStart[rg].mean(), singles, pairs,
 		          _fragmentLength[rg].counts(), _fragmentLength[rg].mean(), _softClippedLength[rg].countsLargerZero(),
 		          _softClippedLength[rg].mean(), _usableLength[LengthType::All][rg].mean(),
@@ -400,14 +411,14 @@ void TBamDiagnoser::run() {
 		}
 		if (_chromStats) {
 			// write per read group per chromosome
-			for (const auto& chr: _genome.bamFile().chromosomes()) {
+			for (const auto& chr: _readTraverser.bamFile().chromosomes()) {
 				size_t refID       = chr.refID();
 				const auto singles = _paired[rg][refID][false];
 				const auto pairs   = _paired[rg][refID][true];
 				out.write(
-				    _genome.bamFile().readGroups().getName(rg), chr.name(),
-				    (_genome.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID],
-				    _genome.bamFile().filter(BAM::FilterType::Duplicate).getCountsAtReadGroupAndChromosome(rg, refID),
+				    _readTraverser.bamFile().readGroups().getName(rg), chr.name(),
+				    (_readTraverser.bamFile().numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID],
+				    _readTraverser.bamFile().filter(BAM::FilterType::Duplicate).getCountsAtReadGroupAndChromosome(rg, refID),
 				    _readLength[LengthType::All][rg][refID].mean(), _readLength[LengthType::All][rg][refID].max(), _readDist[rg][refID].mean(),
 				    _readStart[rg][refID].mean(), singles, pairs,
 				    _fragmentLength[rg][refID].counts(), _fragmentLength[rg][refID].mean(),
@@ -432,11 +443,11 @@ void TBamDiagnoser::run() {
 
 	if (parameters().exists("printReferenceLength")) {
 		// write file with length of all contigs
-		std::string referenceLengthName = _genome.outputName() + "_referenceLengths.txt";
+		std::string referenceLengthName = _readTraverser.outputName() + "_referenceLengths.txt";
 		logfile().listFlush("Outputting reference lengths of all contigs to '" + referenceLengthName + "' ...");
 		coretools::TOutputFile refLen(referenceLengthName, {"chromosome", "length"});
-		auto it = _genome.bamFile().chromosomes().cbegin();
-		while (it != _genome.bamFile().chromosomes().cend()) {
+		auto it = _readTraverser.bamFile().chromosomes().cbegin();
+		while (it != _readTraverser.bamFile().chromosomes().cend()) {
 			refLen << it->name() << it->length() << coretools::endl;
 			++it;
 		}
@@ -445,25 +456,25 @@ void TBamDiagnoser::run() {
 	}
 
 	// writing distributions
-	impl::writeHistogram(_readLength[LengthType::All], _genome.outputName(), "readLength", _readGroupNames);
+	impl::writeHistogram(_readLength[LengthType::All], _readTraverser.outputName(), "readLength", _readGroupNames);
 	if (_writeMates) {
-		impl::writeHistogram(_readLength[LengthType::Fwd1], _genome.outputName(), "readLengthFwd1", _readGroupNames);
-		impl::writeHistogram(_readLength[LengthType::Fwd2], _genome.outputName(), "readLengthFwd2", _readGroupNames);
-		impl::writeHistogram(_readLength[LengthType::Rev1], _genome.outputName(), "readLengthRev1", _readGroupNames);
-		impl::writeHistogram(_readLength[LengthType::Rev2], _genome.outputName(), "readLengthRev2", _readGroupNames);
+		impl::writeHistogram(_readLength[LengthType::Fwd1], _readTraverser.outputName(), "readLengthFwd1", _readGroupNames);
+		impl::writeHistogram(_readLength[LengthType::Fwd2], _readTraverser.outputName(), "readLengthFwd2", _readGroupNames);
+		impl::writeHistogram(_readLength[LengthType::Rev1], _readTraverser.outputName(), "readLengthRev1", _readGroupNames);
+		impl::writeHistogram(_readLength[LengthType::Rev2], _readTraverser.outputName(), "readLengthRev2", _readGroupNames);
 	}
-	impl::writeHistogram(_readDist, _genome.outputName(), "readDist", _readGroupNames, &_allReadDist);
-	impl::writeHistogram(_readStart, _genome.outputName(), "readStart", _readGroupNames, &_allReadStart);
-	impl::writeHistogram(_usableLength[LengthType::All], _genome.outputName(), "alignedLength", _readGroupNames);
+	impl::writeHistogram(_readDist, _readTraverser.outputName(), "readDist", _readGroupNames, &_allReadDist);
+	impl::writeHistogram(_readStart, _readTraverser.outputName(), "readStart", _readGroupNames, &_allReadStart);
+	impl::writeHistogram(_usableLength[LengthType::All], _readTraverser.outputName(), "alignedLength", _readGroupNames);
 	if (_writeMates) {
-		impl::writeHistogram(_usableLength[LengthType::Fwd1], _genome.outputName(), "alignedLengthFwd1", _readGroupNames);
-		impl::writeHistogram(_usableLength[LengthType::Fwd2], _genome.outputName(), "alignedLengthFwd2", _readGroupNames);
-		impl::writeHistogram(_usableLength[LengthType::Rev1], _genome.outputName(), "alignedLengthRev1", _readGroupNames);
-		impl::writeHistogram(_usableLength[LengthType::Rev2], _genome.outputName(), "alignedLengthRev2", _readGroupNames);
+		impl::writeHistogram(_usableLength[LengthType::Fwd1], _readTraverser.outputName(), "alignedLengthFwd1", _readGroupNames);
+		impl::writeHistogram(_usableLength[LengthType::Fwd2], _readTraverser.outputName(), "alignedLengthFwd2", _readGroupNames);
+		impl::writeHistogram(_usableLength[LengthType::Rev1], _readTraverser.outputName(), "alignedLengthRev1", _readGroupNames);
+		impl::writeHistogram(_usableLength[LengthType::Rev2], _readTraverser.outputName(), "alignedLengthRev2", _readGroupNames);
 	}
-	impl::writeHistogram(_softClippedLength, _genome.outputName(), "softClippedLength", _readGroupNames);
-	impl::writeHistogram(_fragmentLength, _genome.outputName(), "fragmentLength", _readGroupNames);
-	impl::writeHistogram(_mappingQuality, _genome.outputName(), "mappingQuality", _readGroupNames);
+	impl::writeHistogram(_softClippedLength, _readTraverser.outputName(), "softClippedLength", _readGroupNames);
+	impl::writeHistogram(_fragmentLength, _readTraverser.outputName(), "fragmentLength", _readGroupNames);
+	impl::writeHistogram(_mappingQuality, _readTraverser.outputName(), "mappingQuality", _readGroupNames);
 
 	logfile().endIndent(); // end writing output files
 }
