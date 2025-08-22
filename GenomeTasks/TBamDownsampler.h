@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include "TGenome.h"
 #include "TOutputBamFile.h"
+#include "TReadTraverser.h"
 #include "coretools/Types/probability.h"
 
 namespace BAM {
@@ -48,7 +48,7 @@ friend class TBamDownsampler;
 // TBamDownsampler
 //-----------------------------------------
 class TBamDownsampler {
-	TGenome _genome{false};
+	TReadTraverser _genome{false};
 	bool separateReads = false;
 	bool _writeN       = false;
 	std::vector<double> _cumulProbs;

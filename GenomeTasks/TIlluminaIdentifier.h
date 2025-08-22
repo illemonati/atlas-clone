@@ -11,14 +11,14 @@
 #include <string>
 #include <map>
 
-#include "TGenome.h"
 #include "TOutputBamFile.h"
+#include "TReadTraverser.h"
 
 namespace GenomeTasks{
 
 class TIlluminaIdentifier {
 private:
-	TGenome _genome{false};
+	TReadTraverser _genome{false};
 	size_t _counter = 0;
 	std::map<std::string, std::string> rgPU_rgID;
 	BAM::TOutputBamFile _out;

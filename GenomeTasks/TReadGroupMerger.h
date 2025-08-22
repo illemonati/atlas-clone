@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "TGenome.h"
+#include "TReadTraverser.h"
 
 namespace GenomeTasks{
 
@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //--------------------------------------
 class TReadGroupMerger {
 private:
-	TGenome _genome{false};
+	TReadTraverser _genome{false};
 	std::vector<size_t> _readGroupMap;
 public:
 	TReadGroupMerger();

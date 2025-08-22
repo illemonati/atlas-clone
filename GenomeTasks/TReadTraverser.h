@@ -2,25 +2,48 @@
 #define TREADTRAVERSER_H_
 
 #include "TBamFile.h"
-#include "TGenome.h"
+#include "TErrorModels.h"
+#include "TReadGroupInfo.h"
 
 namespace GenomeTasks {
 	
 class TReadTraverser {
-	TGenome _genome{true};
-	bool _eor = false;
-public:
-	const BAM::TBamFile& bamFile() const noexcept {return _genome.bamFile();}
-	BAM::TBamFile& bamFile() noexcept {return _genome.bamFile();}
-	const std::string& outputName() const noexcept {return _genome.outputName();}
+	BAM::TBamFile _bamFile;
+	std::string _outputName;
+	BAM::RGInfo::TReadGroupInfo _rgInfo;
+	GenotypeLikelihoods::TErrorModels _errorModels;
 
-	const BAM::TRead &read() const noexcept {
-		return bamFile().curRead();
-	}
+	bool _eor = false;
+
+public:
+	TReadTraverser(bool EnableFilters=true);
+	TReadTraverser(std::string_view Name, bool EnableFilters, size_t i);
+
+	~TReadTraverser();
+	TReadTraverser(TReadTraverser&&) = default;
+	TReadTraverser(const TReadTraverser&) = delete;
+	TReadTraverser& operator=(TReadTraverser&&) = default;
+	TReadTraverser& operator=(const TReadTraverser&) = delete;
+
+	const BAM::TBamFile &bamFile() const noexcept { return _bamFile; }
+	BAM::TBamFile &bamFile() noexcept { return _bamFile; }
+
+	const BAM::RGInfo::TReadGroupInfo &rgInfo() const noexcept { return _rgInfo; }
+	BAM::RGInfo::TReadGroupInfo &rgInfo() noexcept { return _rgInfo; }
+
+	const GenotypeLikelihoods::TErrorModels &errorModels() const noexcept { return _errorModels; };
+
+	const std::string &outputName() const noexcept { return _outputName; }
+
+	const genometools::TChromosomes &chromosomes() const noexcept { return _bamFile.chromosomes(); }
+	const genometools::TChromosome &curChr() const noexcept { return _bamFile.curChromosome(); }
+
+	const BAM::TRead &read() const noexcept { return bamFile().curRead(); }
+
 	void nextRead() {
 		_eor = !bamFile().readNextAlignmentThatPassesFilters();
 		if (_eor) {
-			bamFile().printEndWithSummary(_genome.outputName());
+			bamFile().printEndWithSummary(_outputName);
 		} else {
 			bamFile().printProgress();
 		}
@@ -32,13 +55,7 @@ public:
 		}
 		return _eor;
 	}
-
-
-	const genometools::TChromosomes &chromosomes() const noexcept { return _genome.bamFile().chromosomes(); }
-	const genometools::TChromosome &curChr() const noexcept {
-		return _genome.bamFile().curChromosome();
-	}
 };
-}
+} // namespace GenomeTasks
 
 #endif

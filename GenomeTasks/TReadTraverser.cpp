@@ -1,20 +1,14 @@
-/*
- * TGenome.cpp
- */
-
-#include "TGenome.h"
-
+#include "TReadTraverser.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Strings/toString.h"
 
 namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-TGenome::TGenome(bool EnableFilters) : TGenome(parameters().get<std::string>("bam"), EnableFilters, 0) {}
-
-TGenome::TGenome(std::string_view Name, bool EnableFilters, size_t i)
+TReadTraverser::TReadTraverser(bool EnableFilters)
+    : TReadTraverser(parameters().get<std::string>("bam"), EnableFilters, 0) {}
+TReadTraverser::TReadTraverser(std::string_view Name, bool EnableFilters, size_t i)
     : _bamFile(Name, i, EnableFilters), _rgInfo(_bamFile.readGroups()), _errorModels(_rgInfo) {
 	if (parameters().exists("out")) {
 		_outputName = parameters().get("out");
@@ -30,8 +24,7 @@ TGenome::TGenome(std::string_view Name, bool EnableFilters, size_t i)
 	}
 }
 
-TGenome::~TGenome() {
+TReadTraverser::~TReadTraverser() {
 	if (_rgInfo.isParsed()) _rgInfo.write(_outputName + "_RGInfo.json");
 }
-
-}; // namespace GenomeTasks
+} // namespace GenomeTasks

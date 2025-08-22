@@ -1,5 +1,4 @@
 #include "TParser.h"
-#include "TGenome.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
@@ -38,7 +37,7 @@ void TParser::openReference(bool required) {
 	}
 }
 
-void TParser::fill(const TGenome& genome, BAM::TAlignment& alignment) const {
+void TParser::fill(const TReadTraverser& genome, BAM::TAlignment& alignment) const {
 	// parse
 	genome.bamFile().fill(alignment);
 	alignment.parse(genome.errorModels().sequencingErrorModels());

@@ -1,14 +1,14 @@
 #ifndef TBAMTRAVERSER_H_
 #define TBAMTRAVERSER_H_
 
-#include "TGenome.h"
 #include "TParser.h"
+#include "TReadTraverser.h"
 
 namespace GenomeTasks {
 
 class TParsedBamTraverser  {
 protected:
-	TGenome _genome{true};
+	TReadTraverser _genome{true};
 	TParser _parser;
 
 	void _traverseBAMPassedQC();

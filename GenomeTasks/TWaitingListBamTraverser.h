@@ -4,10 +4,10 @@
 #include <memory>
 
 #include "TAlignment.h"
-#include "TGenome.h"
 #include "TOutputBamFile.h"
 #include "TParser.h"
 #include "TBamReadMask.h"
+#include "TReadTraverser.h"
 
 namespace GenomeTasks {
 
@@ -26,7 +26,7 @@ private:
 	TBamReadMask _masks;
 
 protected:
-	TGenome _genome{true};
+	TReadTraverser _genome{true};
 	TParser _parser;
 
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates

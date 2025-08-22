@@ -4,12 +4,12 @@
 #include <algorithm>
 #include <type_traits>
 
+#include "TReadTraverser.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
 #include "TBamWindows.h"
-#include "TGenome.h"
 #include "TWindow.h"
 
 namespace GenomeTasks {
@@ -19,9 +19,9 @@ enum class WindowType : bool {SingleBam, MultiBam};
 template<WindowType Type>
 class TBamWindowTraverser {
 	constexpr static bool isSingle = Type == WindowType::SingleBam;
-	using GType = std::conditional_t<isSingle, TGenome, std::vector<TGenome> >;
+	using GType = std::conditional_t<isSingle, TReadTraverser, std::vector<TReadTraverser> >;
 
-	void _fillWindow(TGenome &genome, GenotypeLikelihoods::TWindow &Window) {
+	void _fillWindow(TReadTraverser &genome, GenotypeLikelihoods::TWindow &Window) {
 		BAM::TAlignment alignment;
 
 		// first, use last read from last window, before reading next
@@ -63,7 +63,7 @@ class TBamWindowTraverser {
 		} else {
 			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
 			const auto filter = BAM::TBamFilters(true);
-			std::vector<TGenome> vec;
+			std::vector<TReadTraverser> vec;
 			vec.reserve(bams.size());
 			vec.emplace_back(bams.front(), true, 0);
 			for (size_t i = 1; i < bams.size(); ++i) {
@@ -74,7 +74,7 @@ class TBamWindowTraverser {
 		}
 	}
 
-	static const TGenome& _front(const GType& Genome) {
+	static const TReadTraverser& _front(const GType& Genome) {
 		if constexpr (isSingle) {
 			return Genome;
 		} else {

@@ -1,13 +1,14 @@
 #ifndef TPARSER_H_
 #define TPARSER_H_
 
+#include "TReadTraverser.h"
 #include "genometools/TFastaReader.h"
 #include "TBaseFilter.h"
 
 namespace BAM {class TAlignment;}
 namespace GenomeTasks {
 
-class TGenome;
+class TReadTraverser;
 
 class TParser {
 	bool _trimReads;
@@ -22,7 +23,7 @@ class TParser {
 public:
 	TParser();
 
-	void fill(const TGenome& genome, BAM::TAlignment& alignment) const;
+	void fill(const TReadTraverser& genome, BAM::TAlignment& alignment) const;
 	void openReference(bool required = false);
 	const genometools::TFastaReader& reference() const noexcept {return _reference;};
 };
