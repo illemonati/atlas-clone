@@ -126,7 +126,7 @@ public:
 	void fill(TAlignment & alignment) const;
 
 	bool jump(const genometools::TGenomePosition Position);
-	bool jumpToEnd();
+	bool jump(size_t RefID);
 
 	size_t refID() const noexcept { return curPosition().refID(); }
 	const genometools::TChromosome &curChromosome() const noexcept { return _chromosomes[refID()]; }

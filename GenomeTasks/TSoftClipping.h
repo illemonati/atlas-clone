@@ -11,7 +11,6 @@
 #include <string>
 
 #include "TBamFile.h"
-#include "TBamTraverser.h"
 #include "TOutputBamFile.h"
 #include "TReadTraverser.h"
 

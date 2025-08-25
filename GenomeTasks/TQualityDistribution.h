@@ -11,19 +11,20 @@
 #include <string>
 #include <vector>
 
-#include "TBamTraverser.h"
+#include "TAlignmentTraverser.h"
 #include "SequencingError/TModels.h"
 
 namespace GenomeTasks{
 
-class TQualityTransformation final : public TBamReadTraverser<ReadType::Parsed> {
+class TQualityTransformation final  {
 private:
+	TAlignmentTraverser _alnTraverser;
 	std::vector<coretools::TCountDistributionVector<>> _transformations;
 	bool _compareToOtherSeqErrors;
 	std::string _label1, _label2;
 	GenotypeLikelihoods::SequencingError::TModels _otherSeqErrors;
 
-	void _handleAlignment(BAM::TAlignment& alignment) override;
+	void _traverseAlignments();
 
 public:
 	TQualityTransformation();

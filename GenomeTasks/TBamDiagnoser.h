@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "TBamTraverser.h"
+#include "TBaseFilter.h"
 #include "TReadTraverser.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"

@@ -1,6 +1,5 @@
 #include "TBamFile.h"
 #include "TOutputBamFile.h"
-#include "TBamTraverser.h"
 #include "TBamWindowTraverser.h"
 #include "TReadTraverser.h"
 #include "coretools/Main/TParameters.h"

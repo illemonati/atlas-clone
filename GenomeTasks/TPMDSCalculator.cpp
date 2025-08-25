@@ -20,9 +20,9 @@ using coretools::instances::parameters;
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-TPMDSCalculator::TPMDSCalculator(): _outBam(_genome.outputName() + "_PMDS.bam", _genome.bamFile()) {
+TPMDSCalculator::TPMDSCalculator(): _outBam(_alnTraverser.outputName() + "_PMDS.bam", _alnTraverser.bamFile()) {
 	//get parameters
-	coretools::user_assert(_genome.errorModels().postMortemDamageModels().hasPMD(), "Cannot estimate PMDS without pmd model!");
+	coretools::user_assert(_alnTraverser.errorModels().postMortemDamageModels().hasPMD(), "Cannot estimate PMDS without pmd model!");
 
 	_pi = parameters().get<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
@@ -34,7 +34,7 @@ TPMDSCalculator::TPMDSCalculator(): _outBam(_genome.outputName() + "_PMDS.bam", 
 		_doFilter = false;
 		logfile().list("Not applying any filter on PMDs when writing BAM file. (use 'filterPMDS' to filter)");
 	}
-	_parser.openReference(true);
+	_alnTraverser.openReference(true);
 };
 
 double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
@@ -45,35 +45,38 @@ double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
 			const auto ref = alignment.referenceAtInternalPos(d);
 			if (ref == genometools::Base::N) continue;
 
-			PMDS += _genome.errorModels().calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d), _pi);
+			PMDS += _alnTraverser.errorModels().calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d), _pi);
 		}
 	}
 	return PMDS;
 };
 
-void TPMDSCalculator::_handleAlignment(BAM::TAlignment& alignment){
-	//calc PMD
-	const auto PMDS = _calculatePMDS(alignment);
+void TPMDSCalculator::_traverseAlignments() {
+	for (; !_alnTraverser.endOfAlignments(); _alnTraverser.nextAlignment()) {
+		// calc PMD
+		const auto PMDS = _calculatePMDS(_alnTraverser.alignment());
 
-	//filter
-	if(_doFilter && !_filterRange.within(PMDS)){
-		_genome.bamFile().curFilterOut();
-	} else {
-		//update and write
-		//TODO: discuss if DS is the right tag. User-defined tags should have lower case letters, but we need to maintain consistency with other tools
-		if (PMDS > 0) {
-			const size_t idx = std::lround(PMDS*10);
-			if (_dPMDs_pos.size() <= idx) _dPMDs_pos.resize(idx + 1, 0);
-			++_dPMDs_pos[idx];
+		// filter
+		if (_doFilter && !_filterRange.within(PMDS)) {
+			_alnTraverser.bamFile().curFilterOut();
 		} else {
-			const size_t idx = std::lround(-PMDS*10);
-			if (_dPMDs_neg.size() <= idx) _dPMDs_neg.resize(idx + 1, 0);
-			++_dPMDs_neg[idx];
+			// update and write
+			// TODO: discuss if DS is the right tag. User-defined tags should have lower case letters, but we need to
+			// maintain consistency with other tools
+			if (PMDS > 0) {
+				const size_t idx = std::lround(PMDS * 10);
+				if (_dPMDs_pos.size() <= idx) _dPMDs_pos.resize(idx + 1, 0);
+				++_dPMDs_pos[idx];
+			} else {
+				const size_t idx = std::lround(-PMDS * 10);
+				if (_dPMDs_neg.size() <= idx) _dPMDs_neg.resize(idx + 1, 0);
+				++_dPMDs_neg[idx];
+			}
+			_alnTraverser.bamFile().addCurSamField("DS", PMDS);
+			_alnTraverser.bamFile().writeCurAlignment(_outBam);
 		}
-		_genome.bamFile().addCurSamField("DS", PMDS);
-		_genome.bamFile().writeCurAlignment(_outBam);
 	}
-};
+}
 
 void TPMDSCalculator::run(){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
@@ -81,12 +84,12 @@ void TPMDSCalculator::run(){
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
 
 	//open a bam file for writing
-	_genome.bamFile().setExternalFilterReason("PMDS outside range " + _filterRange.rangeString());
+	_alnTraverser.bamFile().setExternalFilterReason("PMDS outside range " + _filterRange.rangeString());
 
 	//traverse BAM
-	_traverseBAMPassedQC();
+	_traverseAlignments();
 
-	coretools::TOutputFile hist(_genome.outputName() + "_PMDS_hist.txt.gz", {"PMDS", "count"});
+	coretools::TOutputFile hist(_alnTraverser.outputName() + "_PMDS_hist.txt.gz", {"PMDS", "count"});
 	const auto N = _dPMDs_neg.size();
 	for (size_t i = 0; i < N; ++i) {
 		hist.writeln((N - i)/-10., _dPMDs_neg[N - 1 - i]);

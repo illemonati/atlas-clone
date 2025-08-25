@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "TAlignment.h"
-#include "TBamTraverser.h"
 #include "TCigar.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"

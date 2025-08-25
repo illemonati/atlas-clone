@@ -85,23 +85,26 @@ void TBedToFastq::run(){
 // TBamToBed
 //--------------------------------------------
 
-void TBamToBed::_handleAlignment(BAM::TAlignment& alignment){
-    
+void TBamToBed::_traverserAlignments() {
+	for (; !_alnTraverser.endOfAlignments(); _alnTraverser.nextAlignment()) {
+		const auto& alignment = _alnTraverser.alignment();
 
-    // read position to extract from name    
-    std::vector<std::string_view> vec;
-    coretools::str::fillContainerFromString(alignment.name(), vec, impl::readNameDelimiter);
+		// read position to extract from name
+		std::vector<std::string_view> vec;
+		coretools::str::fillContainerFromString(alignment.name(), vec, impl::readNameDelimiter);
 
-	coretools::user_assert(vec.size() == 3, "Unable to parse name of alignment '", alignment.name(),
-						   "': did you map a FASTQ file produced with task=liftOver mode=", impl::Bed2FastqMode, "?");
+		coretools::user_assert(vec.size() == 3, "Unable to parse name of alignment '", alignment.name(),
+		                       "': did you map a FASTQ file produced with task=liftOver mode=", impl::Bed2FastqMode,
+		                       "?");
 
-	size_t posInRead = coretools::str::fromString<size_t>(vec[1]);
+		size_t posInRead = coretools::str::fromString<size_t>(vec[1]);
 
-	if(alignment.isAlignedAtInternalPos(posInRead)){
-        _outBed.add(alignment.positionInRef(posInRead)+alignment.cigar().lengthSoftClippedLeft(), vec[2]);
-    } else {
-        ++_numPosNotAligned;
-    }    
+		if (alignment.isAlignedAtInternalPos(posInRead)) {
+			_outBed.add(alignment.positionInRef(posInRead) + alignment.cigar().lengthSoftClippedLeft(), vec[2]);
+		} else {
+			++_numPosNotAligned;
+		}
+	}
 }
 
 void TBamToBed::run(){
@@ -112,11 +115,11 @@ void TBamToBed::run(){
     outname += ".bed";
     logfile().write("Will write output BED to file '", outname, "'. (parameter 'out')");
 
-    _outBed.setChromosomes(_genome.bamFile().chromosomes());
+    _outBed.setChromosomes(_alnTraverser.bamFile().chromosomes());
     _numPosNotAligned = 0;
 
 	// traverse BAM
-	_traverseBAMPassedQC();
+	_traverserAlignments();
 
     // report and write BED    
     _outBed.write(outname);

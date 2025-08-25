@@ -1,7 +1,7 @@
 #ifndef TFASTATOFASTQ_H_
 #define TFASTATOFASTQ_H_
 
-#include "TBamTraverser.h"
+#include "TAlignmentTraverser.h"
 #include "genometools/TBed.h"
 
 
@@ -13,12 +13,13 @@ public:
 	void run();
 };
 
-class TBamToBed : public GenomeTasks::TBamReadTraverser<GenomeTasks::ReadType::Parsed> {
+class TBamToBed final {
 private: 
+	GenomeTasks::TAlignmentTraverser _alnTraverser;
 	genometools::TBedWithInfo<std::string> _outBed;
 	size_t _numPosNotAligned;
 	
-	void _handleAlignment(BAM::TAlignment& alignment) override;
+	void _traverserAlignments();
 
 public:
 	TBamToBed(){};
