@@ -1,12 +1,16 @@
 #include "TBaseFilter.h"
 
+#include <sys/types.h>
+
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/concatenateString.h"
+
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/BaseContext.h"
-#include <sys/types.h>
-namespace GenomeTasks {
+
+
+namespace BAM {
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;

@@ -5,7 +5,8 @@
 #include "TParser.h"
 #include "TReadTraverser.h"
 #include "coretools/Main/TError.h"
-namespace GenomeTasks {
+
+namespace BAM {
 
 class TAlignmentTraverser {
 	TReadTraverser _readTraverser;

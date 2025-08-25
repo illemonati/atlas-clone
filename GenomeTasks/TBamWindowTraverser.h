@@ -19,9 +19,9 @@ enum class WindowType : bool {SingleBam, MultiBam};
 template<WindowType Type>
 class TBamWindowTraverser {
 	constexpr static bool isSingle = Type == WindowType::SingleBam;
-	using GType = std::conditional_t<isSingle, TReadTraverser, std::vector<TReadTraverser> >;
+	using GType = std::conditional_t<isSingle, BAM::TReadTraverser, std::vector<BAM::TReadTraverser> >;
 
-	void _fillWindow(TReadTraverser &genome, GenotypeLikelihoods::TWindow &Window) {
+	void _fillWindow(BAM::TReadTraverser &genome, GenotypeLikelihoods::TWindow &Window) {
 		BAM::TAlignment alignment;
 
 		// first, use last read from last window, before reading next
@@ -63,7 +63,7 @@ class TBamWindowTraverser {
 		} else {
 			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
 			const auto filter = BAM::TBamFilters(true);
-			std::vector<TReadTraverser> vec;
+			std::vector<BAM::TReadTraverser> vec;
 			vec.reserve(bams.size());
 			vec.emplace_back(bams.front(), true, 0);
 			for (size_t i = 1; i < bams.size(); ++i) {
@@ -74,7 +74,7 @@ class TBamWindowTraverser {
 		}
 	}
 
-	static const TReadTraverser& _front(const GType& Genome) {
+	static const BAM::TReadTraverser& _front(const GType& Genome) {
 		if constexpr (isSingle) {
 			return Genome;
 		} else {

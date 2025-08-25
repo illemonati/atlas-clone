@@ -10,6 +10,8 @@
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
+using BAM::TWaitingAlignment;
+using BAM::AlignmentStatus;
 
 bool TOverlappingReadsMerger::_merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev) {
 	if (Rev < Fwd) {

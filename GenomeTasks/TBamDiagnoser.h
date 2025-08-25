@@ -30,8 +30,8 @@ private:
 		genometools::TGenomePosition position{BIG, BIG};
 	};
 
-	TReadTraverser _readTraverser;
-	TQualityFilter _qualFilter;
+	BAM::TReadTraverser _readTraverser;
+	BAM::TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 	bool _chromStats         = false;
 	bool _identifyDuplicates = false;

@@ -14,12 +14,9 @@
 
 namespace GenomeTasks{
 
-//--------------------------------------
-// TReadGroupMerger
-//--------------------------------------
 class TReadGroupMerger {
 private:
-	TReadTraverser _genome{false};
+	BAM::TReadTraverser _readTraverser{false};
 	std::vector<size_t> _readGroupMap;
 public:
 	TReadGroupMerger();

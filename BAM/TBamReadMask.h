@@ -4,7 +4,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/TBed.h"
 
-namespace GenomeTasks {
+namespace BAM {
 
 class TBamReadMask{
 private:

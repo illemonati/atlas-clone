@@ -5,6 +5,7 @@
 namespace GenomeTasks {
 using genometools::Base;
 using coretools::str::toString;
+using BAM::TWaitingAlignment;
 
 TTransitionTabler::TTransitionTabler() {
 	_parser.openReference(true);

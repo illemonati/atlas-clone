@@ -12,13 +12,13 @@ namespace GenomeTasks {
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-class TFilterBam final:public TWaitingListBamTraverser {
+class TFilterBam final:public BAM::TWaitingListBamTraverser {
 private:
 	size_t _makeSingle = 0;
 
-	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
-	void _handleSingle(TWaitingAlignment &lhs) override;
-	void _handleOrphan(TWaitingAlignment &lhs) override;
+	void _handleMates(BAM::TWaitingAlignment &lhs, BAM::TWaitingAlignment &rhs) override;
+	void _handleSingle(BAM::TWaitingAlignment &lhs) override;
+	void _handleOrphan(BAM::TWaitingAlignment &lhs) override;
 
 public:
 	TFilterBam();

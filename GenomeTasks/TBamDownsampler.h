@@ -48,7 +48,7 @@ friend class TBamDownsampler;
 // TBamDownsampler
 //-----------------------------------------
 class TBamDownsampler {
-	TReadTraverser _genome{false};
+	BAM::TReadTraverser _genome{false};
 	bool separateReads = false;
 	bool _writeN       = false;
 	std::vector<double> _cumulProbs;

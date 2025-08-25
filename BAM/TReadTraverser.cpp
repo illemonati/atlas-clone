@@ -1,7 +1,7 @@
 #include "TReadTraverser.h"
 #include "coretools/Main/TParameters.h"
 
-namespace GenomeTasks {
+namespace BAM {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;

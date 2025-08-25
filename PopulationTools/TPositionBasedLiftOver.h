@@ -15,7 +15,7 @@ public:
 
 class TBamToBed final {
 private: 
-	GenomeTasks::TAlignmentTraverser _alnTraverser;
+	BAM::TAlignmentTraverser _alnTraverser;
 	genometools::TBedWithInfo<std::string> _outBed;
 	size_t _numPosNotAligned;
 	

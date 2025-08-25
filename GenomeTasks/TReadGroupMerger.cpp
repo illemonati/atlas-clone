@@ -18,7 +18,7 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 
 TReadGroupMerger::TReadGroupMerger() {
-	BAM::TReadGroups& readGroups = _genome.bamFile().readGroupsMutable();
+	BAM::TReadGroups& readGroups = _readTraverser.bamFile().readGroupsMutable();
 
 	//read read groups to be merged
 	const auto filename = parameters().get("readGroups");
@@ -73,17 +73,17 @@ TReadGroupMerger::TReadGroupMerger() {
 
 void TReadGroupMerger::run(){
 	//open a bam file for writing
-	BAM::TOutputBamFile outBam(_genome.outputName() + "_mergedRG.bam", _genome.bamFile());
+	BAM::TOutputBamFile outBam(_readTraverser.outputName() + "_mergedRG.bam", _readTraverser.bamFile());
 
 	//now parse through bam file and write alignments
-	_genome.bamFile().startProgressReporting();
-	while(_genome.bamFile().readNextAlignmentThatPassesFilters()){
-		_genome.bamFile().setCurReadGroup(_readGroupMap[_genome.bamFile().curRead().readGroupID]);
-		_genome.bamFile().writeCurAlignment(outBam);
+	_readTraverser.bamFile().startProgressReporting();
+	while(_readTraverser.bamFile().readNextAlignmentThatPassesFilters()){
+		_readTraverser.bamFile().setCurReadGroup(_readGroupMap[_readTraverser.bamFile().curRead().readGroupID]);
+		_readTraverser.bamFile().writeCurAlignment(outBam);
 
-		_genome.bamFile().printProgress();
+		_readTraverser.bamFile().printProgress();
 	}
-	_genome.bamFile().printEndWithSummary(_genome.outputName());
+	_readTraverser.bamFile().printEndWithSummary(_readTraverser.outputName());
 }
 
 } // end namespace

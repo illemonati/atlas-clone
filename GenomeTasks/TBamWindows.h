@@ -15,7 +15,7 @@ namespace GenomeTasks {
 
 class TBamWindows {
 	std::vector<std::vector<genometools::TGenomeWindow>> _windows;
-	TParser _parser;
+	BAM::TParser _parser;
 
 	// window filters
 	double _maxMissing = 1.;
@@ -47,7 +47,7 @@ public:
 	void fillSites(GenotypeLikelihoods::TWindow &window);
 	void filter(GenotypeLikelihoods::TWindow &window);
 
-	const TParser& parser() const noexcept {return _parser;}
+	const BAM::TParser& parser() const noexcept {return _parser;}
 	void requireReference() const;
 
 	const std::vector<genometools::TGenomeWindow>& operator[](size_t refID) const noexcept {return _windows[refID];}

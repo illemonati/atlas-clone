@@ -37,7 +37,7 @@ public:
 //--------------------------------------------------------
 class TAssessSoftClipping {
 private:
-	TReadTraverser _readTraverser;
+	BAM::TReadTraverser _readTraverser;
 	bool _writeAlignments = false;
 	bool _printAll        = false;
 

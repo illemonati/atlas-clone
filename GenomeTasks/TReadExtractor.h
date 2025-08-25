@@ -9,7 +9,7 @@ namespace GenomeTasks {
 
 class TReadExtractor final {
 private:
-	TAlignmentTraverser _alnTraverser;
+	BAM::TAlignmentTraverser _alnTraverser;
 	size_t _nRef   = 0;
 	size_t _nAlt   = 0;
 	size_t _nOther = 0;

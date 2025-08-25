@@ -2,7 +2,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
-namespace GenomeTasks {
+namespace BAM {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 	using coretools::user_assert;

@@ -7,7 +7,7 @@
 namespace GenomeTasks {
 
 class TTransitionTabler final
-	: public TWaitingListBamTraverser {
+	: public BAM::TWaitingListBamTraverser {
 private:
 	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
 	using Transitions = coretools::TStrongArray<std::vector<Rho>, BAM::Strand>;
@@ -21,9 +21,9 @@ private:
 	void _handleFwd(std::vector<Rho>& transAll, std::vector<Rho>& transMate, const BAM::TAlignment& aln, size_t addL);
 	void _handleRev(std::vector<Rho>& transAll, std::vector<Rho>& transMate, const BAM::TAlignment& aln, size_t addL);
 
-	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
-	void _handleSingle(TWaitingAlignment &lhs) override;
-	void _handleOrphan(TWaitingAlignment &) override{};
+	void _handleMates(BAM::TWaitingAlignment &lhs, BAM::TWaitingAlignment &rhs) override;
+	void _handleSingle(BAM::TWaitingAlignment &lhs) override;
+	void _handleOrphan(BAM::TWaitingAlignment &) override{};
 
 	void _writeTransitions();
 

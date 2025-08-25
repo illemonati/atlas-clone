@@ -4,7 +4,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 
-namespace GenomeTasks {
+namespace BAM {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;

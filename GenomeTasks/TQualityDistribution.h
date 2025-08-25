@@ -18,7 +18,7 @@ namespace GenomeTasks{
 
 class TQualityTransformation final  {
 private:
-	TAlignmentTraverser _alnTraverser;
+	BAM::TAlignmentTraverser _alnTraverser;
 	std::vector<coretools::TCountDistributionVector<>> _transformations;
 	bool _compareToOtherSeqErrors;
 	std::string _label1, _label2;

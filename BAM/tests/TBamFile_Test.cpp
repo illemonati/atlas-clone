@@ -570,7 +570,7 @@ using coretools::TCountDistribution;
 using coretools::TCountDistributionVector;
 
 class TBamFilter {
-	GenomeTasks::TReadTraverser _readTraverser;
+	BAM::TReadTraverser _readTraverser;
     // class very similar to TBamDiagnoser, but inherits from TBamTraverser<Traverser::Filtered> -> can apply all filters
 public:
     // distributions
@@ -598,7 +598,7 @@ public:
     TCountDistribution<> readGroup;
     TCountDistribution<> refIDs;
 
-    GenomeTasks::TQualityFilter qualFilter;
+    BAM::TQualityFilter qualFilter;
     std::vector<std::string> readGroupNames;
 
 	void _traverseReads() {

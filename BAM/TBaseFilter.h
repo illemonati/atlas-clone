@@ -5,7 +5,7 @@
 
 #include "TSequencedData.h"
 
-namespace GenomeTasks {
+namespace BAM {
 
 //---------------------------------------------------------------
 //TQualityFilter

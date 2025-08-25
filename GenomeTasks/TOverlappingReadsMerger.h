@@ -9,7 +9,7 @@
 namespace GenomeTasks {
 
 class TOverlappingReadsMerger final
-	: public TWaitingListBamTraverser {
+	: public BAM::TWaitingListBamTraverser {
 private:
 	enum class Cases : size_t {min, NoOverlap=min, Overlap, BothFwd, BothRev, RStart_s_FStart, REnd_s_FEnd, max};
 
@@ -18,9 +18,9 @@ private:
 	bool _merge(BAM::TAlignment &Fwd, BAM::TAlignment &Rev);
 	void _summary();
 
-	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
-	void _handleSingle(TWaitingAlignment &lhs) override { lhs.status = AlignmentStatus::ready; }
-	void _handleOrphan(TWaitingAlignment &) override {}
+	void _handleMates(BAM::TWaitingAlignment &lhs, BAM::TWaitingAlignment &rhs) override;
+	void _handleSingle(BAM::TWaitingAlignment &lhs) override { lhs.status = BAM::AlignmentStatus::ready; }
+	void _handleOrphan(BAM::TWaitingAlignment &) override {}
 
 public:
 	TOverlappingReadsMerger();

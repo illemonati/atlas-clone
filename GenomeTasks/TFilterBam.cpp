@@ -6,6 +6,8 @@
 #include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks {
+using BAM::TWaitingAlignment;
+using BAM::AlignmentStatus;
 
 namespace impl {
 void makeSingle(TWaitingAlignment &WAln) {

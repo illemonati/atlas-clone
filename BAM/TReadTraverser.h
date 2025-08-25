@@ -5,7 +5,7 @@
 #include "TErrorModels.h"
 #include "TReadGroupInfo.h"
 
-namespace GenomeTasks {
+namespace BAM {
 	
 class TReadTraverser {
 	BAM::TBamFile _bamFile;

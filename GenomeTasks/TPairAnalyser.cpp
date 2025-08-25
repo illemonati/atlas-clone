@@ -2,10 +2,12 @@
 #include "TSequencedData.h"
 
 namespace GenomeTasks {
+using BAM::TWaitingAlignment;
 
 namespace impl {
 using BAM::Mate;
 using BAM::Strand;
+
 constexpr Mate mate(bool IsSecondMate) {
 	constexpr std::array<Mate, 2> mates = {Mate::first, Mate::second};
 	return mates[IsSecondMate];

@@ -8,7 +8,7 @@
 #include "genometools/GenomePositions/TGenomeWindow.h"
 #include <memory>
 
-namespace GenomeTasks {
+namespace BAM {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;

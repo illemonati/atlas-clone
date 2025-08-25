@@ -7,13 +7,13 @@
 namespace GenomeTasks {
 
 class TPairAnalyser final
-	: public TWaitingListBamTraverser {
+	: public BAM::TWaitingListBamTraverser {
 private:
 	coretools::TOutputFile _out;
 
-	void _handleMates(TWaitingAlignment &lhs, TWaitingAlignment &rhs) override;
-	void _handleSingle(TWaitingAlignment &) override {}
-	void _handleOrphan(TWaitingAlignment &) override {}
+	void _handleMates(BAM::TWaitingAlignment &lhs, BAM::TWaitingAlignment &rhs) override;
+	void _handleSingle(BAM::TWaitingAlignment &) override {}
+	void _handleOrphan(BAM::TWaitingAlignment &) override {}
 
 public:
 	TPairAnalyser();

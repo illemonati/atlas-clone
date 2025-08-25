@@ -21,7 +21,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 class TPMDSCalculator final {
 private:
-	TAlignmentTraverser _alnTraverser;
+	BAM::TAlignmentTraverser _alnTraverser;
 	coretools::Probability _pi;
 	bool _doFilter = false;
 	coretools::TNumericRange<double> _filterRange;

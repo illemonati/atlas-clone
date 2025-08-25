@@ -18,7 +18,7 @@ namespace GenomeTasks{
 
 class TIlluminaIdentifier {
 private:
-	TReadTraverser _genome{false};
+	BAM::TReadTraverser _genome{false};
 	size_t _counter = 0;
 	std::map<std::string, std::string> rgPU_rgID;
 	BAM::TOutputBamFile _out;

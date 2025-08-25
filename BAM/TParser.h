@@ -5,10 +5,7 @@
 #include "genometools/TFastaReader.h"
 #include "TBaseFilter.h"
 
-namespace BAM {class TAlignment;}
-namespace GenomeTasks {
-
-class TReadTraverser;
+namespace BAM {
 
 class TParser {
 	bool _trimReads;

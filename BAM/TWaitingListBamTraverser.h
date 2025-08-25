@@ -9,7 +9,7 @@
 #include "TBamReadMask.h"
 #include "TReadTraverser.h"
 
-namespace GenomeTasks {
+namespace BAM {
 
 enum class AlignmentStatus {waiting, orphan, filterOut, ready};
 
