@@ -104,17 +104,18 @@ template<typename Estimator> void iterate(double maxF) {
 		logfile().list("Will write raw likelihoods. (use phredLik to phred-scale)");
 	}
 
-	size_t minSamplesWithData  = 1;
 	PhredInt minVariantQuality = PhredInt::highest();
 	coretools::Probability minMAF{P(0.0)};
 	if (parameters().exists("printAll")) {
 		logfile().list("Will write all sites and samples. (parameter printAll)");
-		minSamplesWithData = 0;
+		if (parameters().exists("minSamplesWithData")) {
+			logfile().warning("option 'printAll' overwrites option 'minSamplesWithData' set to ", multiTraverser.minActive(), "!");
+		}
+		multiTraverser.setMinActive(0);
 		minVariantQuality  = PhredInt::highest();
 	} else {
-		minSamplesWithData = parameters().get<size_t>("minSamplesWithData", 1);
-		if (minSamplesWithData > 0) {
-			logfile().list("Will only print sites for which at least ", minSamplesWithData,
+		if (multiTraverser.minActive() > 0) {
+			logfile().list("Will only print sites for which at least ", multiTraverser.minActive(),
 			               " samples have data. (parameter minSamplesWithData)");
 		}
 
@@ -131,7 +132,6 @@ template<typename Estimator> void iterate(double maxF) {
 			logfile().list("Will keep sites regardless of their minor allele frequency. (use 'minMAF' to filter)");
 		}
 	}
-	multiTraverser.setMinActive(minSamplesWithData);
 
 	// limit input
 	const size_t limitSites = parameters().get("limitSites", 0);
@@ -159,7 +159,7 @@ template<typename Estimator> void iterate(double maxF) {
 	// vars
 	logfile().startIndent("Parsing through glf files:");
 	coretools::TTimer timer;
-	const auto dCounter = std::max<size_t>(1'000'000, 10'000'000 / multiTraverser.size());
+	const auto dCounter = std::max<size_t>(1'000'000, 10'000'000 / multiTraverser.numSamples());
 
 	auto &alleles = multiTraverser.alleles();
 	genometools::TAlleles::iterator alleleIt;

@@ -38,14 +38,11 @@ constexpr bool multiModal(double mama, double mami, double mimi) {
 } // namespace impl
 
 	TSafEstimator::TSafEstimator() : _fasta(parameters().get<std::string>("fasta")) {
-	const size_t nSamples = _glfTraverser.size();
+	const size_t nSamples = _glfTraverser.numSamples();
 
 	logfile().list("Will estimate Site Allele Frequency for ", nSamples, " samples.");
 
-	const auto minSamples = parameters().get<size_t>("minSamplesWithData", 1);
-	_glfTraverser.setMinActive(minSamples);
-
-	logfile().list("Will print sites for which at least ", minSamples,
+	logfile().list("Will print sites for which at least ", _glfTraverser.minActive(),
 				   " samples have data. (parameter minSamplesWithData)");
 
 	_logProbs.assign(2*nSamples + 1, LogProbability::lowest());
@@ -61,7 +58,7 @@ void TSafEstimator::_iterate(coretools::TConstView<genometools::TGLFEntry> data,
 		minors[Base::T] = {Base::A, Base::C, Base::G};
 		return minors;
 	}();
-	const size_t nSamples = _glfTraverser.size();
+	const size_t nSamples = _glfTraverser.numSamples();
 
 	_logProbs.clear();
 
@@ -163,7 +160,7 @@ void TSafEstimator::_iterate(coretools::TConstView<genometools::TGLFEntry> data,
 }
 
 void TSafEstimator::run() {
-	const auto nSamples   = _glfTraverser.size();
+	const auto nSamples   = _glfTraverser.numSamples();
 	const auto oFile      = parameters().get("out", "saf");
 
 	TSafFile safFile(oFile, nSamples);
