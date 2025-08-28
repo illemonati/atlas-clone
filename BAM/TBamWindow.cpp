@@ -30,7 +30,7 @@ void TBamWindow::move(genometools::TGenomeWindow Window) {
 	_from = Window.from();
 	const auto length   = Window.size();
 
-	_entries.resize(length, {});
+	_entries.assign(length, {});
 	// clear everything
 	_masked.clear();
 	_depthTot   = 0;
@@ -57,12 +57,24 @@ void TBamWindow::move(genometools::TGenomeWindow Window) {
 			_numMasked--;
 		}
 	}
+
+	const auto copy = _overlap;
+	_overlap.clear();
+	for (const auto& aln: copy) {
+		add(aln);
+	}
+	//_overlap.clear();
 }
 
 void TBamWindow::add(const TAlignment& Alignment) {
 	for (size_t p = 0; p < Alignment.parsedLength(); ++p) {
 		const auto& site = Alignment[p];
 		if (!site.get<Flags::Aligned>() || site.base == genometools::Base::N || Alignment.positionInRef(p) < from()) continue;	
+
+		if (Alignment.positionInRef(p) >= to()) {
+			_overlap.push_back(Alignment);
+			break;
+		}
 
 		const auto iWindow = Alignment.positionInRef(p) - from();
 		if (!_masked.empty() && _masked[p]) continue;

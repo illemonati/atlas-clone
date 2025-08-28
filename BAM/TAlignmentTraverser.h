@@ -49,6 +49,8 @@ public:
 		_parser.openReference(Required);
 	}
 
+	const genometools::TFastaReader& reference() const noexcept {return _parser.reference();};
+
 	void nextAlignment() {
 		DEBUG_ASSERT(!endOfAlignments());
 		_readTraverser.nextRead();

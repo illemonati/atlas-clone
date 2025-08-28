@@ -5,30 +5,29 @@
  *      Author: phaentu
  */
 
-#ifndef GENOMETASKS_TWRITEGLF_H_
-#define GENOMETASKS_TWRITEGLF_H_
+#ifndef GENOMETASKS_TWRITEGLFOLD_H_
+#define GENOMETASKS_TWRITEGLFOLD_H_
 
 #include "TBamWindowTraverser.h"
-#include "TSiteTraverser.h"
 #include "genometools/GLF/TGLFWriter.h"
 
 namespace GenomeTasks{
 
 //-------------------------------------------
-// TWriteGLF
+// TWriteGLFOld
 //-------------------------------------------
-class TWriteGLF final {
+class TWriteGLFOld final : public TBamWindowTraverser<WindowType::SingleBam> {
 private:
-	BAM::TSiteTraverser _siteTraverser;
-
 	genometools::TGLFWriter _writer;
 	bool _printAll;
+	bool _curIsHapo = false;
 
-	void _traverseSites();
-	void _startChromosome(const genometools::TChromosome& Chr);
+	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
+	void _startChromosome(const genometools::TChromosome& Chr) override;
+	void _endChromosome(const genometools::TChromosome&) override {}
 
 public:
-	TWriteGLF();
+	TWriteGLFOld();
 	void run();
 };
 

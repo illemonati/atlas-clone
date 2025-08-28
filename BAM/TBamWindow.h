@@ -15,6 +15,7 @@ class TBamWindow {
 private:
 	genometools::TGenomePosition _from = {size_t(-1), size_t(-1)};
 	std::vector<GenotypeLikelihoods::TSite> _entries;
+	std::vector<BAM::TAlignment> _overlap;
 	std::vector<bool> _masked;
 
 	genometools::TBed _regions;

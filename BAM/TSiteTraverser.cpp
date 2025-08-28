@@ -33,9 +33,14 @@ void TSiteTraverser::_fillWindow() {
 	if (_i >= _bamWindow.size()) nextWindow();
 }
 
+void TSiteTraverser::setMinDepth(size_t Depth) noexcept {
+	_minDepth = Depth;
+	_findFirstI();
+}
+
 void TSiteTraverser::_findFirstI() {
 	for (_i = 0; _i < _bamWindow.size(); ++_i) {
-		if (_bamWindow[_i].depth() >= 1) return;
+		if (_bamWindow[_i].depth() >= _minDepth) return;
 	}
 }
 
@@ -58,7 +63,9 @@ void TSiteTraverser::_initChr(size_t RefID) {
 }
 
 TSiteTraverser::TSiteTraverser()
-	: _bamWindow(chromosomes()), _windowList(parameters().get("windows", ""), chromosomes(), false) {}
+	: _bamWindow(chromosomes()), _windowList(parameters().get("windows", ""), chromosomes(), false) {
+	_initChr(0);
+}
 
 void TSiteTraverser::_advanceWindow() {
 	if (_windowList) {
@@ -79,7 +86,7 @@ void TSiteTraverser::nextWindow() {
 }
 
 void TSiteTraverser::nextSite() {
-	do { ++_i; } while (_i < _bamWindow.size() && _bamWindow[_i].depth() < 1);
+	do { ++_i; } while (_i < _bamWindow.size() && _bamWindow[_i].depth() < _minDepth);
 
 	if (_i >= _bamWindow.size()) {
 		nextWindow();

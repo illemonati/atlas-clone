@@ -12,6 +12,7 @@
 #include "TReadExtractor.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
+#include "TWriteGLFOld.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -132,6 +133,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
 	main.createDebugTask<PopulationTools::TPositionBasedLiftOver>("liftOver", "Position-based lift over from one reference to another");
 	main.createDebugTask<GenomeTasks::TReadExtractor>("extractReads", "Extract reads overlapping an allele-file");	
+	main.createDebugTask<GenomeTasks::TWriteGLFOld>("GLFOld", "Writing genotype likelihoods to a GLF file");	
 
 };
 

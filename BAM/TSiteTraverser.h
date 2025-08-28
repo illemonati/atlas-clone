@@ -9,13 +9,14 @@ namespace BAM{
 class TSiteTraverser {
 	TAlignmentTraverser _alnTraverser;
 
-	static constexpr size_t _wSize = 1'000'000;
+	static constexpr size_t _wSize = 1;
 	genometools::TGenomeWindow _window{0, 0, _wSize};
 	TBamWindow _bamWindow;
 	genometools::TBed _windowList;
 
 	size_t _i         = 0;
 	size_t _iWindows  = 0;
+	size_t _minDepth  = 1;
 
 	void _fillWindow();
 	void _findFirstI();
@@ -26,6 +27,9 @@ class TSiteTraverser {
 
 public:
 	TSiteTraverser();
+
+	const std::string &outputName() const noexcept { return _alnTraverser.outputName(); }
+	const GenotypeLikelihoods::TErrorModels &errorModels() const noexcept { return _alnTraverser.errorModels(); };
 
 	bool endOfCurChr() const { return _window.from() >= curChr().to(); }
 	bool endOfChrs() const { return refID() >= chromosomes().size(); }
@@ -39,6 +43,8 @@ public:
 	// Per Window access
 	void nextWindow();
 	const TBamWindow& window() const noexcept {return _bamWindow;}
+
+	void setMinDepth(size_t Depth) noexcept;
 
 	size_t refID() const noexcept {return _window.refID();}
 	const genometools::TChromosomes &chromosomes() const noexcept(coretools::noDebug) { return _alnTraverser.chromosomes(); }
