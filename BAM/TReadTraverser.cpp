@@ -1,5 +1,8 @@
 #include "TReadTraverser.h"
+
+#include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringConversions.h"
 
 namespace BAM {
 
@@ -29,16 +32,32 @@ TReadTraverser::~TReadTraverser() {
 }
 
 void TReadTraverser::nextRead() {
+	constexpr size_t million = 1'000'000;
+	static size_t _nextPrint = million;
+
+	if (bamFile().numAlignments() > _nextPrint) {
+		logfile().list("Parsed ", bamFile().numAlignments() / million, " million reads (est. ",
+					   coretools::str::toStringWithPrecision(bamFile().filePercentage(), 2) + "%) in ",
+					   _timer.formattedTime());
+		_nextPrint += million;
+	}
+	const auto refID = curChr().refID();
 	_eor = !bamFile().readNextAlignmentThatPassesFilters();
 	if (_eor) {
-		bamFile().printEndWithSummary(_outputName);
-	} else {
-		bamFile().printProgress();
+		logfile().list("Reached end of BAM file ", bamFile().filename(), " in " + _timer.formattedTime() + ':');
+		logfile().conclude("Parsed a total of ", bamFile().numAlignments()/million, " million reads in " + _timer.formattedTime() + '.');
+		logfile().endIndent();
+		bamFile().printSummary(_outputName);
+	} else if (refID != curChr().refID()) {
+		logfile().list("Parsing Chromomsome ", curChr().name(), ".");
 	}
 }
+
 bool TReadTraverser::endOfReads() {
 	if (bamFile().atStart()) {
-		bamFile().startProgressReporting();
+		_timer.start();
+		logfile().startIndent("Parsing through BAM file ", _bamFile.filename() , ":");
+		logfile().list("Parsing Chromomsome ", chromosomes().front().name(), ".");
 		nextRead();
 	}
 	return _eor;

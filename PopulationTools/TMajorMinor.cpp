@@ -174,7 +174,7 @@ template<typename Estimator> void iterate(double maxF) {
 			const auto &pos = multiTraverser.position();
 
 			if (pos.position() > position) {
-				logfile().list("Parsed ", dCounter, " positions.");
+				logfile().list("Parsed ", dCounter, " positions in ", timer.formattedTime(), ".");
 				position += dCounter;
 			}
 			MajorMinor::TMMData data;
@@ -204,10 +204,10 @@ template<typename Estimator> void iterate(double maxF) {
 		const auto tot      = multiTraverser.curChr().to().position();
 		const auto filtered = tot - counter;
 		logfile().list("Parsed a total of ", tot, " positions, filtered: ", filtered, " (", (100. * filtered) / tot,
-					   "%).");
+					   "%) in ", timer.formattedTime(), ".");
 		logfile().endIndent();
 	}
-	logfile().list("Reached end of glf files!");
+	logfile().list("Reached end of glf files in ", timer.formattedTime(), "!");
 	logfile().removeIndent();
 }
 

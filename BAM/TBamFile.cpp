@@ -137,7 +137,6 @@ TBamFile::TBamFile(std::string_view Filename, size_t ID, bool EnableFilters) : _
 
 	//initialize chromosomes
 	_fillChromosomes();
-	_read.position.move(-1, 0);
 
 	//resize alignmentCounter
 	_numAlignmentReadPerReadGroupPerChromosome.resize(_readGroups.size());

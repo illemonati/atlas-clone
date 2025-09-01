@@ -13,6 +13,7 @@ class TReadTraverser {
 	BAM::RGInfo::TReadGroupInfo _rgInfo;
 	GenotypeLikelihoods::TErrorModels _errorModels;
 
+	coretools::TTimer _timer;
 	bool _eor = false;
 
 public:

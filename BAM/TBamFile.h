@@ -86,7 +86,7 @@ private:
 
 	//report progress
 	mutable coretools::TTimer _timer;
-	mutable size_t _progressFrequency   = 1000000;
+	static constexpr size_t _progressFrequency   = 1'000'000;
 	mutable size_t _lastProgressPrinted = 0;
 
 	void _fillSamHeader();
@@ -105,6 +105,8 @@ public:
 	const TReadGroups& readGroups() const noexcept { return _readGroups; };
 	const TSamHeader& samHeader() const noexcept { return _samHeader; };
 	bool atStart() const noexcept {return _numAlignmentRead == 0;}
+	size_t numAlignments() const noexcept {return _numAlignmentRead == 0;}
+	double filePercentage() const noexcept {return _bamReader.Tell()/double(_fileSize);}
 
 	//modify header info: know what you do!
 	TReadGroups& readGroupsMutable() noexcept { return _readGroups; };
