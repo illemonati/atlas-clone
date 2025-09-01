@@ -8,7 +8,7 @@
 echo "chr1 40 50" > mask.bed
 
 out="GLF"
-$atlas --task GLF --bam simulate.bam --haploid chr2 \
+$atlas --task GLF --printAll --bam simulate.bam --haploid chr2 --readUpToDepth 6 \
 	   --fixedSeed 321 --out $out --logFile $out.out 2> $out.eout
 
 out="printGLF"

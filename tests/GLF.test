@@ -6,19 +6,10 @@
 . $(dirname $0)/simulate --fixedSeed 1
 
 out="GLF"
-$atlas --task GLF --printAll --window 7777 \
-	   --bam simulate.bam \
+$atlas --task GLF --window 1 --filterCpG --filterDepth 3,11 \
+	   --bam simulate.bam --fasta simulate.fasta \
 	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
 
 out="printGLF"
 $atlas --task printGLF --glf GLF.glf.gz \
-	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
-
-out="GLFOld"
-$atlas --task GLFOld --printAll --window 7777 \
-	   --bam simulate.bam \
-	   --fixedSeed 2 --out $out --logFile $out.out 2> $out.eout
-
-out="printGLFOld"
-$atlas --task printGLF --glf GLFOld.glf.gz \
 	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout

@@ -14,7 +14,7 @@ echo "doing $N samples"
 
 for f in *.bam; do
 	out=GLF_${f%.bam}
-    $atlas --task GLF --bam $f --fasta simulate.fasta \
+    $atlas --task GLF --bam $f \
 		   --fixedSeed 131 --out $out --logFile $out.out 2> $out.eout
 done
 

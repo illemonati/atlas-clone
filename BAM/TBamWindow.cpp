@@ -1,9 +1,12 @@
 #include "TBamWindow.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TParameters.h"
+#include <cstddef>
 
 namespace BAM {
 
 using coretools::instances::parameters;
+using coretools::instances::logfile;
 
 void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes) {
 	if (parameters().exists("regions")) { _regions.parse(parameters().get("regions"), Chromosomes); }
@@ -22,21 +25,31 @@ void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes)
 	}
 }
 
-TBamWindow::TBamWindow(const genometools::TChromosomes &Chromosomes) {
+TBamWindow::TBamWindow(const genometools::TChromosomes &Chromosomes)
+	: _upToDepth(parameters().get<size_t>("readUpToDepth", 1000)) {
 	_makeBedOrAlleles(Chromosomes);
+
+	logfile().list("Will read data up to depth ", _upToDepth,
+	               " and ignore additional bases. (parameter 'readUpToDepth')");
 }
 
-void TBamWindow::move(genometools::TGenomeWindow Window) {
+void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterCpG) {
+	using genometools::Base;
 	_from = Window.from();
-	const auto length   = Window.size();
 
-	_entries.assign(length, {});
+	_entries.assign(Window.size(), {});
 	// clear everything
-	_masked.clear();
 	_depthTot   = 0;
 	_sitesData  = 0;
 	_sites2Plus = 0;
 	_numMasked  = 0;
+
+	if (Reference) {
+		const auto view = Reference.view(window());
+		for (size_t i = 0; i < size(); ++i) {
+			_entries[i].refBase = view[i];
+		}
+	}
 
 	if (_regions) {
 		_masked.assign(Window.size(), true);
@@ -56,17 +69,44 @@ void TBamWindow::move(genometools::TGenomeWindow Window) {
 			_masked[it->position - Window.from()] = false;
 			_numMasked--;
 		}
+	} else {
+		_masked.assign(Window.size(), false);
 	}
 
-	const auto copy = _overlap;
+	if (FilterCpG) {
+		for(size_t i = 1; i < size(); ++i) {
+			if (Reference[from() + i - 1] == Base::C && Reference[from() + i] == Base::G) {
+				_masked[i - 1] = true; // C
+				_masked[i]     = true; // G
+			}
+		}
+
+		// borders
+		if (from().position() > 0 && Reference[from() - 1] == Base::C && Reference[from()] == Base::G)
+			_masked.front() = true;
+		if (Reference[to() - 1] == Base::C && Reference[to()] == Base::G) _masked.back() = true;
+	}
+
+	const auto copy = _overlap; // there could be alignments longer than window
 	_overlap.clear();
 	for (const auto& aln: copy) {
 		add(aln);
 	}
-	//_overlap.clear();
 }
 
-void TBamWindow::add(const TAlignment& Alignment) {
+void TBamWindow::mask(size_t I) {
+	_masked[I] = true;
+
+	const auto d = _entries[I].depth();
+	_entries[I].clear();
+
+	// Housekeeping
+	if (d > 1) _sites2Plus -= d;
+	if (d > 0) _sitesData  -= d;
+	_depthTot -= d;
+}
+
+void TBamWindow::add(const TAlignment &Alignment) {
 	for (size_t p = 0; p < Alignment.parsedLength(); ++p) {
 		const auto& site = Alignment[p];
 		if (!site.get<Flags::Aligned>() || site.base == genometools::Base::N || Alignment.positionInRef(p) < from()) continue;	
@@ -77,13 +117,16 @@ void TBamWindow::add(const TAlignment& Alignment) {
 		}
 
 		const auto iWindow = Alignment.positionInRef(p) - from();
-		if (!_masked.empty() && _masked[p]) continue;
+		DEBUG_ASSERT(_entries.size() > iWindow);
+		DEBUG_ASSERT(_masked.size() > iWindow);
+		if (_masked[iWindow]) continue;
+		if (_entries[iWindow].depth() == _upToDepth) continue;
 
 		++_depthTot;
 		if (_entries[iWindow].empty()) ++_sitesData;
 		if (_entries[iWindow].depth() == 1) ++_sites2Plus;
-		_entries[iWindow].add(Alignment[p]);
+
+		_entries[iWindow].add(site);
 	}
 }
-
 }

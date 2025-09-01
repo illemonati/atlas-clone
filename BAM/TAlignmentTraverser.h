@@ -14,12 +14,7 @@ class TAlignmentTraverser {
 	BAM::TAlignment _alignment;
 	bool _filled = false;
 
-	void _fill() {
-		if (!_filled) {
-			_parser.fill(_readTraverser, _alignment);
-			_filled = true;
-		}
-	}
+	void _fill();
 
 public:
 	const BAM::TBamFile &bamFile() const noexcept { return _readTraverser.bamFile(); }
@@ -35,32 +30,15 @@ public:
 	const genometools::TChromosomes &chromosomes() const noexcept { return _readTraverser.chromosomes(); }
 	const genometools::TChromosome &curChr() const noexcept { return _readTraverser.curChr(); }
 
-	BAM::TAlignment &alignment() noexcept {
-		_fill(); // only fill, which is time-consuming, if alignment is needed
-		return _alignment;
-	}
+	BAM::TAlignment &alignment();
+	void jump(size_t RefID);
 
-	void jump(size_t RefID) {
-		bamFile().jump(RefID);
-		nextAlignment();
-	}
-
-	void openReference(bool Required) {
-		_parser.openReference(Required);
-	}
-
+	void openReference(bool Required) { _parser.openReference(Required); }
 	const genometools::TFastaReader& reference() const noexcept {return _parser.reference();};
 
-	void nextAlignment() {
-		DEBUG_ASSERT(!endOfAlignments());
-		_readTraverser.nextRead();
-		_filled = false;
-	}
-
-	bool endOfAlignments() {
-		return _readTraverser.endOfReads();
-	}
-};	
+	void nextAlignment();
+	bool endOfAlignments() { return _readTraverser.endOfReads(); }
+};
 }
 
 #endif

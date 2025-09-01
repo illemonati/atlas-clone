@@ -9,21 +9,23 @@ namespace BAM{
 class TSiteTraverser {
 	TAlignmentTraverser _alnTraverser;
 
-	static constexpr size_t _wSize = 1;
-	genometools::TGenomeWindow _window{0, 0, _wSize};
+	size_t _wSize = 1'000'000;
+	genometools::TGenomeWindow _window;
 	TBamWindow _bamWindow;
 	genometools::TBed _windowList;
 
 	size_t _i         = 0;
 	size_t _iWindows  = 0;
-	size_t _minDepth  = 1;
+	coretools::TNumericRange<size_t> _depthFilter{1, true, -1, true};
 
 	void _fillWindow();
-	void _findFirstI();
+	void _filterFindI();
 	void _makeHaploDiplo();
 	void _advanceWindow();
 	void _skipShinkFill();
 	void _initChr(size_t RefID);
+
+	bool _filterCpG = false;
 
 public:
 	TSiteTraverser();
@@ -32,7 +34,7 @@ public:
 	const GenotypeLikelihoods::TErrorModels &errorModels() const noexcept { return _alnTraverser.errorModels(); };
 
 	bool endOfCurChr() const { return _window.from() >= curChr().to(); }
-	bool endOfChrs() const { return refID() >= chromosomes().size(); }
+	bool endOfChrs();
 	void nextChr();
 
 	// Per Site access
@@ -44,7 +46,8 @@ public:
 	void nextWindow();
 	const TBamWindow& window() const noexcept {return _bamWindow;}
 
-	void setMinDepth(size_t Depth) noexcept;
+	void setDepthFilter(size_t Min, size_t Max = -1) noexcept;
+	void requireReference() const;
 
 	size_t refID() const noexcept {return _window.refID();}
 	const genometools::TChromosomes &chromosomes() const noexcept(coretools::noDebug) { return _alnTraverser.chromosomes(); }

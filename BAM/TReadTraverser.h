@@ -40,21 +40,8 @@ public:
 
 	const BAM::TRead &read() const noexcept { return bamFile().curRead(); }
 
-	void nextRead() {
-		_eor = !bamFile().readNextAlignmentThatPassesFilters();
-		if (_eor) {
-			bamFile().printEndWithSummary(_outputName);
-		} else {
-			bamFile().printProgress();
-		}
-	}
-	bool endOfReads() {
-		if (bamFile().atStart()) {
-			bamFile().startProgressReporting();
-			nextRead();
-		}
-		return _eor;
-	}
+	void nextRead();
+	bool endOfReads();
 };
 } // namespace GenomeTasks
 

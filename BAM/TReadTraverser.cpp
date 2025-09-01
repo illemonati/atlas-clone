@@ -27,4 +27,20 @@ TReadTraverser::TReadTraverser(std::string_view Name, bool EnableFilters, size_t
 TReadTraverser::~TReadTraverser() {
 	if (_rgInfo.isParsed()) _rgInfo.write(_outputName + "_RGInfo.json");
 }
-} // namespace GenomeTasks
+
+void TReadTraverser::nextRead() {
+	_eor = !bamFile().readNextAlignmentThatPassesFilters();
+	if (_eor) {
+		bamFile().printEndWithSummary(_outputName);
+	} else {
+		bamFile().printProgress();
+	}
+}
+bool TReadTraverser::endOfReads() {
+	if (bamFile().atStart()) {
+		bamFile().startProgressReporting();
+		nextRead();
+	}
+	return _eor;
+}
+} // namespace BAM

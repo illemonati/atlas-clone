@@ -7,7 +7,7 @@
 #include "genometools/TBed.h"
 
 #include "TSite.h"
-
+#include "genometools/TFastaReader.h"
 
 namespace BAM {
 
@@ -26,6 +26,8 @@ private:
 	size_t _sitesData   = 0;
 	size_t _sites2Plus = 0;
 
+	size_t _upToDepth = 1000;
+
 	void _makeBedOrAlleles(const genometools::TChromosomes &Chromosomes);
 
 public:
@@ -40,8 +42,9 @@ public:
 	size_t size() const noexcept {return _entries.size();}
 	bool empty() const noexcept {return _entries.empty();}
 
-	void move(genometools::TGenomeWindow Window);
+	void move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterCpG);
 	void add(const TAlignment& Alignment);
+	void mask(size_t I);
 
 	const GenotypeLikelihoods::TSite& operator[](size_t I) const noexcept(coretools::noDebug) {
 		DEBUG_ASSERT(I < size());
