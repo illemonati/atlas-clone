@@ -4,12 +4,19 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/fromString.h"
+#include "coretools/Strings/stringConversions.h"
 #include "coretools/Strings/stringProperties.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
 #include <filesystem>
 
 namespace BAM{
+
+namespace impl {
+constexpr size_t millions = 1'000'000;
+std::string millionsReads(size_t N) { return coretools::str::toStringWithPrecision((double) N / millions, 1); }
+}
+
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 
@@ -39,7 +46,10 @@ void TSiteTraverser::_fillWindow() {
 	}
 
 	_filterFindI();
-	if (_i >= _bamWindow.size()) nextWindow();
+
+	if (_i >= _bamWindow.size()) {
+		nextWindow();
+	}
 }
 
 void TSiteTraverser::setDepthFilter(size_t Min, size_t Max) noexcept {
@@ -59,24 +69,34 @@ void TSiteTraverser::_filterFindI() {
 }
 
 void TSiteTraverser::_initChr(size_t RefID) {
+	if (RefID >= chromosomes().size()) {
+		// end of chromosomes
+		_window.move(RefID, 0, _wSize);
+		return;
+	}
+
+	logfile().startIndent("Parsing chromosome '", curChr().name(), "':");
+
+	if (!chromosomes()[RefID].inUse() || (regions() && regions().empty(RefID)) ||
+	           (alleles() && alleles().empty(RefID)) || (_windowList && _windowList.empty(RefID))) {
+		// skip chromosome
+		_window.move(chromosomes()[RefID].to(), 1);
+		logfile().list("Chromsome is not used.");
+		return;
+	}
+
 	if (_windowList) {
-		if (RefID >= chromosomes().size()) {
-			_window.move(RefID, 0, _wSize); // end of current chromosomes
-		} else if (!_windowList.windowsOnChr(RefID).empty()) {
-			_window   = _windowList.windowsOnChr(RefID).front();
-			_iWindows = 0;
-		} else {
-			_window.move(chromosomes()[RefID].to(), 1); // move outside of chr
-		}
+		// take from window list
+		_window   = _windowList[RefID].front();
+		_iWindows = 0;
 	} else {
+		// use window size
 		_window.move(RefID, 0, _wSize);
 	}
-	if (!endOfChrs()) {
-		_skipShinkFill();
-	}
+	_skipShinkFill();
 }
 
-	TSiteTraverser::TSiteTraverser() : _bamWindow(chromosomes()), _filterCpG(parameters().exists("filterCpG")) {
+    TSiteTraverser::TSiteTraverser() : _bamWindow(chromosomes()), _filterCpG(parameters().exists("filterCpG")) {
 	const auto sWindows = parameters().get("window", "");
 	if (!sWindows.empty()) {
 		if (std::filesystem::exists(sWindows)) {
@@ -109,6 +129,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	} else {
 		logfile().list("Will keep all sites with data. (use 'filterDepth' to filter)");
 	}
+	_alnTraverser.setSilent();
 }
 
 void TSiteTraverser::requireReference() const {
@@ -117,8 +138,11 @@ void TSiteTraverser::requireReference() const {
 }
 
 bool TSiteTraverser::endOfChrs() {
-	constexpr auto zerozero = genometools::TGenomePosition{}; 
-	if (_window.size() == 0 && _window.from() == zerozero) {
+	if (_window.size() == 0) {
+		DEBUG_ASSERT(_window.from() == genometools::TGenomePosition{});
+
+		logfile().startIndent("Traversing through BAM file ", _alnTraverser.bamFile().filename(), " in windows:");
+		_timer.start();
 		_initChr(0);
 	}
 	return refID() >= chromosomes().size();
@@ -148,10 +172,30 @@ void TSiteTraverser::nextSite() {
 	if (_i >= _bamWindow.size()) {
 		nextWindow();
 	}
+	++_numSites;
+	_log();
+}
+
+void TSiteTraverser::_log() {
+	if (_numSites > _nextPrint) {
+		logfile().list("Parsed ", impl::millionsReads(_numSites), " million sites (est. ",
+					   coretools::str::toStringWithPrecision((double)_numSites / _window.size(), 2) + "%) in ",
+					   _timer.formattedTime());
+		_nextPrint += impl::millions;
+	}
 }
 
 void TSiteTraverser::nextChr() {
+	logfile().endIndent(); // from previous _initChr
 	_initChr(refID() + 1);
+
+	if (endOfChrs()) {
+		logfile().list("Reached end of BAM file ", _alnTraverser.bamFile().filename(), " in " + _timer.formattedTime() + ':');
+		logfile().conclude("Parsed a total of ", impl::millionsReads(_numSites),
+						   " million sites in " + _timer.formattedTime() + '.');
+		logfile().endIndent(); // from start in (endOfChrs)
+		_alnTraverser.bamFile().printSummary(outputName());
+	}
 }
 
 }

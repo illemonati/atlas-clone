@@ -1,5 +1,5 @@
-#ifndef TSITEGLFTRAVERSER_H_
-#define TSITEGLFTRAVERSER_H_
+#ifndef TSITETRAVERSER_H_
+#define TSITETRAVERSER_H_
 
 #include "TAlignmentTraverser.h"
 #include "TBamWindow.h"
@@ -16,7 +16,13 @@ class TSiteTraverser {
 
 	size_t _i         = 0;
 	size_t _iWindows  = 0;
+
+	size_t _numSites  = 0;
+	size_t _nextPrint = 1'000'000;
+	coretools::TTimer _timer;
+
 	coretools::TNumericRange<size_t> _depthFilter{1, true, -1, true};
+	bool _filterCpG = false;
 
 	void _fillWindow();
 	void _filterFindI();
@@ -25,7 +31,7 @@ class TSiteTraverser {
 	void _skipShinkFill();
 	void _initChr(size_t RefID);
 
-	bool _filterCpG = false;
+	void _log();
 
 public:
 	TSiteTraverser();

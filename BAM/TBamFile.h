@@ -105,7 +105,7 @@ public:
 	const TReadGroups& readGroups() const noexcept { return _readGroups; };
 	const TSamHeader& samHeader() const noexcept { return _samHeader; };
 	bool atStart() const noexcept {return _numAlignmentRead == 0;}
-	size_t numAlignments() const noexcept {return _numAlignmentRead == 0;}
+	size_t numAlignments() const noexcept {return _numAlignmentRead;}
 	double filePercentage() const noexcept {return _bamReader.Tell()/double(_fileSize);}
 
 	//modify header info: know what you do!

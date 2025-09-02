@@ -15,6 +15,10 @@ class TReadTraverser {
 
 	coretools::TTimer _timer;
 	bool _eor = false;
+	size_t _nextPrint = 0;
+	static constexpr size_t _noLog = -1;
+
+	void _log();
 
 public:
 	TReadTraverser(bool EnableFilters=true);
@@ -33,16 +37,17 @@ public:
 	BAM::RGInfo::TReadGroupInfo &rgInfo() noexcept { return _rgInfo; }
 
 	const GenotypeLikelihoods::TErrorModels &errorModels() const noexcept { return _errorModels; };
-
 	const std::string &outputName() const noexcept { return _outputName; }
 
 	const genometools::TChromosomes &chromosomes() const noexcept { return _bamFile.chromosomes(); }
 	const genometools::TChromosome &curChr() const noexcept { return _bamFile.curChromosome(); }
 
-	const BAM::TRead &read() const noexcept { return bamFile().curRead(); }
+	const BAM::TRead &read() const noexcept { DEBUG_ASSERT(!bamFile().atStart()); return bamFile().curRead(); }
 
 	void nextRead();
 	bool endOfReads();
+
+	void setSilent() {DEV_ASSERT(bamFile().atStart()); _nextPrint = _noLog;}
 };
 } // namespace GenomeTasks
 

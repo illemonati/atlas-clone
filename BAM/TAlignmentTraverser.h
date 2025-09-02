@@ -38,6 +38,8 @@ public:
 
 	void nextAlignment();
 	bool endOfAlignments() { return _readTraverser.endOfReads(); }
+
+	void setSilent() {_readTraverser.setSilent();}
 };
 }
 
