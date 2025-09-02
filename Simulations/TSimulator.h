@@ -13,8 +13,6 @@
 #include <vector>
 
 #include "TSimulatorBamFiles.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 
@@ -90,26 +88,7 @@ public:
 };
 
 struct TSimulationRunner {
-	void run() {
-		using coretools::instances::parameters;
-		using coretools::instances::logfile;
-		// default type ist "one" if no fasta is given, HKY85 otherwise
-		const auto type =
-			parameters().get("type", parameters().exists("fasta") ? TSimulatorHKY85::name : TSimulatorOne::name);
-
-		if (parameters().exists("vcf")) {
-			logfile().startIndent("Simulating VCF Files:");
-			auto simulator = TVCFSimulator{type};
-			simulator.runSimulations();
-		} else { // default: BAM simulator
-			logfile().startIndent("Simulating BAM Files:");
-			auto simulator = TBAMSimulator{type};
-			simulator.runSimulations();
-		}
-
-		// clean up
-		logfile().endIndent();
-	}
+	void run();
 };
 
 } // namespace Simulations

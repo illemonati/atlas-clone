@@ -119,9 +119,9 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 	//read EM parameters
 	logfile().startIndent("Parameters of EM algorithm:");
 	_maxIterations = parameters().get<int>("iterations", 100);
-	logfile().list("Will run up to ", _maxIterations, " iterations.");
-	_epsilon = parameters().get("maxEps", 0.000001);
-	logfile().list("Will run EM until deltaLL < ", _epsilon, ".");
+	logfile().list("Will perform at max ", _maxIterations, " EM iterations. (parameter 'iterations')");
+	_minDeltaLL = parameters().get<double>("minDeltaLL", 1e-6);
+	logfile().list("Will stop EM when deltaLL < ", _minDeltaLL, ". (parameter 'minDeltaLL')");
 	logfile().endIndent();
 
 	//set how to calculate distances
@@ -494,8 +494,8 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 		if(iter > 0 ){
 			LL_diff = LL - old_LL;
 			logfile().conclude("LL = ", LL, " (deltaLL = ", LL_diff, ").");
-			if(LL_diff < _epsilon){
-				logfile().conclude("EM converged, delatLL = ", LL_diff, " < ", _epsilon);
+			if(LL_diff < _minDeltaLL){
+				logfile().conclude("EM converged, delatLL = ", LL_diff, " < ", _minDeltaLL);
 				_distance = _distanceObject->calculateDistance(_phi);
 				logfile().conclude("Resulting distance is ", _distance);
 				logfile().endIndent();

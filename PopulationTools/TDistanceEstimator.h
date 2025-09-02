@@ -114,7 +114,7 @@ private:
 
 	//settings
 	int _maxIterations;
-	double _epsilon;
+	double _minDeltaLL;
 
 	//tmp variables
 	double _old_LL;
