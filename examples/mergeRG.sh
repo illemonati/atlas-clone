@@ -1,13 +1,14 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-. $(dirname $0)/simulate --numReadGroups 10 --fixedSeed 155
+# Simulate a BAM File with 3 readgroups
+$atlas simulate --logFile simulate.out --numReadGroups 3
 
+# Create merge-file which merges SimReadGroup2 into SimReadGroup1
 echo "receiver donor" > rgs.txt
 echo "SimReadGroup1 SimReadGroup2" >> rgs.txt
-echo "SimReadGroup3 SimReadGroup4,SimReadGroup5,SimReadGroup6,SimReadGroup7" >> rgs.txt
 
-out="mergeRG"
-$atlas --task mergeRG --bam simulate.bam --readGroups rgs.txt \
-	   --fixedSeed 159 --out $out --logFile $out.out 2> $out.eout
+# Merge readgroups
+$atlas mergeRG --bam ATLAS_simulations.bam --logFile mergeRG.out --readGroups rgs.txt

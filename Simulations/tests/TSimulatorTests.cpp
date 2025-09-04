@@ -2,6 +2,7 @@
 // Created by madleina on 06.04.22.
 //
 #include "TSimulator.h"
+#include "coretools/Main/TParameters.h"
 #include "genometools/VCF/TVcfFile.h"
 #include "gtest/gtest.h"
 

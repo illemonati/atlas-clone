@@ -129,6 +129,7 @@ public:
 	void fill(TAlignment & alignment) const;
 
 	bool jump(const genometools::TGenomePosition Position);
+	bool jumpToEnd();
 
 	//writing
 	void writeCurAlignment(TOutputBamFile & out);

@@ -17,9 +17,6 @@
 #include "TReadGroupInfo.h"
 #include "TSequencedData.h"
 
-#include "coretools/devtools.h"
-
-
 namespace GenotypeLikelihoods::PMD {
 
 using BAM::End;

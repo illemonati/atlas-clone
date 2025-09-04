@@ -1,9 +1,10 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate_vcf --sampleSize 11 \
-  --chrLength 13217 --ploidy 2 --fixedSeed 242
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="testHardyWeinberg"
-$atlas --task testHardyWeinberg --vcf simulate.vcf.gz \
-	   --fixedSeed 245 --out $out --logFile $out.out 2> $out.eout
+# Simulate 5 samples in Hardy–Weinberg Equilibrium and write vcf file
+$atlas simulate --vcf --type HW --sampleSize 5 --logFile simulate.out
+
+# Test for Hardy Weinberg equilibrium
+$atlas testHardyWeinberg --vcf ATLAS_simulations.vcf.gz --logFile testHardyWeinberg.out

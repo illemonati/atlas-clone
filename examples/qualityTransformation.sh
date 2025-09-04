@@ -1,8 +1,10 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --fixedSeed 199
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="qualityTransformation"
-$atlas --task qualityTransformation --bam simulate.bam \
-	   --fixedSeed 190 --out $out --logFile $out.out 2> $out.eout
+# Simulate a BAM File with actual quality = 0.9*BaseQuality
+$atlas simulate --logFile simulate.out --recal "quality:polynomial[0.9]"
+
+# Create Quality Transformation
+$atlas qualityTransformation --bam ATLAS_simulations.bam --logFile qualityTransformation.out

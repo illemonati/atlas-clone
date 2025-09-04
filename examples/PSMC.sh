@@ -1,10 +1,10 @@
 #! /bin/bash
 
-# `--fixedSeed = N` is needed to have reproducable results in regression test
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --fixedSeed 2
+# Simulate a BAM File
+$atlas simulate --logFile simulate.out
 
-out="PSMC"
-$atlas --task PSMC --bam simulate.bam --window 4567 \
-	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
+# Generating a PSMC Input file
+$atlas PSMC --bam ATLAS_simulations.bam --logFile PSMC.out

@@ -14,6 +14,7 @@
 
 #include "TBamWindowTraverser.h"
 #include "TAllelicDepthCounts.h"
+#include "coretools/enum.h"
 
 namespace GenomeTasks {
 
@@ -25,8 +26,9 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	using Transitions = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<Rho>, BAM::End>, BAM::Strand>, BAM::Mate>;
 	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>, genometools::Base, 5>, BAM::Strand>, BAM::Mate>;
 
-	enum class Print: size_t {min, OnlySitesWithData=min, Depth, Bases, SampleBases, Qualities, Alleles, Mates, Strand, Likelihoods, HML, max};
-	enum class Hist: size_t {min, Depths, Quality, Contexts, AllelicDepth, Transitions, PrevBases, max};
+	enum class Print: size_t {min, Depth=min, Bases, SampleBases, Qualities, Alleles, Mates, Strands, Likelihoods, HML, PrintAll, max = PrintAll};
+
+	enum class Hist : size_t {min, Depth=min, Qualities, Contexts, AllelicDepth, Transitions, PrevBases, max };
 
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -46,9 +48,8 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 
 	PrevBases _prevBases{};
 
-
-	coretools::TStrongBitSet<Print> _printSettings;
-	coretools::TStrongBitSet<Hist> _histSettings;
+	coretools::TStrongBitSet<Print, coretools::index(Print::max) + 1> _printSettings{0};
+	coretools::TStrongBitSet<Hist> _histSettings{0};
 
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
@@ -57,6 +58,7 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
 	void _startChromosome(const genometools::TChromosome& ) override {}
 	void _endChromosome(const genometools::TChromosome& Chr) override;
+
 public:
 	TPileup();
 	void run();

@@ -1,9 +1,10 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --fixedSeed 22
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="allelicDepth"
-$atlas --task allelicDepth --readUpToDepth 97 \
-	   --bam simulate.bam --window 4567 \
-	   --fixedSeed 25 --out $out --logFile $out.out 2> $out.eout
+# Simulate a BAM File
+$atlas simulate --logFile simulate.out
+
+# Create allelicDepth histogram, limit depth to 100
+$atlas allelicDepth --readUpToDepth 100 --bam ATLAS_simulations.bam --logFile allelicDepth.out

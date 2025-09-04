@@ -1,8 +1,11 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate_vcf --sampleSize 47 --chrLength 1212 --fixedSeed 129
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="inbreeding"
-$atlas inbreeding --numBurnin 1 --iterations 97 --vcf simulate.vcf.gz \
-	   --fixedSeed 1 --out $out --logFile $out.out 2> $out.eout
+# Simulate 5 samples in Hardy–Weinberg Equilibrium and write vcf file
+$atlas simulate --vcf --type HW --sampleSize 3 --logFile simulate.out
+
+# Calculate inbreeding coefficient
+# Use only 1 burnin and 200 iterations for speed (keep the default values for real data)
+$atlas inbreeding --vcf ATLAS_simulations.vcf.gz --numBurnin 1 --iterations 200 --logFile inbreeding.out

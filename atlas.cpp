@@ -10,6 +10,7 @@
 #include "TOverlappingReadsMerger.h"
 #include "TPairAnalyser.h"
 #include "TPileup2Bed.h"
+#include "TReadExtractor.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
 #include "coretools/Main/TMain.h"
@@ -41,7 +42,6 @@
 #include "TInbreedingEstimator.h"
 #include "TMajorMinor.h"
 #include "TPSMCInput.h"
-#include "TPolymorphicWindowIdentifier.h"
 #include "TWriteGLF.h"
 #include "TSpearmanGWAS.h"
 
@@ -65,7 +65,6 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TReadGroupMerger>(groupName, "mergeRG", "Merging read groups in a BAM file");	
 	main.createGroupedTask<GenomeTasks::TBamDiagnoser>(groupName, "BAMDiagnostics", "Estimating depth and read property frequencies");
 	main.createGroupedTask<GenomeTasks::TAssessSoftClipping>(groupName, "assessSoftClipping", "Assessing level of soft clipping in BAM file");
-	main.createGroupedTask<GenomeTasks::TSoftClipsTrimmer>(groupName, "trimSoftClips", "Removing soft clipped bases from reads");
 	main.createGroupedTask<GenomeTasks::TQualityTransformation>(groupName, "qualityTransformation", "Printing Quality Transformation");
 	main.createGroupedTask<GenomeTasks::TBamDownsampler>(groupName, "downsample", "Downsampling a BAM file");
 	main.createGroupedTask<GenomeTasks::TPMDSCalculator>(groupName, "PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");	
@@ -79,11 +78,11 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TAllelicDepth>(groupName, "allelicDepth", "Writing genotype likelihoods to a GLF file");
 	main.createGroupedTask<GenomeTasks::TPSMCInput>(groupName, "PSMC", "Generating a PSMC Input file probabilistically");
 	main.createGroupedTask<GenomeTasks::TCall>(groupName, "call", "Calling genotypes");
-	main.createGroupedTask<GenomeTasks::TEstimateTheta>(groupName, "theta", "Estimating heterozygosity (theta)", "Kousathanas et al. (2017) Genetics");
+	main.createGroupedTask<GenomeTasks::TEstimateTheta>(groupName, "theta", "Estimating heterozygosity with Felsenstein genotype distribution", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TEstimateThetaRatio>(groupName, "thetaRatio", "Estimate ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
 	main.createGroupedTask<GenomeTasks::TWriteGLF>(groupName, "GLF", "Writing genotype likelihoods to a GLF file");	
 	main.createGroupedTask<GenomeTasks::TEstimateMutationLoad>(groupName, "mutationLoad", "Estimating mutation load across the genome");
-	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating HKY85 genotype Distribution");
+	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating heterozygosity with HKY85 genotype distribution");
 	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
 	main.createGroupedTask<GenomeTasks::TPileup2Bed>(groupName, "pileupToBed", "Create bed file from pileup file");
 	}
@@ -97,7 +96,6 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<PopulationTools::TAlleleCounter>(groupName, "alleleCounts", "Estimating population allele counts");
 	main.createGroupedTask<PopulationTools::TAlleleFreqEstimator>(groupName, "alleleFreq", "Estimating population allele frequencies");
 	main.createGroupedTask<PopulationTools::TInbreedingEstimator>(groupName, "inbreeding", "Estimating the inbreeding coefficient", "Burger et al. (2020) Current Biology");
-	main.createGroupedTask<PopulationTools::TPolymorphicWindowIdentifier>(groupName, "polymorphicWindows", "Identifying windows for which samples are polymorphic");
 	main.createGroupedTask<PopulationTools::TF2Estimator>(groupName, "calculateF2", "Calculate F2 between samples, and within/between populations");
 	main.createGroupedTask<PopulationTools::TAncestralAlleleEstimator>(groupName, "ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 	main.createGroupedTask<PopulationTools::TSafEstimator>(groupName, "saf", "Estimating Site Allele Frequencies");	
@@ -135,6 +133,7 @@ void addTaks(coretools::TMain & main) {
 	main.createDebugTask<GenomeTasks::TPairAnalyser>("analysePairs", "analyse Pairs");
 	main.createDebugTask<PopulationTools::TPositionBasedLiftOver>("liftOver", "Position-based lift over from one reference to another");
 	main.createDebugTask<GenomeTasks::TDepthCalculator>("averageDepth", "Calculate average depth of BAM file");	
+	main.createDebugTask<GenomeTasks::TReadExtractor>("extractReads", "Extract reads overlapping an allele-file");	
 
 };
 

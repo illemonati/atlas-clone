@@ -1,18 +1,16 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --type SFS --theta 0.001 --fixedSeed 212 \
-  --chrLength 15111 --depth 11 --ploidy 2 --sampleSize 1
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-name="GLF"
-samples=""
+# Simulate 5 BAM files in Hardy–Weinberg equilibrium
+$atlas simulate --type HW --sampleSize 5 --logFile simulate.out
+
+# Create GLF files
 for f in *.bam; do
-	out=${f%.bam}
-	$atlas --task GLF --bam $f  \
-	   --fixedSeed 215 --out $out --logFile $out.out 2> $out.eout
-	samples="${samples}$out.glf.gz,"
+	$atlas GLF --bam $f
 done
+samples=$(ls -1 *.glf.gz | paste -s -d ',' -)
 
-out="saf"
-$atlas --task saf --glf $samples --fasta simulate.fasta \
-	   --fixedSeed 219 --out $out --logFile $out.out 2> $out.eout
+# Create site allele frequencies file
+$atlas saf --glf $samples --fasta ATLAS_simulations.fasta --logFile saf.out

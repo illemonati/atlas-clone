@@ -1,0 +1,35 @@
+#! /bin/bash
+
+cd "$(dirname "$0")" || exit 1
+
+echo "Running tutorials"
+
+cnt=0
+fail=0
+for f in ../tutorials/*.sh ; do
+	((cnt++))
+	bf=$(basename "${f%.sh}")
+	echo "$cnt) Example Run: $bf"
+
+	fo=$(grep "mkdir" $f | awk '{print $2}')
+	if [[ -d $fo ]]; then
+		rm -r "$fo"
+	fi
+
+	bash "$f" > $bf.out 2> $bf.eout
+
+	if [[ -s $bf.eout ]]; then
+		echo "Running $f ended with errors"
+		fails="$fails, $bf"
+		((fail++))
+	fi
+done
+
+if [[ $fail -gt 0 ]]; then
+	echo "$fail of $cnt tests failed:"
+	echo ${fails#", "}
+	exit 1
+else
+	echo "All $cnt tests passed"
+	exit 0
+fi

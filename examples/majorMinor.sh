@@ -1,54 +1,16 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-N=97
-if [[ "$#" -eq 1 ]]; then
-    N=$1
-fi
+# Simulate 5 BAM files in Hardy–Weinberg equilibrium
+$atlas simulate --type HW --sampleSize 5 --logFile simulate.out
 
-echo "doing $N samples"
-
-. $(dirname $0)/simulate --type HW --F 0.1 --chrLength 1432 \
-	--sampleSize $N --fracPoly 0.1 --alpha 2.0 --beta 2.0 --fixedSeed 133
-
+# Create GLF files
 for f in *.bam; do
-	out=GLF_${f%.bam}
-    $atlas --task GLF --bam $f --fasta simulate.fasta \
-		   --fixedSeed 131 --out $out --logFile $out.out 2> $out.eout
+	$atlas GLF --bam $f
 done
+samples=$(ls -1 *.glf.gz | paste -s -d ',' -)
 
-allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
-
-out="majorMinor"
-$atlas --task majorMinor --glf $allSamples --method Skotte \
-	   --minMAF 0.05 --bgz --minSamplesWithData 83 \
-	   --fixedSeed 132 --out $out --logFile $out.out 2> $out.eout
-
-ls *.glf.gz > glflist.txt
-ls *.glf.gz | sed 's/GLF_simulate_//g' | sed 's/\.glf\.gz//g' > indlist.txt
-
-out="Skotte_fasta"
-$atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
-	   --glf glflist.txt --sampleNames indlist.txt --fasta simulate.fasta \
-	   --minMAF 0.05 --bgz \
-	   --fixedSeed 134 --out $out --logFile $out.out 2> $out.eout
-
-echo "chr1 222 1234" > bed.bed
-echo "chr2 111 1432" >> bed.bed
-echo "chr3 0 999" >> bed.bed
-
-out="MLE_fasta"
-$atlas --task majorMinor --method MLE --minSamplesWithData 83 --regions bed.bed \
-	   --glf $allSamples --fasta simulate.fasta \
-	   --minMAF 0.05 --noVCFHeader \
-	   --fixedSeed 135 --out $out --logFile $out.out 2> $out.eout
-
-echo "chr pos ref alt" > alleles.txt
-gunzip -c Skotte_fasta.vcf.gz | grep -v "^##" | awk '{if (NR % 3 == 0) {print $1, $2, $4, $5}}' >> alleles.txt
-
-out="alleles"
-$atlas --task majorMinor --method Skotte --minSamplesWithData 83 \
-	   --glf $allSamples --alleles alleles.txt \
-	   --minMAF 0.05 \
-	   --fixedSeed 136 --out $out --logFile $out.out 2> $out.eout
+# Estimate major and minor allele
+$atlas majorMinor --glf $samples --fasta ATLAS_simulations.fasta --logFile majorMinor.out

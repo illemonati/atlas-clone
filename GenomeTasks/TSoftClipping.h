@@ -50,19 +50,6 @@ public:
 	void run();
 };
 
-//--------------------------------------------------------
-// TSoftClipsTrimmer
-//--------------------------------------------------------
-class TSoftClipsTrimmer final : public TBamReadTraverser<ReadType::Parsed> {
-private:
-	BAM::TOutputBamFile _outBam;
-	void _handleAlignment(BAM::TAlignment& alignment) override;
-
-public:
-	TSoftClipsTrimmer();
-	void run();
-};
-
 }; // namespace GenomeTasks
 
 #endif /* TSOFTCLIPPING_H_ */

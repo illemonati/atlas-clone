@@ -1,10 +1,10 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate_vcf --sampleSize 11 --fixedSeed 35
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="calculateF"
-$atlas --task calculateF2 --vcf simulate.vcf.gz \
-	   --filterDepth [2,] --maxMissing 0.1 --minMAF 0.01 \
-	   --fixedSeed 36 --out $out --logFile $out.out 2> $out.eout
+# Simulate 5 samples in Hardy–Weinberg Equilibrium and write vcf file
+$atlas simulate --vcf --type HW --sampleSize 5 --logFile simulate.out
 
+# calculate F2 between samples
+$atlas calculateF2 --vcf ATLAS_simulations.vcf.gz --logFile calculateF2.out

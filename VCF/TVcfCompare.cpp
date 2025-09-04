@@ -11,7 +11,6 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 
-
 namespace VCF{
 
 using genometools::Base;
@@ -230,15 +229,17 @@ TVcfCompare::TVcfCompare() {
 			_outName = coretools::str::extractBeforeLast(_outName, ".");
 		}
 
-		//get base name of first VCF file
-		std::string tmp = fileNames[1];
-		tmp = coretools::str::extractBeforeLast(tmp, '.');
-		if(fileNames[1].find(".gz") != std::string::npos){
-			//if zipped there is extra .gz
-			tmp = coretools::str::extractBeforeLast(tmp, ".");
-		}
+		if (fileNames.size() > 1) {
+			// get base name of second VCF file
+			std::string tmp = fileNames[1];
+			tmp             = coretools::str::extractBeforeLast(tmp, '.');
+			if (fileNames[1].find(".gz") != std::string::npos) {
+				// if zipped there is extra .gz
+				tmp = coretools::str::extractBeforeLast(tmp, ".");
+			}
 
-		_outName += "_" + tmp;
+			_outName += "_" + tmp;
+		}
 	}
 
 	_outName += "_CallComparison.txt";

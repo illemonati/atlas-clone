@@ -113,7 +113,6 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 	_outTransitionsPsi.flush();
 }
 
-
 } // namespace impl
 
 //---------------------------------
@@ -128,34 +127,36 @@ TPileup::TPileup() {
 		_out.open(filename);
 
 		// parse output fields
-		logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
-		const auto tmp = parameters().get<std::vector<std::string>>(
-		    "fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods", "hml"});
-		std::set<std::string> fields(tmp.begin(), tmp.end());
 
-		_printSettings.set<Print::Depth>(impl::parseField(fields, "depth", "Sequencing depth"));
-		_printSettings.set<Print::Bases>(impl::parseField(fields, "bases", "Pileup bases"));
-		_printSettings.set<Print::SampleBases>(impl::parseField(fields, "sampleBases", "Sample bases per bam-file"));
-		_printSettings.set<Print::Qualities>(impl::parseField(fields, "qualities", "Pileup qualities"));
-		_printSettings.set<Print::Alleles>(impl::parseField(fields, "alleles", "Allele counts"));
-		_printSettings.set<Print::Mates>(impl::parseField(fields, "mates", "Mate information"));
-		_printSettings.set<Print::Strand>(impl::parseField(fields, "strands", "Strand information"));
-		_printSettings.set<Print::Likelihoods>(impl::parseField(fields, "likelihoods", "Genotype likelihoods"));
-		_printSettings.set<Print::HML>(impl::parseField(fields, "hml", "Heterozygot is most likely"));
+		constexpr coretools::TStrongArray<std::string_view, Print> printNames{
+			{"depth", "bases", "sampleBases", "qualities", "alleles", "mates", "strands", "likelihoods", "hml"}};
+		constexpr coretools::TStrongArray<std::string_view, Print> printExpl{
+			{"Sequencing depth", "Pileup bases", "Sample bases per bam-file", "Pileup qualities", "Allele counts",
+			 "Mate information", "Strand information", "Genotype likelihoods", "Heterozygot is most likely"}};
+
+		const auto fields = parameters().get<std::vector<std::string_view>>(
+		    "fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods", "hml"});
+
+		logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
+		for (const auto& field: fields) {
+			auto p = Print::min;
+			for (; p < Print::max; ++p) {
+				if (field == printNames[p]) {
+					_printSettings[p] = true;
+					logfile().list(printExpl[p], " (", printNames[p], ")");
+					break;
+				}
+			}
+			if (p == Print::max) throw coretools::TUserError("Unknown field '", field, "'! Valid fields are: ", printNames);
+		}
 		logfile().endIndent();
 
-		// check if unknown fields were given
-		if (!fields.empty()) {
-			if (fields.size() == 1) {
-				throw coretools::TUserError("Unknown field '", *fields.begin(),
-				       "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.");
-			} else {
-				std::string f;
-				for (auto i : fields) { f += '\'' + i + "', "; }
-				throw coretools::TUserError("Unknown fields: ", f.substr(0, f.size() - 2),
-				       "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and "
-				       "'likelihoods'.");
+		if (fields.size() < coretools::index(Print::max)) {
+			logfile().startIndent("Will not print the following pileup fields (parameter 'fields'):");
+			for (auto p = Print::min; p < Print::max; ++p) {
+				if (!_printSettings[p]) { logfile().list(printExpl[p], " (", printNames[p], ")"); }
 			}
+			logfile().endIndent();
 		}
 
 		// compile header
@@ -189,7 +190,7 @@ TPileup::TPileup() {
 			header.push_back("numFirstMate");
 			header.push_back("numSecondMate");
 		}
-		if (_printSettings.get<Print::Strand>()) {
+		if (_printSettings.get<Print::Strands>()) {
 			header.push_back("numForwardStrand");
 			header.push_back("numReverseStrand");
 		}
@@ -206,41 +207,45 @@ TPileup::TPileup() {
 
 		// print all sites, also those without data?
 		if (parameters().exists("printAll")) {
-			_printSettings.set<Print::OnlySitesWithData>(false);
+			_printSettings.set<Print::PrintAll>(true);
 			logfile().list(
 			    "Will print all sites that pass filters, including those without data. (parameter 'printAll')");
 		} else {
-			_printSettings.set<Print::OnlySitesWithData>(true);
+			_printSettings.set<Print::PrintAll>(false);
 			logfile().list("Will print only sites with data. (use 'printAll' to print all)");
 		}
 	}
 
+	constexpr coretools::TStrongArray<std::string_view, Hist> histNames{
+		{"depth", "qualities", "contexts", "allelicDepth", "transitions", "prevBases"}};
+	constexpr coretools::TStrongArray<std::string_view, Hist> histExpl{
+		{"Sequencing depth", "Base qualities", "Base contexts", "Allelic depth", "ref to base transition",
+		 "ref to base to prevBase counts"}};
+
 	if (parameters().exists("histograms") || _onlyHistograms) {
+		const auto hists = parameters().get<std::vector<std::string>>("histograms", {"depth", "qualities", "contexts"});
+
 		logfile().startIndent("Will print the following histograms (parameter 'histograms'):");
-		const auto tmp = parameters().get<std::vector<std::string>>("histograms", {"depth", "qualities", "contexts"});
-		std::set<std::string> histograms(tmp.begin(), tmp.end());
-
-		_histSettings.set<Hist::Depths>(impl::parseField(histograms, "depth", "Sequencing depth"));
-		_histSettings.set<Hist::Quality>(impl::parseField(histograms, "qualities", "Base qualities"));
-		_histSettings.set<Hist::Contexts>(impl::parseField(histograms, "contexts", "Base contexts"));
-		_histSettings.set<Hist::AllelicDepth>(impl::parseField(histograms, "allelicDepth", "Allelic depth"));
-		_histSettings.set<Hist::Transitions>(impl::parseField(histograms, "transitions", "ref to base transition"));
-		_histSettings.set<Hist::PrevBases>(impl::parseField(histograms, "prevBases", "ref to base to prevBase counts"));
-		logfile().endIndent();
-
-		// check if unknown fields were given
-		if (!histograms.empty()) {
-			if (histograms.size() == 1) {
-				throw coretools::TUserError("Unknown histogram '", *histograms.begin(),
-				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'prevBases' and 'contexts'.");
-			} else {
-				std::string f;
-				for (auto i : histograms) { f += '\'' + i + "', "; }
-				throw coretools::TUserError("Unknown histograms: ", f.substr(0, f.size() - 2),
-				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' 'transitions', 'prevBases' and 'contexts'.");
+		for (const auto& field: hists) {
+			auto h = Hist::min;
+			for (; h < Hist::max; ++h) {
+				if (field == histNames[h]) {
+					_histSettings[h] = true;
+					logfile().list(histExpl[h], " (", histNames[h], ")");
+					break;
+				}
 			}
+			if (h == Hist::max) throw coretools::TUserError("Unknown field '", field, "'! Valid fields are: ", histNames);
 		}
-		if (_histSettings.get<Hist::Depths>()) {
+		logfile().endIndent();
+		if (hists.size() < coretools::index(Hist::max)) {
+			logfile().startIndent("Will not print the following pileup fields (parameter 'fields'):");
+			for (auto h = Hist::min; h < Hist::max; ++h) {
+				if (!_histSettings[h]) { logfile().list(histExpl[h], " (", histNames[h], ")"); }
+			}
+			logfile().endIndent();
+		}
+		if (_histSettings.get<Hist::Depth>()) {
 			_outDepthHistogram.open(_genome.front().outputName() + "_depthPerWindow.txt.gz", {"window", "depth"});
 			_outDepthPerChromosome.open(_genome.front().outputName() + "_depthPerChromosome.txt.gz", {"chromosome", "depth"});
 		}
@@ -293,7 +298,11 @@ TPileup::TPileup() {
 			}
 		}
 	} else {
-		logfile().list("Will not output histograms (use 'histograms' to do so).");
+		logfile().startIndent("Will not output histograms (use 'histograms' to do so):");
+		for (auto h = Hist::min; h < Hist::max; ++h) {
+			logfile().list(histExpl[h], " (", histNames[h], ")");
+		}
+		logfile().endIndent();
 	}
 }
 
@@ -308,7 +317,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 		const auto &site = window[pos];
 
 		// write histograms
-		if (_histSettings.get<Hist::Depths>()) {
+		if (_histSettings.get<Hist::Depth>()) {
 			_depthPerSite.add(site.depth());
 			_depthPerSitePerChromosome.add(site.depth());
 		}
@@ -318,7 +327,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			_counts.addSite(alleleCounts);
 		}
 
-		if (_histSettings.get<Hist::Quality>()) {
+		if (_histSettings.get<Hist::Qualities>()) {
 			for (auto &b : site) {
 				if (b.base != genometools::Base::N) { _qualDist.add(b.readGroupID, b.recalQuality.get()); }
 			}
@@ -348,7 +357,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			}
 		}
 
-		if ((_printSettings.get<Print::OnlySitesWithData>() && site.empty()) || _onlyHistograms) continue;
+		if ((!_printSettings.get<Print::PrintAll>() && site.empty()) || _onlyHistograms) continue;
 		_out.write(window.chrName(), window.positionOnChr(pos) + 1); // positions are zero-based internally
 
 		if (_windows.parser().reference()) { _out.write(site.refBase); }
@@ -383,7 +392,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			const auto mateCounts = site.countMates();
 			_out.write(mateCounts);
 		}
-		if (_printSettings.get<Print::Strand>()) {
+		if (_printSettings.get<Print::Strands>()) {
 			const auto strandCounts = site.countFwdRev();
 			_out.write(strandCounts);
 		}
@@ -398,7 +407,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 
 	// write depth per window
 	// also write depth per chromosome if this window is the last window of a chromosome
-	if (_histSettings.get<Hist::Depths>()) {
+	if (_histSettings.get<Hist::Depth>()) {
 		logfile().list("Writing sequencing depth estimates to file ...");
 		_outDepthHistogram
 		    .writeNoDelim(window.chrName(), ':', window.from().position() + 1, '-', window.to().position())
@@ -413,7 +422,7 @@ void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
 	using BAM::End;
 	using BAM::Strand;
 	using BAM::Mate;
-	if (_histSettings.get<Hist::Depths>()) {
+	if (_histSettings.get<Hist::Depth>()) {
 		_outDepthPerChromosome.writeln(Chr.name(), _depthPerSitePerChromosome.mean());
 		_depthPerSitePerChromosome.clear();
 	}
@@ -448,7 +457,7 @@ void TPileup::run() {
 
 	_traverseBAMWindows();
 
-	if (_histSettings.get<Hist::Depths>()) {
+	if (_histSettings.get<Hist::Depth>()) {
 		// write distribution
 		logfile().list("Writing depth per site distribution to file '", _genome.front().outputName(), "_depthPerSiteHistogram.txt.gz'");
 		logfile().list("Writing average depth per window to file '", _genome.front().outputName(), "_depthPerWindow.txt.gz'");
@@ -456,7 +465,7 @@ void TPileup::run() {
 		_depthPerSite.write(_genome.front().outputName() + "_depthPerSiteHistogram.txt.gz", "depth");
 	}
 
-	if (_histSettings.get<Hist::Quality>()) {
+	if (_histSettings.get<Hist::Qualities>()) {
 		// print distribution
 		const auto outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
 		logfile().list("Writing quality distribution to '", outputFileName, "'.");
@@ -500,7 +509,6 @@ void TPileup::run() {
 	}
 
 	if (_histSettings.get<Hist::PrevBases>()) {
-
 		std::vector<std::string> header{"Mate", "Strand", "ref", "base"};
 		for (auto b = Base::min; b <= Base::max; ++b) { header.push_back(toString(b)); }
 		coretools::TOutputFile outPrevBase(_genome.front().outputName() + "_prevBases.txt.gz", header);

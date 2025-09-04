@@ -1,21 +1,10 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --fixedSeed 50
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="depth"
-$atlas --task createMask --type depth --bam simulate.bam --window 4567 \
-	   --fixedSeed 51 --out $out --logFile $out.out 2> $out.eout
+# Simulate a BAM File
+$atlas simulate --logFile simulate.out
 
-out="nonRef"
-$atlas --task createMask --type nonRef --window 7654 \
-	   --bam simulate.bam --fasta simulate.fasta \
-	   --fixedSeed 52 --out $out --logFile $out.out 2> $out.eout
-
-out="invariant"
-$atlas --task createMask --type invariant --window 5674 --bam simulate.bam \
-	   --fixedSeed 53 --out $out --logFile $out.out 2> $out.eout
-
-out="variant"
-$atlas --task createMask --type variant --window 6745 --bam simulate.bam \
-	   --fixedSeed 54 --out $out --logFile $out.out 2> $out.eout
+# Create mask for depth within [5, 10]
+$atlas createMask --type depth --minDepth 5 --maxDepth 10 --bam ATLAS_simulations.bam --logFile createMask.out

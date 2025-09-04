@@ -1,16 +1,13 @@
 #! /bin/bash
 
-# `--fixedSeed = N` is needed to have reproducable results in regression test
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --fixedSeed 4321
+# Simulate a BAM File
+$atlas simulate --logFile simulate.out
 
-echo "chr1 40 50" > mask.bed
+# Create GLF File
+$atlas GLF --bam ATLAS_simulations.bam --logFile GLF.out
 
-out="GLF"
-$atlas --task GLF --bam simulate.bam --haploid chr2 \
-	   --fixedSeed 321 --out $out --logFile $out.out 2> $out.eout
-
-out="printGLF"
-$atlas --task printGLF --glf GLF.glf.gz --mask mask.bed \
-	   --fixedSeed 3 --out $out --logFile $out.out 2> $out.eout
+# Create txt-glf-file
+$atlas printGLF --glf ATLAS_simulations.glf.gz --logFile printGLF.out

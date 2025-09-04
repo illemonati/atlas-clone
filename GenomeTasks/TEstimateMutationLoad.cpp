@@ -120,12 +120,11 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 //------------------------------------------------
 // TEstimateMutationLoad
 //------------------------------------------------
-void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, const genometools::Base PreferredBase) {
-	if (!site.empty()) {
-		genometools::TGenotypeLikelihoods genoLik =
-		    _genome.errorModels().calculateGenotypeLikelihoods(site);
-		_sites.emplace_back(genoLik, PreferredBase);
-	}
+void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, genometools::Base PreferredBase) {
+	if (site.empty() || PreferredBase == genometools::Base::N) return;
+
+	genometools::TGenotypeLikelihoods genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
+	_sites.emplace_back(genoLik, PreferredBase);
 }
 
 void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) {

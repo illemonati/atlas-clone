@@ -1,14 +1,13 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate_vcf --fixedSeed 28
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-out="alleleCounts"
-$atlas --task alleleCounts --vcf simulate.vcf.gz --outFormat withAlleles \
-	   --fixedSeed 27 --out $out --logFile $out.out 2> $out.eout
+# Simulate 5 samples in Hardy–Weinberg Equilibrium and write vcf file
+$atlas simulate --vcf --type HW --sampleSize 5 --logFile simulate.out
 
-out="ancestralAlleles"
-$atlas --task ancestralAlleles --alleleCounts alleleCounts_alleleCounts.txt.gz \
-	   --fastaIndex simulate.fasta.fai \
-	   --minorCountMaximum 2 --totalCountMinimum 4 \
-	   --fixedSeed 26 --out $out --logFile $out.out 2> $out.eout
+# Create allele-count file with alleles
+$atlas alleleCounts --vcf ATLAS_simulations.vcf.gz --outFormat withAlleles --logFile alleleCounts.out
+
+# Create fasta-file with ancetral alleles using the calculated allele counts
+$atlas ancestralAlleles --alleleCounts ATLAS_simulations_alleleCounts.txt.gz --logFile ancestralAlleles.out

@@ -1,14 +1,16 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --writeTrueGenotypes --fixedSeed 162
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-rm simulate.bam.bai # will automatically recreate it
+# Simulate a BAM File
+$atlas simulate --logFile simulate.out --chrLength 100000
 
-# prepare alleles file
-gunzip -c simulate_trueGenotypes.vcf.gz | awk 'BEGIN{print "Chr", "Pos", "Allele1"}$1!~/#/{print $1, $2, $4}' > alleles.txt
+# Create a bed file with every 7th position
+printf "chr1\t0\t1\n" > bed.bed
+for i in {7..10000..7}; do
+	printf "chr1\t$i\t$((i+1))\n" >> bed.bed
+done
 
-out="mutationLoad"
-$atlas --task mutationLoad --bam simulate.bam \
-	   --alleles alleles.txt --window 4567 \
-	   --fixedSeed 168 --out $out --logFile $out.out 2> $out.eout
+# Calculate mutation load
+$atlas mutationLoad --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --bed bed.bed --logFile mutationLoad.out

@@ -1,41 +1,15 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
+# Set atlas path
+atlas=$(dirname "$0")/../build/atlas
 
-recal="intercept[.0];quality:polynomial[0.95,0.01];position:polynomial[0.02]"
-pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.2*exp(-0.3*p)+0.01"
+# exponential PMD pattern 
+pmd="CT5:0.2*exp(-0.3*p)+0.07;GA3:0.2*exp(-0.25*p)+0.06"
+# recal pattern, linear quality transformation and position dependency
+recal="quality:polynomial[0.9];position:polynomial[0.02]"
 
-delta=10
-k="111"
+# Simulate a BAM File with PMD and recal
+$atlas simulate --pmd $pmd --recal $recal --logFile simulate.out 
 
-. $(dirname $0)/simulate --recal $recal --pmd $pmd  \
-	--type "HKY85" --mu 0.55 --thetaG 0.00033 --thetaR 0.015 \
-  --chrLength 100$k,50$k --depth 2.5 --ploidy 2,1 --numReadGroups 3 \
-  --baseQuality 'categorical(12:1,22:2,27:3,32:4,37:5,41:100)' \
-  --fragmentLength 'normal(90,10)[1,100]' \
-  --mappingQuality 'categorical(30:200,40:1,41:1,42:1,43:1,44:1,45:1,50:200,60:200)' --fixedSeed 80
-
-echo "chr1 0 100$k" > bed1.bed
-echo "chr2 0 42$k" > bed2.bed
-
-echo "readGroup poolWith" > recal.pool
-echo "SimReadGroup2 SimReadGroup1" >> recal.pool
-
-echo "readGroup poolWith" > pmd.pool
-echo "SimReadGroup3 SimReadGroup1" >> pmd.pool
-
-out="estimateErrors"
-$atlas --task estimateErrors --minDeltaLL $delta --shuffleSites --minData 5000 \
-	   --bam simulate.bam --fasta simulate.fasta \
-	   --poolPMD "all" \
-	   --fixedSeed 81 --out $out --logFile $out.out 2> $out.eout
-
-recalModel="intercept;quality;position:polynomial1;fragmentLength:polynomial2;mappingQuality;context"
-out="specificModel"
-$atlas --task estimateErrors --minDeltaLL $delta --recalModel $recalModel \
-	   --bam simulate.bam --fasta simulate.fasta \
-	   --filePerIteration \
-	   --regions bed1.bed,bed2.bed --ploidy 2,1 --window 45672 \
-	   --poolRecal "recal.pool" --poolPMD "pmd.pool" \
-	   --fixedSeed 82 --out $out --logFile $out.out 2> $out.eout
-
+# Estimate errors
+$atlas estimateErrors --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --logFile estimateErrors.out
