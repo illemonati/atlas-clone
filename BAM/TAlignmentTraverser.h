@@ -2,6 +2,7 @@
 #define TALIGNMENTTRAVERSER_H_
 
 #include "TAlignment.h"
+#include "TBamFilters.h"
 #include "TParser.h"
 #include "TReadTraverser.h"
 #include "coretools/Main/TError.h"
@@ -17,6 +18,12 @@ class TAlignmentTraverser {
 	void _fill();
 
 public:
+	TAlignmentTraverser() = default;
+	TAlignmentTraverser(std::string_view Name, size_t I) : _readTraverser(Name, true, I) {}
+	TAlignmentTraverser(std::string_view Name, size_t I, const TBamFilters &Filters) : _readTraverser(Name, false, I) {
+		bamFile().setFilters(Filters);
+	}
+
 	const BAM::TBamFile &bamFile() const noexcept { return _readTraverser.bamFile(); }
 	BAM::TBamFile &bamFile() noexcept { return _readTraverser.bamFile(); }
 

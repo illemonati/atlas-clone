@@ -62,7 +62,6 @@ class TBamWindowTraverser {
 			return {true};
 		} else {
 			const auto bams   = coretools::instances::parameters().get<std::vector<std::string>>("bam");
-			const auto filter = BAM::TBamFilters(true);
 			std::vector<BAM::TReadTraverser> vec;
 			vec.reserve(bams.size());
 			vec.emplace_back(bams.front(), true, 0);

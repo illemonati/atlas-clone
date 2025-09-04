@@ -23,6 +23,8 @@ using coretools::instances::parameters;
 // TGLFWriter
 //-------------------------------------------
 TWriteGLF::TWriteGLF(){
+	_siteTraverser.requireSingleBAM();
+
 	if(parameters().exists("printAll")){
 		_printAll = true;
 		_siteTraverser.setDepthFilter(0);
