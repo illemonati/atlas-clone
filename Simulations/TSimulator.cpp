@@ -479,4 +479,24 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 	logfile().endIndent();
 }
 
+void TSimulationRunner::run() {
+	// default type ist "one" if sampleSize = 1 and no fasta is given, HKY85 otherwise
+	auto defaultType = TSimulatorOne::name;
+	if (parameters().get("sampleSize", 1) > 1 || parameters().exists("fasta")) defaultType = TSimulatorHKY85::name;
+	const auto type = parameters().get("type", defaultType);
+
+	if (parameters().exists("vcf")) {
+		logfile().startIndent("Simulating VCF Files:");
+		auto simulator = TVCFSimulator{type};
+		simulator.runSimulations();
+	} else { // default: BAM simulator
+		logfile().startIndent("Simulating BAM Files:");
+		auto simulator = TBAMSimulator{type};
+		simulator.runSimulations();
+	}
+
+	// clean up
+	logfile().endIndent();
+}
+
 } // namespace Simulations

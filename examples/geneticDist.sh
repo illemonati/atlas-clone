@@ -3,8 +3,8 @@
 # Set atlas path
 atlas=$(dirname "$0")/../build/atlas
 
-# Simulate 3 BAM Files in Hardy–Weinberg Equilibrium
-$atlas simulate --type HW --sampleSize 3 --logFile simulate.out
+# Simulate 3 BAM Files
+$atlas simulate --sampleSize 3 --logFile simulate.out
 
 # Create GLF files
 for f in *.bam; do
