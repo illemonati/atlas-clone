@@ -41,7 +41,7 @@ void TReadTraverser::_log() {
 
 	if (_nextPrint == 0) {
 		_timer.start();
-		logfile().startIndent("Parsing through BAM file ", _bamFile.filename(), ":");
+		logfile().startIndent("Traversing reads of BAM file ", _bamFile.filename(), ":");
 		logfile().list("Parsing Chromomsome ", chromosomes().front().name(), ".");
 		_nextPrint = impl::million;
 	}

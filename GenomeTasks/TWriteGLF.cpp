@@ -37,7 +37,6 @@ TWriteGLF::TWriteGLF(){
 
 void TWriteGLF::_traverseSites() {
 	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
-		logfile().list("Adding chr '", _siteTraverser.curChr().name(), "' of length ", _siteTraverser.curChr().length(), " to GLF file ...");
 		_writer.newChromosome(_siteTraverser.curChr());
 		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
 			const auto &site = _siteTraverser.site();

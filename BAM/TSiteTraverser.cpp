@@ -105,7 +105,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 		return;
 	}
 
-	logfile().startIndent("Parsing chromosome '", curChr().name(), "':");
+	logfile().list("Parsing chromosome '", curChr().name(), "':");
 
 	if (!chromosomes()[RefID].inUse() || (regions() && regions().empty(RefID)) ||
 	           (alleles() && alleles().empty(RefID)) || (_windowList && _windowList.empty(RefID))) {
@@ -175,7 +175,7 @@ bool TSiteTraverser::endOfChrs() {
 	if (_window.size() == 0) {
 		DEBUG_ASSERT(_window.from() == genometools::TGenomePosition{});
 
-		logfile().startIndent("Traversing through ", impl::bamNames(_alnTraversers), " in windows:");
+		logfile().startIndent("Traversing sites of ", impl::bamNames(_alnTraversers), ":");
 		_timer.start();
 		_initChr(0);
 	}
@@ -211,7 +211,7 @@ void TSiteTraverser::nextSite() {
 }
 
 void TSiteTraverser::_log() {
-	static const double NtotSites = [this]() {
+	static const size_t NtotSites = [this]() {
 		size_t tot = 0;
 		if (regions()) {
 			for (const auto& win: regions()) {
@@ -228,14 +228,13 @@ void TSiteTraverser::_log() {
 	}();
 	if (_numSites > _nextPrint) {
 		logfile().list("Parsed ", impl::millionsReads(_numSites), " million sites (est. ",
-					   coretools::str::toStringWithPrecision(_numSites / NtotSites, 2) + "%) in ",
+					   coretools::str::toStringWithPrecision(_numSites*100. / NtotSites, 2) + "%) in ",
 					   _timer.formattedTime());
 		_nextPrint += impl::millions;
 	}
 }
 
 void TSiteTraverser::nextChr() {
-	logfile().endIndent(); // from previous _initChr
 	_initChr(refID() + 1);
 
 	if (endOfChrs()) {
