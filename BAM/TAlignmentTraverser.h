@@ -2,6 +2,7 @@
 #define TALIGNMENTTRAVERSER_H_
 
 #include "TAlignment.h"
+#include "TBamFile.h"
 #include "TBamFilters.h"
 #include "TParser.h"
 #include "TReadTraverser.h"

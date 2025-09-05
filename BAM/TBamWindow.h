@@ -45,8 +45,13 @@ public:
 	void move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterCpG);
 	void add(const TAlignment& Alignment);
 	void mask(size_t I);
+	bool masked(size_t I) const noexcept {return _masked[I];}
 
 	const GenotypeLikelihoods::TSite& operator[](size_t I) const noexcept(coretools::noDebug) {
+		DEBUG_ASSERT(I < size());
+		return _entries[I];
+	}
+	GenotypeLikelihoods::TSite& operator[](size_t I) noexcept(coretools::noDebug) {
 		DEBUG_ASSERT(I < size());
 		return _entries[I];
 	}
@@ -55,6 +60,7 @@ public:
 	size_t numSitesWithData() const noexcept { return _sitesData; }
 	double fracMissing() const noexcept { return (numSites() - numSitesWithData()) / double(numSites()); }
 	double depth() const noexcept { return _depthTot / double(numSites()); }
+	size_t upToDepth() const noexcept { return _upToDepth; }
 
 	const genometools::TBed &regions() const noexcept { return _regions; }
 	const genometools::TAlleles &alleles() const noexcept { return _alleles; }

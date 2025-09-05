@@ -47,7 +47,7 @@ $atlas --task pileup \
 	   --fixedSeed 173 --out $out --logFile $out.out 2> $out.eout
 
 out="bases"
-$atlas --task pileup --shuffleSites --fields "bases" --downsampleSites 0.5 \
+$atlas --task pileup --fields "bases" --downsampleSites 0.5 \
 	   --bam simulate.bam --fasta simulate.fasta \
 	   --fixedSeed 174 --out $out --logFile $out.out 2> $out.eout
 

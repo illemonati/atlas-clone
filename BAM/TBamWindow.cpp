@@ -7,6 +7,8 @@ namespace BAM {
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::str::readBeforeLast;
+using coretools::str::toString;
 
 void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes) {
 	if (parameters().exists("regions")) { _regions.parse(parameters().get("regions"), Chromosomes); }
@@ -17,6 +19,9 @@ void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes)
 		} else {
 			genometools::TBed mask(parameters().get("mask"), Chromosomes);
 			_regions.addMask(mask);
+			auto fName = toString(readBeforeLast(parameters().get("regions"), '.'), "_masked.bed");
+			logfile().list("Will write masked regions-file to '", fName, "'.");
+			_regions.write(fName);
 		}
 	}
 	if (parameters().exists("alleles")) {

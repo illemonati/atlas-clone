@@ -11,16 +11,17 @@
 #include <cmath>
 #include <vector>
 
-#include "TSequencedData.h"
+
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Containers/TView.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-
 #include "coretools/algorithms.h"
+
 #include "genometools/Genotypes/Base.h"
 
+#include "TSequencedData.h"
 #include "TSite.h"
 #include "TWindow.h"
 
@@ -120,9 +121,11 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 //---------------------------------
 TPileup::TPileup() {
 	_onlyHistograms = parameters().exists("onlyHistograms");
+	_siteTraverser.setDepthFilter(0); // histograms need depth=0, we filter manually
+
 	if (!_onlyHistograms) {
 		// open output file
-		const std::string filename = _genome.front().outputName() + "_pileup.txt.gz";
+		const std::string filename = _siteTraverser.outputName() + "_pileup.txt.gz";
 		logfile().list("Writing pileup to file '", filename, "'.");
 		_out.open(filename);
 
@@ -161,10 +164,10 @@ TPileup::TPileup() {
 
 		// compile header
 		std::vector<std::string> header = {"chromosome", "position"};
-		if (_windows.parser().reference()) { header.push_back("reference"); }
+		if (_siteTraverser.reference()) { header.push_back("reference"); }
 		if (_printSettings.get<Print::Depth>()) {
 			header.push_back("depth");
-			if (_windows.parser().reference()) {
+			if (_siteTraverser.reference()) {
 				header.push_back("numRef");
 				header.push_back("numNonRef");
 			}
@@ -223,6 +226,7 @@ TPileup::TPileup() {
 		 "ref to base to prevBase counts"}};
 
 	if (parameters().exists("histograms") || _onlyHistograms) {
+
 		const auto hists = parameters().get<std::vector<std::string>>("histograms", {"depth", "qualities", "contexts"});
 
 		logfile().startIndent("Will print the following histograms (parameter 'histograms'):");
@@ -246,17 +250,17 @@ TPileup::TPileup() {
 			logfile().endIndent();
 		}
 		if (_histSettings.get<Hist::Depth>()) {
-			_outDepthHistogram.open(_genome.front().outputName() + "_depthPerWindow.txt.gz", {"window", "depth"});
-			_outDepthPerChromosome.open(_genome.front().outputName() + "_depthPerChromosome.txt.gz", {"chromosome", "depth"});
+			_outDepthHistogram.open(_siteTraverser.outputName() + "_depthPerWindow.txt.gz", {"window", "depth"});
+			_outDepthPerChromosome.open(_siteTraverser.outputName() + "_depthPerChromosome.txt.gz", {"chromosome", "depth"});
 		}
 
 		if (_histSettings.get<Hist::AllelicDepth>()) {
-			logfile().list("Will assemble allelic depth up to a max depth of ", _windows.uptoDepth(), ". (parameter 'readUpToDepth')");
-			if (_windows.uptoDepth()> 100) {
-				logfile().warning("Allocating count table for a max depth of ",_windows.uptoDepth(), " uses a lot of memory! Use argument readUpToDepth to limit.");
+			logfile().list("Will assemble allelic depth up to a max depth of ", _siteTraverser.upToDepth(), ". (parameter 'readUpToDepth')");
+			if (_siteTraverser.upToDepth() > 100) {
+				logfile().warning("Allocating count table for a max depth of ", _siteTraverser.upToDepth(), " uses a lot of memory! Use argument readUpToDepth to limit.");
 			}
 
-			_counts.resize(_windows.uptoDepth());
+			_counts.resize(_siteTraverser.upToDepth());
 
 			if (parameters().exists("includeZero")) {
 				_writeEmpty = true;
@@ -268,7 +272,7 @@ TPileup::TPileup() {
 		}
 
 		if (_histSettings.get<Hist::Transitions>()) {
-			if (!_windows.parser().reference()) {
+			if (!_siteTraverser.reference()) {
 				logfile().warning("Cannot count reference to base transitions without reference!");
 				_histSettings.set<Hist::Transitions>(false);
 			} else {
@@ -281,15 +285,15 @@ TPileup::TPileup() {
 						header.push_back(coretools::str::toString(ref, "-", b));
 					}
 				}
-				_outTransitions.open(_genome.front().outputName() + "_transitions.txt.gz", header);
-				_outTransitionsRel.open(_genome.front().outputName() + "_transitionsRel.txt.gz", header);
-				_outTransitionsPsi.open(_genome.front().outputName() + "_transitionsPsi.txt.gz", header);
-				_outTransitionsRho.open(_genome.front().outputName() + "_transitionsRho.txt.gz", header);
+				_outTransitions.open(_siteTraverser.outputName() + "_transitions.txt.gz", header);
+				_outTransitionsRel.open(_siteTraverser.outputName() + "_transitionsRel.txt.gz", header);
+				_outTransitionsPsi.open(_siteTraverser.outputName() + "_transitionsPsi.txt.gz", header);
+				_outTransitionsRho.open(_siteTraverser.outputName() + "_transitionsRho.txt.gz", header);
 			}
 		}
 
 		if (_histSettings.get<Hist::PrevBases>()) {
-			if (!_windows.parser().reference()) {
+			if (!_siteTraverser.reference()) {
 				logfile().warning("Cannot count reference-base-previousbase without reference!");
 				_histSettings.set<Hist::PrevBases>(false);
 			} else {
@@ -306,115 +310,123 @@ TPileup::TPileup() {
 	}
 }
 
-void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
+void TPileup::_addHist(const GenotypeLikelihoods::TSite& Site) {
 	using genometools::Base;
-	using BAM::End;
-	logfile().list("Writing pileup ...");
 
-	if (_histSettings.get<Hist::AllelicDepth>()) { logfile().list("Adding sites to allelic depth table ..."); }
-	for (size_t pos = 0; pos < window.size(); ++pos) {
-		if (window.isMasked(pos)) continue;
-		const auto &site = window[pos];
-
-		// write histograms
-		if (_histSettings.get<Hist::Depth>()) {
-			_depthPerSite.add(site.depth());
-			_depthPerSitePerChromosome.add(site.depth());
-		}
-
-		if (_histSettings.get<Hist::AllelicDepth>()) {
-			const auto alleleCounts = site.countAlleles();
-			_counts.addSite(alleleCounts);
-		}
-
-		if (_histSettings.get<Hist::Qualities>()) {
-			for (auto &b : site) {
-				if (b.base != genometools::Base::N) { _qualDist.add(b.readGroupID, b.recalQuality.get()); }
-			}
-		}
-
-		if (_histSettings.get<Hist::Contexts>()) {
-			for (auto &b : site) { _contextDist.add(b.recalQuality.get(), coretools::index(b.context())); }
-		}
-
-		if (_histSettings.get<Hist::Transitions>()) {
-			for (auto &b : site) {
-				if (b.base == Base::N) continue;
-
-				const auto p = b.dist(b.end()).pseudo();
-				auto& trans = _transitionsChr[b.mate()][b.strand()][b.end()];
-				if (trans.size() <= p) {
-					trans.resize(p + 1);
-				}
-				++trans[p][site.refBase][b.base];
-			}
-		}
-
-		if (_histSettings.get<Hist::PrevBases>()) {
-			for (auto &b : site) {
-				if (b.base == Base::N) continue;
-				++_prevBases[b.mate()][b.strand()][site.refBase][b.base][b.previousBase()];
-			}
-		}
-
-		if ((!_printSettings.get<Print::PrintAll>() && site.empty()) || _onlyHistograms) continue;
-		_out.write(window.chrName(), window.positionOnChr(pos) + 1); // positions are zero-based internally
-
-		if (_windows.parser().reference()) { _out.write(site.refBase); }
-		if (_printSettings.get<Print::Depth>()) {
-			_out.write(site.depth());
-			if (_windows.parser().reference()) { _out.write(site.refDepth(), site.depth() - site.refDepth()); }
-		}
-		if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
-		if (_printSettings.get<Print::SampleBases>()) {
-			const auto sBases = site.sampleBases();
-			if (sBases.empty()) {
-				_out.write("-", 0, 0, 0, 0, 0);
-			} else {
-				coretools::TStrongArray<size_t, Base> counts{};
-				size_t tot = 0;
-				for (const auto b : sBases) {
-					_out.writeNoDelim(b);
-					++counts[b];
-					++tot;
-				}
-				_out.writeDelim();
-				_out.write(counts, tot);
-			}
-		}
-		if (_printSettings.get<Print::Qualities>()) { _out.write(site.getQualities()); }
-		if (_printSettings.get<Print::Alleles>()) {
-			const auto alleleCounts = site.countAlleles();
-			_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
-			_out.write((int)coretools::numNonZero(alleleCounts));
-		}
-		if (_printSettings.get<Print::Mates>()) {
-			const auto mateCounts = site.countMates();
-			_out.write(mateCounts);
-		}
-		if (_printSettings.get<Print::Strands>()) {
-			const auto strandCounts = site.countFwdRev();
-			_out.write(strandCounts);
-		}
-		if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
-			const auto genoLik = _genome.front().errorModels().calculateGenotypeLikelihoods(site);
-			const auto g = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
-			if (_printSettings.get<Print::Likelihoods>()) { _out.write(genoLik, genometools::toString(g)); }
-			if (_printSettings.get<Print::HML>()) { _out.write(genometools::isHeterozygous(g)); }
-		}
-		_out.endln();
-	}
-
-	// write depth per window
-	// also write depth per chromosome if this window is the last window of a chromosome
+	// write histograms
 	if (_histSettings.get<Hist::Depth>()) {
-		logfile().list("Writing sequencing depth estimates to file ...");
-		_outDepthHistogram
-		    .writeNoDelim(window.chrName(), ':', window.from().position() + 1, '-', window.to().position())
-		    .writeDelim();
-		_outDepthHistogram.writeln(window.depth());
-		logfile().done();
+		_depthPerSite.add(Site.depth());
+		_depthPerSitePerChromosome.add(Site.depth());
 	}
+
+	if (_histSettings.get<Hist::AllelicDepth>()) {
+		const auto alleleCounts = Site.countAlleles();
+		_counts.addSite(alleleCounts);
+	}
+
+	if (_histSettings.get<Hist::Qualities>()) {
+		for (auto &b : Site) {
+			if (b.base != genometools::Base::N) { _qualDist.add(b.readGroupID, b.recalQuality.get()); }
+		}
+	}
+
+	if (_histSettings.get<Hist::Contexts>()) {
+		for (auto &b : Site) { _contextDist.add(b.recalQuality.get(), coretools::index(b.context())); }
+	}
+
+	if (_histSettings.get<Hist::Transitions>()) {
+		for (auto &b : Site) {
+			if (b.base == Base::N) continue;
+
+			const auto p = b.dist(b.end()).pseudo();
+			auto &trans  = _transitionsChr[b.mate()][b.strand()][b.end()];
+			if (trans.size() <= p) { trans.resize(p + 1); }
+			++trans[p][Site.refBase][b.base];
+		}
+	}
+
+	if (_histSettings.get<Hist::PrevBases>()) {
+		for (auto &b : Site) {
+			if (b.base == Base::N) continue;
+			++_prevBases[b.mate()][b.strand()][Site.refBase][b.base][b.previousBase()];
+		}
+	}
+}
+
+void TPileup::_printSite(const GenotypeLikelihoods::TSite &Site) {
+	using genometools::Base;
+	_out.write(_siteTraverser.curChr().name(),
+			   _siteTraverser.position().position() + 1); // positions are zero-based internally
+
+	if (_siteTraverser.reference()) { _out.write(Site.refBase); }
+	if (_printSettings.get<Print::Depth>()) {
+		_out.write(Site.depth());
+		if (_siteTraverser.reference()) { _out.write(Site.refDepth(), Site.depth() - Site.refDepth()); }
+	}
+	if (_printSettings.get<Print::Bases>()) { _out.write(Site.getBases()); }
+	if (_printSettings.get<Print::SampleBases>()) {
+		const auto sBases = Site.sampleBases();
+		if (sBases.empty()) {
+			_out.write("-", 0, 0, 0, 0, 0);
+		} else {
+			coretools::TStrongArray<size_t, Base> counts{};
+			size_t tot = 0;
+			for (const auto b : sBases) {
+				_out.writeNoDelim(b);
+				++counts[b];
+				++tot;
+			}
+			_out.writeDelim();
+			_out.write(counts, tot);
+		}
+	}
+	if (_printSettings.get<Print::Qualities>()) { _out.write(Site.getQualities()); }
+	if (_printSettings.get<Print::Alleles>()) {
+		const auto alleleCounts = Site.countAlleles();
+		_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
+		_out.write((int)coretools::numNonZero(alleleCounts));
+	}
+	if (_printSettings.get<Print::Mates>()) {
+		const auto mateCounts = Site.countMates();
+		_out.write(mateCounts);
+	}
+	if (_printSettings.get<Print::Strands>()) {
+		const auto strandCounts = Site.countFwdRev();
+		_out.write(strandCounts);
+	}
+	if (_printSettings.get<Print::Likelihoods>() || _printSettings.get<Print::HML>()) {
+		const auto genoLik = _siteTraverser.errorModels().calculateGenotypeLikelihoods(Site);
+		const auto g       = genometools::Genotype(std::max_element(genoLik.begin(), genoLik.end()) - genoLik.begin());
+		if (_printSettings.get<Print::Likelihoods>()) { _out.write(genoLik, genometools::toString(g)); }
+		if (_printSettings.get<Print::HML>()) { _out.write(genometools::isHeterozygous(g)); }
+	}
+	_out.endln();
+}
+
+void TPileup::_traverseSites() {
+	logfile().startIndent("Writing pileup");
+
+	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			const auto &site = _siteTraverser.site();
+			_addHist(site);
+			if (!_onlyHistograms && (!site.empty() || _printSettings.get<Print::PrintAll>())) {
+				_printSite(site);
+			}
+			if (_siteTraverser.winChanged()) {
+				const auto& win = _siteTraverser.window();
+				if (_histSettings.get<Hist::Depth>()) {
+					_outDepthHistogram
+						.writeNoDelim(_siteTraverser.curChr().name(), ':', win.from().position() + 1, '-',
+									  win.to().position())
+						.writeDelim();
+					_outDepthHistogram.writeln(win.depth());
+				}
+			}
+		}
+		_endChromosome(_siteTraverser.curChr());
+	}
+	logfile().endIndent();
 }
 
 void TPileup::_endChromosome(const genometools::TChromosome &Chr) {
@@ -455,25 +467,25 @@ void TPileup::run() {
 	using BAM::Mate;
 	using BAM::Strand;
 
-	_traverseBAMWindows();
+	_traverseSites();
 
 	if (_histSettings.get<Hist::Depth>()) {
 		// write distribution
-		logfile().list("Writing depth per site distribution to file '", _genome.front().outputName(), "_depthPerSiteHistogram.txt.gz'");
-		logfile().list("Writing average depth per window to file '", _genome.front().outputName(), "_depthPerWindow.txt.gz'");
-		logfile().list("Writing average depth per chromosome to file '", _genome.front().outputName(), "_depthPerChromosome.txt.gz'");
-		_depthPerSite.write(_genome.front().outputName() + "_depthPerSiteHistogram.txt.gz", "depth");
+		logfile().list("Writing depth per site distribution to file '", _siteTraverser.outputName(), "_depthPerSiteHistogram.txt.gz'");
+		logfile().list("Writing average depth per window to file '", _siteTraverser.outputName(), "_depthPerWindow.txt.gz'");
+		logfile().list("Writing average depth per chromosome to file '", _siteTraverser.outputName(), "_depthPerChromosome.txt.gz'");
+		_depthPerSite.write(_siteTraverser.outputName() + "_depthPerSiteHistogram.txt.gz", "depth");
 	}
 
 	if (_histSettings.get<Hist::Qualities>()) {
 		// print distribution
-		const auto outputFileName = _genome.front().outputName() + "_qualHistogram.txt.gz";
+		const auto outputFileName = _siteTraverser.outputName() + "_qualHistogram.txt.gz";
 		logfile().list("Writing quality distribution to '", outputFileName, "'.");
 		coretools::TOutputFile out(outputFileName, {"readGroup", "quality", "counts"});
 
 		// get read group names
 		std::vector<std::string> readGroupNames;
-		_genome.front().bamFile().readGroups().fillVectorWithNames(readGroupNames);
+		_siteTraverser.bamFile().readGroups().fillVectorWithNames(readGroupNames);
 		// write combined
 		_qualDist.resize(readGroupNames.size()); // make sure it has the right size
 		_qualDist.writeCombined(out, "allReadGroups");
@@ -482,7 +494,7 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::Contexts>()) {
 		// write counts
-		const auto outputFileName = _genome.front().outputName() + "_contextInformation.txt.gz";
+		const auto outputFileName = _siteTraverser.outputName() + "_contextInformation.txt.gz";
 		logfile().list("Writing context information to file '", outputFileName, "'.");
 
 		std::vector<std::string> contextLabels;
@@ -497,7 +509,7 @@ void TPileup::run() {
 
 	if (_histSettings.get<Hist::AllelicDepth>()) {
 		// write to file
-		const auto outputFileName = _genome.front().outputName() + "_allelicDepth.txt.gz";
+		const auto outputFileName = _siteTraverser.outputName() + "_allelicDepth.txt.gz";
 		logfile().list("Writing allelic depth table to '", outputFileName, "' ...");
 		_counts.write(outputFileName, _writeEmpty);
 		logfile().done();
@@ -511,8 +523,8 @@ void TPileup::run() {
 	if (_histSettings.get<Hist::PrevBases>()) {
 		std::vector<std::string> header{"Mate", "Strand", "ref", "base"};
 		for (auto b = Base::min; b <= Base::max; ++b) { header.push_back(toString(b)); }
-		coretools::TOutputFile outPrevBase(_genome.front().outputName() + "_prevBases.txt.gz", header);
-		coretools::TOutputFile outPrevBaseRel(_genome.front().outputName() + "_prevBasesRel.txt.gz", header);
+		coretools::TOutputFile outPrevBase(_siteTraverser.outputName() + "_prevBases.txt.gz", header);
+		coretools::TOutputFile outPrevBaseRel(_siteTraverser.outputName() + "_prevBasesRel.txt.gz", header);
 
 		for (auto mate = Mate::min; mate < Mate::max; ++mate) {
 			if (_prevBases[mate][Strand::Fwd][Base::A][Base::A][Base::A] == 0) continue; // assume mate not available

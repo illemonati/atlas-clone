@@ -80,6 +80,7 @@ void TSiteTraverser::_fillWindow() {
 	if (_i >= _bamWindow.size()) {
 		nextWindow();
 	}
+	_winChanged = true;
 }
 
 void TSiteTraverser::setDepthFilter(size_t Min, size_t Max) noexcept {
@@ -88,8 +89,15 @@ void TSiteTraverser::setDepthFilter(size_t Min, size_t Max) noexcept {
 }
 
 void TSiteTraverser::_filterFindI() {
+	using coretools::P;
 	_i = -1;
 	for (size_t i = 0; i < _bamWindow.size(); ++i) {
+		if (_bamWindow.masked(i)) continue;
+
+		if (_downProb < P(1)) {
+			_bamWindow[i].downsample(_downProb);
+		}
+
 		if (_depthFilter.outside(_bamWindow[i].depth())) {
 			_bamWindow.mask(i);
 		} else if (_i == size_t(-1)) {
@@ -105,7 +113,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 		return;
 	}
 
-	logfile().list("Parsing chromosome '", curChr().name(), "':");
+	logfile().list("Parsing chromosome '", chromosomes()[RefID].name(), "'");
 
 	if (!chromosomes()[RefID].inUse() || (regions() && regions().empty(RefID)) ||
 	           (alleles() && alleles().empty(RefID)) || (_windowList && _windowList.empty(RefID))) {
@@ -141,7 +149,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 			_windowList.parse(sWindows, chromosomes(), false);
 		}
 	} else {
-		logfile().list("Using default window-size: ", sWindows, ". (set with 'window')");
+		logfile().list("Using default window-size: ", _wSize, ". (set with 'window')");
 	}
 
 	if (_filterCpG) {
@@ -159,6 +167,15 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	} else {
 		logfile().list("Will keep all sites with data. (use 'filterDepth' to filter)");
 	}
+
+	constexpr std::string_view downsample = "downsampleSites";
+	_downProb = parameters().get(downsample, coretools::P(1.));
+	if (_downProb < 1.) {
+		logfile().list("Will downsample sites with probability ", _downProb, ".(parameter '", downsample, "')");
+	} else {
+		logfile().list("Will not downsample sites.(use '", downsample, "')");
+	}
+
 	_traverser().setSilent();
 }
 
@@ -201,11 +218,12 @@ void TSiteTraverser::nextWindow() {
 }
 
 void TSiteTraverser::nextSite() {
-	do { ++_i; } while (_i < _bamWindow.size() && _depthFilter.outside(_bamWindow[_i].depth()));
+	_winChanged = false;
+	do {
+		++_i;
+	} while (_i < _bamWindow.size() && (_bamWindow.masked(_i) || _depthFilter.outside(_bamWindow[_i].depth())));
 
-	if (_i >= _bamWindow.size()) {
-		nextWindow();
-	}
+	if (_i >= _bamWindow.size()) { nextWindow(); }
 	++_numSites;
 	_log();
 }

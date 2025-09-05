@@ -9,6 +9,7 @@
 #define GENOMETASKS_TPILEUP_H_
 
 #include "TSequencedData.h"
+#include "TSiteTraverser.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 
@@ -21,14 +22,15 @@ namespace GenomeTasks {
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
+class TPileup {
 	using Rho         = coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>;
 	using Transitions = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<std::vector<Rho>, BAM::End>, BAM::Strand>, BAM::Mate>;
 	using PrevBases   = coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, 5>, genometools::Base, 5>, genometools::Base, 5>, BAM::Strand>, BAM::Mate>;
 
 	enum class Print: size_t {min, Depth=min, Bases, SampleBases, Qualities, Alleles, Mates, Strands, Likelihoods, HML, PrintAll, max = PrintAll};
-
 	enum class Hist : size_t {min, Depth=min, Qualities, Contexts, AllelicDepth, Transitions, PrevBases, max };
+
+	BAM::TSiteTraverser _siteTraverser;
 
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
@@ -55,9 +57,10 @@ class TPileup final : public TBamWindowTraverser<WindowType::MultiBam> {
 	bool _writeEmpty;
 	bool _onlyHistograms;
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& Window) override;
-	void _startChromosome(const genometools::TChromosome& ) override {}
-	void _endChromosome(const genometools::TChromosome& Chr) override;
+	void _traverseSites();
+	void _addHist(const GenotypeLikelihoods::TSite& Site);
+	void _printSite(const GenotypeLikelihoods::TSite& Site);
+	void _endChromosome(const genometools::TChromosome& Chr);
 
 public:
 	TPileup();
