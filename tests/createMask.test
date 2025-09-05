@@ -7,6 +7,10 @@ out="depth"
 $atlas --task createMask --type depth --bam simulate.bam --window 4567 \
 	   --fixedSeed 51 --out $out --logFile $out.out 2> $out.eout
 
+out="pileup"
+$atlas --task pileup --bam simulate.bam \
+	   --fixedSeed 51 --out $out --logFile $out.out 2> $out.eout
+
 out="nonRef"
 $atlas --task createMask --type nonRef --window 7654 \
 	   --bam simulate.bam --fasta simulate.fasta \

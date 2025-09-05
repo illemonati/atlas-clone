@@ -22,7 +22,7 @@ private:
 	genometools::TAlleles _alleles;
 
 	size_t _numMasked   = 0;
-	size_t _depthTot    = 0;
+	size_t _numBases    = 0;
 	size_t _sitesData   = 0;
 	size_t _sites2Plus = 0;
 
@@ -57,9 +57,10 @@ public:
 	}
 
 	size_t numSites() const noexcept { return size() - _numMasked; }
+	size_t numBases() const noexcept { return _numBases; }
 	size_t numSitesWithData() const noexcept { return _sitesData; }
 	double fracMissing() const noexcept { return (numSites() - numSitesWithData()) / double(numSites()); }
-	double depth() const noexcept { return _depthTot / double(numSites()); }
+	double depth() const noexcept { return _numBases / double(numSites()); }
 	size_t upToDepth() const noexcept { return _upToDepth; }
 
 	const genometools::TBed &regions() const noexcept { return _regions; }

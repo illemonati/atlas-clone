@@ -25,6 +25,9 @@ class TSiteTraverser {
 	size_t _nextPrint = 1'000'000;
 	coretools::TTimer _timer;
 
+	size_t _numBasesChr  = 0;
+	size_t _numSitesChr  = 0;
+
 	coretools::TNumericRange<size_t> _depthFilter{1, true, -1, true};
 	bool _filterCpG = false;
 	coretools::Probability _downProb{1.};

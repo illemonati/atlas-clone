@@ -18,15 +18,21 @@ using coretools::user_assert;
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-	TCreateBedMask::TCreateBedMask() :  _bed(_genome.bamFile().chromosomes()){
+	TCreateBedMask::TCreateBedMask() :  _bed(_siteTraverser.bamFile().chromosomes()){
 	_minDepth = parameters().get<uint32_t>("minDepth", 2);
+	_siteTraverser.requireSingleBAM();
 };
 
 void TCreateBedMask::_createMask(std::string_view fileTag){
-	_traverseBAMWindows();
+	for (;!_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (;!_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			_handleSite(_siteTraverser.site(), _siteTraverser.position());
+			
+		}
+	}
 
 	//write mask
-	const auto filename = toString(_genome.outputName(), "_minDepth", _minDepth, "_", fileTag, ".bed");
+	const auto filename = toString(_siteTraverser.outputName(), "_minDepth", _minDepth, "_", fileTag, ".bed");
 	logfile().listFlush("Writing mask to BED file '" + filename + "' ...");
 
 	_bed.write(filename);
@@ -41,16 +47,11 @@ TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask for all sites with depth outside the range [" + toString(_minDepth) + ", " + toString(_maxDepth) + "].");
 
 	user_assert(_maxDepth > _minDepth, "maxDepthForMask must be > minDepthForMask!");
+	_siteTraverser.setDepthFilter(0); // as 0 <= minDepth
 }
 
-void TCreateDepthBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
-	uint32_t p = 0;
-	for(auto& s : window){
-		if(s.depth() < _minDepth || s.depth() > _maxDepth){
-			_bed.add(window.from() + p);
-		}
-		++p;
-	}
+void TCreateDepthBedMask::_handleSite(const GenotypeLikelihoods::TSite &Site, genometools::TGenomePosition Position) {
+	if (Site.depth() < _minDepth || Site.depth() > _maxDepth) { _bed.add(Position); }
 }
 
 void TCreateDepthBedMask::createDepthMask(){
@@ -66,16 +67,11 @@ TCreateInvariantBedMask::TCreateInvariantBedMask():TCreateBedMask(){
 	user_assert(_minDepth >= 2, "minDepthForMask must be >= 2 to assess variant / invariant status!");
 }
 
-void TCreateInvariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
-	uint32_t p = 0;
-	for(auto& s : window){
-		if(s.depth() >= _minDepth){
-			const auto bCounts = s.countAlleles();
-			if(coretools::numNonZero(bCounts) == 1){
-				_bed.add(window.from() + p);
-			}
-		}
-		++p;
+void TCreateInvariantBedMask::_handleSite(const GenotypeLikelihoods::TSite &Site,
+										  genometools::TGenomePosition Position) {
+	if (Site.depth() >= _minDepth) {
+		const auto bCounts = Site.countAlleles();
+		if (coretools::numNonZero(bCounts) == 1) { _bed.add(Position); }
 	}
 }
 
@@ -92,18 +88,12 @@ TCreateVariantBedMask::TCreateVariantBedMask():TCreateBedMask(){
 	user_assert (_minDepth >= 2, "minDepthForMask must be >= 2 to assess variant / invariant status!");
 }
 
-void TCreateVariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
-	uint32_t p = 0;
-	for(auto& s : window){
-		if(s.depth() >= _minDepth){
-			const auto bCounts = s.countAlleles();
-			if(coretools::numNonZero(bCounts) > 1){
-				_bed.add(window.from() + p);
-			}
-		}
-		++p;
+void TCreateVariantBedMask::_handleSite(const GenotypeLikelihoods::TSite &Site, genometools::TGenomePosition Position) {
+	if (Site.depth() >= _minDepth) {
+		const auto bCounts = Site.countAlleles();
+		if (coretools::numNonZero(bCounts) > 1) { _bed.add(Position); }
 	}
-};
+}
 
 void TCreateVariantBedMask::createVariantMask(){
 	_createMask("variantMask");
@@ -116,23 +106,17 @@ TCreateNonRefBedMask::TCreateNonRefBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepth) + " (parameter 'minDepthForMask') for which at least one non-ref allele was observed.");
 
 	user_assert(_minDepth > 1, "maxDepthForMask must be > 1 to check for ref / non-ref status!");
-	_windows.requireReference();
+	_siteTraverser.requireReference();
 }
 
-void TCreateNonRefBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
-	uint32_t p = 0;
-	for(auto& s : window){
-		if(s.depth() >= _minDepth){
-			if(s.refDepth() < s.depth()){
-				_bed.add(window.from() + p);
-			}
-		}
-		++p;
+void TCreateNonRefBedMask::_handleSite(const GenotypeLikelihoods::TSite &Site, genometools::TGenomePosition Position) {
+	if (Site.depth() >= _minDepth) {
+		if (Site.refDepth() < Site.depth()) { _bed.add(Position); }
 	}
-};
+}
 
 void TCreateNonRefBedMask::createVariantMask(){
 	_createMask("nonRefMask");
-};
+}
 
-}; // end namespace
+} // namespace GenomeTasks

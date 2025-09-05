@@ -44,7 +44,7 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 
 	_entries.assign(Window.size(), {});
 	// clear everything
-	_depthTot   = 0;
+	_numBases   = 0;
 	_sitesData  = 0;
 	_sites2Plus = 0;
 	_numMasked  = 0;
@@ -68,10 +68,14 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 			}
 		}
 	} else if (_alleles) {
+		if (Reference) logfile().warning("Allele-Files will overwrite ref-values given by reference!");
 		_masked.assign(Window.size(), true);
 
 		for (auto it = _alleles.begin(Window); it != _alleles.end() && Window.within(it->position); ++it) {
-			_masked[it->position - Window.from()] = false;
+			const auto i = it->position - Window.from();
+			_masked[i] = false;
+			_entries[i].refBase = it->ref;
+			_entries[i].altBase = it->alt;
 			_numMasked--;
 		}
 	} else {
@@ -108,7 +112,7 @@ void TBamWindow::mask(size_t I) {
 	// Housekeeping
 	if (d > 1) _sites2Plus -= d;
 	if (d > 0) _sitesData  -= d;
-	_depthTot -= d;
+	_numBases -= d;
 }
 
 void TBamWindow::add(const TAlignment &Alignment) {
@@ -127,7 +131,7 @@ void TBamWindow::add(const TAlignment &Alignment) {
 		if (_masked[iWindow]) continue;
 		if (_entries[iWindow].depth() == _upToDepth) continue;
 
-		++_depthTot;
+		++_numBases;
 		if (_entries[iWindow].empty()) ++_sitesData;
 		if (_entries[iWindow].depth() == 1) ++_sites2Plus;
 

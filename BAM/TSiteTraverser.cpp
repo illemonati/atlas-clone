@@ -81,6 +81,8 @@ void TSiteTraverser::_fillWindow() {
 		nextWindow();
 	}
 	_winChanged = true;
+	_numSitesChr += _bamWindow.numSites();
+	_numBasesChr += _bamWindow.numBases();
 }
 
 void TSiteTraverser::setDepthFilter(size_t Min, size_t Max) noexcept {
@@ -113,7 +115,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 		return;
 	}
 
-	logfile().list("Parsing chromosome '", chromosomes()[RefID].name(), "'");
+	logfile().startIndent("Parsing chromosome '", chromosomes()[RefID].name(), "'");
 
 	if (!chromosomes()[RefID].inUse() || (regions() && regions().empty(RefID)) ||
 	           (alleles() && alleles().empty(RefID)) || (_windowList && _windowList.empty(RefID))) {
@@ -253,6 +255,10 @@ void TSiteTraverser::_log() {
 }
 
 void TSiteTraverser::nextChr() {
+	logfile().list("Properties of chromosome '", curChr().name(), "':");
+	logfile().conclude("Number of sites: ", _numSitesChr);
+	logfile().conclude("Average depth: ", double(_numBasesChr)/_numSites);
+	logfile().endIndent(); // _initChr
 	_initChr(refID() + 1);
 
 	if (endOfChrs()) {

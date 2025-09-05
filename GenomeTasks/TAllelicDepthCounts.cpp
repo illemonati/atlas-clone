@@ -25,11 +25,11 @@ void TAllelicDepthCounts::resize(size_t MaxAllelicDepth){
 
 	//set all counts to zero
 	clear();
-};
+}
 
 void TAllelicDepthCounts::clear(){
 	std::fill(_counts.begin(), _counts.end(), 0);
-};
+}
 
 void TAllelicDepthCounts::addSite(const genometools::TBaseCounts & alleleCounts){
 	using genometools::Base;
@@ -42,7 +42,7 @@ void TAllelicDepthCounts::addSite(const genometools::TBaseCounts & alleleCounts)
 		if (_counts.size() <= i) _counts.resize(i + 1, 0);
 		++_counts[i];
 	}
-};
+}
 
 void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 	//open file
@@ -106,18 +106,21 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 			}
 		}
 	}
-};
+}
 
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-TAllelicDepth::TAllelicDepth() : TBamWindowTraverser(){
-	logfile().list("Will assemble allelic depth up to a max depth of ", _windows.uptoDepth(), ". (parameter 'readUpToDepth')");
-	if(_windows.uptoDepth() > 100){
-		logfile().warning("Allocating count table for a max depth of ", _windows.uptoDepth(), " uses a lot of memory! Use argument readUpToDepth to limit.");
+TAllelicDepth::TAllelicDepth() {
+	_siteTraverser.requireSingleBAM();
+	_siteTraverser.setDepthFilter(0); // we need to count depth = 0
+
+	logfile().list("Will assemble allelic depth up to a max depth of ", _siteTraverser.upToDepth(), ". (parameter 'readUpToDepth')");
+	if(_siteTraverser.upToDepth() > 100){
+		logfile().warning("Allocating count table for a max depth of ", _siteTraverser.upToDepth(), " uses a lot of memory! Use argument readUpToDepth to limit.");
 	}
 
-	_counts.resize(_windows.uptoDepth());
+	_counts.resize(_siteTraverser.upToDepth());
 
 	if(parameters().exists("printAll")){
 		_writeEmpty = true;
@@ -128,20 +131,22 @@ TAllelicDepth::TAllelicDepth() : TBamWindowTraverser(){
 	}
 };
 
-void TAllelicDepth::_handleWindow(GenotypeLikelihoods::TWindow& window){
-	logfile().listFlushTime("Adding sites to allelic depth table ...");
-	for(auto& s : window){
-		const auto alleleCounts = s.countAlleles();
-		_counts.addSite(alleleCounts);
+void TAllelicDepth::_traverseSites() {
+	logfile().listFlushTime("Adding sites to allelic depth table.");
+	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (;!_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			const auto& site = _siteTraverser.site();
+			const auto alleleCounts = site.countAlleles();
+			_counts.addSite(alleleCounts);
+		}
 	}
-	logfile().doneTime();
-};
+}
 
 void TAllelicDepth::run(){
-	_traverseBAMWindows();
+	_traverseSites();
 
 	//write to file
-	std::string outputFileName = _genome.outputName() + "_allelicDepth.txt.gz";
+	std::string outputFileName = _siteTraverser.outputName() + "_allelicDepth.txt.gz";
 	logfile().listFlush("Writing allelic depth table to '" + outputFileName + "' ...");
 	_counts.write(outputFileName, _writeEmpty);
 	logfile().done();

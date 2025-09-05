@@ -22,7 +22,11 @@ using genometools::TBaseCounts;
 // TSite
 //-------------------------------------------------------
 
-void TSite::add(const BAM::TSequencedData &data) { _data.push_back(data); }
+void TSite::clear() noexcept {
+	_data.clear();
+	refBase = genometools::Base::N;
+	altBase = genometools::Base::N;
+}
 
 TBaseData TSite::baseFrequencies() const noexcept {
 	TBaseData bd{};

@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include "TSiteTraverser.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/TBed.h"
 
 #include "TBamWindowTraverser.h"
@@ -19,14 +21,15 @@ namespace GenomeTasks{
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-class TCreateBedMask : public TBamWindowTraverser<WindowType::SingleBam> {
+class TCreateBedMask {
 protected:
+	BAM::TSiteTraverser _siteTraverser;
+
 	genometools::TBed _bed;
 	uint32_t _minDepth;
 
 	void _createMask(std::string_view fileTag);
-	void _startChromosome(const genometools::TChromosome&) override {}
-	void _endChromosome(const genometools::TChromosome&) override {}
+	virtual void _handleSite(const GenotypeLikelihoods::TSite& Site, genometools::TGenomePosition Position) = 0;
 public:
 	TCreateBedMask();
 };
@@ -38,7 +41,7 @@ class TCreateDepthBedMask:public TCreateBedMask{
 private:
 	uint32_t _maxDepth;
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleSite(const GenotypeLikelihoods::TSite& Site, genometools::TGenomePosition Position) override;
 public:
 	TCreateDepthBedMask();
 	void createDepthMask();
@@ -48,8 +51,7 @@ public:
 // TCreateConservedBedMask
 //--------------------------------------
 class TCreateInvariantBedMask:public TCreateBedMask{
-private:
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleSite(const GenotypeLikelihoods::TSite& Site, genometools::TGenomePosition Position) override;
 public:
 	TCreateInvariantBedMask();
 	void createInvariantMask();
@@ -59,8 +61,7 @@ public:
 // TCreateVariantBedMask
 //--------------------------------------
 class TCreateVariantBedMask:public TCreateBedMask{
-private:
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleSite(const GenotypeLikelihoods::TSite& Site, genometools::TGenomePosition Position) override;
 public:
 	TCreateVariantBedMask();
 	void createVariantMask();
@@ -70,8 +71,7 @@ public:
 // TCreateNonRefBedMask
 //--------------------------------------
 class TCreateNonRefBedMask:public TCreateBedMask{
-private:
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleSite(const GenotypeLikelihoods::TSite& Site, genometools::TGenomePosition Position) override;
 public:
 	TCreateNonRefBedMask();
 	void createVariantMask();

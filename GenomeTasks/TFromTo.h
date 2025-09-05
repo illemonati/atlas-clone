@@ -1,18 +1,17 @@
 #ifndef GENOMETASKS_TFROMTO_H_
 #define GENOMETASKS_TFROMTO_H_
 
+#include "TSiteTraverser.h"
 #include "coretools/Files/TOutputFile.h"
-
-#include "TBamWindowTraverser.h"
 
 namespace GenomeTasks{
 
-class TFromTo final : public TBamWindowTraverser<WindowType::SingleBam> {
+class TFromTo {
 private:
+	BAM::TSiteTraverser _siteTraverser;
+
 	coretools::TOutputFile _out;
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _startChromosome(const genometools::TChromosome&) override {}
-	void _endChromosome(const genometools::TChromosome&) override {}
+	void _traverseSites();
 public:
 	TFromTo();
 	void run();

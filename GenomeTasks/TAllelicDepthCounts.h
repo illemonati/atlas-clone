@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TBamWindowTraverser.h"
+#include "TSiteTraverser.h"
 #include "genometools/Genotypes/Containers.h"
 
 namespace GenomeTasks{
@@ -35,14 +36,14 @@ public:
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-class TAllelicDepth final : public TBamWindowTraverser<WindowType::SingleBam> {
+class TAllelicDepth {
 private:
+	BAM::TSiteTraverser _siteTraverser;
+
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _startChromosome(const genometools::TChromosome&) override {}
-	void _endChromosome(const genometools::TChromosome&) override {}
+	void _traverseSites();
 
 public:
 	TAllelicDepth();

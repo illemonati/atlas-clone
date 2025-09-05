@@ -616,6 +616,7 @@ void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
 	if (!_regions.empty()) { // Either sites
 		for (size_t r = 0; r < _regions.size(); ++r) {
 			auto &region = _regions[r];
+			region.overlaps(Window.from());
 			auto lb = region.begin(Window);
 			if (lb == region.end()) continue;
 
