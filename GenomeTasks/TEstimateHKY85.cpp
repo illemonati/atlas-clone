@@ -1,8 +1,10 @@
 #include "TEstimateHKY85.h"
 
+#include <bitset>
 #include <filesystem>
 #include <memory>
 
+#include "TBamWindow.h"
 #include "TGenotypeDistribution.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TInputFile.h"
@@ -27,45 +29,32 @@ using genometools::TGenotypeLikelihoods;
 using genometools::Base;
 using genometools::Genotype;
 
-void TEstimateHKY85::_addSites(const GenotypeLikelihoods::TWindow &Window) {
-	_refBases.reserve(_refBases.size() + Window.sites().size());
-	_P_g_I_ds.reserve(_P_g_I_ds.size() + Window.sites().size());
-	for (size_t s = 0; s < Window.sites().size(); ++s) {
-		const auto &site = Window.sites()[s];
-		if (site.empty() || site.refBase == genometools::Base::N) continue;
+void TEstimateHKY85::_addSite(const GenotypeLikelihoods::TSite &Site) {
+	if (Site.empty() || Site.refBase == genometools::Base::N) return;
 
-		_refBases.push_back(site.refBase);
-		_P_d_I_b.push_back();
+	_refBases.push_back(Site.refBase);
+	_P_d_I_b.push_back();
 
-		TGenotypeLikelihoods P_g_I_di(P(1.));
-		double sum = 1.;
+	TGenotypeLikelihoods P_g_I_di(P(1.));
+	double sum = 1.;
 
-		for (auto &d_ij : site) {
-			const auto P_dij_I_bbar = _genome.errorModels().sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _genome.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
-			if (_downSample()) {
-				_P_d_I_b.push_back(Standarray::standardize(P_dij_I_b));
-			}
+	for (auto &d_ij : Site) {
+		const auto P_dij_I_bbar = _siteTraverser.errorModels().sequencingErrorModels().P_dij(d_ij);
+		const auto P_dij_I_b    = _siteTraverser.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+		if (_downSample()) { _P_d_I_b.push_back(Standarray::standardize(P_dij_I_b)); }
 
-			sum = _addToPg(P_g_I_di, P_dij_I_b, sum);
-		}
-		_P_g_I_ds.push_back(P_g_I_di);
-
-		if (_downSample() && _sample == Sample::reads) {
-			_readIDs.push_back();
-			for (const auto id : Window.readIDs()[s]) { _readIDs.push_back(id + _lastReadID); }
-		}
+		sum = _addToPg(P_g_I_di, P_dij_I_b, sum);
 	}
+	_P_g_I_ds.push_back(P_g_I_di);
 }
 
 std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
 	using coretools::instances::randomGenerator;
 
-	std::vector<bool> keep;
+	std::bitset<BAM::TBamWindow::maxReadID> keep;
 	if (_sample == Sample::reads) {
-		keep.assign(_lastReadID, false);
 		for (size_t k = 0; k < keep.size(); ++k) {
-			if (randomGenerator().getRand() < ProbOrDepth) { keep[k] = true; }
+			if (randomGenerator().getRand() < ProbOrDepth) { keep.set(k); }
 		}
 	}
 
@@ -161,57 +150,41 @@ double TEstimateHKY85::_runEM() {
 	return oldLL;
 }
 
-void TEstimateHKY85::_handlePosterior(GenotypeLikelihoods::TWindow& window) {
-	const auto from = window.from();
+void TEstimateHKY85::_handlePosterior() {
+	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			const auto& site = _siteTraverser.site();
+			if (site.empty() || site.refBase == Base::N) continue;
 
-	for (size_t i = 0; i < window.size(); ++i) {
-		const auto& s = window[i];
-		if (s.empty() || s.refBase == Base::N) continue; 
+			_out.write(_siteTraverser.curChr().name(),_siteTraverser.position().position() + 1, site.refBase);
 
-		_out.write(from.refID(), from.position() + i + 1, s.refBase);
+			std::string sBases, sRecal, sCT, sGA, sPos;
+			for (const auto &d : site) {
+				sBases += genometools::base2char(d.base);
+				sRecal +=
+				    coretools::str::toString(P(_siteTraverser.errorModels().sequencingErrorModels().phredInt(d)), ",");
+				sPos += coretools::str::toString(d.distFrom5.linear(), ",");
+				const auto &model = _siteTraverser.errorModels().postMortemDamageModels().model(d);
+				sCT += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::CT, d), ",");
+				sGA += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::GA, d), ",");
+			}
+			sRecal.pop_back();
+			sPos.pop_back();
+			sCT.pop_back();
+			sGA.pop_back();
 
-		std::string sBases, sRecal, sCT, sGA, sPos;
-		for (const auto& d: s) {
-			sBases += genometools::base2char(d.base);
-			sRecal += coretools::str::toString(P(_genome.errorModels().sequencingErrorModels().phredInt(d)), ",");
-			sPos   += coretools::str::toString(d.distFrom5.linear(), ",");
-			const auto& model = _genome.errorModels().postMortemDamageModels().model(d);
-			sCT += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::CT, d), ",");
-			sGA += coretools::str::toString(model.prob(GenotypeLikelihoods::PMD::Type::GA, d), ",");
-
-		}
-		sRecal.pop_back();
-		sPos.pop_back();
-		sCT.pop_back();
-		sGA.pop_back();
-
-		_out.write(sBases, sRecal, sCT, sGA, sPos);
-		auto lik = _genome.errorModels().calculateGenotypeLikelihoods(s);
-		_out.write(lik);
-		_genoDist->normalize_add(lik, s.refBase);
-		const auto pHet = 1 - lik[Genotype::AA] - lik[Genotype::CC] - lik[Genotype::GG] - lik[Genotype::TT];
-		_out.writeln(lik, pHet);
-	}
-}
-
-void TEstimateHKY85::_handleGenomeWide(GenotypeLikelihoods::TWindow &Window) {
-	_totSites += Window.size();
-	_totMaskedSites += Window.numMaskedSites();
-
-	_addSites(Window);
-	_lastReadID += Window.numReadsInWindow();
-
-	// full P
-	for (size_t i = 0; i < Window.size(); ++i) {
-		const auto &site = Window[i];
-		_stats.NData += site.depth();
-		if (site.empty() || site.refBase == Base::N) {
-			++_stats.NMissing;
+			_out.write(sBases, sRecal, sCT, sGA, sPos);
+			auto lik = _siteTraverser.errorModels().calculateGenotypeLikelihoods(site);
+			_out.write(lik);
+			_genoDist->normalize_add(lik, site.refBase);
+			const auto pHet = 1 - lik[Genotype::AA] - lik[Genotype::CC] - lik[Genotype::GG] - lik[Genotype::TT];
+			_out.writeln(lik, pHet);
 		}
 	}
 }
 
-void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
+void TEstimateHKY85::_handlePerWindow() {
+	/*
 	// full P
 
 	_refBases.clear();
@@ -220,7 +193,7 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	_readIDs.clear();
 	_lastReadID = 0;
 
-	_addSites(Window);
+	_addSite(Window);
 	_lastReadID = Window.numReadsInWindow();
 
 	_out.write(Window.chrName(), Window.from().position(), Window.to().position());
@@ -254,20 +227,38 @@ void TEstimateHKY85::_handlePerWindow(GenotypeLikelihoods::TWindow &Window) {
 	}
 	_numEMIterations = nIT;
 	_out.endln();
+	*/
 }
 
-void TEstimateHKY85::_handleWindow(GenotypeLikelihoods::TWindow& window) {
-	switch (_runType) {
-	case RunType::windows:_handlePerWindow(window); break;
-	case RunType::genomeWide: _handleGenomeWide(window); break;
-	case RunType::posterior: _handlePosterior(window); break;
-	default: throw coretools::TDevError("Should not end up here!");
+void TEstimateHKY85::_traverseSites() {
+	if (_runType == RunType::genomeWide) {
+		_handleGenomeWide();
+	} else if (_runType == RunType::windows) {
+		_handlePerWindow();
+	} else { //posterior
+		_handlePosterior();
 	}
 }
 
 void TEstimateHKY85::_handleGenomeWide() {
+	double NData    = 0;
+	size_t NMissing = 0;
+	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			const auto &site = _siteTraverser.site();
+			_addSite(site);
+			if (_downSample() && _sample == Sample::reads) {
+			    _readIDs.push_back(_siteTraverser.readIDs());
+			}
+
+			// full P
+			NData += site.depth();
+			if (site.empty() || site.refBase == Base::N) { ++NMissing; }
+		}
+	}
+
 	_openFile();
-	const auto NSites = _totSites - _totMaskedSites;
+	const auto NSites = _siteTraverser.numSites();
 	const auto nIT    = _numEMIterations;
 
 	// full
@@ -282,14 +273,10 @@ void TEstimateHKY85::_handleGenomeWide() {
 
 	for (size_t r = 0; r < _nRounds; ++r) {
 		logfile().startIndent("Downsampling round ", r + 1, ":");
-		if (_windows.considerRegions()) {
-			_out.write("regions", "Round", r + 1);
-		} else {
-			_out.write("genome-wide", "Round", r + 1);
-		}
+		_out.write("genome-wide", "Round", r + 1);
 		if (_fullDepth) {
-			_out.write(_stats.NData / NSites, NSites, _totSites - _stats.NMissing,
-					   double(_stats.NMissing - _totMaskedSites) / NSites, pis, LL);
+			_out.write(NData / NSites, NSites, _totSites - NMissing,
+					   double(NMissing - _totMaskedSites) / NSites, pis, LL);
 		}
 
 		// downsampled
@@ -317,8 +304,7 @@ void TEstimateHKY85::_handleGenomeWide() {
 }
 
 void TEstimateHKY85::run() {
-	_traverseBAMWindows();
-	if (_runType == RunType::genomeWide) _handleGenomeWide();
+	_traverseSites();
 }
 
 void TEstimateHKY85::_initPosterior() {
@@ -375,7 +361,7 @@ void TEstimateHKY85::_initPosterior() {
 	for (auto g = Genotype::min; g < Genotype::max; ++g) header.push_back("P(" + genometools::toString(g) + "|D)");
 	header.push_back("P(het)");
 
-	_out.open(_genome.outputName() + "_post.txt.gz", header);
+	_out.open(_siteTraverser.outputName() + "_post.txt.gz", header);
 }
 
 void TEstimateHKY85::_initEstimation() {
@@ -451,7 +437,8 @@ void TEstimateHKY85::_initEstimation() {
 				averageDepth = parameters().get<double>("averageDepth");
 			} else {
 				logfile().list("No averageDepth given, will calculate it. Use 'averageDepth' to safe time!");
-				averageDepth = _genome.bamFile().averageDepth();
+				averageDepth = _siteTraverser.bamFile().averageDepth();
+
 				logfile().list("Average depth estimated to ", averageDepth);
 			}
 
@@ -507,15 +494,16 @@ void TEstimateHKY85::_initEstimation() {
 		logfile().list("Will estimating genotype Distribution per window. (use 'genomeWide' for genome-wide estimation)");
 		_openFile(); // will be written every Window
 	}
-	if (!_depthOrProbs.empty()) {
-		_windows.allowDownsampling(true);
+	if (!_depthOrProbs.empty() && _sample == Sample::reads) {
+		_siteTraverser.requireReadIDs();
 	}
 
 	DEV_ASSERT(_fullDepth || _downSample()); // otherwise, there is nothing to do
 }
 
 TEstimateHKY85::TEstimateHKY85() {
-	_windows.requireReference();
+	_siteTraverser.requireReference();
+	_siteTraverser.requireSingleBAM();
 
 	if (parameters().exists("posterior")) {
 		_initPosterior();
@@ -543,7 +531,7 @@ void TEstimateHKY85::_openFile() {
 		header.push_back(toString(sp, "LL"));
 	}
 
-	_out.open(_genome.outputName() + ".txt.gz");
+	_out.open(_siteTraverser.outputName() + ".txt.gz");
 	_out.writeHeader(header);
 }
 }

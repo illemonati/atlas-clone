@@ -83,6 +83,7 @@ void TSiteTraverser::_fillWindow() {
 	_winChanged = true;
 	_numSitesChr += _bamWindow.numSites();
 	_numBasesChr += _bamWindow.numBases();
+	_numReadsChr += _bamWindow.numReads();
 }
 
 void TSiteTraverser::setDepthFilter(size_t Min, size_t Max) noexcept {
@@ -109,6 +110,9 @@ void TSiteTraverser::_filterFindI() {
 }
 
 void TSiteTraverser::_initChr(size_t RefID) {
+	_numSitesChr = 0;
+	_numBasesChr = 0;
+	_numReadsChr = 0;
 	if (RefID >= chromosomes().size()) {
 		// end of chromosomes
 		_window.move(RefID, 0, _wSize);
@@ -120,15 +124,16 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	if (!chromosomes()[RefID].inUse() || (regions() && regions().empty(RefID)) ||
 	           (alleles() && alleles().empty(RefID)) || (_windowList && _windowList.empty(RefID))) {
 		// skip chromosome
+		_iWindows = -1;
 		_window.move(chromosomes()[RefID].to(), 1);
 		logfile().list("Chromsome is not used.");
 		return;
 	}
 
+	_iWindows = 0;
 	if (_windowList) {
 		// take from window list
 		_window   = _windowList[RefID].front();
-		_iWindows = 0;
 	} else {
 		// use window size
 		_window.move(RefID, 0, _wSize);
@@ -255,9 +260,13 @@ void TSiteTraverser::_log() {
 }
 
 void TSiteTraverser::nextChr() {
-	logfile().list("Properties of chromosome '", curChr().name(), "':");
-	logfile().conclude("Number of sites: ", _numSitesChr);
-	logfile().conclude("Average depth: ", double(_numBasesChr)/_numSites);
+	if (_iWindows != size_t(-1)) {
+		logfile().list("Properties of chromosome '", curChr().name(), "':");
+		logfile().conclude("Number of reads: ", _numReadsChr);
+		logfile().conclude("Number of sites: ", _numSitesChr);
+		logfile().conclude("Number of bases: ", _numBasesChr);
+		logfile().conclude("Average depth: ", double(_numBasesChr) / _numSitesChr);
+	}
 	logfile().endIndent(); // _initChr
 	_initChr(refID() + 1);
 

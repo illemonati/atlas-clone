@@ -3,9 +3,11 @@
 
 #include "TAlignmentTraverser.h"
 #include "TBamWindow.h"
+#include "coretools/Containers/TView.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Types/probability.h"
 #include "genometools/TFastaReader.h"
+#include <cstdint>
 
 namespace BAM{
 
@@ -27,6 +29,7 @@ class TSiteTraverser {
 
 	size_t _numBasesChr  = 0;
 	size_t _numSitesChr  = 0;
+	size_t _numReadsChr  = 0;
 
 	coretools::TNumericRange<size_t> _depthFilter{1, true, -1, true};
 	bool _filterCpG = false;
@@ -62,9 +65,12 @@ public:
 	bool endOfChrs();
 	void nextChr();
 
+	size_t numSites() const noexcept {return _numSites;}
+
 	// Per Site access
 	void nextSite();
-	const GenotypeLikelihoods::TSite& site() { return _bamWindow[_i]; }
+	const GenotypeLikelihoods::TSite& site() const { return _bamWindow[_i]; }
+	coretools::TConstView<uint16_t> readIDs() const {return _bamWindow.readIDs(_i);}
 	genometools::TGenomePosition position() const noexcept { return _bamWindow.from() + _i; }
 	bool winChanged() const noexcept {return _winChanged;}
 
@@ -76,6 +82,7 @@ public:
 	void setDepthFilter(size_t Min, size_t Max = -1) noexcept;
 	void requireReference() const;
 	void requireSingleBAM() const;
+	void requireReadIDs() noexcept {_bamWindow.requireReadIDs();}
 
 	size_t refID() const noexcept {return _window.refID();}
 	const genometools::TChromosomes &chromosomes() const noexcept(coretools::noDebug) { return _traverser().chromosomes(); }

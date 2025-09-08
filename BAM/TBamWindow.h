@@ -2,29 +2,36 @@
 #define TBAMWINDOW_H_
 
 #include "TAlignment.h"
+#include "coretools/Main/TError.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/TAlleles.h"
 #include "genometools/TBed.h"
 
 #include "TSite.h"
 #include "genometools/TFastaReader.h"
+#include <cstdint>
 
 namespace BAM {
 
 class TBamWindow {
+public:
+	static constexpr size_t maxReadID = uint16_t(-1);
 private:
 	genometools::TGenomePosition _from = {size_t(-1), size_t(-1)};
 	std::vector<GenotypeLikelihoods::TSite> _entries;
+	std::vector<std::vector<uint16_t>> _readIDs;
 	std::vector<BAM::TAlignment> _overlap;
 	std::vector<bool> _masked;
 
 	genometools::TBed _regions;
 	genometools::TAlleles _alleles;
 
-	size_t _numMasked   = 0;
-	size_t _numBases    = 0;
-	size_t _sitesData   = 0;
+	size_t _numMasked  = 0;
+	size_t _numBases   = 0;
+	size_t _numReads   = 0;
+	size_t _sitesData  = 0;
 	size_t _sites2Plus = 0;
+	bool _tagReads     = false;
 
 	size_t _upToDepth = 1000;
 
@@ -56,7 +63,13 @@ public:
 		return _entries[I];
 	}
 
+	coretools::TConstView<uint16_t> readIDs(size_t I) const {
+		DEBUG_ASSERT(_tagReads && I < _readIDs.size());
+		return _readIDs[I];
+	}
+
 	size_t numSites() const noexcept { return size() - _numMasked; }
+	size_t numReads() const noexcept { return _numReads; }
 	size_t numBases() const noexcept { return _numBases; }
 	size_t numSitesWithData() const noexcept { return _sitesData; }
 	double fracMissing() const noexcept { return (numSites() - numSitesWithData()) / double(numSites()); }
@@ -65,6 +78,8 @@ public:
 
 	const genometools::TBed &regions() const noexcept { return _regions; }
 	const genometools::TAlleles &alleles() const noexcept { return _alleles; }
+
+	void requireReadIDs() noexcept {_tagReads = true;}
 
 	auto begin() noexcept { return _entries.begin(); }
 	auto begin() const noexcept {return _entries.begin();}

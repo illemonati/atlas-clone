@@ -5,6 +5,7 @@
 #ifndef GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
+#include "TSiteTraverser.h"
 #include "coretools/Containers/TNestedVector.h"
 #include "coretools/Containers/TStandarray.h"
 #include "coretools/Files/TOutputFile.h"
@@ -14,15 +15,17 @@
 #include "genometools/GenomePositions/TGenomeWindow.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Containers.h"
+#include <cstdint>
 #include <memory>
 
 namespace GenomeTasks {
 
-class TEstimateHKY85 final : public TBamWindowTraverser<WindowType::SingleBam> {
+class TEstimateHKY85 {
 private:
 	enum class Sample : size_t {min = 0, reads=min, sites, upToDepth, max};
 	enum class RunType : size_t {min = 0, windows=min, genomeWide, posterior, max};
 
+	BAM::TSiteTraverser _siteTraverser;
 	std::unique_ptr<GenotypeLikelihoods::TGenotypeDistribution> _genoDist;
 
 	// EM
@@ -42,31 +45,22 @@ private:
 	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_ds;
 
 	// genomeWide data
-	struct TStats {
-		double NData    = 0;
-		size_t NMissing = 0;
-	};
-	TStats _stats;
-	coretools::TNestedVector<size_t> _readIDs;
+	coretools::TNestedVector<uint16_t> _readIDs;
 	using Standarray = coretools::TStrongStandarray<float, genometools::Base>;
 	coretools::TNestedVector<Standarray> _P_d_I_b;
-	size_t _lastReadID = 0;
 
 	void _initPosterior();
 	void _initEstimation();
 
 	bool _downSample() const noexcept {return !_depthOrProbs.empty();}
 
-	void _handlePosterior(GenotypeLikelihoods::TWindow& window);
-	void _handleGenomeWide(GenotypeLikelihoods::TWindow& window);
-	void _handlePerWindow(GenotypeLikelihoods::TWindow& window);
+	void _handlePosterior();
+	void _handlePerWindow();
 	void _handleGenomeWide();
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _startChromosome(const genometools::TChromosome&) override {}
-	void _endChromosome(const genometools::TChromosome&) override {}
+	void _traverseSites();
 
-	void _addSites(const GenotypeLikelihoods::TWindow &Window);
+	void _addSite(const GenotypeLikelihoods::TSite &Site);
 	template<typename Container>
 	double _addToPg(genometools::TGenotypeLikelihoods &P_g_I_di, const Container &P_dij_I_b, double sum) {
 		using genometools::Genotype;

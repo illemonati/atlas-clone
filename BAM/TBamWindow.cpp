@@ -43,8 +43,10 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 	_from = Window.from();
 
 	_entries.assign(Window.size(), {});
+	if (_tagReads) _readIDs.assign(Window.size(), {});
 	// clear everything
 	_numBases   = 0;
+	_numReads   = 0;
 	_sitesData  = 0;
 	_sites2Plus = 0;
 	_numMasked  = 0;
@@ -124,10 +126,8 @@ void TBamWindow::add(const TAlignment &Alignment) {
 			_overlap.push_back(Alignment);
 			break;
 		}
-
 		const auto iWindow = Alignment.positionInRef(p) - from();
-		DEBUG_ASSERT(_entries.size() > iWindow);
-		DEBUG_ASSERT(_masked.size() > iWindow);
+
 		if (_masked[iWindow]) continue;
 		if (_entries[iWindow].depth() == _upToDepth) continue;
 
@@ -136,6 +136,8 @@ void TBamWindow::add(const TAlignment &Alignment) {
 		if (_entries[iWindow].depth() == 1) ++_sites2Plus;
 
 		_entries[iWindow].add(site);
+		if (_tagReads) _readIDs[iWindow].push_back(_numReads%maxReadID);
 	}
+	++_numReads;
 }
 }
