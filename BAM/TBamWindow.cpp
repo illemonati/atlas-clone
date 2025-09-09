@@ -38,7 +38,7 @@ TBamWindow::TBamWindow(const genometools::TChromosomes &Chromosomes)
 	               " and ignore additional bases. (parameter 'readUpToDepth')");
 }
 
-void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterCpG) {
+void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterRefN, bool FilterCpG) {
 	using genometools::Base;
 	_from = Window.from();
 
@@ -50,13 +50,6 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 	_sitesData  = 0;
 	_sites2Plus = 0;
 	_numMasked  = 0;
-
-	if (Reference) {
-		const auto view = Reference.view(window());
-		for (size_t i = 0; i < size(); ++i) {
-			_entries[i].refBase = view[i];
-		}
-	}
 
 	if (_regions) {
 		_masked.assign(Window.size(), true);
@@ -84,14 +77,23 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 		_masked.assign(Window.size(), false);
 	}
 
-	if (FilterCpG) {
-		for(size_t i = 1; i < size(); ++i) {
-			if (Reference[from() + i - 1] == Base::C && Reference[from() + i] == Base::G) {
-				_masked[i - 1] = true; // C
-				_masked[i]     = true; // G
+	if (Reference) {
+		const auto view = Reference.view(window());
+		for (size_t i = 0; i < size(); ++i) {
+			_entries[i].refBase = view[i];
+			if (FilterRefN && _entries[i].refBase == Base::N) {
+				_masked[i] = true;
+			}
+			if (FilterCpG && i > 0) {
+				if (view[i - 1] == Base::C && view[i] == Base::G) {
+					_masked[i - 1] = true; // C
+					_masked[i]     = true; // G
+				}
 			}
 		}
+	}
 
+	if (FilterCpG) {
 		// borders
 		if (from().position() > 0 && Reference[from() - 1] == Base::C && Reference[from()] == Base::G)
 			_masked.front() = true;

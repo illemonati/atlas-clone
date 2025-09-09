@@ -16,24 +16,31 @@ class TSiteTraverser {
 
 	size_t _wSize = 1'000'000;
 	genometools::TGenomeWindow _window;
-	TBamWindow _bamWindow;
 	genometools::TBed _windowList;
+	TBamWindow _bamWindow;
 
-	size_t _i         = 0;
-	size_t _iWindows  = 0;
-	bool _winChanged  = true;
+	size_t _i        = 0;
+	size_t _iWindows = 0;
+	bool _winChanged = true;
 
-	size_t _numSites  = 0;
-	size_t _nextPrint = 1'000'000;
+	size_t _numBasesTot = 0;
+	size_t _numSitesTot = 0;
+	size_t _numSDataTot = 0;
+	size_t _numReadsTot = 0;
+	size_t _numBasesChr = 0;
+	size_t _numSitesChr = 0;
+	size_t _numSDataChr = 0;
+	size_t _numReadsChr = 0;
+
 	coretools::TTimer _timer;
-
-	size_t _numBasesChr  = 0;
-	size_t _numSitesChr  = 0;
-	size_t _numReadsChr  = 0;
-
-	coretools::TNumericRange<size_t> _depthFilter{1, true, -1, true};
-	bool _filterCpG = false;
+	coretools::TNumericRange<size_t> _depthFilter{0, true, -1, true};
 	coretools::Probability _downProb{1.};
+
+	bool _filterCpG   = false;
+	bool _filterEmpty = false;
+	bool _filterRefN  = false;
+
+	bool _atStart() const noexcept {return _window.size() == 0;}
 
 	void _fillWindow();
 	void _filterFindI();
@@ -65,7 +72,7 @@ public:
 	bool endOfChrs();
 	void nextChr();
 
-	size_t numSites() const noexcept {return _numSites;}
+	size_t numSites() const noexcept {return _numSitesTot;}
 
 	// Per Site access
 	void nextSite();
@@ -78,11 +85,12 @@ public:
 	void nextWindow();
 	const TBamWindow& window() const noexcept {return _bamWindow;}
 
-
-	void setDepthFilter(size_t Min, size_t Max = -1) noexcept;
 	void requireReference() const;
 	void requireSingleBAM() const;
-	void requireReadIDs() noexcept {_bamWindow.requireReadIDs();}
+	void requireReadIDs() noexcept {DEV_ASSERT(_atStart()); _bamWindow.requireReadIDs();}
+
+	void filterRefN(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _filterRefN = Yes;}
+	void filterEmpty(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _filterEmpty = Yes;}
 
 	size_t refID() const noexcept {return _window.refID();}
 	const genometools::TChromosomes &chromosomes() const noexcept(coretools::noDebug) { return _traverser().chromosomes(); }

@@ -16,6 +16,7 @@ namespace BAM {
 class TBamWindow {
 public:
 	static constexpr size_t maxReadID = uint16_t(-1);
+
 private:
 	genometools::TGenomePosition _from = {size_t(-1), size_t(-1)};
 	std::vector<GenotypeLikelihoods::TSite> _entries;
@@ -32,8 +33,7 @@ private:
 	size_t _sitesData  = 0;
 	size_t _sites2Plus = 0;
 	bool _tagReads     = false;
-
-	size_t _upToDepth = 1000;
+	size_t _upToDepth  = 1000;
 
 	void _makeBedOrAlleles(const genometools::TChromosomes &Chromosomes);
 
@@ -49,7 +49,7 @@ public:
 	size_t size() const noexcept {return _entries.size();}
 	bool empty() const noexcept {return _entries.empty();}
 
-	void move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterCpG);
+	void move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterRefN, bool FilterCpG);
 	void add(const TAlignment& Alignment);
 	void mask(size_t I);
 	bool masked(size_t I) const noexcept {return _masked[I];}

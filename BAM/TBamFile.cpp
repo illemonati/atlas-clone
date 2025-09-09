@@ -543,7 +543,6 @@ void TBamFile::printSummary(std::string_view outputName) const {
 	}
 
 	logfile().endIndent();
-	logfile().endIndent();
 }
 
 void TBamFile::startProgressReporting(bool indent) const {

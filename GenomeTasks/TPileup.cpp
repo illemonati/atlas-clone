@@ -121,7 +121,6 @@ void writeTransitions(const Transitions &transitions, std::string_view Chr, TOut
 //---------------------------------
 TPileup::TPileup() {
 	_onlyHistograms = parameters().exists("onlyHistograms");
-	_siteTraverser.setDepthFilter(0); // histograms need depth=0, we filter manually
 
 	if (!_onlyHistograms) {
 		// open output file

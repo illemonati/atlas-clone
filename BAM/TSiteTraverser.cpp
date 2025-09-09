@@ -13,8 +13,8 @@
 namespace BAM{
 
 namespace impl {
-constexpr size_t millions = 1'000'000;
-std::string millionsReads(size_t N) { return coretools::str::toStringWithPrecision((double) N / millions, 1); }
+constexpr size_t million = 1'000'000;
+std::string smillions(size_t N) { return coretools::str::toStringWithPrecision((double) N / million, 1); }
 
 std::string bamNames(const std::vector<TAlignmentTraverser>& traversers) {
 	DEV_ASSERT(!traversers.empty());
@@ -63,7 +63,7 @@ void TSiteTraverser::_skipShinkFill() {
 }
 
 void TSiteTraverser::_fillWindow() {
-	_bamWindow.move(_window, _traverser().reference(), _filterCpG);
+	_bamWindow.move(_window, _traverser().reference(), _filterRefN, _filterCpG);
 
 	for (auto &traverser : _alnTraversers) {
 		for (; !traverser.endOfAlignments(); traverser.nextAlignment()) {
@@ -82,13 +82,9 @@ void TSiteTraverser::_fillWindow() {
 	}
 	_winChanged = true;
 	_numSitesChr += _bamWindow.numSites();
+	_numSDataChr += _bamWindow.numSitesWithData();
 	_numBasesChr += _bamWindow.numBases();
 	_numReadsChr += _bamWindow.numReads();
-}
-
-void TSiteTraverser::setDepthFilter(size_t Min, size_t Max) noexcept {
-	_depthFilter.set(Min, true, Max, true);
-	_filterFindI();
 }
 
 void TSiteTraverser::_filterFindI() {
@@ -100,19 +96,30 @@ void TSiteTraverser::_filterFindI() {
 		if (_downProb < P(1)) {
 			_bamWindow[i].downsample(_downProb);
 		}
-
-		if (_depthFilter.outside(_bamWindow[i].depth())) {
+		if ((_filterEmpty && _bamWindow[i].empty()) || _depthFilter.outside(_bamWindow[i].depth())) {
 			_bamWindow.mask(i);
-		} else if (_i == size_t(-1)) {
+			continue;
+		}
+
+		if (_i == size_t(-1)) {
 			_i = i;
 		}
 	}
 }
 
 void TSiteTraverser::_initChr(size_t RefID) {
+	_numSitesTot +=_numSitesChr;
 	_numSitesChr = 0;
+
+	_numSDataTot += _numSDataChr;
+	_numSDataChr = 0;
+
+	_numBasesTot +=_numBasesChr;
 	_numBasesChr = 0;
+
+	_numReadsTot += _numReadsChr;
 	_numReadsChr = 0;
+
 	if (RefID >= chromosomes().size()) {
 		// end of chromosomes
 		_window.move(RefID, 0, _wSize);
@@ -187,16 +194,18 @@ void TSiteTraverser::_initChr(size_t RefID) {
 }
 
 void TSiteTraverser::requireReference() const {
+	DEV_ASSERT(_atStart());
 	coretools::user_assert(_traverser().reference().isOpen(),
 						   "No reference provided! (Use parameter fasta to provide a reference)");
 }
 
 void TSiteTraverser::requireSingleBAM() const {
+	DEV_ASSERT(_atStart());
 	coretools::user_assert(numSamples() == 1, "Cannot handle more than one BAM-file not allowed!");
 }
 
 bool TSiteTraverser::endOfChrs() {
-	if (_window.size() == 0) {
+	if (_atStart()) {
 		DEBUG_ASSERT(_window.from() == genometools::TGenomePosition{});
 
 		logfile().startIndent("Traversing sites of ", impl::bamNames(_alnTraversers), ":");
@@ -226,12 +235,13 @@ void TSiteTraverser::nextWindow() {
 
 void TSiteTraverser::nextSite() {
 	_winChanged = false;
-	do {
-		++_i;
-	} while (_i < _bamWindow.size() && (_bamWindow.masked(_i) || _depthFilter.outside(_bamWindow[_i].depth())));
+	++_i;
 
-	if (_i >= _bamWindow.size()) { nextWindow(); }
-	++_numSites;
+	// skip masked sites
+	while(_i < _bamWindow.size() && _bamWindow.masked(_i)) ++_i;
+
+	if (_i >= _bamWindow.size()) nextWindow();
+
 	_log();
 }
 
@@ -251,33 +261,43 @@ void TSiteTraverser::_log() {
 		}
 		return tot;
 	}();
-	if (_numSites > _nextPrint) {
-		logfile().list("Parsed ", impl::millionsReads(_numSites), " million sites (est. ",
-					   coretools::str::toStringWithPrecision(_numSites*100. / NtotSites, 2) + "%) in ",
+	static size_t counter = 0;
+	static size_t nextPrint = impl::million;
+
+	if (counter > nextPrint) {
+		logfile().list("Parsed ", impl::smillions(counter), " million sites (est. ",
+					   coretools::str::toStringWithPrecision(counter*100. / NtotSites, 2) + "%) in ",
 					   _timer.formattedTime());
-		_nextPrint += impl::millions;
+		nextPrint += impl::million;
 	}
+	++counter;
 }
 
 void TSiteTraverser::nextChr() {
 	if (_iWindows != size_t(-1)) {
 		logfile().list("Properties of chromosome '", curChr().name(), "':");
 		logfile().conclude("Number of reads: ", _numReadsChr);
-		logfile().conclude("Number of sites: ", _numSitesChr);
 		logfile().conclude("Number of bases: ", _numBasesChr);
+		logfile().conclude("Number of sites: ", _numSitesChr);
+		logfile().conclude("Number of sites with Data: ", _numSDataChr);
 		logfile().conclude("Average depth: ", double(_numBasesChr) / _numSitesChr);
+		logfile().conclude("Fraction missing: ", double(_numSitesChr - _numSDataChr) / _numSitesChr);
 	}
 	logfile().endIndent(); // _initChr
 	_initChr(refID() + 1);
 
 	if (endOfChrs()) {
 		logfile().list("Reached end of ", impl::bamNames(_alnTraversers), " in " + _timer.formattedTime() + ':');
-		logfile().conclude("Parsed a total of ", impl::millionsReads(_numSites),
-						   " million sites in " + _timer.formattedTime() + '.');
-		logfile().endIndent(); // from start in (endOfChrs)
+		logfile().conclude("Number of reads: ", _numReadsTot);
+		logfile().conclude("Number of bases: ", _numBasesTot);
+		logfile().conclude("Number of sites: ", _numSitesTot);
+		logfile().conclude("Number of sites with Data: ", _numSDataTot);
+		logfile().conclude("Average depth: ", double(_numBasesTot) / _numSitesTot);
+		logfile().conclude("Fraction missing: ", double(_numSitesTot - _numSDataTot) / _numSitesTot);
 		for (const auto& traverser: _alnTraversers) {
 			traverser.bamFile().printSummary(traverser.outputName());
 		}
+		logfile().endIndent(); // from start in (endOfChrs)
 	}
 }
 

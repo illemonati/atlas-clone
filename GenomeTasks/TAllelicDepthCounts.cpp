@@ -113,7 +113,6 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 //------------------------------------------
 TAllelicDepth::TAllelicDepth() {
 	_siteTraverser.requireSingleBAM();
-	_siteTraverser.setDepthFilter(0); // we need to count depth = 0
 
 	logfile().list("Will assemble allelic depth up to a max depth of ", _siteTraverser.upToDepth(), ". (parameter 'readUpToDepth')");
 	if(_siteTraverser.upToDepth() > 100){
