@@ -187,38 +187,40 @@ void TEstimateHKY85::_handlePerWindow() {
 	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
 		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextWindow()) {
 			const auto &window = _siteTraverser.window();
-		}
-	}
-	/*
-			// full P
 
 			_refBases.clear();
 			_P_g_I_ds.clear();
 			_P_d_I_b.clear();
 			_readIDs.clear();
 
-			_addSite(Window);
+			for (size_t i = 0; i < window.size(); ++i) {
+				if (window.masked(i) || window[i].empty()) continue;
 
-			_out.write(Window.chrName(), Window.from().position(), Window.to().position());
+				_addSite(window[i]);
+				if (_downSample() && _sample == Sample::reads) { _readIDs.push_back(window.readIDs(i)); }
+			}
+			_out.write(_siteTraverser.curChr().name(), window.from().position(), window.to().position());
+
 			if (_fullDepth) {
 			    logfile().startIndent("Using full data:");
 			    const auto LL = _runEM();
 
-			    _out.write(Window.depth(), Window.numSites(), Window.numSitesWithData(), Window.fracMissing(),
-			_genoDist->pis(), LL); logfile().endIndent(); // Using full data
+				_out.write(window.depth(), window.numSites(), window.numSitesWithData(), window.fracMissing(),
+						   _genoDist->pis(), LL);
+				logfile().endIndent(); // Using full data
 			}
 
 			// downsample
 			const auto nIT    = _numEMIterations;
-			const auto NSites = Window.numSites();
+			const auto NSites = window.numSites();
 			for (const auto dOrP : _depthOrProbs) {
 			    constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
 			        {"probability", "probability", "maximum depth"}};
 			    logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ":");
 
 			    if (_sample == Sample::upToDepth) {
-			        _numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit
-			longer } else { _numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
+			        _numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit longer
+				} else { _numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
 			    }
 
 			    const auto [depth, withData] = _downsampeSites(dOrP);
@@ -230,7 +232,6 @@ void TEstimateHKY85::_handlePerWindow() {
 			_out.endln();
 		}
 	}
-	*/
 }
 
 void TEstimateHKY85::_handleGenomeWide() {

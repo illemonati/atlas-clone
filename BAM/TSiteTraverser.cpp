@@ -81,11 +81,11 @@ void TSiteTraverser::_fillWindow() {
 	if (_i >= _bamWindow.size()) {
 		nextWindow();
 	}
-	_winChanged = true;
-	_numSitesChr += _bamWindow.numSites();
+	_winChanged      = true;
+	_numSitesChr    += _bamWindow.numSites();
 	_numWithDataChr += _bamWindow.numSitesWithData();
-	_numBasesChr += _bamWindow.numBases();
-	_numReadsChr += _bamWindow.numReads();
+	_numBasesChr    += _bamWindow.numBases();
+	_numReadsChr    += _bamWindow.numReads();
 }
 
 void TSiteTraverser::_filterFindI() {

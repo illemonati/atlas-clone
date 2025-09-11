@@ -83,11 +83,13 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 			_entries[i].refBase = view[i];
 			if (FilterRefN && _entries[i].refBase == Base::N) {
 				_masked[i] = true;
+				++_numMasked;
 			}
 			if (FilterCpG && i > 0) {
 				if (view[i - 1] == Base::C && view[i] == Base::G) {
 					_masked[i - 1] = true; // C
 					_masked[i]     = true; // G
+					_numMasked += 2;
 				}
 			}
 		}
@@ -95,9 +97,14 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 
 	if (FilterCpG) {
 		// borders
-		if (from().position() > 0 && Reference[from() - 1] == Base::C && Reference[from()] == Base::G)
+		if (from().position() > 0 && Reference[from() - 1] == Base::C && Reference[from()] == Base::G) {
 			_masked.front() = true;
-		if (Reference[to() - 1] == Base::C && Reference[to()] == Base::G) _masked.back() = true;
+			++_numMasked;
+		}
+		if (Reference[to() - 1] == Base::C && Reference[to()] == Base::G) {
+			_masked.back() = true;
+			++_numMasked;
+		}
 	}
 
 	const auto copy = _overlap; // there could be alignments longer than window
