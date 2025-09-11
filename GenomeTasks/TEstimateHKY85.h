@@ -32,8 +32,6 @@ private:
 	bool _fullDepth         = true;
 	size_t _numEMIterations = 200;
 	double _minDeltaLL      = 1e-6;
-	size_t _totMaskedSites  = 0;
-	size_t _totSites        = 0;
 	size_t _nRounds         = 1;
 
 	coretools::TOutputFile _out;
@@ -57,8 +55,6 @@ private:
 	void _handlePosterior();
 	void _handlePerWindow();
 	void _handleGenomeWide();
-
-	void _traverseSites();
 
 	void _addSite(const GenotypeLikelihoods::TSite &Site);
 	template<typename Container>

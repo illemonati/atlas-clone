@@ -21,7 +21,7 @@ using coretools::user_assert;
 TCreateBedMask::TCreateBedMask() :  _bed(_siteTraverser.bamFile().chromosomes()){
 	_minDepth = parameters().get<uint32_t>("minDepth", 2);
 	_siteTraverser.requireSingleBAM();
-	if (_minDepth > 0) _siteTraverser.filterEmpty();
+	if (_minDepth > 0) _siteTraverser.skipEmpty();
 };
 
 void TCreateBedMask::_createMask(std::string_view fileTag){
@@ -48,7 +48,7 @@ TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask for all sites with depth outside the range [" + toString(_minDepth) + ", " + toString(_maxDepth) + "].");
 
 	user_assert(_maxDepth > _minDepth, "maxDepthForMask must be > minDepthForMask!");
-	_siteTraverser.filterEmpty(false);
+	_siteTraverser.skipEmpty(false);
 }
 
 void TCreateDepthBedMask::_handleSite(const GenotypeLikelihoods::TSite &Site, genometools::TGenomePosition Position) {

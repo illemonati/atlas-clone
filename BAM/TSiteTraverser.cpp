@@ -63,7 +63,7 @@ void TSiteTraverser::_skipShinkFill() {
 }
 
 void TSiteTraverser::_fillWindow() {
-	_bamWindow.move(_window, _traverser().reference(), _filterRefN, _filterCpG);
+	_bamWindow.move(_window, _traverser().reference(), _skipEmpty, _filterCpG);
 
 	for (auto &traverser : _alnTraversers) {
 		for (; !traverser.endOfAlignments(); traverser.nextAlignment()) {
@@ -82,7 +82,7 @@ void TSiteTraverser::_fillWindow() {
 	}
 	_winChanged = true;
 	_numSitesChr += _bamWindow.numSites();
-	_numSDataChr += _bamWindow.numSitesWithData();
+	_numWithDataChr += _bamWindow.numSitesWithData();
 	_numBasesChr += _bamWindow.numBases();
 	_numReadsChr += _bamWindow.numReads();
 }
@@ -96,8 +96,12 @@ void TSiteTraverser::_filterFindI() {
 		if (_downProb < P(1)) {
 			_bamWindow[i].downsample(_downProb);
 		}
-		if ((_filterEmpty && _bamWindow[i].empty()) || _depthFilter.outside(_bamWindow[i].depth())) {
+		if (_depthFilter.outside(_bamWindow[i].depth())) {
 			_bamWindow.mask(i);
+			continue;
+		}
+		if (_skipEmpty && _bamWindow[i].empty()) {
+			// do not mask, they will be counted as missing data!
 			continue;
 		}
 
@@ -111,8 +115,8 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	_numSitesTot +=_numSitesChr;
 	_numSitesChr = 0;
 
-	_numSDataTot += _numSDataChr;
-	_numSDataChr = 0;
+	_numWithDataTot += _numWithDataChr;
+	_numWithDataChr = 0;
 
 	_numBasesTot +=_numBasesChr;
 	_numBasesChr = 0;
@@ -193,6 +197,13 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	_traverser().setSilent();
 }
 
+void TSiteTraverser::filterRefN(bool Yes) noexcept {
+	DEV_ASSERT(_atStart());
+	DEV_ASSERT(_traverser().reference().isOpen());
+	logfile().list("Will filter sites where Reference = N.");
+	_filterRefN = Yes;
+}
+
 void TSiteTraverser::requireReference() const {
 	DEV_ASSERT(_atStart());
 	coretools::user_assert(_traverser().reference().isOpen(),
@@ -236,6 +247,12 @@ void TSiteTraverser::nextWindow() {
 void TSiteTraverser::nextSite() {
 	_winChanged = false;
 	++_i;
+	for (; _i < _bamWindow.size(); ++_i) {
+		if (_bamWindow.masked(_i)) continue;
+		if (_skipEmpty && _bamWindow[_i].empty()) continue;
+
+		break;
+	}
 
 	// skip masked sites
 	while(_i < _bamWindow.size() && _bamWindow.masked(_i)) ++_i;
@@ -275,25 +292,32 @@ void TSiteTraverser::_log() {
 
 void TSiteTraverser::nextChr() {
 	if (_iWindows != size_t(-1)) {
-		logfile().list("Properties of chromosome '", curChr().name(), "':");
-		logfile().conclude("Number of reads: ", _numReadsChr);
-		logfile().conclude("Number of bases: ", _numBasesChr);
-		logfile().conclude("Number of sites: ", _numSitesChr);
-		logfile().conclude("Number of sites with Data: ", _numSDataChr);
-		logfile().conclude("Average depth: ", double(_numBasesChr) / _numSitesChr);
-		logfile().conclude("Fraction missing: ", double(_numSitesChr - _numSDataChr) / _numSitesChr);
+		logfile().startIndent("Properties of chromosome '", curChr().name(), "':");
+		logfile().list("Total number of sites: ", curChr().length());
+		logfile().list("Fraction of filtered sites: ", 1. - (double)_numSitesChr/curChr().length());
+		logfile().conclude("Number of used sites: ", _numSitesChr);
+		logfile().list("Number of used reads: ", _numReadsChr);
+		logfile().list("Number of used bases: ", _numBasesChr);
+		logfile().conclude("Average depth: ", double(_numBasesChr)/_numSitesChr);
+		logfile().list("Number of used sites without Data: ", _numSitesChr - _numWithDataChr);
+		logfile().conclude("Fraction of used sites without Data: ", 1. - (double)_numWithDataChr/_numSitesChr);
+		logfile().endIndent();
 	}
 	logfile().endIndent(); // _initChr
 	_initChr(refID() + 1);
 
 	if (endOfChrs()) {
-		logfile().list("Reached end of ", impl::bamNames(_alnTraversers), " in " + _timer.formattedTime() + ':');
-		logfile().conclude("Number of reads: ", _numReadsTot);
-		logfile().conclude("Number of bases: ", _numBasesTot);
-		logfile().conclude("Number of sites: ", _numSitesTot);
-		logfile().conclude("Number of sites with Data: ", _numSDataTot);
+		const auto totLength = chromosomes().totLength();
+		logfile().startIndent("Reached end of ", impl::bamNames(_alnTraversers), " in " + _timer.formattedTime() + ':');
+		logfile().list("Total number of sites: ", totLength);
+		logfile().list("Fraction of filtered sites: ", 1. - (double)_numSitesTot/totLength);
+		logfile().conclude("Number of used sites: ", _numSitesTot);
+		logfile().list("Number of used reads: ", _numReadsTot);
+		logfile().list("Number of used bases: ", _numBasesTot);
 		logfile().conclude("Average depth: ", double(_numBasesTot) / _numSitesTot);
-		logfile().conclude("Fraction missing: ", double(_numSitesTot - _numSDataTot) / _numSitesTot);
+		logfile().list("Number of used sites without Data: ", _numWithDataTot);
+		logfile().conclude("Fraction of used sites without Data: ", double(_numSitesTot - _numWithDataTot) / _numSitesTot);
+		logfile().endIndent();
 		for (const auto& traverser: _alnTraversers) {
 			traverser.bamFile().printSummary(traverser.outputName());
 		}

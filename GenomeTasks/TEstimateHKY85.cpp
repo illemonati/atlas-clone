@@ -20,6 +20,8 @@
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Genotype.h"
 
+#include "coretools/devtools.h"
+
 namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
@@ -30,8 +32,6 @@ using genometools::Base;
 using genometools::Genotype;
 
 void TEstimateHKY85::_addSite(const GenotypeLikelihoods::TSite &Site) {
-	if (Site.empty() || Site.refBase == genometools::Base::N) return;
-
 	_refBases.push_back(Site.refBase);
 	_P_d_I_b.push_back();
 
@@ -185,64 +185,53 @@ void TEstimateHKY85::_handlePosterior() {
 
 void TEstimateHKY85::_handlePerWindow() {
 	/*
-	// full P
+	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			const auto &window = _siteTraverser.window();
+			// full P
 
-	_refBases.clear();
-	_P_g_I_ds.clear();
-	_P_d_I_b.clear();
-	_readIDs.clear();
-	_lastReadID = 0;
+			_refBases.clear();
+			_P_g_I_ds.clear();
+			_P_d_I_b.clear();
+			_readIDs.clear();
 
-	_addSite(Window);
-	_lastReadID = Window.numReadsInWindow();
+			_addSite(Window);
 
-	_out.write(Window.chrName(), Window.from().position(), Window.to().position());
-	if (_fullDepth) {
-		logfile().startIndent("Using full data:");
-		const auto LL = _runEM();
+			_out.write(Window.chrName(), Window.from().position(), Window.to().position());
+			if (_fullDepth) {
+			    logfile().startIndent("Using full data:");
+			    const auto LL = _runEM();
 
-		_out.write(Window.depth(), Window.numSites(), Window.numSitesWithData(), Window.fracMissing(), _genoDist->pis(), LL);
-		logfile().endIndent(); // Using full data
-	}
+			    _out.write(Window.depth(), Window.numSites(), Window.numSitesWithData(), Window.fracMissing(),
+			_genoDist->pis(), LL); logfile().endIndent(); // Using full data
+			}
 
-	// downsample
-	const auto nIT    = _numEMIterations;
-	const auto NSites = Window.numSites();
-	for (const auto dOrP : _depthOrProbs) {
-		constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
-			{"probability", "probability", "maximum depth"}};
-		logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ":");
+			// downsample
+			const auto nIT    = _numEMIterations;
+			const auto NSites = Window.numSites();
+			for (const auto dOrP : _depthOrProbs) {
+			    constexpr coretools::TStrongArray<std::string_view, Sample> sdepthOrProb{
+			        {"probability", "probability", "maximum depth"}};
+			    logfile().startIndent("Downsampling reads to a ", sdepthOrProb[_sample], " ", dOrP, ":");
 
-		if (_sample == Sample::upToDepth) {
-			_numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit longer
-		} else {
-			_numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
+			    if (_sample == Sample::upToDepth) {
+			        _numEMIterations = std::min<size_t>(10 * nIT, nIT * _depthOrProbs[0] / dOrP); // may need a bit
+			longer } else { _numEMIterations = std::min<size_t>(10 * nIT, nIT / dOrP); // may need a bit longer
+			    }
+
+			    const auto [depth, withData] = _downsampeSites(dOrP);
+			    const auto LL_i              = _runEM();
+			    _out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites,
+			_genoDist->pis(), LL_i); logfile().endIndent(); // Downsampling...
+			}
+			_numEMIterations = nIT;
+			_out.endln();
 		}
-
-		const auto [depth, withData] = _downsampeSites(dOrP);
-		const auto LL_i              = _runEM();
-		_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
-				   LL_i);
-		logfile().endIndent(); // Downsampling...
 	}
-	_numEMIterations = nIT;
-	_out.endln();
 	*/
 }
 
-void TEstimateHKY85::_traverseSites() {
-	if (_runType == RunType::genomeWide) {
-		_handleGenomeWide();
-	} else if (_runType == RunType::windows) {
-		_handlePerWindow();
-	} else { //posterior
-		_handlePosterior();
-	}
-}
-
 void TEstimateHKY85::_handleGenomeWide() {
-	double NData    = 0;
-	size_t NMissing = 0;
 	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
 		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
 			const auto &site = _siteTraverser.site();
@@ -250,15 +239,13 @@ void TEstimateHKY85::_handleGenomeWide() {
 			if (_downSample() && _sample == Sample::reads) {
 			    _readIDs.push_back(_siteTraverser.readIDs());
 			}
-
-			// full P
-			NData += site.depth();
-			if (site.empty() || site.refBase == Base::N) { ++NMissing; }
 		}
 	}
 
 	_openFile();
+	const auto NBases = _siteTraverser.numBases();
 	const auto NSites = _siteTraverser.numSites();
+	const auto NUsed  = _siteTraverser.numSitesWithData();
 	const auto nIT    = _numEMIterations;
 
 	// full
@@ -275,8 +262,7 @@ void TEstimateHKY85::_handleGenomeWide() {
 		logfile().startIndent("Downsampling round ", r + 1, ":");
 		_out.write("genome-wide", "Round", r + 1);
 		if (_fullDepth) {
-			_out.write(NData / NSites, NSites, _totSites - NMissing,
-					   double(NMissing - _totMaskedSites) / NSites, pis, LL);
+			_out.write((double)NBases / NSites, NSites, NUsed, double(NSites - NUsed) / NSites, pis, LL);
 		}
 
 		// downsampled
@@ -292,10 +278,10 @@ void TEstimateHKY85::_handleGenomeWide() {
 				_numEMIterations = std::min<size_t>(10 * nIT, nIT / _depthOrProbs[p]); // may need a bit longer
 			}
 
-			const auto [depth, withData] = _downsampeSites(_depthOrProbs[p]);
+			const auto [NBasesDown, NUsedDown] = _downsampeSites(_depthOrProbs[p]);
 			const auto LL_i              = _runEM();
-			_out.write(double(depth) / NSites, NSites, withData, double(NSites - withData) / NSites, _genoDist->pis(),
-					   LL_i);
+			_out.write((double)NBasesDown / NSites, NSites, NUsedDown, double(NSites - NUsedDown) / NSites,
+					   _genoDist->pis(), LL_i);
 			logfile().endIndent(); // Downsampling reads...
 		}
 		_out.endln();
@@ -304,7 +290,13 @@ void TEstimateHKY85::_handleGenomeWide() {
 }
 
 void TEstimateHKY85::run() {
-	_traverseSites();
+	if (_runType == RunType::genomeWide) {
+		_handleGenomeWide();
+	} else if (_runType == RunType::windows) {
+		_handlePerWindow();
+	} else { //posterior
+		_handlePosterior();
+	}
 }
 
 void TEstimateHKY85::_initPosterior() {
@@ -502,8 +494,10 @@ void TEstimateHKY85::_initEstimation() {
 }
 
 TEstimateHKY85::TEstimateHKY85() {
-	_siteTraverser.requireReference();
 	_siteTraverser.requireSingleBAM();
+	_siteTraverser.requireReference();
+	_siteTraverser.filterRefN();
+	_siteTraverser.skipEmpty();
 
 	if (parameters().exists("posterior")) {
 		_initPosterior();

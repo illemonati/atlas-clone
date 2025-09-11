@@ -23,21 +23,21 @@ class TSiteTraverser {
 	size_t _iWindows = 0;
 	bool _winChanged = true;
 
-	size_t _numBasesTot = 0;
-	size_t _numSitesTot = 0;
-	size_t _numSDataTot = 0;
-	size_t _numReadsTot = 0;
-	size_t _numBasesChr = 0;
-	size_t _numSitesChr = 0;
-	size_t _numSDataChr = 0;
-	size_t _numReadsChr = 0;
+	size_t _numBasesTot    = 0;
+	size_t _numSitesTot    = 0;
+	size_t _numWithDataTot = 0;
+	size_t _numReadsTot    = 0;
+	size_t _numBasesChr    = 0;
+	size_t _numSitesChr    = 0;
+	size_t _numWithDataChr = 0;
+	size_t _numReadsChr    = 0;
 
 	coretools::TTimer _timer;
 	coretools::TNumericRange<size_t> _depthFilter{0, true, -1, true};
 	coretools::Probability _downProb{1.};
 
-	bool _filterCpG   = false;
-	bool _filterEmpty = false;
+	bool _filterCpG = false;
+	bool _skipEmpty = false;
 	bool _filterRefN  = false;
 
 	bool _atStart() const noexcept {return _window.size() == 0;}
@@ -72,7 +72,11 @@ public:
 	bool endOfChrs();
 	void nextChr();
 
+	// useful after traversing
+	size_t numBases() const noexcept {return _numBasesTot;}
 	size_t numSites() const noexcept {return _numSitesTot;}
+	size_t numSitesWithData() const noexcept {return _numWithDataTot;}
+	size_t numReads() const noexcept {return _numReadsTot;}
 
 	// Per Site access
 	void nextSite();
@@ -89,8 +93,8 @@ public:
 	void requireSingleBAM() const;
 	void requireReadIDs() noexcept {DEV_ASSERT(_atStart()); _bamWindow.requireReadIDs();}
 
-	void filterRefN(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _filterRefN = Yes;}
-	void filterEmpty(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _filterEmpty = Yes;}
+	void filterRefN(bool Yes=true) noexcept;
+	void skipEmpty(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _skipEmpty = Yes;}
 
 	size_t refID() const noexcept {return _window.refID();}
 	const genometools::TChromosomes &chromosomes() const noexcept(coretools::noDebug) { return _traverser().chromosomes(); }

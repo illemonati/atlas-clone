@@ -30,7 +30,7 @@ TWriteGLF::TWriteGLF(){
 		logfile().list("Will write all sites, even those without data. (parameter 'printAll')");
 	} else {
 		_printAll = false;
-		_siteTraverser.filterEmpty();
+		_siteTraverser.skipEmpty();
 		logfile().list("Will only write sites with data. (use 'printAll' to write all sites)");
 	}
 };
