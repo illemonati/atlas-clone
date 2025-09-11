@@ -45,11 +45,13 @@ class TSiteTraverser {
 	void _fillWindow();
 	void _filterFindI();
 	void _makeHaploDiplo();
-	void _advanceWindow();
 	void _skipShinkFill();
 	void _initChr(size_t RefID);
+	void _advanceWindow();
 
-	void _log();
+	void _logSites() const;
+	void _logWindows() const;
+
 	const TAlignmentTraverser &_traverser(size_t I = 0) const noexcept(coretools::noDebug) {
 		DEBUG_ASSERT(I < _alnTraversers.size());
 		return _alnTraversers[I];
@@ -87,7 +89,7 @@ public:
 
 	// Per Window access
 	void nextWindow();
-	const TBamWindow& window() const noexcept {return _bamWindow;}
+	const TBamWindow& window() const noexcept;
 
 	void requireReference() const;
 	void requireSingleBAM() const;

@@ -6,6 +6,7 @@
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/stringConversions.h"
 #include "coretools/Strings/stringProperties.h"
+#include "coretools/devtools.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
 #include <filesystem>
@@ -68,8 +69,8 @@ void TSiteTraverser::_fillWindow() {
 	for (auto &traverser : _alnTraversers) {
 		for (; !traverser.endOfAlignments(); traverser.nextAlignment()) {
 			const auto &aln = traverser.alignment();
-			if (aln.from() > window().to()) break;
-			if (aln.to() < window().from()) continue;
+			if (aln.from() > _window.to()) break;
+			if (aln.to() < _window.from()) continue;
 
 			_bamWindow.add(aln);
 		}
@@ -239,6 +240,16 @@ void TSiteTraverser::_advanceWindow() {
 	}
 }
 
+const TBamWindow &TSiteTraverser::window() const noexcept {
+	static genometools::TGenomePosition lastPos(-1, -1);
+	if (lastPos != _window.from()) {
+		lastPos = _window.from();
+		_logWindows();
+	}
+
+	return _bamWindow;
+}
+
 void TSiteTraverser::nextWindow() {
 	_advanceWindow();
 	_skipShinkFill();
@@ -259,10 +270,31 @@ void TSiteTraverser::nextSite() {
 
 	if (_i >= _bamWindow.size()) nextWindow();
 
-	_log();
+	_logSites();
 }
 
-void TSiteTraverser::_log() {
+void TSiteTraverser::_logWindows() const {
+	if (_windowList) {
+		logfile().startIndent("Parsing Window ", _iWindows + 1, " [", _window.fromOnChr(), ", ", _window.toOnChr(),
+							  "] of ", _windowList[refID()].size(), " on ", curChr().name(), ":");
+	} else {
+		const auto nWindows = (curChr().length() - 1)/_wSize + 1;
+		const auto i        = _window.fromOnChr()/_wSize + 1;
+		logfile().startIndent("Parsing Window ", i, " [", _window.fromOnChr(), ", ", _window.toOnChr(), "] of ",
+							  nWindows, " on ", curChr().name());
+	}
+	logfile().list("Total number of sites: ", _bamWindow.size());
+	logfile().list("Fraction of filtered sites: ", 1. - (double)_bamWindow.numSites()/_bamWindow.size());
+	logfile().conclude("Number of used sites: ", _bamWindow.numSites());
+	logfile().list("Number of used reads: ", _bamWindow.numReads());
+	logfile().list("Number of used bases: ", _bamWindow.numBases());
+	logfile().conclude("Average depth: ", _bamWindow.depth());
+	logfile().list("Number of used sites without Data: ", _bamWindow.numSites() - _bamWindow.numSitesWithData());
+	logfile().conclude("Fraction of used sites without Data: ", 1. - (double)_bamWindow.numSitesWithData()/_bamWindow.numSites());
+	logfile().endIndent();
+}
+
+void TSiteTraverser::_logSites() const {
 	static const size_t NtotSites = [this]() {
 		size_t tot = 0;
 		if (regions()) {

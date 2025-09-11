@@ -184,10 +184,12 @@ void TEstimateHKY85::_handlePosterior() {
 }
 
 void TEstimateHKY85::_handlePerWindow() {
-	/*
 	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
-		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextWindow()) {
 			const auto &window = _siteTraverser.window();
+		}
+	}
+	/*
 			// full P
 
 			_refBases.clear();
