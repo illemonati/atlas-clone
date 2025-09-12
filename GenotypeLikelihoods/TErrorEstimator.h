@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "TSequencedData.h"
+#include "TSiteTraverser.h"
 #include "coretools/Containers/TNestedVector.h"
 #include "genometools/Genotypes/Base.h"
 #include "genometools/Genotypes/Ploidy.h"
@@ -27,8 +28,9 @@ namespace GenotypeLikelihoods {
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TErrorEstimator final : public GenomeTasks::TBamWindowTraverser<GenomeTasks::WindowType::SingleBam> {
+class TErrorEstimator  {
 private:
+	BAM::TSiteTraverser _siteTraverser;
 	// per region
 	std::vector<size_t> _refIDs;
 	std::vector<genometools::TBed> _regions;
@@ -82,12 +84,9 @@ private:
 	void _runEM();
 
 	void _writeModels(std::string_view Intro);
-	void _handleSite(const TSite& Site, size_t Region);
+	void _addSite(const TSite& Site, size_t Region);
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _startChromosome(const genometools::TChromosome&) override {}
-	void _endChromosome(const genometools::TChromosome&) override {}
-
+	void _traverseSites();
 public:
 	TErrorEstimator();
 	void estimate();

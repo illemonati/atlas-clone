@@ -58,6 +58,8 @@ public:
 
 	const std::string &outputName(size_t I = 0) const noexcept { return _traverser(I).outputName(); }
 	const GenotypeLikelihoods::TErrorModels &errorModels(size_t I = 0) const noexcept { return _traverser(I).errorModels(); };
+	const BAM::RGInfo::TReadGroupInfo &rgInfo(size_t I = 0) const noexcept { return _traverser(I).rgInfo(); }
+	BAM::RGInfo::TReadGroupInfo &rgInfo(size_t I = 0) noexcept { return _traverser(I).rgInfo(); }
 	const genometools::TFastaReader& reference() const noexcept { return _traverser().reference(); };
 	const BAM::TBamFile &bamFile(size_t I = 0) const noexcept { return _traverser(I).bamFile(); }
 	BAM::TBamFile &bamFile(size_t I = 0) noexcept { return _traverser(I).bamFile(); }

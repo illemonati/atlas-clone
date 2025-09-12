@@ -11,6 +11,8 @@
 #include "genometools/Genotypes/Containers.h"
 #include "genometools/Genotypes/Ploidy.h"
 #include "coretools/Math/TSumLog.h"
+#include "genometools/TBed.h"
+#include <algorithm>
 
 namespace GenotypeLikelihoods {
 
@@ -22,11 +24,14 @@ using genometools::Base;
 using genometools::Genotype;
 
 TErrorEstimator::TErrorEstimator()
-	: _recalMap("recal", _genome.bamFile().readGroups(), parameters().get<std::string>("poolRecal", "")),
-	  _pmdMap("PMD", _genome.bamFile().readGroups(), parameters().get<std::string>("poolPMD", "")),
+	: _recalMap("recal", _siteTraverser.bamFile().readGroups(), parameters().get<std::string>("poolRecal", "")),
+	  _pmdMap("PMD", _siteTraverser.bamFile().readGroups(), parameters().get<std::string>("poolPMD", "")),
 	  _dataTables(_recalMap), _onlyLL(parameters().exists("onlyLL")) {
 
-	_windows.requireReference();
+	_siteTraverser.requireSingleBAM();
+	_siteTraverser.requireReference();
+	_siteTraverser.skipEmpty();
+	_siteTraverser.filterRefN();
 
 	// regions
 	std::vector<size_t> ploidies;
@@ -46,7 +51,7 @@ TErrorEstimator::TErrorEstimator()
 		_genoDist.reserve(NRegions);
 		logfile().startIndent("Estimating errors for ", NRegions, " regions:");
 		for (size_t i = 0; i < beds.size(); ++i) {
-			_regions.emplace_back(beds[i], _genome.bamFile().chromosomes());
+			_regions.emplace_back(beds[i], _siteTraverser.bamFile().chromosomes());
 			const auto NSites   = _regions[i].length();
 			logfile().list("Region ", i+1, ": ", NSites, " sites, ploidy: ", ploidies[i]);
 			_data[i].reserve(NSites);
@@ -74,7 +79,7 @@ TErrorEstimator::TErrorEstimator()
 		logfile().startIndent("Estimating errors for ", NRegions, " chromosomes:");
 		for (size_t i = 0; i < chrs.size(); ++i) {
 			const auto NSites = chrs[i].length();
-			_refIDs.push_back(_genome.bamFile().chromosomes().refID(chrs[i]));
+			_refIDs.push_back(_siteTraverser.chromosomes().refID(chrs[i]));
 			_data[i].reserve(NSites);
 			_data[i].reserveLength(NSites*0.5); // Assume depth > 0.5
 			_refBases[i].reserve(NSites);
@@ -86,6 +91,7 @@ TErrorEstimator::TErrorEstimator()
 				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
+		std::sort(_refIDs.begin(), _refIDs.end());
 		logfile().endIndent();
 	} else {
 		user_assert(ploidies.size() <= 1,
@@ -138,7 +144,7 @@ void TErrorEstimator::_identifyModels() {
 	using coretools::str::toString;
 	using BAM::Mate;
 
-	_dataTables.write(_genome.outputName());
+	_dataTables.write(_siteTraverser.outputName());
 
 	size_t totSites = 0;
 	logfile().startIndent("Number of sites with data:");
@@ -228,7 +234,7 @@ void TErrorEstimator::_identifyModels() {
 			_pmd.reset(rg);
 		} else {
 			_psis.push_back(pmd.psi());
-			_psis.back()->estimateInit(_genome.outputName(), _minData);
+			_psis.back()->estimateInit(_siteTraverser.outputName(), _minData);
 		}
 
 		logfile().endIndent();
@@ -491,9 +497,9 @@ void TErrorEstimator::_runEM() {
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
 	_writeModels("Initial");
-	_recal.addToRGInfo(_genome.rgInfo());
-	_pmd.addToRGInfo(_genome.rgInfo());
-	_genome.rgInfo().write(_genome.outputName() + "_init.json");
+	_recal.addToRGInfo(_siteTraverser.rgInfo());
+	_pmd.addToRGInfo(_siteTraverser.rgInfo());
+	_siteTraverser.rgInfo().write(_siteTraverser.outputName() + "_init.json");
 
 	// calculate initial LL
 	double oldLL     = _calculateLL_updatePg();
@@ -536,12 +542,12 @@ void TErrorEstimator::_runEM() {
 		_writeModels("Current");
 
 		// remain up to date!
-		_recal.addToRGInfo(_genome.rgInfo());
-		_pmd.addToRGInfo(_genome.rgInfo());
+		_recal.addToRGInfo(_siteTraverser.rgInfo());
+		_pmd.addToRGInfo(_siteTraverser.rgInfo());
 		if (_writeIts) {
-			_genome.rgInfo().write(toString(_genome.outputName(), "_",  i,  ".json"));
+			_siteTraverser.rgInfo().write(toString(_siteTraverser.outputName(), "_",  i,  ".json"));
 		} else {
-			_genome.rgInfo().write(_genome.outputName() + "_current.json");
+			_siteTraverser.rgInfo().write(_siteTraverser.outputName() + "_current.json");
 		}
 
 		logfile().conclude("Current Log Likelihood = ", LL);
@@ -579,8 +585,8 @@ void TErrorEstimator::estimate() {
 	_runEM();
 
 	// writing final estimates
-	_recal.addToRGInfo(_genome.rgInfo());
-	_pmd.addToRGInfo(_genome.rgInfo());
+	_recal.addToRGInfo(_siteTraverser.rgInfo());
+	_pmd.addToRGInfo(_siteTraverser.rgInfo());
 }
 
 void TErrorEstimator::calcLL() {
@@ -601,9 +607,7 @@ void TErrorEstimator::calcLL() {
 	const double LL = _calculateLL_updatePg();
 	logfile().conclude("Log Likelihood = ", LL);
 }
-void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
-	if (Site.empty() || Site.refBase == Base::N) return;
-
+void TErrorEstimator::_addSite(const TSite &Site, size_t Region) {
 	_refBases[Region].push_back(Site.refBase);
 	_data[Region].push_back<0>(Site.data());
 	_dataTables.add(Site);
@@ -612,44 +616,58 @@ void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 	}
 }
 
-void TErrorEstimator::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
-	if (!_regions.empty()) { // Either sites
-		for (size_t r = 0; r < _regions.size(); ++r) {
-			auto &region = _regions[r];
-			region.overlaps(Window.from());
-			auto lb = region.begin(Window);
-			if (lb == region.end()) continue;
-
-			logfile().list("Window overlaps with region ", r + 1, ".");
-			do {
-				const size_t pStart =
-					std::max(lb->from().position(), Window.from().position()) - Window.from().position();
-				const size_t pStop = std::min(lb->to().position(), Window.to().position()) - Window.from().position();
-
-				for (auto p = pStart; p < pStop; ++p) {
-					const auto s = Window[p];
-					_handleSite(Window[p], r);
-				}
-				++lb;
-			} while (lb != region.end() && Window.overlaps(*lb));
-		}
-	} else { // or chromosomes
-		size_t region = 0;
+void TErrorEstimator::_traverseSites() {
+	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		const auto curRefID = _siteTraverser.refID();
 		if (!_refIDs.empty()) {
-			const auto rIt = std::find(_refIDs.begin(), _refIDs.end(), Window.refID());
-			if (rIt == _refIDs.end()) return;
-
-			region = std::distance(_refIDs.begin(), rIt);
+			bool exists = false;
+			for (const auto refID: _refIDs) {
+				if (refID == curRefID) {
+					exists = true;
+					break;
+				} else if (refID > curRefID) {
+					break;
+				}
+			}
+			if (!exists) continue;
 		}
-		for (const auto &s : Window) {
-			_handleSite(s, region);
+
+		// get regions
+		std::vector<genometools::TBed::ViewOnWindows> views;
+		views.reserve(_regions.size());
+		for (const auto& region: _regions) {
+			views.push_back(region[_siteTraverser.refID()]);
+		}
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			const auto &site = _siteTraverser.site();
+			const auto &position = _siteTraverser.position();
+			;
+			if (!_regions.empty()) {
+				// find correct region
+				[[maybe_unused]] bool passed = false;
+				for (size_t r = 0; r < views.size(); ++r) {
+					while(!views[r].empty() && views[r].front().to() < position) {
+						views[r].remove_prefix(1); // already passed
+					}
+					if (views[r].empty()) continue;
+
+					if (views[r].front().within(_siteTraverser.position())) {
+						_addSite(site, r);
+						passed = true;
+						break; // no need to do the other regions
+					}
+				}
+				DEBUG_ASSERT(passed);
+			} else {
+				_addSite(site, 0);
+			}
 		}
 	}
 }
 
 void TErrorEstimator::run() {
 	// read data
-	_traverseBAMWindows();
+	_traverseSites();
 
 	if (_onlyLL)
 		calcLL();
