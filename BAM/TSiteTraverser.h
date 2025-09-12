@@ -19,7 +19,6 @@ class TSiteTraverser {
 	genometools::TBed _windowList;
 	TBamWindow _bamWindow;
 
-	size_t _i        = 0;
 	size_t _iWindows = 0;
 	bool _winChanged = true;
 
@@ -33,17 +32,10 @@ class TSiteTraverser {
 	size_t _numReadsChr    = 0;
 
 	coretools::TTimer _timer;
-	coretools::TNumericRange<size_t> _depthFilter{0, true, -1, true};
-	coretools::Probability _downProb{1.};
-
-	bool _filterCpG = false;
-	bool _skipEmpty = false;
-	bool _filterRefN  = false;
 
 	bool _atStart() const noexcept {return _window.size() == 0;}
 
 	void _fillWindow();
-	void _filterFindI();
 	void _makeHaploDiplo();
 	void _skipShinkFill();
 	void _initChr(size_t RefID);
@@ -82,21 +74,21 @@ public:
 
 	// Per Site access
 	void nextSite();
-	const GenotypeLikelihoods::TSite& site() const { return _bamWindow[_i]; }
-	coretools::TConstView<uint16_t> readIDs() const {return _bamWindow.readIDs(_i);}
-	genometools::TGenomePosition position() const noexcept { return _bamWindow.from() + _i; }
+	const GenotypeLikelihoods::TSite& site() const { return _bamWindow.site(); }
+	coretools::TConstView<uint16_t> readIDs() const {return _bamWindow.readIDs();}
+	genometools::TGenomePosition position() const noexcept { return _bamWindow.position(); }
 	bool winChanged() const noexcept {return _winChanged;}
 
 	// Per Window access
 	void nextWindow();
-	const TBamWindow& window() const noexcept;
+	TBamWindow& window() noexcept;
 
 	void requireReference() const;
 	void requireSingleBAM() const;
 	void requireReadIDs() noexcept {DEV_ASSERT(_atStart()); _bamWindow.requireReadIDs();}
 
 	void filterRefN(bool Yes=true) noexcept;
-	void skipEmpty(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _skipEmpty = Yes;}
+	void skipEmpty(bool Yes=true) noexcept {DEV_ASSERT(_atStart()); _bamWindow.skipEmpty(Yes);}
 
 	size_t refID() const noexcept {return _window.refID();}
 	const genometools::TChromosomes &chromosomes() const noexcept(coretools::noDebug) { return _traverser().chromosomes(); }

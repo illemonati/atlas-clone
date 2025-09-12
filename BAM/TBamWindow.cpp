@@ -31,16 +31,39 @@ void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes)
 }
 
 TBamWindow::TBamWindow(const genometools::TChromosomes &Chromosomes)
-	: _upToDepth(parameters().get<size_t>("readUpToDepth", 1000)) {
+	: _upToDepth(parameters().get<size_t>("readUpToDepth", 1000)), _filterCpG(parameters().exists("filterCpG")) {
 	_makeBedOrAlleles(Chromosomes);
 
 	logfile().list("Will read data up to depth ", _upToDepth,
 	               " and ignore additional bases. (parameter 'readUpToDepth')");
+
+	if (_filterCpG) {
+		logfile().list("Will filter out CpG sites. (parameter 'filterCpG')");
+	} else {
+		logfile().list("Will keep CpG sites. (use 'filterCpG' to remove)");
+	}
+
+	if (parameters().exists("filterDepth")) {
+		parameters().fill("filterDepth", _depthFilter);
+		logfile().list("Will filter out sites with sequencing depth outside ", _depthFilter,
+					   ". (parameters 'filterDepth')");
+	} else {
+		logfile().list("Will keep all sites with data. (use 'filterDepth' to filter)");
+	}
+
+	constexpr std::string_view downsample = "downsampleSites";
+	_downProb = parameters().get(downsample, coretools::P(1.));
+	if (_downProb < 1.) {
+		logfile().list("Will downsample sites with probability ", _downProb, ".(parameter '", downsample, "')");
+	} else {
+		logfile().list("Will not downsample sites.(use '", downsample, "')");
+	}
 }
 
-void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference, bool FilterRefN, bool FilterCpG) {
+void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFastaReader& Reference) {
 	using genometools::Base;
-	_from = Window.from();
+	_iSite = 0;
+	_from  = Window.from();
 
 	_entries.assign(Window.size(), {});
 	if (_tagReads) _readIDs.assign(Window.size(), {});
@@ -81,11 +104,11 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 		const auto view = Reference.view(window());
 		for (size_t i = 0; i < size(); ++i) {
 			_entries[i].refBase = view[i];
-			if (FilterRefN && _entries[i].refBase == Base::N) {
+			if (_filterRefN && _entries[i].refBase == Base::N) {
 				_masked[i] = true;
 				++_numMasked;
 			}
-			if (FilterCpG && i > 0) {
+			if (_filterCpG && i > 0) {
 				if (view[i - 1] == Base::C && view[i] == Base::G) {
 					_masked[i - 1] = true; // C
 					_masked[i]     = true; // G
@@ -95,7 +118,7 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 		}
 	}
 
-	if (FilterCpG) {
+	if (_filterCpG) {
 		// borders
 		if (from().position() > 0 && Reference[from() - 1] == Base::C && Reference[from()] == Base::G) {
 			_masked.front() = true;
@@ -149,4 +172,48 @@ void TBamWindow::add(const TAlignment &Alignment) {
 	}
 	++_numReads;
 }
+void TBamWindow::filter() {
+	using coretools::P;
+	_iSite = -1;
+	for (size_t i = 0; i < _entries.size(); ++i) {
+		if (_masked[i]) continue;
+
+		if (_downProb < P(1)) {
+			_entries[i].downsample(_downProb);
+		}
+		if (_depthFilter.outside(_entries[i].depth())) {
+			mask(i);
+			continue;
+		}
+		if (_skipEmpty && _entries[i].empty()) {
+			// do not mask, they will be counted as missing data!
+			continue;
+		}
+
+		if (_iSite == size_t(-1)) {
+			_iSite = i;
+		}
+	}
 }
+
+void TBamWindow::nextSite() {
+	++_iSite;
+	for (; _iSite < _entries.size(); ++_iSite) {
+		if (_masked[_iSite]) continue;
+		if (_skipEmpty && _entries[_iSite].empty()) continue;
+
+		break;
+	}
+}
+
+const GenotypeLikelihoods::TSite &TBamWindow::operator[](size_t I) const noexcept(coretools::noDebug) {
+	DEBUG_ASSERT(I < size());
+	return _entries[I];
+}
+
+GenotypeLikelihoods::TSite &TBamWindow::operator[](size_t I) noexcept(coretools::noDebug) {
+	DEBUG_ASSERT(I < size());
+	return _entries[I];
+}
+
+} // namespace BAM

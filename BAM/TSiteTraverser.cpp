@@ -64,7 +64,7 @@ void TSiteTraverser::_skipShinkFill() {
 }
 
 void TSiteTraverser::_fillWindow() {
-	_bamWindow.move(_window, _traverser().reference(), _skipEmpty, _filterCpG);
+	_bamWindow.move(_window, _traverser().reference());
 
 	for (auto &traverser : _alnTraversers) {
 		for (; !traverser.endOfAlignments(); traverser.nextAlignment()) {
@@ -75,10 +75,9 @@ void TSiteTraverser::_fillWindow() {
 			_bamWindow.add(aln);
 		}
 	}
+	_bamWindow.filter();
 
-	_filterFindI();
-
-	if (_i >= _bamWindow.size()) {
+	if (_bamWindow.endOfSites()) {
 		nextWindow();
 	}
 	_winChanged      = true;
@@ -86,30 +85,6 @@ void TSiteTraverser::_fillWindow() {
 	_numWithDataChr += _bamWindow.numSitesWithData();
 	_numBasesChr    += _bamWindow.numBases();
 	_numReadsChr    += _bamWindow.numReads();
-}
-
-void TSiteTraverser::_filterFindI() {
-	using coretools::P;
-	_i = -1;
-	for (size_t i = 0; i < _bamWindow.size(); ++i) {
-		if (_bamWindow.masked(i)) continue;
-
-		if (_downProb < P(1)) {
-			_bamWindow[i].downsample(_downProb);
-		}
-		if (_depthFilter.outside(_bamWindow[i].depth())) {
-			_bamWindow.mask(i);
-			continue;
-		}
-		if (_skipEmpty && _bamWindow[i].empty()) {
-			// do not mask, they will be counted as missing data!
-			continue;
-		}
-
-		if (_i == size_t(-1)) {
-			_i = i;
-		}
-	}
 }
 
 void TSiteTraverser::_initChr(size_t RefID) {
@@ -153,7 +128,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	_skipShinkFill();
 }
 
-    TSiteTraverser::TSiteTraverser() : _alnTraversers(impl::initAln()), _bamWindow(chromosomes()), _filterCpG(parameters().exists("filterCpG")) {
+    TSiteTraverser::TSiteTraverser() : _alnTraversers(impl::initAln()), _bamWindow(chromosomes()) {
 	const auto sWindows = parameters().get("window", "");
 	if (!sWindows.empty()) {
 		if (std::filesystem::exists(sWindows)) {
@@ -170,31 +145,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	} else {
 		logfile().list("Using default window-size: ", _wSize, ". (set with 'window')");
 	}
-
-	if (_filterCpG) {
-		logfile().list("Will filter out CpG sites. (parameter 'filterCpG')");
-		_traverser().openReference(true);
-	} else {
-		logfile().list("Will keep CpG sites. (use 'filterCpG' to remove)");
-		_traverser().openReference(false);
-	}
-
-	if (parameters().exists("filterDepth")) {
-		parameters().fill("filterDepth", _depthFilter);
-		logfile().list("Will filter out sites with sequencing depth outside ", _depthFilter,
-					   ". (parameters 'filterDepth')");
-	} else {
-		logfile().list("Will keep all sites with data. (use 'filterDepth' to filter)");
-	}
-
-	constexpr std::string_view downsample = "downsampleSites";
-	_downProb = parameters().get(downsample, coretools::P(1.));
-	if (_downProb < 1.) {
-		logfile().list("Will downsample sites with probability ", _downProb, ".(parameter '", downsample, "')");
-	} else {
-		logfile().list("Will not downsample sites.(use '", downsample, "')");
-	}
-
+	_traverser().openReference(_bamWindow.filtersCpG());
 	_traverser().setSilent();
 }
 
@@ -202,7 +153,7 @@ void TSiteTraverser::filterRefN(bool Yes) noexcept {
 	DEV_ASSERT(_atStart());
 	DEV_ASSERT(_traverser().reference().isOpen());
 	logfile().list("Will filter sites where Reference = N.");
-	_filterRefN = Yes;
+	_bamWindow.filterRefN(Yes);
 }
 
 void TSiteTraverser::requireReference() const {
@@ -240,7 +191,7 @@ void TSiteTraverser::_advanceWindow() {
 	}
 }
 
-const TBamWindow &TSiteTraverser::window() const noexcept {
+TBamWindow &TSiteTraverser::window() noexcept {
 	static genometools::TGenomePosition lastPos(-1, -1);
 	if (lastPos != _window.from()) {
 		lastPos = _window.from();
@@ -257,18 +208,9 @@ void TSiteTraverser::nextWindow() {
 
 void TSiteTraverser::nextSite() {
 	_winChanged = false;
-	++_i;
-	for (; _i < _bamWindow.size(); ++_i) {
-		if (_bamWindow.masked(_i)) continue;
-		if (_skipEmpty && _bamWindow[_i].empty()) continue;
+	_bamWindow.nextSite();
 
-		break;
-	}
-
-	// skip masked sites
-	while(_i < _bamWindow.size() && _bamWindow.masked(_i)) ++_i;
-
-	if (_i >= _bamWindow.size()) nextWindow();
+	if (_bamWindow.endOfSites()) nextWindow();
 
 	_logSites();
 }

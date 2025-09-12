@@ -186,18 +186,15 @@ void TEstimateHKY85::_handlePosterior() {
 void TEstimateHKY85::_handlePerWindow() {
 	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
 		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextWindow()) {
-			const auto &window = _siteTraverser.window();
-
 			_refBases.clear();
 			_P_g_I_ds.clear();
 			_P_d_I_b.clear();
 			_readIDs.clear();
 
-			for (size_t i = 0; i < window.size(); ++i) {
-				if (window.masked(i) || window[i].empty()) continue;
-
-				_addSite(window[i]);
-				if (_downSample() && _sample == Sample::reads) { _readIDs.push_back(window.readIDs(i)); }
+			auto &window = _siteTraverser.window();
+			for (; !window.endOfSites(); window.nextSite()) {
+				_addSite(window.site());
+				if (_downSample() && _sample == Sample::reads) _readIDs.push_back(window.readIDs());
 			}
 			_out.write(_siteTraverser.curChr().name(), window.from().position(), window.to().position());
 
