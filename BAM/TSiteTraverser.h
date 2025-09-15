@@ -6,6 +6,7 @@
 #include "coretools/Containers/TView.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Types/probability.h"
+#include "genometools/TAlleles.h"
 #include "genometools/TFastaReader.h"
 #include <cstdint>
 
@@ -54,7 +55,7 @@ class TSiteTraverser {
 	}
 
 public:
-	TSiteTraverser();
+	TSiteTraverser(genometools::Morphic Mo = genometools::Morphic::Poly);
 
 	const std::string &outputName(size_t I = 0) const noexcept { return _traverser(I).outputName(); }
 	const GenotypeLikelihoods::TErrorModels &errorModels(size_t I = 0) const noexcept { return _traverser(I).errorModels(); };

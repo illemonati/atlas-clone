@@ -1,6 +1,7 @@
 #include "TBamWindow.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TParameters.h"
+#include "genometools/TAlleles.h"
 #include <cstddef>
 
 namespace BAM {
@@ -10,7 +11,7 @@ using coretools::instances::logfile;
 using coretools::str::readBeforeLast;
 using coretools::str::toString;
 
-void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes) {
+void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes, genometools::Morphic Mo) {
 	if (parameters().exists("regions")) { _regions.parse(parameters().get("regions"), Chromosomes); }
 	if (parameters().exists("mask")) {
 		if (_regions.empty()) {
@@ -26,13 +27,13 @@ void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes)
 	}
 	if (parameters().exists("alleles")) {
 		coretools::user_assert(_regions.empty(), "Cannot define regions and alleles at the same time!");
-		_alleles.parse(parameters().get("alleles"), Chromosomes);
+		_alleles.parse(parameters().get("alleles"), Chromosomes, Mo);
 	}
 }
 
-TBamWindow::TBamWindow(const genometools::TChromosomes &Chromosomes)
+TBamWindow::TBamWindow(const genometools::TChromosomes &Chromosomes, genometools::Morphic Mo)
 	: _upToDepth(parameters().get<size_t>("readUpToDepth", 1000)), _filterCpG(parameters().exists("filterCpG")) {
-	_makeBedOrAlleles(Chromosomes);
+	_makeBedOrAlleles(Chromosomes, Mo);
 
 	logfile().list("Will read data up to depth ", _upToDepth,
 	               " and ignore additional bases. (parameter 'readUpToDepth')");
@@ -88,6 +89,7 @@ void TBamWindow::move(genometools::TGenomeWindow Window, const genometools::TFas
 	} else if (_alleles) {
 		if (Reference) logfile().warning("Allele-Files will overwrite ref-values given by reference!");
 		_masked.assign(Window.size(), true);
+		_numMasked = _masked.size();
 
 		for (auto it = _alleles.begin(Window); it != _alleles.end() && Window.within(it->position); ++it) {
 			const auto i = it->position - Window.from();

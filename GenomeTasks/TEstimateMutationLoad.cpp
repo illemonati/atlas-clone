@@ -4,6 +4,7 @@
 
 #include "TEstimateMutationLoad.h"
 #include "coretools/Main/TError.h"
+#include "coretools/Main/TParameters.h"
 #include "stattools/EM/TEM.h"
 
 namespace GenomeTasks {
@@ -120,73 +121,47 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 //------------------------------------------------
 // TEstimateMutationLoad
 //------------------------------------------------
-void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, genometools::Base PreferredBase) {
-	if (site.empty() || PreferredBase == genometools::Base::N) return;
+void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site) {
+	//if (site.empty() || PreferredBase == genometools::Base::N) return;
 
-	genometools::TGenotypeLikelihoods genoLik = _genome.errorModels().calculateGenotypeLikelihoods(site);
-	_sites.emplace_back(genoLik, PreferredBase);
+	genometools::TGenotypeLikelihoods genoLik = _siteTraverser.errorModels().calculateGenotypeLikelihoods(site);
+	_sites.emplace_back(genoLik, site.refBase);
 }
 
-void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& Window) {
-	// adding sites to estimator
-	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
-	try {
-		if (_parseFromBed) {
-			// get sites from bed file and alleles from reference
-			auto it = _bedFile.begin(Window);
-			while (it != _bedFile.end() && Window.overlaps(*it)) {
-				for (genometools::TGenomePosition s = std::max(it->from(), Window.from());
-				     s < it->to() && s < Window.to(); ++s) {
-					const GenotypeLikelihoods::TSite &site = Window[s - Window.from()];
-					_addSite(site, site.refBase);
-				}
-				++it;
-			}
-		} else {
-			// get sites and alleles from site subset
-			for (auto it = _windows.alleles().begin(Window); it != _windows.alleles().end(); ++it) {
-				if (!Window.within(it->position)) break;
-				_addSite(Window[it->position - Window.from()], it->ref);
-			}
+void TEstimateMutationLoad::_traverseSites() {
+	logfile().startIndent("Calculating genotype likelihoods and storing data ...");
+	for (;!_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
+		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextSite()) {
+			_addSite(_siteTraverser.site());
 		}
-	} catch (...) {
-		throw coretools::TUserError("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
 	}
-	logfile().doneTime();
-};
+	logfile().endIndent();
+}
 
 TEstimateMutationLoad::TEstimateMutationLoad()  {
 	using coretools::instances::logfile;
 	using coretools::instances::parameters;
-	// Two ways to read positions and preferred alleles:
-	//  1) from an alleles file (chr, pos, allele)
-	//  2) from a BED file and the reference
-	if (parameters().exists("alleles")) {
+	_siteTraverser.requireSingleBAM();
+	_siteTraverser.skipEmpty();
+
+	if (_siteTraverser.alleles()) {
+		logfile().list("Limiting analysis to sites listed in alleles file.");
 		_fileName = parameters().get("alleles");
-		_windows.openSiteSubset("alleles", _genome.bamFile().chromosomes(), genometools::Morphic::Mono);
-		_parseFromBed = false;
-	} else if (parameters().exists("bed")) {
-		logfile().startIndent("Limiting analysis to sites listed in BED file:");
-		// open reference
+	} else if (_siteTraverser.regions()) {
+		logfile().list("Limiting analysis to sites listed in BED file.");
 		logfile().list("Will assume that the reference allele is the preferred allele.");
-		_windows.requireReference();
-		// parse BED
-		_fileName = parameters().get("bed");
-		logfile().listFlush("Reading BED file '", _fileName, "' (parameter 'bed') ...");
-		_bedFile.parse(_fileName, _genome.bamFile().chromosomes());
-		logfile().done();
-		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.NChrWithWindows(),
-		                   " chromosomes.");
-		_parseFromBed = true;
-		logfile().endIndent();
+		_siteTraverser.requireReference();
+		_siteTraverser.filterRefN();
+		_fileName = parameters().get("regions");
 	} else {
 		throw coretools::TUserError("Sites and preferred allele must be specified either using 'alleles' or 'bed'!");
 	}
-};
+}
 
 void TEstimateMutationLoad::run() {
 	// traverse BAM file and store data
-	_traverseBAMWindows();
+	//_traverseBAMWindows();
+	_traverseSites();
 
 	// check if sufficient sites
 	coretools::user_assert(_sites.size() != 0, "No sites were kept after traversing BAM file!");
@@ -202,9 +177,9 @@ void TEstimateMutationLoad::run() {
 	EM.runEM(chunkEnds);
 
 	// write output file
-	std::string filename = _genome.outputName() + "_mutationLoad.txt";
+	std::string filename = _siteTraverser.outputName() + "_mutationLoad.txt";
 	coretools::TOutputFile out(filename, {"BAM", "Alleles", "Pi_rr", "Pi_ra", "Pi_aa", "Pi_ab"});
-	out.writeln(_genome.bamFile().filename(), _fileName, prior.getPi());
+	out.writeln(_siteTraverser.bamFile().filename(), _fileName, prior.getPi());
 }
 
 } // end namespace GenomeTasks

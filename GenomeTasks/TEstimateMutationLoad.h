@@ -7,6 +7,8 @@
 
 #include <vector>
 
+#include "TSiteTraverser.h"
+#include "genometools/TAlleles.h"
 #include "genometools/TBed.h"
 #include "genometools/Genotypes/Base.h"
 #include "stattools/EM/TEMPriorIndependent.h"
@@ -122,18 +124,16 @@ public:
 //-----------------------------------
 // TEstimateMutationLoad
 //-----------------------------------
-class TEstimateMutationLoad final : public TBamWindowTraverser<WindowType::SingleBam> {
+class TEstimateMutationLoad  {
 private:
+	BAM::TSiteTraverser _siteTraverser{genometools::Morphic::Mono};
 	std::vector<MutationLoad::TSiteData> _sites;
 	bool _parseFromBed;
 	std::string _fileName;
 	genometools::TBed _bedFile;
 
-	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _startChromosome(const genometools::TChromosome&) override {}
-	void _endChromosome(const genometools::TChromosome&) override {}
-
-	void _addSite(const GenotypeLikelihoods::TSite& site, const genometools::Base PreferredBase);
+	void _traverseSites();
+	void _addSite(const GenotypeLikelihoods::TSite& site);
 public:
 	TEstimateMutationLoad();
 	void run();

@@ -128,7 +128,7 @@ void TSiteTraverser::_initChr(size_t RefID) {
 	_skipShinkFill();
 }
 
-    TSiteTraverser::TSiteTraverser() : _alnTraversers(impl::initAln()), _bamWindow(chromosomes()) {
+    TSiteTraverser::TSiteTraverser(genometools::Morphic Mo) : _alnTraversers(impl::initAln()), _bamWindow(chromosomes(), Mo) {
 	const auto sWindows = parameters().get("window", "");
 	if (!sWindows.empty()) {
 		if (std::filesystem::exists(sWindows)) {

@@ -8,7 +8,19 @@ rm simulate.bam.bai # will automatically recreate it
 # prepare alleles file
 gunzip -c simulate_trueGenotypes.vcf.gz | awk 'BEGIN{print "Chr", "Pos", "Allele1"}$1!~/#/{print $1, $2, $4}' > alleles.txt
 
+
 out="mutationLoad"
 $atlas --task mutationLoad --bam simulate.bam \
 	   --alleles alleles.txt --window 4567 \
+	   --fixedSeed 168 --out $out --logFile $out.out 2> $out.eout
+
+echo "chr1 0 1000" > bed.txt
+echo "chr1 2000 3000" >> bed.txt
+echo "chr1 4000 5000" >> bed.txt
+echo "chr1 6000 7000" >> bed.txt
+echo "chr1 8000 9000" >> bed.txt
+
+out="mutationLoadBED"
+$atlas --task mutationLoad --bam simulate.bam --fasta simulate.fasta \
+	   --regions bed.txt --window 4567 \
 	   --fixedSeed 168 --out $out --logFile $out.out 2> $out.eout

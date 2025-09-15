@@ -43,10 +43,10 @@ private:
 	bool _filterRefN  = false;
 	bool _tagReads    = false;
 
-	void _makeBedOrAlleles(const genometools::TChromosomes &Chromosomes);
+	void _makeBedOrAlleles(const genometools::TChromosomes &Chromosomes, genometools::Morphic Mo);
 
 public:
-	TBamWindow(const genometools::TChromosomes &Chromosomes);
+	TBamWindow(const genometools::TChromosomes &Chromosomes, genometools::Morphic Mo);
 	TBamWindow(const genometools::TBed& Regions) : _regions(Regions) {}
 	TBamWindow(const genometools::TAlleles& Alleles) : _alleles(Alleles) {}
 
