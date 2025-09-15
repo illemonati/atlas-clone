@@ -13,6 +13,8 @@ class TRecalDataTable {
 private:
 	uint64_t _counts    = 0;
 	uint64_t _counts_g1 = 0;
+	size_t _lastID      = -1;
+	size_t _IDcount     = 0;
 	// all vectors are uint16_t, which is used by seq error models for all covariates
 	// Object to store for which qualities and positions data is available.
 	coretools::TStrongArray<std::vector<size_t>, SequencingError::Covariates> _tables;

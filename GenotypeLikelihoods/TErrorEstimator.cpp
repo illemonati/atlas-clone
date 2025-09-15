@@ -155,7 +155,7 @@ void TErrorEstimator::_identifyModels() {
 	logfile().endIndent();
 
 	logfile().conclude("Total number of sites: ", totSites);
-	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
+	logfile().conclude("Number of sites with depth > 1: ", _dataTables.NSites_g1());
 
 
 	logfile().conclude("Number of bases: ", _dataTables.size());

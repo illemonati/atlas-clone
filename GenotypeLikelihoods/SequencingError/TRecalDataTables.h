@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "TReadGroupMap.h"
+#include "TSequencedData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "SequencingError/TRecalDataTable.h"
 
@@ -25,8 +26,9 @@ class TRecalDataTables{
 private:
 	const BAM::TReadGroupMap *_readGroupMap = nullptr;
 	std::vector<TRecalDataTableOneReadGroup> _tables; //tables[readGroup][first/second mate]
-	size_t _size         = 0;
-	size_t _N_g1         = 0;
+	size_t _NSites    = 0;
+	size_t _NSites_g1 = 0;
+	size_t _NBases    = 0;
 
 public:
 	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)
@@ -34,8 +36,8 @@ public:
 
 	void add(const TSite & site);
 
-	constexpr size_t size() const noexcept {return _size;}
-	constexpr size_t nSites_g1() const noexcept {return _N_g1;}
+	constexpr size_t size() const noexcept {return _NBases;}
+	constexpr size_t NSites_g1() const noexcept {return _NSites_g1;}
 	const TRecalDataTableOneReadGroup& operator[](size_t readGroupId) const;
 
 	void write(std::string_view Name) const;
