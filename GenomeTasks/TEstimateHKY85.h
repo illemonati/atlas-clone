@@ -39,13 +39,13 @@ private:
 	RunType _runType = RunType::windows;
 	Sample _sample;
 
+	std::vector<genometools::TGenotypeLikelihoods> _siteLikelihoods;
 	std::vector<genometools::Base> _refBases;
-	std::vector<genometools::TGenotypeLikelihoods> _P_g_I_ds;
 
 	// genomeWide data
 	coretools::TNestedVector<uint16_t> _readIDs;
 	using Standarray = coretools::TStrongStandarray<float, genometools::Base>;
-	coretools::TNestedVector<Standarray> _P_d_I_b;
+	coretools::TNestedVector<Standarray> _baseLikelihoods;
 
 	void _initPosterior();
 	void _initEstimation();

@@ -33,7 +33,7 @@ using genometools::Genotype;
 
 void TEstimateHKY85::_addSite(const GenotypeLikelihoods::TSite &Site) {
 	_refBases.push_back(Site.refBase);
-	_P_d_I_b.push_back();
+	_baseLikelihoods.push_back();
 
 	TGenotypeLikelihoods P_g_I_di(P(1.));
 	double sum = 1.;
@@ -41,11 +41,11 @@ void TEstimateHKY85::_addSite(const GenotypeLikelihoods::TSite &Site) {
 	for (auto &d_ij : Site) {
 		const auto P_dij_I_bbar = _siteTraverser.errorModels().sequencingErrorModels().P_dij(d_ij);
 		const auto P_dij_I_b    = _siteTraverser.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
-		if (_downSample()) { _P_d_I_b.push_back(Standarray::standardize(P_dij_I_b)); }
+		if (_downSample()) { _baseLikelihoods.push_back(Standarray::standardize(P_dij_I_b)); }
 
 		sum = _addToPg(P_g_I_di, P_dij_I_b, sum);
 	}
-	_P_g_I_ds.push_back(P_g_I_di);
+	_siteLikelihoods.push_back(P_g_I_di);
 }
 
 std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
@@ -58,38 +58,38 @@ std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
 		}
 	}
 
-	_P_g_I_ds.clear();
+	_siteLikelihoods.clear();
 	size_t depth    = 0;
 	size_t withData = 0;
-	for (size_t s = 0; s < _P_d_I_b.size(); ++s) {
+	for (size_t s = 0; s < _baseLikelihoods.size(); ++s) {
 		TGenotypeLikelihoods P_g_I_di(P(1.));
 		double sum = 1.;
 		size_t depth_s = 0;
 		switch (_sample) {
 		case Sample::reads: {
-			for (size_t j = 0; j < _P_d_I_b[s].size(); ++j) {
+			for (size_t j = 0; j < _baseLikelihoods[s].size(); ++j) {
 				if (keep[_readIDs[s][j]]) {
 					++depth_s;
-					sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum);
+					sum = _addToPg(P_g_I_di, _baseLikelihoods[s][j], sum);
 				}
 			}
 		} break;
 		case Sample::sites: {
-			for (size_t j = 0; j < _P_d_I_b[s].size(); ++j) {
+			for (size_t j = 0; j < _baseLikelihoods[s].size(); ++j) {
 				if (randomGenerator().getRand() < ProbOrDepth) {
 					++depth_s;
-					sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum);
+					sum = _addToPg(P_g_I_di, _baseLikelihoods[s][j], sum);
 				}
 			}
 		} break;
 		default: { // Sample::upTodepth
 
-			depth_s = std::min<size_t>(ProbOrDepth, _P_d_I_b[s].size());
-			for (size_t j = 0; j < depth_s; ++j) { sum = _addToPg(P_g_I_di, _P_d_I_b[s][j], sum); }
+			depth_s = std::min<size_t>(ProbOrDepth, _baseLikelihoods[s].size());
+			for (size_t j = 0; j < depth_s; ++j) { sum = _addToPg(P_g_I_di, _baseLikelihoods[s][j], sum); }
 		} break;
 		}
 
-		_P_g_I_ds.push_back(P_g_I_di);
+		_siteLikelihoods.push_back(P_g_I_di);
 		if (depth_s > 0) {
 			depth += depth_s;
 			++withData;
@@ -101,7 +101,7 @@ std::pair<size_t, size_t> TEstimateHKY85::_downsampeSites(double ProbOrDepth) {
 double TEstimateHKY85::_LL() {
 	coretools::TSumLogProbability LL{};
 	for (size_t i = 0; i < _refBases.size(); ++i) {
-		LL.add(_genoDist->add(_P_g_I_ds[i], _refBases[i]));
+		LL.add(_genoDist->add(_siteLikelihoods[i], _refBases[i]));
 	}
 	const auto sum = LL.getSum();
 	user_assert(std::isfinite(sum), "LL = ", LL.getSum(), "!");
@@ -187,8 +187,8 @@ void TEstimateHKY85::_handlePerWindow() {
 	for (; !_siteTraverser.endOfChrs(); _siteTraverser.nextChr()) {
 		for (; !_siteTraverser.endOfCurChr(); _siteTraverser.nextWindow()) {
 			_refBases.clear();
-			_P_g_I_ds.clear();
-			_P_d_I_b.clear();
+			_siteLikelihoods.clear();
+			_baseLikelihoods.clear();
 			_readIDs.clear();
 
 			auto &window = _siteTraverser.window();

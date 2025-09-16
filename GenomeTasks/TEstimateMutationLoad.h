@@ -8,43 +8,20 @@
 #include <vector>
 
 #include "TSiteTraverser.h"
-#include "genometools/TAlleles.h"
-#include "genometools/TBed.h"
+#include "coretools/Containers/TView.h"
 #include "genometools/Genotypes/Base.h"
 #include "stattools/EM/TEMPriorIndependent.h"
 #include "stattools/EM/TLatentVariable.h"
 
-
 #include "TBamWindowTraverser.h"
 #include "genometools/Genotypes/Containers.h"
-#include "TWindow.h"
 
 namespace GenomeTasks{
 namespace MutationLoad {
 
-
 using PrecisionType = double;
 using NumStatesType = int;
-using LengthType = size_t;
-
-
-//------------------------------------------------
-// TSiteData
-//------------------------------------------------
-class TSiteData {
-public:
-	genometools::TGenotypeLikelihoods likelihoods;
-	genometools::Base preferredBase;
-
-	TSiteData(const genometools::TGenotypeLikelihoods &Likelihoods, const genometools::Base PreferredBase)
-		: likelihoods(Likelihoods), preferredBase(PreferredBase){};
-
-	TSiteData(const TSiteData & other) = delete;
-	TSiteData(TSiteData && other){
-		likelihoods = std::move(other.likelihoods);
-		preferredBase = std::move(other.preferredBase);
-	};
-};
+using LengthType    = size_t;
 
 //------------------------------------------------
 // TGenotypeProbabilities
@@ -57,27 +34,11 @@ private:
 	void _calculateGenotypeProbs();
 public:
 	TGenotypeProbabilities();
-	~TGenotypeProbabilities() = default;
-	void setPi(std::array<double, 4> Pi);
-	const std::array<double, 4>& getPi() const { return _pi; };
-	double operator()(genometools::Base PreferredBase, genometools::Genotype Geno) const {
+
+	void setPi(const std::array<PrecisionType, 4>& Pi);
+	const std::array<PrecisionType, 4>& getPi() const { return _pi; };
+	PrecisionType operator()(genometools::Base PreferredBase, genometools::Genotype Geno) const {
 		return _genotypeProbs[PreferredBase][Geno];
-	}
-};
-
-//-------------------------------------
-// TPiIndex
-//-------------------------------------
-class TPiIndex{
-private:
-	coretools::TStrongArray<coretools::TStrongArray<NumStatesType, genometools::Genotype>, genometools::Base> _index;
-
-public:
-	TPiIndex();
-	~TPiIndex() = default;
-
-	int operator()(genometools::Base PreferredBase, genometools::Genotype Geno){
-		return _index[PreferredBase][Geno];
 	}
 };
 
@@ -86,15 +47,20 @@ public:
 //------------------------------------------------
 class TMutationLoadEMPrior : public stattools::TEMPriorIndependent_base<PrecisionType, NumStatesType, LengthType>{
 private:
-	std::vector<MutationLoad::TSiteData>& _sites;
+	using TPiIndex = coretools::TStrongArray<coretools::TStrongArray<NumStatesType, genometools::Genotype>, genometools::Base>;
+	coretools::TConstView<genometools::TGenotypeLikelihoods> _siteLikelihoods;
+	coretools::TConstView<genometools::Base> _refBases;
+
 	TGenotypeProbabilities _genoProbs;
-	TPiIndex _piIndex;
+	TPiIndex _piIndex{initIndex()};
 	std::array<double, 4> _tmpPiForEstimation;
 
+	static TPiIndex initIndex();
+
 public:
-	TMutationLoadEMPrior(std::vector<MutationLoad::TSiteData>& Sites) : 
+	TMutationLoadEMPrior(coretools::TConstView<genometools::TGenotypeLikelihoods> SiteLikelihoods, coretools::TConstView<genometools::Base> RefBases) : 
 		TEMPriorIndependent_base(genometools::TGenotypeLikelihoods::capacity),
-		_sites(Sites) {};
+		_siteLikelihoods(SiteLikelihoods), _refBases(RefBases) {};
 
 	PrecisionType operator()(LengthType Index, NumStatesType State) const override;
 
@@ -111,10 +77,13 @@ public:
 //------------------------------------------------
 class TMutationLoadLatentVariable final : public stattools::TLatentVariable<PrecisionType, NumStatesType, LengthType>{
 private:
-	std::vector<MutationLoad::TSiteData>& _sites;
+	coretools::TConstView<genometools::TGenotypeLikelihoods> _siteLikelihoods;
+	coretools::TConstView<genometools::Base> _refBases;
 
 public:
-	TMutationLoadLatentVariable(std::vector<MutationLoad::TSiteData>& Sites) : _sites(Sites) {};
+	TMutationLoadLatentVariable(coretools::TConstView<genometools::TGenotypeLikelihoods> SiteLikelihoods,
+								coretools::TConstView<genometools::Base> RefBases)
+		: _siteLikelihoods(SiteLikelihoods), _refBases(RefBases){};
 
 	// EM functions
 	void calculateEmissionProbabilities(size_t Index, stattools::TDataVector<PrecisionType, NumStatesType> &Emission) const override;
@@ -127,10 +96,9 @@ public:
 class TEstimateMutationLoad  {
 private:
 	BAM::TSiteTraverser _siteTraverser{genometools::Morphic::Mono};
-	std::vector<MutationLoad::TSiteData> _sites;
-	bool _parseFromBed;
+	std::vector<genometools::TGenotypeLikelihoods> _siteLikelihoods;
+	std::vector<genometools::Base> _refBases;
 	std::string _fileName;
-	genometools::TBed _bedFile;
 
 	void _traverseSites();
 	void _addSite(const GenotypeLikelihoods::TSite& site);

@@ -25,7 +25,7 @@ TGenotypeProbabilities::TGenotypeProbabilities() {
 	_calculateGenotypeProbs();
 }
 
-void TGenotypeProbabilities::setPi(std::array<double, 4> Pi) {
+void TGenotypeProbabilities::setPi(const std::array<PrecisionType, 4>& Pi) {
 	_pi = Pi;
 	_calculateGenotypeProbs();
 }
@@ -59,29 +59,32 @@ void TGenotypeProbabilities::_calculateGenotypeProbs() {
 //-------------------------------------
 // TPiIndex
 //-------------------------------------
-TPiIndex::TPiIndex() {
+TMutationLoadEMPrior::TPiIndex TMutationLoadEMPrior::initIndex() {
 	// maps genotype to pi
 	using genometools::Base;
 	using genometools::genotype;
 
+	TPiIndex index;
+
 	for (Base r = Base::min; r < Base::max; ++r) {
 		// homozygous preferred
-		_index[r][genotype(r, r)] = 0;
+		index[r][genotype(r, r)] = 0;
 
 		for (Base a = Base::min; a < Base::max; ++a) {
 			if (a != r) {
 				// heterozygous preferred
-				_index[r][genotype(r, a)] = 1;
+				index[r][genotype(r, a)] = 1;
 
 				// homozygous alternative
-				_index[r][genotype(a, a)] = 2;
+				index[r][genotype(a, a)] = 2;
 
 				for (Base b = Base::min; b < Base::max; ++b) {
-					if (b != a && b != r) { _index[r][genotype(a, b)] = 3; }
+					if (b != a && b != r) { index[r][genotype(a, b)] = 3; }
 				}
 			}
 		}
 	}
+	return index;
 }
 
 //------------------------------------------------
@@ -89,7 +92,7 @@ TPiIndex::TPiIndex() {
 //------------------------------------------------
 
 PrecisionType TMutationLoadEMPrior::operator()(size_t Index, NumStatesType State) const {
-	return _genoProbs(_sites[Index].preferredBase, Genotype(State));
+	return _genoProbs(_refBases[Index], Genotype(State));
 }
 
 void TMutationLoadEMPrior::prepareEMParameterEstimationOneIteration() { _tmpPiForEstimation = {0.0, 0.0, 0.0, 0.0}; }
@@ -97,7 +100,7 @@ void TMutationLoadEMPrior::prepareEMParameterEstimationOneIteration() { _tmpPiFo
 void TMutationLoadEMPrior::handleEMParameterEstimationOneIteration(
     size_t Index, const stattools::TDataVector<PrecisionType, NumStatesType> &Weights) {
 	for (Genotype g = Genotype::min; g < Genotype::max; ++g) {
-		_tmpPiForEstimation[_piIndex(_sites[Index].preferredBase, g)] += Weights[coretools::index(g)];
+		_tmpPiForEstimation[_piIndex[_refBases[Index]][g]] += Weights[coretools::index(g)];
 	}
 }
 
@@ -113,7 +116,7 @@ void TMutationLoadEMPrior::reportEMParameters() { logfile().list("Pi = ", _genoP
 //------------------------------------------------
 void TMutationLoadLatentVariable::calculateEmissionProbabilities(
     size_t Index, stattools::TDataVector<PrecisionType, NumStatesType> &Emission) const {
-	Emission.copyToCurrent(_sites[Index].likelihoods.data());
+	Emission.copyToCurrent(_siteLikelihoods[Index].data());
 }
 
 } // end namespace MutationLoad
@@ -125,7 +128,8 @@ void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site) {
 	//if (site.empty() || PreferredBase == genometools::Base::N) return;
 
 	genometools::TGenotypeLikelihoods genoLik = _siteTraverser.errorModels().calculateGenotypeLikelihoods(site);
-	_sites.emplace_back(genoLik, site.refBase);
+	_siteLikelihoods.push_back(genoLik);
+	_refBases.push_back(site.refBase);
 }
 
 void TEstimateMutationLoad::_traverseSites() {
@@ -164,16 +168,16 @@ void TEstimateMutationLoad::run() {
 	_traverseSites();
 
 	// check if sufficient sites
-	coretools::user_assert(_sites.size() != 0, "No sites were kept after traversing BAM file!");
+	coretools::user_assert(_siteLikelihoods.size() != 0, "No sites were kept after traversing BAM file!");
 
 	// now run estimation
-	MutationLoad::TMutationLoadEMPrior prior(_sites);
-	MutationLoad::TMutationLoadLatentVariable latentVar(_sites);
+	MutationLoad::TMutationLoadEMPrior prior(_siteLikelihoods, _refBases);
+	MutationLoad::TMutationLoadLatentVariable latentVar(_siteLikelihoods, _refBases);
 
 	stattools::TEM<MutationLoad::PrecisionType, MutationLoad::NumStatesType, MutationLoad::LengthType> EM(prior,
 	                                                                                                      latentVar);
 
-	std::vector<MutationLoad::LengthType> chunkEnds = {_sites.size()};
+	std::vector<MutationLoad::LengthType> chunkEnds = {_siteLikelihoods.size()};
 	EM.runEM(chunkEnds);
 
 	// write output file
