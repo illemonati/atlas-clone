@@ -1,0 +1,14 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+. $(dirname $0)/simulate  --fixedSeed 1 --chrLength 12345{3} --depth 3,5,7 --ploidy 2,2,1
+
+out="windowStats"
+$atlas --task windowStats \
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --fixedSeed 171 --out $out --logFile $out.out 2> $out.eout
+
+out="windowStatsGW"
+$atlas --task windowStats --genomeWide \
+	   --bam simulate.bam --fasta simulate.fasta \
+	   --fixedSeed 171 --out $out --logFile $out.out 2> $out.eout

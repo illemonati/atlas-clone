@@ -12,6 +12,7 @@
 #include "TReadExtractor.h"
 #include "TSafEstimator.h"
 #include "TTransitionTabler.h"
+#include "TWindowStats.h"
 #include "TWriteGLFOld.h"
 #include "coretools/Main/TMain.h"
 
@@ -85,6 +86,7 @@ void addTaks(coretools::TMain & main) {
 	main.createGroupedTask<GenomeTasks::TEstimateHKY85>(groupName, "HKY85", "Estimating heterozygosity with HKY85 genotype distribution");
 	main.createGroupedTask<GenomeTasks::TPileup>(groupName, "pileup", "Printing pileup from BAM file");
 	main.createGroupedTask<GenomeTasks::TPileup2Bed>(groupName, "pileupToBed", "Create bed file from pileup file");
+	main.createGroupedTask<GenomeTasks::TWindowStats>(groupName, "windowStats", "Summary statistics per window");
 	}
 
 	//Population tools

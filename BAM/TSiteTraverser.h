@@ -74,6 +74,7 @@ public:
 	size_t numSites() const noexcept {return _numSitesTot;}
 	size_t numSitesWithData() const noexcept {return _numWithDataTot;}
 	size_t numReads() const noexcept {return _numReadsTot;}
+	double depth() const noexcept { return _numBasesTot / double(numSites()); }
 
 	// Per Site access
 	void nextSite();

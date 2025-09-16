@@ -10,6 +10,7 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::str::readBeforeLast;
 using coretools::str::toString;
+using coretools::P;
 
 void TBamWindow::_makeBedOrAlleles(const genometools::TChromosomes &Chromosomes, genometools::Morphic Mo) {
 	if (parameters().exists("regions")) { _regions.parse(parameters().get("regions"), Chromosomes); }
@@ -174,8 +175,8 @@ void TBamWindow::add(const TAlignment &Alignment) {
 	}
 	++_numReads;
 }
+
 void TBamWindow::filter() {
-	using coretools::P;
 	_iSite = -1;
 	for (size_t i = 0; i < _entries.size(); ++i) {
 		if (_masked[i]) continue;
